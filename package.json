@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "react-native": "^0.80.2"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "^19.1.1"
+  }
+}

@@ -1,0 +1,56 @@
+# Node modules
+node_modules/
+
+# Expo specific files
+.expo/
+.expo-shared/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+debug.log*
+
+# Metro bundler cache
+.metro/
+packager-cache-*
+
+# iOS build artifacts (only if you have ios folder from bare workflow)
+ios/build/
+ios/Pods/
+ios/Podfile.lock
+
+# Android build artifacts (only if you have android folder from bare workflow)
+android/app/build/
+android/.gradle/
+android/local.properties
+
+# Misc
+.DS_Store
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE/project files
+.vscode/
+.idea/
+*.iml
+
+# Temporary files
+tmp/
+temp/
+
+# Expo web builds
+web-build/
+
+# EAS build artifacts
+dist/
+build/
+
+# Jest
+coverage/
