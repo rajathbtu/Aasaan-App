@@ -1,6 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  ScrollView,
+} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/FontAwesome';
+
 import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
 import * as mockApi from '../api/mock';
@@ -8,8 +23,8 @@ import * as mockApi from '../api/mock';
 const API = USE_MOCK_API ? mockApi : realApi;
 
 /**
- * Screen to collect the user's mobile number and send an OTP.  The
- * component validates the input and invokes the appropriate API call.
+ * Screen to collect the user's mobile number and send an OTP.
+ * Business logic unchanged — only UI has been styled to match the mockups.
  */
 const MobileInputScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -27,7 +42,6 @@ const MobileInputScreen: React.FC = () => {
     try {
       setLoading(true);
       await API.sendOtp(trimmed);
-      // Navigate to OTP verification screen, preserving phone and language
       navigation.navigate('OTPVerification', { phone: trimmed, language });
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to send OTP');
@@ -36,74 +50,274 @@ const MobileInputScreen: React.FC = () => {
     }
   };
 
+  // purely for UI hint (do NOT change logic)
+  const showFormatHint =
+    phone.length > 0 && phone.replace(/\D/g, '').length !== 10;
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={['top', 'bottom']}
     >
-      <Text style={styles.title}>Enter your mobile number</Text>
-      <TextInput
-        placeholder="10‑digit mobile number"
-        keyboardType="phone-pad"
-        style={styles.input}
-        value={phone}
-        maxLength={15}
-        onChangeText={setPhone}
-      />
-      <TouchableOpacity
-        style={[styles.button, loading && { opacity: 0.7 }]} 
-        onPress={handleSendOtp}
-        disabled={loading}
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Send OTP</Text>
-        )}
-      </TouchableOpacity>
-    </KeyboardAvoidingView>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Icon name="arrow-left" size={18} color="#4b5563" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Enter Mobile Number</Text>
+            </View>
+
+            <TouchableOpacity style={styles.langChip} activeOpacity={0.8}>
+              <Icon name="globe" size={12} color="#374151" />
+              <Text style={styles.langChipText}>English</Text>
+              <Icon name="chevron-down" size={10} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Illustration */}
+          <View style={styles.illustrationWrap}>
+            <View style={styles.illustrationBox}>
+              <Icon name="mobile" size={34} color="#2563eb" />
+            </View>
+          </View>
+
+          {/* Instructions */}
+          <View style={styles.instructions}>
+            <Text style={styles.welcome}>Welcome to Aasaan</Text>
+            <Text style={styles.instructionSub}>
+              Please enter your 10-digit mobile number to continue
+            </Text>
+          </View>
+
+          {/* Labeled input with country box */}
+          <View style={styles.inputBlock}>
+            <Text style={styles.label}>Mobile Number</Text>
+
+            <View style={styles.inputGroup}>
+              {/* Country code (non-editable) */}
+              <View style={styles.ccBox}>
+                <View style={styles.flag}>
+                  <View style={[styles.flagStripe, { backgroundColor: '#f97316' }]} />
+                  <View style={[styles.flagStripe, { backgroundColor: '#ffffff' }]} />
+                  <View style={[styles.flagStripe, { backgroundColor: '#16a34a' }]} />
+                </View>
+                <Text style={styles.ccText}>+91</Text>
+              </View>
+
+              {/* Phone input */}
+              <TextInput
+                placeholder="Enter 10-digit number"
+                keyboardType="phone-pad"
+                style={styles.input}
+                value={phone}
+                maxLength={15}
+                onChangeText={setPhone}
+                placeholderTextColor="#9ca3af"
+              />
+            </View>
+
+            {showFormatHint && (
+              <Text style={styles.errorText}>
+                <Icon name="exclamation-circle" size={12} color="#ef4444" />{' '}
+                Please enter a valid 10-digit mobile number
+              </Text>
+            )}
+          </View>
+
+          {/* Terms */}
+          <Text style={styles.terms}>
+            By continuing, you agree to our{' '}
+            <Text style={styles.link}>Terms of Service</Text> and{' '}
+            <Text style={styles.link}>Privacy Policy</Text>
+          </Text>
+
+          {/* Send OTP */}
+          <TouchableOpacity
+            style={[styles.cta, loading && { opacity: 0.7 }]}
+            onPress={handleSendOtp}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            {loading ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <>
+                <Text style={styles.ctaText}>Send OTP</Text>
+                <Icon name="arrow-right" size={14} color="#ffffff" style={{ marginLeft: 8 }} />
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Motivation */}
+          <View style={styles.motivation}>
+            <Icon name="users" size={14} color="#2563eb" style={{ marginRight: 8 }} />
+            <Text style={styles.motivationText}>
+              Join 10,000+ users finding work easily
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  flex: { flex: 1 },
+  safeArea: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#ffffff',
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '600',
-    marginBottom: 24,
-    color: '#111827',
-    textAlign: 'center',
-  },
-  input: {
-    width: '100%',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingVertical: 12,
+  scrollContent: {
+    paddingBottom: 24,
     paddingHorizontal: 16,
-    fontSize: 16,
-    marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
   },
-  button: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    width: '100%',
+
+  // Header
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center' },
+  headerTitle: {
+    marginLeft: 12,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  langChip: {
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
+  langChipText: {
+    marginHorizontal: 6,
+    fontSize: 12,
     fontWeight: '600',
+    color: '#374151',
   },
+  divider: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginBottom: 16,
+  },
+
+  // Illustration
+  illustrationWrap: { alignItems: 'center', marginTop: 8, marginBottom: 24 },
+  illustrationBox: {
+    width: 96,
+    height: 96,
+    backgroundColor: '#eff6ff',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Instructions
+  instructions: { alignItems: 'center', marginBottom: 16 },
+  welcome: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 4 },
+  instructionSub: { fontSize: 14, color: '#6b7280', textAlign: 'center' },
+
+  // Input block
+  inputBlock: { marginTop: 8, marginBottom: 16 },
+  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 },
+  inputGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 2,
+  },
+  ccBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRightWidth: 1,
+    borderRightColor: '#e5e7eb',
+  },
+  flag: { width: 18, height: 12, marginRight: 8 },
+  flagStripe: { flex: 1 },
+  ccText: { color: '#374151', fontWeight: '600' },
+
+  input: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: '#111827',
+  },
+
+  errorText: {
+    color: '#ef4444',
+    fontSize: 12,
+    marginTop: 8,
+  },
+
+  // Terms
+  terms: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  link: { color: '#2563eb', fontWeight: '600' },
+
+  // CTA
+  cta: {
+    width: '100%',
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginBottom: 12,
+  },
+  ctaText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
+
+  // Motivation
+  motivation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    alignSelf: 'stretch',
+    justifyContent: 'center',
+  },
+  motivationText: { color: '#374151', fontSize: 13 },
 });
 
 export default MobileInputScreen;
