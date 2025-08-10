@@ -9,11 +9,13 @@ import {
   ScrollView,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { services } from '../data/services';
+import { colors, spacing, radius } from '../theme';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -31,13 +33,12 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
   const service = services.find(s => s.id === serviceId);
   const [locationName, setLocationName] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [customTag, setCustomTag] = useState('');
   const { token } = useAuth();
 
   if (!service) {
     return (
-      <View style={styles.container}> 
-        <Text style={styles.title}>Unknown service</Text>
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Unknown service</Text>
       </View>
     );
   }
@@ -47,17 +48,8 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
       if (prev.includes(tag)) {
         return prev.filter(t => t !== tag);
       }
-        return [...prev, tag];
+      return [...prev, tag];
     });
-  };
-
-  const addCustomTag = () => {
-    const trimmed = customTag.trim();
-    if (!trimmed) return;
-    if (!selectedTags.includes(trimmed)) {
-      setSelectedTags(prev => [...prev, trimmed]);
-    }
-    setCustomTag('');
   };
 
   const handleConfirm = async () => {
@@ -78,34 +70,79 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
       });
       navigation.navigate('WorkRequestCreated', { request: wr });
     } catch (err: any) {
-      // Detect quota error
       const message = err?.response?.data?.message || err.message || 'Failed to create request';
       Alert.alert('Error', message);
     }
   };
 
-  const handleCancel = () => {
-    navigation.goBack();
-  };
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
-      <Text style={styles.title}>Add work details</Text>
-      <Text style={styles.label}>Service</Text>
-      <View style={styles.serviceCard}>
-        <Text style={styles.serviceName}>{service.name}</Text>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={20} color={colors.dark} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Add work details</Text>
+        <View style={{ width: 24 }} />
       </View>
-      <Text style={styles.label}>Location</Text>
-      <TextInput
-        placeholder="Area or neighbourhood"
-        style={styles.input}
-        value={locationName}
-        onChangeText={setLocationName}
-      />
+
+      {/* Service section */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="briefcase" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
+          <Text style={styles.sectionTitle}>Service</Text>
+        </View>
+        <View style={styles.serviceCard}>
+          <View style={styles.serviceIconContainer}>
+            <Ionicons name="flash" size={20} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.serviceName}>{service.name}</Text>
+            <Text style={styles.serviceSubtitle}>Selected service</Text>
+          </View>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.editButton}>
+            <Ionicons name="pencil" size={18} color={colors.primary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Location section */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="location" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
+          <Text style={styles.sectionTitle}>Location</Text>
+        </View>
+        <View style={styles.locationCard}>
+          <View style={styles.locationRow}>
+            <View style={{ flex: 1 }}>
+              <TextInput
+                placeholder="Area or neighbourhood"
+                placeholderTextColor={colors.grey}
+                style={styles.locationInput}
+                value={locationName}
+                onChangeText={setLocationName}
+              />
+            </View>
+            <TouchableOpacity onPress={() => setLocationName('')} style={styles.locationEditButton}>
+              <Ionicons name="pencil" size={18} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.locationNote}>
+            <Ionicons name="information-circle" size={14} color={colors.grey} />
+            {'  '}Precise location will not be shared with service providers
+          </Text>
+        </View>
+      </View>
+
+      {/* Tags section */}
       {service.tags && service.tags.length > 0 && (
-        <>
-          <Text style={styles.label}>Tags</Text>
-          <View style={styles.tagsContainer}>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="pricetags" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
+            <Text style={styles.sectionTitle}>Tags</Text>
+          </View>
+          <Text style={styles.tagHint}>Select tags that describe your work</Text>
+          <View style={styles.tagsRow}>
             {service.tags.map(tag => {
               const selected = selectedTags.includes(tag);
               return (
@@ -114,147 +151,181 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
                   style={[styles.tagChip, selected && styles.tagChipSelected]}
                   onPress={() => toggleTag(tag)}
                 >
-                  <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{tag}</Text>
+                  <Text style={[styles.tagText, selected && styles.tagTextSelected]}>
+                    {tag}
+                    {selected && <Ionicons name="checkmark" size={12} color="#fff" />}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-        </>
+        </View>
       )}
-      <View style={styles.customTagRow}>
-        <TextInput
-          placeholder="Add custom tag"
-          style={styles.customInput}
-          value={customTag}
-          onChangeText={setCustomTag}
-        />
-        <TouchableOpacity style={styles.addTagButton} onPress={addCustomTag}>
-          <Text style={styles.addTagText}>Add</Text>
+
+      {/* Confirm and Cancel buttons */}
+      <View style={styles.actionsSection}>
+        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
+          <Ionicons name="checkmark" size={18} color="#fff" style={{ marginRight: spacing.sm }} />
+          <Text style={styles.confirmButtonText}>Confirm Request</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="close" size={18} color={colors.grey} style={{ marginRight: spacing.sm }} />
+          <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
       </View>
-      <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
-        <Text style={styles.confirmText}>Confirm Request</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-        <Text style={styles.cancelText}>Cancel</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  emptyContainer: {
     flex: 1,
-    backgroundColor: '#f9fafb',
-    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.light,
   },
-  title: {
+  emptyText: {
+    fontSize: 18,
+    color: colors.dark,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  backButton: {
+    padding: spacing.sm,
+  },
+  headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: '#111827',
-    textAlign: 'center',
+    fontWeight: '700',
+    color: colors.dark,
   },
-  label: {
+  section: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 8,
-    color: '#1f2937',
+    color: colors.dark,
   },
   serviceCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#eef2ff',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
+    padding: spacing.md,
+    borderRadius: radius.md,
+  },
+  serviceIconContainer: {
+    backgroundColor: colors.primary,
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    marginRight: spacing.md,
   },
   serviceName: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#4338ca',
+    fontWeight: '600',
+    color: colors.dark,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    marginBottom: 16,
+  serviceSubtitle: {
+    fontSize: 12,
+    color: colors.grey,
+  },
+  editButton: {
+    padding: spacing.sm,
+  },
+  locationCard: {
     backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.greyLight,
+    borderRadius: radius.md,
+    padding: spacing.md,
   },
-  tagsContainer: {
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  locationInput: {
+    borderBottomWidth: 0,
+    fontSize: 14,
+    color: colors.dark,
+  },
+  locationEditButton: {
+    padding: spacing.sm,
+    marginLeft: spacing.sm,
+  },
+  locationNote: {
+    fontSize: 12,
+    color: colors.grey,
+  },
+  tagHint: {
+    fontSize: 12,
+    color: colors.grey,
+    marginBottom: spacing.sm,
+  },
+  tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 16,
   },
   tagChip: {
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: '#d1d5db',
-    marginRight: 8,
-    marginBottom: 8,
+    borderColor: colors.greyLight,
     backgroundColor: '#fff',
+    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
   },
   tagChipSelected: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   tagText: {
     fontSize: 14,
-    color: '#1f2937',
+    color: colors.dark,
   },
   tagTextSelected: {
     color: '#fff',
     fontWeight: '600',
   },
-  customTagRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  customInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    backgroundColor: '#fff',
-    marginRight: 8,
-  },
-  addTagButton: {
-    backgroundColor: '#e5e7eb',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  addTagText: {
-    fontSize: 14,
-    color: '#374151',
+  actionsSection: {
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.lg,
   },
   confirmButton: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 16,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    marginBottom: spacing.md,
   },
-  confirmText: {
+  confirmButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
   cancelButton: {
-    backgroundColor: '#e5e7eb',
-    paddingVertical: 14,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.greyLight,
+    paddingVertical: spacing.md,
+    borderRadius: radius.md,
   },
-  cancelText: {
-    color: '#1f2937',
+  cancelButtonText: {
+    color: colors.dark,
     fontSize: 16,
     fontWeight: '600',
   },

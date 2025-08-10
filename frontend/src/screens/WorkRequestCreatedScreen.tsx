@@ -1,6 +1,14 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, radius } from '../theme';
 
 /**
  * Confirmation screen displayed after a work request has been created.
@@ -15,7 +23,6 @@ const WorkRequestCreatedScreen: React.FC = () => {
   const { request } = (route.params as any) || {};
 
   const goToMyRequests = () => {
-    // Navigate to the main tab navigator and specify the MyRequests tab
     navigation.navigate('Main', { screen: 'MyRequests' });
   };
 
@@ -25,84 +32,264 @@ const WorkRequestCreatedScreen: React.FC = () => {
 
   if (!request) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.title}>Request created!</Text>
+      <View style={styles.emptyContainer}>
+        <Ionicons name="checkmark-circle" size={64} color={colors.success} style={{ marginBottom: spacing.lg }} />
+        <Text style={styles.emptyTitle}>Request Created!</Text>
         <TouchableOpacity style={styles.primaryButton} onPress={goToMyRequests}>
-          <Text style={styles.primaryText}>Go to My Requests</Text>
+          <Text style={styles.primaryButtonText}>Go to My Requests</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Request Created</Text>
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryItem}><Text style={styles.summaryLabel}>Service:</Text> {request.service}</Text>
-        <Text style={styles.summaryItem}><Text style={styles.summaryLabel}>Location:</Text> {request.location.name}</Text>
-        {request.tags && request.tags.length > 0 && (
-          <Text style={styles.summaryItem}><Text style={styles.summaryLabel}>Tags:</Text> {request.tags.join(', ')}</Text>
-        )}
+    <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={20} color={colors.dark} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Aasaan</Text>
+        <View style={{ width: 24 }} />
       </View>
-      <TouchableOpacity style={styles.primaryButton} onPress={handleBoost}>
-        <Text style={styles.primaryText}>Boost Request</Text>
+      {/* Success icon */}
+      <View style={styles.successIconContainer}>
+        <Ionicons name="checkmark-circle" size={64} color={colors.success} />
+      </View>
+      {/* Title */}
+      <Text style={styles.title}>Work Request Created!</Text>
+      <Text style={styles.subtitle}>Your request has been successfully created and is now visible to service providers in your area.</Text>
+      {/* Summary card */}
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryRow}>
+          <Ionicons name="flash" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.summaryLabel}>{request.service}</Text>
+            {request.tags && request.tags.length > 0 && (
+              <View style={styles.summaryTagsRow}>
+                {request.tags.slice(0, 2).map((t: string) => (
+                  <View key={t} style={styles.tagPill}>
+                    <Text style={styles.tagPillText}>{t}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+        <View style={styles.summaryRow}>
+          <Ionicons name="location" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
+          <Text style={styles.summaryLabel}>{request.location.name}</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Ionicons name="time" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
+          <Text style={styles.summaryLabel}>Just now</Text>
+        </View>
+      </View>
+      {/* What happens next */}
+      <Text style={styles.nextTitle}>What happens next?</Text>
+      <View style={styles.stepsList}>
+        <View style={styles.stepItem}>
+          <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.stepPrimary}>Service providers will see your request</Text>
+            <Text style={styles.stepSecondary}>Providers in your area will be notified about your request</Text>
+          </View>
+        </View>
+        <View style={styles.stepItem}>
+          <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.stepPrimary}>You’ll get notified when they respond</Text>
+            <Text style={styles.stepSecondary}>You’ll receive notifications when providers accept your request</Text>
+          </View>
+        </View>
+        <View style={styles.stepItem}>
+          <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>3</Text></View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.stepPrimary}>Call and hire the right provider</Text>
+            <Text style={styles.stepSecondary}>View all responses and call providers directly from the app</Text>
+          </View>
+        </View>
+      </View>
+      {/* Boost card */}
+      <View style={styles.boostCard}>
+        <Text style={styles.boostTitle}>Want faster responses?</Text>
+        <Text style={styles.boostSubtitle}>Boost your request to get noticed by more service providers</Text>
+        <TouchableOpacity style={styles.boostButton} onPress={handleBoost}>
+          <Text style={styles.boostButtonText}>Boost Request</Text>
+        </TouchableOpacity>
+      </View>
+      {/* View requests link */}
+      <TouchableOpacity onPress={goToMyRequests} style={{ alignSelf: 'center', marginTop: spacing.lg }}>
+        <Text style={styles.viewRequestsText}>View My Requests</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.secondaryButton} onPress={goToMyRequests}>
-        <Text style={styles.secondaryText}>View My Requests</Text>
-      </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  emptyContainer: {
     flex: 1,
-    padding: 24,
+    alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.light,
+    paddingHorizontal: spacing.lg,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '600',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#111827',
-  },
-  summaryCard: {
-    backgroundColor: '#eef2ff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 24,
-  },
-  summaryItem: {
-    fontSize: 16,
-    marginBottom: 8,
-    color: '#1f2937',
-  },
-  summaryLabel: {
-    fontWeight: '600',
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.dark,
+    marginBottom: spacing.lg,
   },
   primaryButton: {
-    backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    borderRadius: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.md,
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center',
   },
-  primaryText: {
+  primaryButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
-  secondaryButton: {
-    backgroundColor: '#e5e7eb',
-    paddingVertical: 14,
-    borderRadius: 8,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  backButton: {
+    padding: spacing.sm,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  successIconContainer: {
+    alignItems: 'center',
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.dark,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.grey,
+    textAlign: 'center',
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  summaryCard: {
+    backgroundColor: '#eef2ff',
+    padding: spacing.md,
+    borderRadius: radius.md,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  summaryLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.dark,
+  },
+  summaryTagsRow: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  tagPill: {
+    backgroundColor: '#dbeafe',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.lg,
+    marginRight: spacing.sm,
+  },
+  tagPillText: {
+    fontSize: 12,
+    color: colors.primary,
+  },
+  nextTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.dark,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  stepsList: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  stepBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  stepBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  stepPrimary: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.dark,
+  },
+  stepSecondary: {
+    fontSize: 12,
+    color: colors.grey,
+  },
+  boostCard: {
+    backgroundColor: '#f0f9ff',
+    padding: spacing.md,
+    borderRadius: radius.md,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  boostTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+    marginBottom: 2,
+  },
+  boostSubtitle: {
+    fontSize: 12,
+    color: colors.grey,
+    marginBottom: spacing.sm,
+  },
+  boostButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
     alignItems: 'center',
   },
-  secondaryText: {
-    color: '#1f2937',
-    fontSize: 16,
+  boostButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  viewRequestsText: {
+    fontSize: 14,
+    color: colors.primary,
     fontWeight: '600',
   },
 });

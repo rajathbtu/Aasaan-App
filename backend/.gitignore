@@ -44,3 +44,5 @@ coverage/
 
 # Misc
 *.tgz
+
+/src/generated/prisma

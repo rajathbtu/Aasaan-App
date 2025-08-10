@@ -1,10 +1,20 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
+import { colors, spacing, radius } from '../theme';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -15,6 +25,7 @@ const API = USE_MOCK_API ? mockApi : realApi;
  */
 const NotificationsScreen: React.FC = () => {
   const { token } = useAuth();
+  const navigation = useNavigation<any>();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -47,15 +58,50 @@ const NotificationsScreen: React.FC = () => {
     }
   };
 
+  const getColorForType = (type: string): string => {
+    switch (type) {
+      case 'new_work':
+        return '#dbeafe';
+      case 'provider_accepted':
+        return '#dcfce7';
+      case 'completed_prompt':
+        return '#fef9c3';
+      case 'boost_prompt':
+        return '#ffedd5';
+      default:
+        return '#f3f4f6';
+    }
+  };
+
   const renderItem = ({ item }: { item: any }) => {
+    const bgColor = getColorForType(item.type || '');
     return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          {!item.read && <View style={styles.unreadDot} />}
-          <Text style={styles.cardTitle}>{item.title}</Text>
+      <View style={[styles.card, { backgroundColor: bgColor }]}> 
+        {/* Left coloured bar */}
+        <View style={[styles.colourBar, { backgroundColor: colors.primary }]} />
+        <View style={{ flex: 1 }}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            {!item.read && <View style={styles.unreadDot} />}
+          </View>
+          <Text style={styles.cardMessage}>{item.message}</Text>
+          <View style={styles.cardFooter}>
+            <Text style={styles.cardTime}>{new Date(item.createdAt).toLocaleTimeString()}</Text>
+            <View style={styles.actionsRow}>
+              {/* A single default action to view details */}
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => {
+                  if (item.request) {
+                    navigation.navigate('WorkRequestDetails', { request: item.request });
+                  }
+                }}
+              >
+                <Text style={styles.actionButtonText}>View Details</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-        <Text style={styles.cardMessage}>{item.message}</Text>
-        <Text style={styles.cardTime}>{new Date(item.createdAt).toLocaleString()}</Text>
       </View>
     );
   };
@@ -63,21 +109,29 @@ const NotificationsScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.markAllButton} onPress={markAllRead}>
-        <Text style={styles.markAllText}>Mark all read</Text>
-      </TouchableOpacity>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={20} color={colors.dark} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Notifications</Text>
+        <TouchableOpacity onPress={markAllRead}>
+          <Text style={styles.markAllText}>Mark all read</Text>
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={notifications}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         ListEmptyComponent={<Text style={styles.emptyText}>No notifications</Text>}
+        contentContainerStyle={{ paddingBottom: spacing.xl }}
       />
     </View>
   );
@@ -86,61 +140,102 @@ const NotificationsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
-    padding: 16,
+    backgroundColor: colors.light,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  markAllButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 12,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.greyLight,
+  },
+  backButton: {
+    padding: spacing.sm,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.dark,
   },
   markAllText: {
-    color: '#2563eb',
     fontSize: 14,
+    color: colors.primary,
   },
   card: {
-    backgroundColor: '#ffffff',
-    padding: 12,
-    borderRadius: 8,
+    flexDirection: 'row',
+    padding: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 12,
+    borderColor: colors.greyLight,
+    backgroundColor: '#fff',
+  },
+  colourBar: {
+    width: 4,
+    borderRadius: 2,
+    marginRight: spacing.md,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 4,
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#ef4444',
-    marginRight: 6,
+    backgroundColor: colors.error,
+    marginLeft: spacing.sm,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.dark,
+    flex: 1,
   },
   cardMessage: {
-    fontSize: 14,
-    color: '#374151',
-    marginBottom: 4,
+    fontSize: 12,
+    color: colors.grey,
+    marginBottom: spacing.sm,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   cardTime: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.grey,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+  },
+  actionButton: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginLeft: spacing.sm,
+  },
+  actionButtonText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '600',
   },
   emptyText: {
     textAlign: 'center',
-    marginTop: 32,
+    marginTop: spacing.xl,
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.grey,
   },
 });
 

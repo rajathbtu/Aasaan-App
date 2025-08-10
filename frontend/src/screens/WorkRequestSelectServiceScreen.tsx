@@ -1,7 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { services } from '../data/services';
+import { colors, spacing, radius } from '../theme';
 
 /**
  * Entry point for end users to create a new work request.  Displays a
@@ -12,6 +21,35 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const [query, setQuery] = useState('');
 
+  // Predefine a few recently used services.  In a production app this would
+  // come from persistent storage or the user profile.  Here we choose a
+  // handful of commonly used services to populate the section.
+  const recentIds = ['electrician', 'plumber', 'cook'];
+
+  const serviceIconMap: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
+    maid: { icon: 'broom', color: '#fce7f3' },
+    cook: { icon: 'restaurant', color: '#dcfce7' },
+    babysitter: { icon: 'baby', color: '#fde68a' },
+    cleaner: { icon: 'sparkles', color: '#e0f2fe' },
+    servant: { icon: 'people', color: '#ede9fe' },
+    carCleaner: { icon: 'car', color: '#fee2e2' },
+    electrician: { icon: 'flash', color: '#eef2ff' },
+    plumber: { icon: 'water', color: '#ecfdf5' },
+    carpenter: { icon: 'hammer', color: '#fef2f2' },
+    painter: { icon: 'color-palette', color: '#fffbeb' },
+    acRepair: { icon: 'snow', color: '#e0f2fe' },
+    pestControl: { icon: 'bug', color: '#fff7ed' },
+    photographer: { icon: 'camera', color: '#fef9c3' },
+    yogaTrainer: { icon: 'heart', color: '#ecfdf5' },
+    tutor: { icon: 'book', color: '#e0e7ff' },
+    dietician: { icon: 'leaf', color: '#f0fdf4' },
+    makeupArtist: { icon: 'brush', color: '#f3e8ff' },
+    eventPlanner: { icon: 'calendar', color: '#fef9c3' },
+    gardener: { icon: 'flower', color: '#f0fdf4' },
+    caterer: { icon: 'fast-food', color: '#ffedd5' },
+    interiorDesigner: { icon: 'home', color: '#e0e7ff' },
+  };
+
   const grouped = useMemo(() => {
     const map: Record<string, typeof services> = {};
     services.forEach(s => {
@@ -21,7 +59,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     return map;
   }, []);
 
-  // Filter services based on search query (case insensitive)
   const filtered = useMemo(() => {
     if (!query.trim()) return grouped;
     const lower = query.trim().toLowerCase();
@@ -35,83 +72,182 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     return map;
   }, [query, grouped]);
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
-      <Text style={styles.title}>Select type of work</Text>
-      <TextInput
-        style={styles.search}
-        placeholder="Search for services..."
-        value={query}
-        onChangeText={setQuery}
-      />
-      {Object.keys(filtered).map(category => (
-        <View key={category} style={styles.categorySection}>
-          <Text style={styles.categoryTitle}>{category}</Text>
-          <View style={styles.servicesRow}>
-            {filtered[category].map(service => (
-              <TouchableOpacity
-                key={service.id}
-                style={styles.serviceCard}
-                onPress={() => navigation.navigate('WorkRequestAddDetails', { serviceId: service.id })}
-              >
-                <Text style={styles.serviceName}>{service.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+  const renderServiceCard = (service: (typeof services)[0]) => {
+    const iconConfig = serviceIconMap[service.id] || { icon: 'construct', color: '#e5e7eb' };
+    return (
+      <TouchableOpacity
+        key={service.id}
+        style={styles.serviceCard}
+        onPress={() => navigation.navigate('WorkRequestAddDetails', { serviceId: service.id })}
+      >
+        <View style={[styles.iconCircle, { backgroundColor: iconConfig.color }]}> 
+          <Ionicons name={iconConfig.icon} size={20} color={colors.primary} />
         </View>
-      ))}
+        <Text style={styles.serviceLabel}>{service.name}</Text>
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.lg }}>
+      {/* Header */}
+      <View style={styles.headerRow}>
+        <Text style={styles.appTitle}>Aasaan</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.notificationButton}>
+          <Ionicons name="notifications-outline" size={22} color={colors.dark} />
+          {/* In a real app the count badge would be dynamic */}
+          <View style={styles.notificationBadge}>
+            <Text style={styles.notificationBadgeText}>2</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.pageTitle}>Get your work done!</Text>
+      <Text style={styles.subtitle}>Select type of work</Text>
+      {/* Search bar */}
+      <View style={styles.searchBar}>
+        <Ionicons name="search" size={18} color={colors.grey} style={{ marginRight: spacing.sm }} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search for services..."
+          placeholderTextColor={colors.grey}
+          value={query}
+          onChangeText={setQuery}
+        />
+      </View>
+      {/* Recently Used */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Recently Used</Text>
+        <View style={styles.recentRow}>
+          {recentIds.map(id => {
+            const svc = services.find(s => s.id === id);
+            return svc ? renderServiceCard(svc) : null;
+          })}
+        </View>
+      </View>
+      {/* All Services */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>All Services</Text>
+        {Object.keys(filtered).map(category => (
+          <View key={category} style={styles.categorySection}>
+            <Text style={styles.categoryTitle}>{category}</Text>
+            <View style={styles.servicesGrid}>
+              {filtered[category].map(svc => renderServiceCard(svc))}
+            </View>
+          </View>
+        ))}
+      </View>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-    padding: 20,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    marginBottom: spacing.md,
   },
-  title: {
+  appTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: '#111827',
+    fontWeight: '700',
+    color: colors.primary,
   },
-  search: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
+  notificationButton: {
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: colors.error,
     borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    marginBottom: 20,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  notificationBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  pageTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.dark,
+    paddingHorizontal: spacing.lg,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.grey,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.greyLight,
     backgroundColor: '#fff',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.dark,
+    paddingVertical: spacing.sm,
+  },
+  section: {
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.dark,
+    marginBottom: spacing.sm,
+  },
+  recentRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   categorySection: {
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   categoryTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
-    marginBottom: 8,
-    color: '#1f2937',
+    color: colors.primary,
+    marginBottom: spacing.sm,
+    textTransform: 'uppercase',
   },
-  servicesRow: {
+  servicesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   serviceCard: {
-    backgroundColor: '#ffffff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    marginRight: 8,
-    marginBottom: 8,
+    width: '30%',
+    marginRight: '3.3333%',
+    marginBottom: spacing.md,
+    alignItems: 'center',
   },
-  serviceName: {
-    fontSize: 14,
-    color: '#1f2937',
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  serviceLabel: {
+    fontSize: 12,
+    textAlign: 'center',
+    color: colors.dark,
   },
 });
 
