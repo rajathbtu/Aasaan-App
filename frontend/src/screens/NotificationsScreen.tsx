@@ -23,6 +23,7 @@ const API = USE_MOCK_API ? mockApi : realApi;
  * mark notifications as read individually or all at once.  Each
  * notification shows a title, a message and an approximate timestamp.
  */
+
 const NotificationsScreen: React.FC = () => {
   const { token } = useAuth();
   const navigation = useNavigation<any>();
