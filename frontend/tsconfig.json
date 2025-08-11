@@ -1,23 +1,17 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "target": "ES2019",
-    "moduleResolution": "node",
-    "lib": [
-      "esnext",
-      "dom"
-    ],
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "allowJs": true,
     "noEmit": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "types": []
+    "resolveJsonModule": true
   },
   "include": [
     "**/*.ts",
     "**/*.tsx"
-  ],
-  "extends": "expo/tsconfig.base"
+  ]
 }
