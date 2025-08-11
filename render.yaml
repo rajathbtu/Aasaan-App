@@ -21,4 +21,5 @@ services:
     env: postgres
     region: singapore # Optional: choose a region closer to you
     plan: free # Optional: choose a plan that suits your needs
-    postgresMajorVersion: 14
+    databaseInfo:
+      postgresMajorVersion: 14
