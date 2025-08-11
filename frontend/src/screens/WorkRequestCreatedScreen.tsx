@@ -22,6 +22,10 @@ const WorkRequestCreatedScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { request } = (route.params as any) || {};
+  // Safeguards for possibly missing fields in request
+  const serviceName = request?.service ?? 'Service';
+  const locationName = request?.location?.name ?? request?.locationName ?? 'Your area';
+  const tags = Array.isArray(request?.tags) ? request.tags.slice(0, 2) : [];
 
   const goToMyRequests = () => {
     navigation.navigate('Main', { screen: 'MyRequests' });
@@ -65,10 +69,10 @@ const WorkRequestCreatedScreen: React.FC = () => {
         <View style={styles.summaryRow}>
           <Ionicons name="flash" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.summaryLabel}>{request.service}</Text>
-            {request.tags && request.tags.length > 0 && (
+            <Text style={styles.summaryLabel}>{serviceName}</Text>
+            {tags.length > 0 && (
               <View style={styles.summaryTagsRow}>
-                {request.tags.slice(0, 2).map((t: string) => (
+                {tags.map((t: string) => (
                   <View key={t} style={styles.tagPill}>
                     <Text style={styles.tagPillText}>{t}</Text>
                   </View>
@@ -79,7 +83,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
         </View>
         <View style={styles.summaryRow}>
           <Ionicons name="location" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
-          <Text style={styles.summaryLabel}>{request.location.name}</Text>
+          <Text style={styles.summaryLabel}>{locationName}</Text>
         </View>
         <View style={styles.summaryRow}>
           <Ionicons name="time" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
