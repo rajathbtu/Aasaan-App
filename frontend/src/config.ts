@@ -5,5 +5,5 @@
  * specifies where the backend is hosted.  When deploying the backend
  * remotely you should update this value accordingly.
  */
-export const USE_MOCK_API = true;
-export const BASE_URL = 'http://localhost:3000';
+export const USE_MOCK_API = false;
+export const BASE_URL = 'https://aasaan-backend.onrender.com'; // Replace with your actual Render URL

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: aasaan-backend
+    env: node
+    repo: https://github.com/rajathbtu/Aasaan-App.git # Change this to your repo URL
+    region: singapore # Optional: choose a region closer to you
+    plan: free # Optional: choose a plan that suits your needs
+    rootDir: ./backend
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm start"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aasaan-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+
+  - type: pserv
+    name: aasaan-db
+    env: postgres
+    region: singapore # Optional: choose a region closer to you
+    plan: free # Optional: choose a plan that suits your needs
+    postgresMajorVersion: 14
