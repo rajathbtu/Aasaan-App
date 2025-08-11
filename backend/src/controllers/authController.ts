@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { isValidPhoneNumber, isValidName } from '../utils/validation';
 import { findUserByPhone, createUser } from '../models/dataStore';
-import { encryptPhoneNumber } from '../utils/encryption';
 import { generateOTP } from '../models/dataStore';
 
 // In‑memory store for OTPs.  Keys are phone numbers, values are the
@@ -17,7 +16,8 @@ const pendingOtps: Map<string, number> = new Map();
 export function sendOtp(req: Request, res: Response): void {
   const { phone } = req.body as { phone: string };
   if (!phone || !isValidPhoneNumber(phone)) {
-    return res.status(400).json({ message: 'Invalid phone number' });
+    res.status(400).json({ message: 'Invalid phone number' });
+    return;
   }
   const otp = generateOTP();
   pendingOtps.set(phone, otp);
@@ -33,23 +33,26 @@ export function sendOtp(req: Request, res: Response): void {
  * call /auth/register to complete registration.  The OTP is removed
  * after a successful verification.
  */
-export function verifyOtp(req: Request, res: Response): void {
+export async function verifyOtp(req: Request, res: Response): Promise<void> {
   const { phone, otp } = req.body as { phone: string; otp: number };
   if (!phone || !isValidPhoneNumber(phone)) {
-    return res.status(400).json({ message: 'Invalid phone number' });
+    res.status(400).json({ message: 'Invalid phone number' });
+    return;
   }
   const expected = pendingOtps.get(phone);
   if (!expected || expected !== otp) {
-    return res.status(401).json({ message: 'Incorrect OTP' });
+    res.status(401).json({ message: 'Incorrect OTP' });
+    return;
   }
-  pendingOtps.delete(phone);
-  const existing = findUserByPhone(phone);
+  const existing = await findUserByPhone(phone);
   if (existing) {
-    // Login successful.  Return token and user profile.
-    return res.json({ token: existing.id, user: existing });
+    // Consume OTP only when logging in an existing user
+    pendingOtps.delete(phone);
+    res.json({ token: existing.id, user: existing });
+    return;
   }
-  // Phone verified but user not registered
-  return res.json({ needsRegistration: true });
+  // Keep OTP so that /auth/register can verify presence
+  res.json({ needsRegistration: true });
 }
 
 /**
@@ -57,7 +60,7 @@ export function verifyOtp(req: Request, res: Response): void {
  * phone number and full name.  Optionally accepts the UI language and
  * initial role.  The newly created user is returned along with a token.
  */
-export function register(req: Request, res: Response): void {
+export async function register(req: Request, res: Response): Promise<void> {
   const { phone, name, language, role } = req.body as {
     phone: string;
     name: string;
@@ -65,26 +68,26 @@ export function register(req: Request, res: Response): void {
     role?: 'endUser' | 'serviceProvider';
   };
   if (!phone || !isValidPhoneNumber(phone) || !pendingOtps.has(phone)) {
-    return res.status(400).json({ message: 'Phone verification required' });
+    res.status(400).json({ message: 'Phone verification required' });
+    return;
   }
   if (!name || !isValidName(name)) {
-    return res.status(400).json({ message: 'Invalid name' });
+    res.status(400).json({ message: 'Invalid name' });
+    return;
   }
-  const existing = findUserByPhone(phone);
+  const existing = await findUserByPhone(phone);
   if (existing) {
-    return res.status(409).json({ message: 'User already exists' });
+    res.status(409).json({ message: 'User already exists' });
+    return;
   }
-  // In a real app you would encrypt the phone here.  We keep it plain for
-  // demonstration and also return the token for the client to use.
-  const user = createUser({
+  const user = await createUser({
     name: name.trim(),
     phoneNumber: phone,
     language: language || 'en',
     role: role || 'endUser',
     creditPoints: 0,
     plan: 'free',
-  });
-  // Remove OTP after successful registration
+  } as any);
   pendingOtps.delete(phone);
   res.json({ token: user.id, user });
 }

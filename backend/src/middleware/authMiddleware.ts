@@ -6,17 +6,22 @@ import { findUserById } from '../models/dataStore';
  * bearer token equal to the user ID.  Attaches the user to the request
  * object on success.  If the header is missing or invalid, returns 401.
  */
-export function authenticate(req: Request, res: Response, next: NextFunction): void {
+export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-    return res.status(401).json({ message: 'Missing Authorization header' });
+    res.status(401).json({ message: 'Missing Authorization header' });
+    return;
   }
   const token = authHeader.replace('Bearer ', '').trim();
-  const user = findUserById(token);
-  if (!user) {
-    return res.status(401).json({ message: 'Invalid token' });
+  try {
+    const user = await findUserById(token);
+    if (!user) {
+      res.status(401).json({ message: 'Invalid token' });
+      return;
+    }
+    (req as any).user = user;
+    next();
+  } catch (e) {
+    res.status(500).json({ message: 'Auth lookup failed' });
   }
-  // Attach the user to the request object
-  (req as any).user = user;
-  next();
 }

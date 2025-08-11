@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String   @id @default(uuid())
+  name                String
+  phoneNumber         String   @unique
+  language            String
+  role                Role
+  serviceProviderInfo ServiceProviderInfo? @relation("User_ServiceProvider")
+  creditPoints        Int      @default(0)
+  plan                Plan     @default(free)
+  createdAt           DateTime @default(now())
+  workRequests        WorkRequest[] @relation("UserWorkRequests")
+  notifications       Notification[]
+}
+
+model ServiceProviderInfo {
+  id        String   @id @default(uuid())
+  services  String[]
+  location  Location? @relation("ServiceProviderLocation", fields: [locationId], references: [id])
+  locationId String?  @unique
+  radius    Int
+  user      User     @relation("User_ServiceProvider", fields: [userId], references: [id])
+  userId    String   @unique
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  name      String
+  lat       Float
+  lng       Float
+  serviceProviderInfo ServiceProviderInfo? @relation("ServiceProviderLocation")
+  workRequest         WorkRequest? @relation("WorkRequestLocation")
+}
+
+model WorkRequest {
+  id                String   @id @default(uuid())
+  user              User     @relation("UserWorkRequests", fields: [userId], references: [id])
+  userId            String
+  service           String
+  location          Location  @relation("WorkRequestLocation", fields: [locationId], references: [id])
+  locationId        String    @unique
+  tags              String[]
+  createdAt         DateTime @default(now())
+  status            WorkRequestStatus @default(active)
+  boosted           Boolean  @default(false)
+  acceptedProviders AcceptedProvider[]
+  rating            Rating?
+  closedAt          DateTime?
+}
+
+model AcceptedProvider {
+  id           String   @id @default(uuid())
+  providerId   String
+  acceptedAt   DateTime @default(now())
+  workRequest  WorkRequest @relation(fields: [workRequestId], references: [id])
+  workRequestId String
+}
+
+model Rating {
+  id           String   @id @default(uuid())
+  providerId   String
+  stars        Int
+  review       String?
+  workRequest  WorkRequest @relation(fields: [workRequestId], references: [id])
+  workRequestId String   @unique
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  createdAt DateTime @default(now())
+  read      Boolean  @default(false)
+  data      Json?
+}
+
+enum Role {
+  endUser
+  serviceProvider
+}
+
+enum Plan {
+  free
+  basic
+  pro
+}
+
+enum WorkRequestStatus {
+  active
+  closed
+}
+
+enum NotificationType {
+  newRequest
+  requestAccepted
+  ratingPrompt
+  boostPromotion
+  autoClosed
+  planPromotion
+}

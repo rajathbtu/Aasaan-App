@@ -54,3 +54,8 @@ build/
 
 # Jest
 coverage/
+
+# Optional npm package locks (choose only one if needed)
+package-lock.json
+# yarn.lock
+# pnpm-lock.yaml

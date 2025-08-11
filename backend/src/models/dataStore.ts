@@ -1,74 +1,93 @@
 import { User, Role } from './User';
 import { WorkRequest } from './WorkRequest';
 import { Notification } from './Notification';
-import { v4 as uuidv4 } from 'uuid';
+import prisma from '../utils/prisma';
 
 /*
  * Simple in‑memory data store.  In a real deployment the following
  * collections would be replaced with calls to a database.  All data
  * persists only for the lifetime of the running process.
  */
-export const users: User[] = [];
-export const workRequests: WorkRequest[] = [];
-export const notifications: Notification[] = [];
+
 
 /**
  * Find a user by their phone number.  Returns undefined if the user does
  * not exist.
  */
-export function findUserByPhone(phoneNumber: string): User | undefined {
-  return users.find(u => u.phoneNumber === phoneNumber);
+export async function findUserByPhone(phoneNumber: string) {
+  return prisma.user.findUnique({ where: { phoneNumber } });
 }
 
 /**
  * Find a user by id.
  */
-export function findUserById(id: string): User | undefined {
-  return users.find(u => u.id === id);
+export async function findUserById(id: string) {
+  return prisma.user.findUnique({ where: { id } });
 }
 
 /**
- * Create a new user.  Generates a UUID and stores the user in memory.
+ * Create a new user.  Generates a UUID and stores the user in the database.
  */
-export function createUser(params: Omit<User, 'id' | 'createdAt'>): User {
-  const user: User = {
-    id: uuidv4(),
-    createdAt: new Date(),
-    ...params,
-  };
-  users.push(user);
-  return user;
+export async function createUser(params: Omit<User, 'id' | 'createdAt'>) {
+  const { serviceProviderInfo, ...userData } = params;
+  return prisma.user.create({
+    data: {
+      ...userData,
+      serviceProviderInfo: serviceProviderInfo
+        ? {
+            create: {
+              services: serviceProviderInfo.services,
+              radius: serviceProviderInfo.radius,
+              location: serviceProviderInfo.location
+                ? {
+                    create: {
+                      name: serviceProviderInfo.location.name,
+                      lat: serviceProviderInfo.location.lat,
+                      lng: serviceProviderInfo.location.lng,
+                    },
+                  }
+                : undefined,
+            },
+          }
+        : undefined,
+    },
+  });
 }
 
 /**
- * Create a new work request.  Applies a simple 7‑day expiry and default
- * values.
+ * Create a new work request.  Applies a simple 7‑day expiry and default values.
  */
-export function createWorkRequest(params: Omit<WorkRequest, 'id' | 'createdAt' | 'status' | 'boosted' | 'acceptedProviders'>): WorkRequest {
-  const wr: WorkRequest = {
-    id: uuidv4(),
-    createdAt: new Date(),
-    status: 'active',
-    boosted: false,
-    acceptedProviders: [],
-    ...params,
-  };
-  workRequests.push(wr);
-  return wr;
+export async function createWorkRequest(params: Omit<WorkRequest, 'id' | 'createdAt' | 'status' | 'boosted' | 'acceptedProviders'>) {
+  const { location, ...rest } = params;
+  const createdLocation = await prisma.location.create({
+    data: {
+      name: location.name,
+      lat: location.lat,
+      lng: location.lng,
+    },
+  });
+  return prisma.workRequest.create({
+    data: {
+      ...rest,
+      locationId: createdLocation.id,
+      createdAt: new Date(),
+      status: 'active',
+      boosted: false,
+    },
+  });
 }
 
 /**
  * Push a notification for a user.
  */
-export function pushNotification(notification: Omit<Notification, 'id' | 'createdAt' | 'read'>): Notification {
-  const n: Notification = {
-    id: uuidv4(),
-    createdAt: new Date(),
-    read: false,
-    ...notification,
-  };
-  notifications.push(n);
-  return n;
+export async function pushNotification(notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) {
+  return prisma.notification.create({
+    data: {
+      ...notification,
+      createdAt: new Date(),
+      read: false,
+    },
+  });
 }
 
 /**
