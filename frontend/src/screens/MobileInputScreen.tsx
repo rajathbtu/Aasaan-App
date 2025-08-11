@@ -32,11 +32,13 @@ const MobileInputScreen: React.FC = () => {
   const { language } = (route.params as any) || {};
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSendOtp = async () => {
     const trimmed = phone.trim();
-    if (!trimmed || trimmed.length < 6) {
-      Alert.alert('Invalid number', 'Please enter a valid mobile number');
+    if (!trimmed || trimmed.length < 10) {
+      // Alert.alert('Invalid number', 'Please enter a valid mobile number');
       return;
     }
     try {
@@ -48,6 +50,19 @@ const MobileInputScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (phone.length !== 10 || !/^[0-9]+$/.test(phone)) {
+      setErrorMessage('Please enter a valid 10-digit mobile number');
+    } else {
+      setErrorMessage('');
+    }
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
   };
 
   // purely for UI hint (do NOT change logic)
@@ -124,16 +139,17 @@ const MobileInputScreen: React.FC = () => {
                 keyboardType="phone-pad"
                 style={styles.input}
                 value={phone}
-                maxLength={15}
-                onChangeText={setPhone}
+                maxLength={10}
+                onChangeText={(text) => setPhone(text.replace(/[^0-9]/g, ''))}
                 placeholderTextColor="#9ca3af"
+                onBlur={handleBlur}
+                onFocus={handleFocus}
               />
             </View>
 
-            {showFormatHint && (
+            {!isFocused && errorMessage !== '' && (
               <Text style={styles.errorText}>
-                <Icon name="exclamation-circle" size={12} color="#ef4444" />{' '}
-                Please enter a valid 10-digit mobile number
+                <Icon name="exclamation-circle" size={12} color="#ef4444" /> {errorMessage}
               </Text>
             )}
           </View>

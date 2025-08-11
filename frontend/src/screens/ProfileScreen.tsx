@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
+import Header from '../components/Header';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users
@@ -65,11 +66,8 @@ const ProfileScreen: React.FC = () => {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
       {/* Header */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={20} color={colors.dark} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+
+      <Header title="Profile" showNotification={false} showBackButton={false} />
         {editing ? (
           <TouchableOpacity onPress={saveName}>
             <Text style={styles.saveText}>Save</Text>
@@ -77,7 +75,6 @@ const ProfileScreen: React.FC = () => {
         ) : (
           <View style={{ width: 40 }} />
         )}
-      </View>
 
       {/* Avatar */}
       <View style={styles.avatarContainer}>

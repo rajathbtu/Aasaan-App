@@ -16,6 +16,7 @@ import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { services } from '../data/services';
 import { colors, spacing, radius } from '../theme';
+import Header from '../components/Header';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -78,13 +79,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
       {/* Header */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={20} color={colors.dark} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Add work details</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <Header title="Add work details" showNotification={true} notificationCount={3} showBackButton={true} />
 
       {/* Service section */}
       <View style={styles.section}>
@@ -202,6 +197,24 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: colors.dark,
+  },
+  notificationButton: {
+    position: 'relative',
+    padding: spacing.sm,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    right: 0,
+    top: -4,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  notificationBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   section: {
     paddingHorizontal: spacing.lg,

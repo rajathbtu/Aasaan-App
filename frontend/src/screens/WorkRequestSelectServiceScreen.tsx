@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { services } from '../data/services';
 import { colors, spacing, radius } from '../theme';
+import Header from '../components/Header';
 
 /**
  * Entry point for end users to create a new work request.  Displays a
@@ -21,33 +22,35 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const [query, setQuery] = useState('');
 
-  // Predefine a few recently used services.  In a production app this would
-  // come from persistent storage or the user profile.  Here we choose a
-  // handful of commonly used services to populate the section.
+  // Predefine a few recently used services.
   const recentIds = ['electrician', 'plumber', 'cook'];
 
-  const serviceIconMap: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-    maid: { icon: 'broom', color: '#fce7f3' },
-    cook: { icon: 'restaurant', color: '#dcfce7' },
-    babysitter: { icon: 'baby', color: '#fde68a' },
-    cleaner: { icon: 'sparkles', color: '#e0f2fe' },
-    servant: { icon: 'people', color: '#ede9fe' },
-    carCleaner: { icon: 'car', color: '#fee2e2' },
-    electrician: { icon: 'flash', color: '#eef2ff' },
-    plumber: { icon: 'water', color: '#ecfdf5' },
-    carpenter: { icon: 'hammer', color: '#fef2f2' },
-    painter: { icon: 'color-palette', color: '#fffbeb' },
-    acRepair: { icon: 'snow', color: '#e0f2fe' },
-    pestControl: { icon: 'bug', color: '#fff7ed' },
-    photographer: { icon: 'camera', color: '#fef9c3' },
-    yogaTrainer: { icon: 'heart', color: '#ecfdf5' },
-    tutor: { icon: 'book', color: '#e0e7ff' },
-    dietician: { icon: 'leaf', color: '#f0fdf4' },
-    makeupArtist: { icon: 'brush', color: '#f3e8ff' },
-    eventPlanner: { icon: 'calendar', color: '#fef9c3' },
-    gardener: { icon: 'flower', color: '#f0fdf4' },
-    caterer: { icon: 'fast-food', color: '#ffedd5' },
-    interiorDesigner: { icon: 'home', color: '#e0e7ff' },
+  // UI-only: add cardBg to match mock’s tinted tiles
+  const serviceIconMap: Record<
+    string,
+    { icon: keyof typeof Ionicons.glyphMap; color: string; cardBg: string }
+  > = {
+    maid: { icon: 'construct', color: '#e9d5ff', cardBg: '#f5f3ff' },
+    cook: { icon: 'restaurant', color: '#dcfce7', cardBg: '#f0fdf4' },
+    babysitter: { icon: 'person', color: '#fde68a', cardBg: '#fffbeb' },
+    cleaner: { icon: 'sparkles', color: '#bae6fd', cardBg: '#e0f2fe' },
+    servant: { icon: 'people', color: '#ddd6fe', cardBg: '#ede9fe' },
+    carCleaner: { icon: 'car', color: '#fecaca', cardBg: '#fee2e2' },
+    electrician: { icon: 'flash', color: '#dbeafe', cardBg: '#eff6ff' },
+    plumber: { icon: 'water', color: '#bae6fd', cardBg: '#e0f2fe' }, // blue-ish per mock
+    carpenter: { icon: 'hammer', color: '#fde68a', cardBg: '#fffbeb' },
+    painter: { icon: 'color-palette', color: '#fecaca', cardBg: '#fee2e2' },
+    acRepair: { icon: 'snow', color: '#bae6fd', cardBg: '#e0f2fe' },
+    pestControl: { icon: 'bug', color: '#fed7aa', cardBg: '#ffedd5' },
+    photographer: { icon: 'camera', color: '#ddd6fe', cardBg: '#f3e8ff' },
+    yogaTrainer: { icon: 'heart', color: '#bbf7d0', cardBg: '#ecfdf5' },
+    tutor: { icon: 'book', color: '#e0e7ff', cardBg: '#eef2ff' },
+    dietician: { icon: 'leaf', color: '#d9f99d', cardBg: '#ecfccb' },
+    makeupArtist: { icon: 'brush', color: '#f5d0fe', cardBg: '#fae8ff' },
+    eventPlanner: { icon: 'calendar', color: '#fde68a', cardBg: '#fef9c3' },
+    gardener: { icon: 'flower', color: '#bbf7d0', cardBg: '#ecfdf5' },
+    caterer: { icon: 'fast-food', color: '#feeaa3', cardBg: '#fef3c7' },
+    interiorDesigner: { icon: 'home', color: '#e0e7ff', cardBg: '#eef2ff' },
   };
 
   const grouped = useMemo(() => {
@@ -73,15 +76,16 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   }, [query, grouped]);
 
   const renderServiceCard = (service: (typeof services)[0]) => {
-    const iconConfig = serviceIconMap[service.id] || { icon: 'construct', color: '#e5e7eb' };
+    const iconConfig = serviceIconMap[service.id] || { icon: 'construct', color: '#e5e7eb', cardBg: '#f3f4f6' };
     return (
       <TouchableOpacity
         key={service.id}
-        style={styles.serviceCard}
+        style={[styles.serviceCard, { backgroundColor: iconConfig.cardBg }]}
         onPress={() => navigation.navigate('WorkRequestAddDetails', { serviceId: service.id })}
+        activeOpacity={0.8}
       >
-        <View style={[styles.iconCircle, { backgroundColor: iconConfig.color }]}> 
-          <Ionicons name={iconConfig.icon} size={20} color={colors.primary} />
+        <View style={[styles.iconCircle, { backgroundColor: iconConfig.color }]}>
+          <Ionicons name={iconConfig.icon} size={22} color={colors.primary} />
         </View>
         <Text style={styles.serviceLabel}>{service.name}</Text>
       </TouchableOpacity>
@@ -89,49 +93,48 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.lg }}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.light }}
+      contentContainerStyle={{ paddingBottom: spacing.lg }}
+    >
       {/* Header */}
-      <View style={styles.headerRow}>
-        <Text style={styles.appTitle}>Aasaan</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.notificationButton}>
-          <Ionicons name="notifications-outline" size={22} color={colors.dark} />
-          {/* In a real app the count badge would be dynamic */}
-          <View style={styles.notificationBadge}>
-            <Text style={styles.notificationBadgeText}>2</Text>
-          </View>
-        </TouchableOpacity>
+      <Header title="Aasaan" showNotification={true} notificationCount={2} showBackButton={false} />
+
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+        <Text style={styles.pageTitle}>Get your work done!</Text>
+        <Text style={styles.subtitle}>Select type of work</Text>
+
+        {/* Search bar (icon inside input) */}
+        <View style={styles.searchWrapper}>
+          <Ionicons name="search" size={18} color={colors.primary} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for services..."
+            placeholderTextColor={colors.grey}
+            value={query}
+            onChangeText={setQuery}
+          />
+        </View>
       </View>
 
-      <Text style={styles.pageTitle}>Get your work done!</Text>
-      <Text style={styles.subtitle}>Select type of work</Text>
-      {/* Search bar */}
-      <View style={styles.searchBar}>
-        <Ionicons name="search" size={18} color={colors.grey} style={{ marginRight: spacing.sm }} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search for services..."
-          placeholderTextColor={colors.grey}
-          value={query}
-          onChangeText={setQuery}
-        />
-      </View>
       {/* Recently Used */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Recently Used</Text>
-        <View style={styles.recentRow}>
+        <View style={styles.gridRow}>
           {recentIds.map(id => {
             const svc = services.find(s => s.id === id);
             return svc ? renderServiceCard(svc) : null;
           })}
         </View>
       </View>
+
       {/* All Services */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>All Services</Text>
         {Object.keys(filtered).map(category => (
           <View key={category} style={styles.categorySection}>
             <Text style={styles.categoryTitle}>{category}</Text>
-            <View style={styles.servicesGrid}>
+            <View style={styles.gridRow}>
               {filtered[category].map(svc => renderServiceCard(svc))}
             </View>
           </View>
@@ -147,13 +150,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    marginBottom: spacing.md,
+    paddingVertical: spacing.md,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.greyLight,
   },
   appTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.dark, // mock uses dark title
   },
   notificationButton: {
     position: 'relative',
@@ -164,77 +169,100 @@ const styles = StyleSheet.create({
     right: -8,
     backgroundColor: colors.error,
     borderRadius: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
+    height: 16,
+    minWidth: 16,
+    paddingHorizontal: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   notificationBadgeText: {
     color: '#fff',
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   pageTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 24, // text-2xl
+    fontWeight: '800',
     color: colors.dark,
-    paddingHorizontal: spacing.lg,
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 16, // text-base
     color: colors.grey,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    backgroundColor: '#fff',
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.dark,
-    paddingVertical: spacing.sm,
+
+  // Search
+  searchWrapper: {
+    position: 'relative',
+    borderWidth: 2,
+    borderColor: colors.primary, // approx primary/30 look
+    backgroundColor: '#fff',
+    borderRadius: radius.md,
+    // subtle shadow like shadow-sm
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+    marginBottom: spacing.lg,
   },
+  searchIcon: {
+    position: 'absolute',
+    left: spacing.md,
+    top: 14,
+  },
+  searchInput: {
+    paddingHorizontal: spacing.md,
+    paddingLeft: spacing.xl, // room for icon (pl-10)
+    paddingVertical: spacing.md,
+    fontSize: 16,
+    color: colors.dark,
+  },
+
   section: {
     marginBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18, // text-lg
+    fontWeight: '700',
     color: colors.dark,
-    marginBottom: spacing.sm,
-  },
-  recentRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    marginBottom: spacing.md,
   },
   categorySection: {
     marginBottom: spacing.lg,
   },
   categoryTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
+    fontSize: 16, // text-base
+    fontWeight: '700',
+    color: '#374151', // text-gray-800
     marginBottom: spacing.sm,
-    textTransform: 'uppercase',
   },
-  servicesGrid: {
+
+  // 3-column grid with tidy gaps
+  gridRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
+
+  // Card-style tiles per mock
   serviceCard: {
-    width: '30%',
-    marginRight: '3.3333%',
+    width: '31%',
     marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.greyLight,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
     alignItems: 'center',
+    // subtle shadow like hover/border emphasis
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   iconCircle: {
     width: 48,
@@ -245,7 +273,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   serviceLabel: {
-    fontSize: 12,
+    fontSize: 14, // text-base-ish
+    fontWeight: '500',
     textAlign: 'center',
     color: colors.dark,
   },

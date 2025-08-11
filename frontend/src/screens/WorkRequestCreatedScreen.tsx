@@ -9,6 +9,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
+import Header from '../components/Header';
 
 /**
  * Confirmation screen displayed after a work request has been created.
@@ -43,22 +44,22 @@ const WorkRequestCreatedScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.light }}
+      contentContainerStyle={{ paddingBottom: spacing.xl }}
+    >
       {/* Header */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={20} color={colors.dark} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Aasaan</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <Header title="Aasaan" showNotification={false} showBackButton={true} />
+
       {/* Success icon */}
       <View style={styles.successIconContainer}>
         <Ionicons name="checkmark-circle" size={64} color={colors.success} />
       </View>
       {/* Title */}
       <Text style={styles.title}>Work Request Created!</Text>
-      <Text style={styles.subtitle}>Your request has been successfully created and is now visible to service providers in your area.</Text>
+      <Text style={styles.subtitle}>
+        Your request has been successfully created and is now visible to service providers in your area.
+      </Text>
       {/* Summary card */}
       <View style={styles.summaryCard}>
         <View style={styles.summaryRow}>
@@ -119,7 +120,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
       {/* View requests link */}
-      <TouchableOpacity onPress={goToMyRequests} style={{ alignSelf: 'center', marginTop: spacing.lg }}>
+      <TouchableOpacity onPress={goToMyRequests} style={{ alignSelf: 'center', marginTop: spacing.lg, marginBottom: spacing.xl }}>
         <Text style={styles.viewRequestsText}>View My Requests</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -152,21 +153,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
-  },
-  backButton: {
-    padding: spacing.sm,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.primary,
   },
   successIconContainer: {
     alignItems: 'center',

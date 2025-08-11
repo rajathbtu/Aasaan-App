@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -32,8 +32,45 @@ const NameOTPValidationScreen: React.FC = () => {
   const route = useRoute<any>();
   const { phone, language } = (route.params as any) || {};
   const [name, setName] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '']);
   const [loading, setLoading] = useState(false);
+  const [seconds, setSeconds] = useState(30);
+  const inputsRef = useRef<(TextInput | null)[]>([]);
   const { login } = useAuth();
+
+  const otpValue = useMemo(() => otp.join(''), [otp]);
+
+  useEffect(() => {
+    if (seconds <= 0) return;
+    const id = setInterval(() => setSeconds((s) => s - 1), 1000);
+    return () => clearInterval(id);
+  }, [seconds]);
+
+  const focusNext = (index: number) => {
+    if (index < inputsRef.current.length - 1) {
+      inputsRef.current[index + 1]?.focus();
+    }
+  };
+
+  const focusPrev = (index: number) => {
+    if (index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  const onChangeDigit = (text: string, index: number) => {
+    const sanitized = text.replace(/\D/g, '').slice(0, 1);
+    const next = [...otp];
+    next[index] = sanitized;
+    setOtp(next);
+    if (sanitized) focusNext(index);
+  };
+
+  const onKeyPress = (e: any, index: number) => {
+    if (e.nativeEvent.key === 'Backspace' && !otp[index]) {
+      focusPrev(index);
+    }
+  };
 
   const handleContinue = async () => {
     const trimmed = name.trim();
@@ -140,12 +177,16 @@ const NameOTPValidationScreen: React.FC = () => {
               {[0, 1, 2, 3].map((i) => (
                 <TextInput
                   key={i}
-                  maxLength={1}
+                  ref={(el) => {
+                    inputsRef.current[i] = el;
+                  }}
                   keyboardType="number-pad"
+                  maxLength={1}
+                  value={otp[i]}
+                  onChangeText={(t) => onChangeDigit(t, i)}
+                  onKeyPress={(e) => onKeyPress(e, i)}
                   style={styles.otpBox}
-                  placeholder="•"
-                  placeholderTextColor="#d1d5db"
-                  // NOTE: no state hookup on purpose — UI only
+                  returnKeyType="next"
                 />
               ))}
             </View>
@@ -157,11 +198,12 @@ const NameOTPValidationScreen: React.FC = () => {
 
             <View style={styles.resendWrap}>
               <Text style={styles.resendInfo}>
-                Didn’t receive the code? <Text style={{ fontWeight: '600' }}>00:30</Text>
+                Didn’t receive the code?{' '}
+                {seconds > 0 ? <Text style={{ fontWeight: '600' }}>00:{String(seconds).padStart(2, '0')}</Text> : null}
               </Text>
-              <Text style={[styles.resendBtn, { opacity: 0.5 }]}>
-                Resend OTP
-              </Text>
+              <TouchableOpacity onPress={() => setSeconds(30)} disabled={seconds > 0 || loading}>
+                <Text style={[styles.resendBtn, (seconds > 0 || loading) && { opacity: 0.5 }]}>Resend OTP</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
