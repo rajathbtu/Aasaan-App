@@ -3,6 +3,8 @@ import { WorkRequest } from './WorkRequest';
 import { Notification } from './Notification';
 import prisma from '../utils/prisma';
 
+const pAny: any = prisma;
+
 /*
  * Simple in‑memory data store.  In a real deployment the following
  * collections would be replaced with calls to a database.  All data
@@ -57,30 +59,39 @@ export async function createUser(params: Omit<User, 'id' | 'createdAt'>) {
 /**
  * Create a new work request.  Applies a simple 7‑day expiry and default values.
  */
-export async function createWorkRequest(params: Omit<WorkRequest, 'id' | 'createdAt' | 'status' | 'boosted' | 'acceptedProviders'>) {
-  const { location, ...rest } = params;
-  const createdLocation = await prisma.location.create({
-    data: {
-      name: location.name,
-      lat: location.lat,
-      lng: location.lng,
-    },
+export async function createWorkRequest(
+  params: Omit<WorkRequest, 'id' | 'createdAt' | 'status' | 'boosted' | 'acceptedProviders'>
+) {
+  const { location, rating: _ignoreRating, ...rest } = params;
+
+  // Create Location first and use its id (matches pattern used elsewhere and avoids type mismatches)
+  const createdLocation = await pAny.location.create({
+    data: { name: location.name, lat: location.lat, lng: location.lng },
   });
-  return prisma.workRequest.create({
+
+  // Create WorkRequest without `rating` on creation
+  const wr = await pAny.workRequest.create({
     data: {
-      ...rest,
+      userId: rest.userId,
+      service: rest.service,
       locationId: createdLocation.id,
+      tags: rest.tags || [],
       createdAt: new Date(),
       status: 'active',
       boosted: false,
+      ...(rest.closedAt ? { closedAt: rest.closedAt } : {}),
     },
   });
+
+  return wr as any;
 }
 
 /**
  * Push a notification for a user.
  */
-export async function pushNotification(notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) {
+export async function pushNotification(
+  notification: Omit<Notification, 'id' | 'createdAt' | 'read'>
+) {
   return prisma.notification.create({
     data: {
       ...notification,
