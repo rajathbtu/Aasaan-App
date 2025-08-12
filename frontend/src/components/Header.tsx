@@ -25,7 +25,9 @@ const Header: React.FC<HeaderProps> = ({ title, showBackButton = true, showNotif
         )}
         <Text style={styles.headerTitle}>{title}</Text>
         {showNotification && (
-          <TouchableOpacity style={styles.notificationButton}>
+          <TouchableOpacity 
+            style={styles.notificationButton} 
+            onPress={() => navigation.navigate('Notifications')}>
             <Ionicons name="notifications-outline" size={20} color={colors.dark} />
             {notificationCount > 0 && (
               <View style={styles.notificationBadge}>
