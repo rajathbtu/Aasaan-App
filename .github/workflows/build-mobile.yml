@@ -151,7 +151,6 @@ jobs:
     name: iOS .ipa (requires signing secrets)
     runs-on: macos-latest
     needs: ios-simulator
-    if: ${{ secrets.IOS_CERT_P12_BASE64 != '' && secrets.IOS_CERT_PASSWORD != '' && secrets.IOS_PROVISIONING_PROFILE_BASE64 != '' && secrets.IOS_TEAM_ID != '' && secrets.IOS_BUNDLE_IDENTIFIER != '' }}
     defaults:
       run:
         working-directory: frontend
@@ -159,7 +158,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check signing secrets
+        id: has_signing
+        shell: bash
+        run: |
+          if [ -n "${{ secrets.IOS_CERT_P12_BASE64 }}" ] && \
+             [ -n "${{ secrets.IOS_CERT_PASSWORD }}" ] && \
+             [ -n "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" ] && \
+             [ -n "${{ secrets.IOS_TEAM_ID }}" ] && \
+             [ -n "${{ secrets.IOS_BUNDLE_IDENTIFIER }}" ]; then
+            echo "present=true" >> $GITHUB_OUTPUT
+          else
+            echo "present=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Skip IPA build (secrets missing)
+        if: steps.has_signing.outputs.present != 'true'
+        run: echo "iOS signing secrets not configured; skipping IPA build."
+
       - name: Setup Node.js
+        if: steps.has_signing.outputs.present == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 18
@@ -167,21 +185,26 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
+        if: steps.has_signing.outputs.present == 'true'
         run: npm install --no-audit --prefer-offline
 
       - name: Expo prebuild (iOS)
+        if: steps.has_signing.outputs.present == 'true'
         env:
           EXPO_NO_TELEMETRY: "1"
           CI: "1"
         run: npx expo prebuild --platform ios --non-interactive
 
       - name: Install CocoaPods
+        if: steps.has_signing.outputs.present == 'true'
         run: npx pod-install ios
 
       - name: Install xcpretty
+        if: steps.has_signing.outputs.present == 'true'
         run: sudo gem install xcpretty
 
       - name: Determine iOS scheme/name
+        if: steps.has_signing.outputs.present == 'true'
         id: iosvars
         shell: bash
         run: |
@@ -189,6 +212,7 @@ jobs:
           echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
 
       - name: Import signing certificates and profiles
+        if: steps.has_signing.outputs.present == 'true'
         id: sign
         shell: bash
         env:
@@ -214,6 +238,7 @@ jobs:
           echo "profile_name=$PROFILE_NAME" >> $GITHUB_OUTPUT
 
       - name: Archive app
+        if: steps.has_signing.outputs.present == 'true'
         env:
           APP_NAME: ${{ steps.iosvars.outputs.app_name }}
           BUNDLE_ID: ${{ secrets.IOS_BUNDLE_IDENTIFIER }}
@@ -233,6 +258,7 @@ jobs:
             archive | xcpretty
 
       - name: Create export options
+        if: steps.has_signing.outputs.present == 'true'
         env:
           BUNDLE_ID: ${{ secrets.IOS_BUNDLE_IDENTIFIER }}
         run: |
@@ -258,6 +284,7 @@ jobs:
           EOF
 
       - name: Export .ipa
+        if: steps.has_signing.outputs.present == 'true'
         env:
           APP_NAME: ${{ steps.iosvars.outputs.app_name }}
         run: |
@@ -267,6 +294,7 @@ jobs:
             -exportOptionsPlist ios/exportOptions.plist | xcpretty
 
       - name: Upload iOS .ipa artifact
+        if: steps.has_signing.outputs.present == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa
