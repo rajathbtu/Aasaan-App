@@ -114,3 +114,57 @@ aasaan-app-01/
   persistent database in production you should replace the store in
   `backend/src/models` with an appropriate database layer and update the
   controllers accordingly.
+
+## Mobile CI/CD (GitHub Actions)
+
+This repo ships with a ready‑to‑use workflow that builds Android and iOS artifacts on every push.
+
+- Workflow file: `.github/workflows/build-mobile.yml`
+- Outputs (download from the run’s Artifacts section):
+  - `android-debug-apk`: Debug APK for sideloading
+  - `android-apk`: Release APK
+  - `android-aab`: Release App Bundle (for Play Store)
+  - `ios-simulator-app`: Zipped iOS Simulator `.app` (no signing required)
+  - `ios-ipa`: Signed iOS `.ipa` (only when secrets are configured)
+
+### Requirements
+
+- Expo SDK 53 / React Native 0.79 with prebuild (managed by the workflow).
+- `frontend/app.json` must define:
+  - `ios.bundleIdentifier`, `ios.buildNumber`
+  - `android.package`, `android.versionCode`
+  - Any permission usage descriptions (e.g., `NSLocationWhenInUseUsageDescription`).
+
+### iOS .ipa signing (optional)
+To generate a distributable `.ipa`, add the following GitHub repository secrets:
+
+- `IOS_CERT_P12_BASE64`: Base64 of your Apple signing certificate `.p12`
+- `IOS_CERT_PASSWORD`: Password for that `.p12`
+- `IOS_PROVISIONING_PROFILE_BASE64`: Base64 of the `.mobileprovision`
+- `IOS_TEAM_ID`: Your Apple Developer Team ID
+- `IOS_BUNDLE_IDENTIFIER`: e.g., `com.rajathbtu.aasaan`
+
+If these secrets are not provided, the workflow still builds the iOS Simulator `.app` for testing.
+
+### Local verification
+
+From `frontend/` you can reproduce CI steps:
+
+- Android prebuild: `npx expo prebuild --platform android`
+- iOS prebuild: `npx expo prebuild --platform ios`
+- Android assemble debug: `(cd android && ./gradlew assembleDebug)`
+- Android assemble release: `(cd android && ./gradlew assembleRelease)`
+- Android app bundle: `(cd android && ./gradlew bundleRelease)`
+- iOS (simulator): open the Xcode workspace in `ios/` and build the `Release` scheme for `Any iOS Simulator Device`.
+
+### Store submission notes
+
+- Google Play requires the `.aab` artifact. Use the uploaded `android-aab` bundle.
+- The unsigned Release APK is not installable; use `android-debug-apk` for device tests or sign the release APK/bundle in Play Console.
+- App Store submission requires an Apple Developer account and proper signing; you can adapt the workflow to export an `ad-hoc` or `app-store` method in `exportOptions.plist`.
+
+### Troubleshooting
+
+- Prebuild fails: ensure `app.json` contains the identifiers and permissions and that all assets exist at the paths referenced.
+- CocoaPods issues on CI: the workflow runs `npx pod-install ios` on macOS. If a specific Pod fails, pin versions in your `ios/Podfile` after prebuild and commit them.
+- Gradle out of memory: add `ORG_GRADLE_OPTS: -Xmx3g` as an env var in the Android job.
