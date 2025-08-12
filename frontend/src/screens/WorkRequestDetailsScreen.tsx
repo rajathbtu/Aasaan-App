@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
+import { getWorkRequest } from '../api/index';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Displays detailed information about a specific work request.  End users
@@ -20,7 +22,15 @@ import { colors, spacing, radius } from '../theme';
 const WorkRequestDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { request } = (route.params as any) || {};
+  const { token } = useAuth();
+  const [request, setRequest] = useState(route.params?.request || null);
+
+  useEffect(() => {
+    if (!request && route.params?.id && token) {
+      // Fetch the request details using the id
+      getWorkRequest(token, route.params.id).then(setRequest).catch(console.error);
+    }
+  }, [route.params?.id, token]);
 
   if (!request) {
     return (

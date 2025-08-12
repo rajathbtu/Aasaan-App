@@ -73,7 +73,7 @@ const WorkRequestsScreen: React.FC = () => {
         </View>
       </View>
       <View style={styles.cardFooter}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('WorkRequestDetails', { id: item.id })}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('WorkRequestDetails', { request: item })}>
           <Text style={styles.actionButtonText}>View Details</Text>
         </TouchableOpacity>
       </View>
