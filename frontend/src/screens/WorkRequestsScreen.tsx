@@ -99,7 +99,7 @@ const WorkRequestsScreen: React.FC = () => {
         </View>
       </View>
       <View style={styles.cardFooter}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('WorkRequestDetails', { request: item })}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('WorkRequestDetails', { id: item.id, request: item })}>
           <Text style={styles.actionButtonText}>View Details</Text>
         </TouchableOpacity>
       </View>
@@ -115,6 +115,12 @@ const WorkRequestsScreen: React.FC = () => {
   }
 
   const data = activeTab === 'active' ? activeRequests : completedRequests;
+  // Sort recent first (createdAt descending)
+  const list = [...data].sort((a, b) => {
+    const aTime = new Date(a?.createdAt || 0).getTime();
+    const bTime = new Date(b?.createdAt || 0).getTime();
+    return bTime - aTime;
+  });
 
   return (
     <View style={styles.container}>
@@ -148,7 +154,7 @@ const WorkRequestsScreen: React.FC = () => {
 
       {/* Request List */}
       <FlatList
-        data={data}
+        data={list}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => renderRequestCard(item)}
         contentContainerStyle={requests.length === 0 ? styles.emptyContainer : undefined}
@@ -268,10 +274,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cardLocation: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: 14,
+    color: '#4b5563',
     marginBottom: 4,
-    lineHeight: 18,
+    lineHeight: 20,
   },
   tagContainer: {
     flexDirection: 'row',
@@ -280,7 +286,7 @@ const styles = StyleSheet.create({
   },
   tag: {
     backgroundColor: '#f3f4f6',
-    color: '#6b7280',
+    color: '#374151',
     fontSize: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,

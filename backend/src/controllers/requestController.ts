@@ -44,7 +44,22 @@ async function buildFullWorkRequest(id: string): Promise<FullWorkRequest | null>
     pAny.acceptedProvider?.findMany ? pAny.acceptedProvider.findMany({ where: { workRequestId: id } }) : [],
     pAny.rating?.findUnique ? pAny.rating.findUnique({ where: { workRequestId: id } }) : null
   ]);
-  return { ...(wr as any), location, acceptedProviders, rating } as FullWorkRequest;
+
+  // Enrich accepted providers with user profile (name, phone)
+  let acceptedWithDetails: any[] = acceptedProviders || [];
+  try {
+    const ids = Array.from(new Set((acceptedProviders || []).map((p: any) => p.providerId)));
+    if (ids.length && pAny.user?.findMany) {
+      const users = await pAny.user.findMany({ where: { id: { in: ids } } });
+      const uMap = new Map(users.map((u: any) => [u.id, u]));
+      acceptedWithDetails = (acceptedProviders || []).map((p: any) => ({
+        ...p,
+        provider: uMap.get(p.providerId) || null,
+      }));
+    }
+  } catch {}
+
+  return { ...(wr as any), location, acceptedProviders: acceptedWithDetails, rating } as FullWorkRequest;
 }
 
 /**
