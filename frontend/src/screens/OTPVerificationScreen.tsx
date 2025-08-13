@@ -16,6 +16,8 @@ import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { translations, SupportedLocale } from '../i18n/translations';
+import { languages } from '../data/languages';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -27,7 +29,11 @@ const OTPVerificationScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showAutoRead, setShowAutoRead] = useState(true);
   const [seconds, setSeconds] = useState(30);
-  const { login } = useAuth();
+  const { login, user, setLanguage } = useAuth();
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const currentLang = (user?.language || language || 'en') as SupportedLocale;
+  const t = useMemo(() => translations[currentLang], [currentLang]);
 
   const inputsRef = useRef<Array<TextInput | null>>([null, null, null, null]);
 
@@ -36,8 +42,8 @@ const OTPVerificationScreen: React.FC = () => {
 
   useEffect(() => {
     // Hide "auto-reading" hint after a short delay (UI-only)
-    const t = setTimeout(() => setShowAutoRead(false), 2500);
-    return () => clearTimeout(t);
+    const tmr = setTimeout(() => setShowAutoRead(false), 2500);
+    return () => clearTimeout(tmr);
   }, []);
 
   useEffect(() => {
@@ -75,14 +81,14 @@ const OTPVerificationScreen: React.FC = () => {
 
   const handleVerify = async () => {
     if (otpValue.length < 4) {
-      Alert.alert('Invalid OTP', 'Please enter the 4‑digit code');
+      Alert.alert(t.common.invalidOtp, t.common.invalidOtpDesc);
       return;
     }
     try {
       setLoading(true);
       const result: any = await API.verifyOtp(phone, Number(otpValue));
       if (result.needsRegistration) {
-        navigation.navigate('NameOTPValidation', { phone, language });
+        navigation.navigate('NameOTPValidation', { phone, language: currentLang });
       } else if (result.token) {
         await login(result.token, result.user);
         const user = result.user;
@@ -99,10 +105,10 @@ const OTPVerificationScreen: React.FC = () => {
         }
         navigation.navigate('Main');
       } else if (result.error) {
-        Alert.alert('Error', result.message || 'Invalid OTP');
+        Alert.alert(t.common.error, result.message || t.common.invalidOtp);
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to verify OTP');
+      Alert.alert(t.common.error, err.message || t.common.invalidOtp);
     } finally {
       setLoading(false);
     }
@@ -115,9 +121,9 @@ const OTPVerificationScreen: React.FC = () => {
       setOtp(['', '', '', '']);
       inputsRef.current[0]?.focus();
       setSeconds(30); // restart timer (UI-only)
-      Alert.alert('OTP sent', 'A new OTP has been sent to your phone');
+      Alert.alert(t.common.otpSent, t.common.otpSentDesc);
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to resend OTP');
+      Alert.alert(t.common.error, err.message || t.common.invalidOtp);
     } finally {
       setLoading(false);
     }
@@ -130,17 +136,29 @@ const OTPVerificationScreen: React.FC = () => {
       style={styles.page}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {/* Status bar height is handled by SafeArea in parent layouts */}
-
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Icon name="arrow-left" size={18} color="#4b5563" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Verify OTP</Text>
+          <Text style={styles.headerTitle}>{t.otp.header}</Text>
         </View>
-        <View style={{ width: 24 }} />
+        {/* Language picker */}
+        <View>
+          <TouchableOpacity onPress={() => setPickerOpen(o => !o)}>
+            <Icon name="globe" size={18} color="#4b5563" />
+          </TouchableOpacity>
+          {pickerOpen && (
+            <View style={styles.menu}>
+              {languages.map(l => (
+                <TouchableOpacity key={l.code} style={styles.menuItem} onPress={async () => { await setLanguage(l.code); }}>
+                  <Text style={styles.menuItemText}>{l.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
       </View>
 
       {/* Separator */}
@@ -150,12 +168,12 @@ const OTPVerificationScreen: React.FC = () => {
       <View style={styles.content}>
         {/* Title + phone + change */}
         <View style={styles.topBlock}>
-          <Text style={styles.title}>Enter Verification Code</Text>
-          <Text style={styles.subtle}>We&apos;ve sent a 4‑digit code to</Text>
+          <Text style={styles.title}>{t.otp.title}</Text>
+          <Text style={styles.subtle}>{t.otp.sentInfo}</Text>
           <View style={styles.phoneRow}>
             <Text style={styles.phoneText}>+91 {String(phone || '').replace(/^\+?91/, '')}</Text>
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.changeLink}>Change</Text>
+              <Text style={styles.changeLink}>{t.common.change}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -165,7 +183,7 @@ const OTPVerificationScreen: React.FC = () => {
           {[0, 1, 2, 3].map((i) => (
             <TextInput
               key={i}
-              ref={(el) => (inputsRef.current[i] = el)}
+              ref={(el) => { inputsRef.current[i] = el; }}
               keyboardType="number-pad"
               maxLength={1}
               value={otp[i]}
@@ -181,15 +199,14 @@ const OTPVerificationScreen: React.FC = () => {
         {showAutoRead && (
           <View style={styles.autoReadRow}>
             <Icon name="mobile" size={14} color="#2563eb" style={{ marginRight: 6 }} />
-            <Text style={styles.autoReadText}>Auto-reading SMS...</Text>
+            <Text style={styles.autoReadText}>{t.otp.autoRead}</Text>
           </View>
         )}
 
         {/* Resend */}
         <View style={styles.resendBlock}>
           <Text style={styles.resendHint}>
-            Didn&apos;t receive the code?{' '}
-            {timerText ? <Text style={styles.resendTimer}>{timerText}</Text> : null}
+            {t.otp.didntReceive} {timerText ? <Text style={styles.resendTimer}>{timerText}</Text> : null}
           </Text>
           <TouchableOpacity onPress={handleResend} disabled={seconds > 0 || loading}>
             <Text
@@ -198,7 +215,7 @@ const OTPVerificationScreen: React.FC = () => {
                 (seconds > 0 || loading) && { opacity: 0.5 },
               ]}
             >
-              Resend OTP
+              {t.common.resendOtp}
             </Text>
           </TouchableOpacity>
         </View>
@@ -214,14 +231,14 @@ const OTPVerificationScreen: React.FC = () => {
           ) : (
             <View style={styles.verifyInner}>
               <Icon name="check-circle" size={16} color="#fff" style={{ marginRight: 8 }} />
-              <Text style={styles.verifyText}>Verify &amp; Continue</Text>
+              <Text style={styles.verifyText}>{t.otp.verifyAndContinue}</Text>
             </View>
           )}
         </TouchableOpacity>
 
         {/* Help text */}
         <Text style={styles.helpText}>
-          Having trouble? Contact support at <Text style={styles.helpLink}>help@aasaan.com</Text>
+          {t.common.helpLine} <Text style={styles.helpLink}>help@aasaan.com</Text>
         </Text>
       </View>
     </KeyboardAvoidingView>
@@ -364,6 +381,24 @@ const styles = StyleSheet.create({
   helpLink: {
     color: '#2563eb',
     fontWeight: '600',
+  },
+  menu: {
+    position: 'absolute',
+    top: '100%',
+    right: 0,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    overflow: 'hidden',
+    elevation: 2,
+    zIndex: 100,
+  },
+  menuItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  menuItemText: {
+    fontSize: 16,
+    color: '#111827',
   },
 });
 

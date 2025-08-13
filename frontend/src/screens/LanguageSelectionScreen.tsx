@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,15 +11,18 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { languages } from '../data/languages';
+import { languages, getLanguageDisplay } from '../data/languages';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { useAuth } from '../contexts/AuthContext';
+import { translations, SupportedLocale } from '../i18n/translations';
 
 const STICKY_HEIGHT = 72; // approx height of the bottom CTA area (padding + button)
 
 const LanguageSelectionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
-  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+  const { setLanguage, user } = useAuth();
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(user?.language || null);
 
   // Block back navigation (hardware + gestures/back button)
   useEffect(() => {
@@ -35,12 +38,18 @@ const LanguageSelectionScreen: React.FC = () => {
     };
   }, [navigation]);
 
+  const t = useMemo(() => {
+    const lang = (selectedLanguage || 'en') as SupportedLocale;
+    return translations[lang];
+  }, [selectedLanguage]);
+
   const handleLanguageSelect = (langCode: string) => {
     setSelectedLanguage(langCode);
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (selectedLanguage) {
+      await setLanguage(selectedLanguage);
       navigation.navigate('MobileInput', { language: selectedLanguage });
     }
   };
@@ -72,9 +81,9 @@ const LanguageSelectionScreen: React.FC = () => {
           ]}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.title}>Choose your language</Text>
-          <Text style={styles.subtitle}>अपनी भाषा चुनें</Text>
-          <Text style={styles.description}>Select the language you're most comfortable with</Text>
+          <Text style={styles.title}>{t.language.title}</Text>
+          <Text style={styles.subtitle}>{t.language.subtitle}</Text>
+          <Text style={styles.description}>{t.language.description}</Text>
 
           {languages.map((lang) => (
             <TouchableOpacity
@@ -92,7 +101,7 @@ const LanguageSelectionScreen: React.FC = () => {
                   <Text style={styles.languageIconText}>{lang.icon}</Text>
                 </View>
                 <View>
-                  <Text style={styles.languageLabel}>{lang.label}</Text>
+                  <Text style={styles.languageLabel}>{getLanguageDisplay(lang.code)}</Text>
                   <Text style={styles.languageSubLabel}>{lang.subLabel}</Text>
                 </View>
               </View>
@@ -120,7 +129,7 @@ const LanguageSelectionScreen: React.FC = () => {
             disabled={!selectedLanguage}
             accessibilityRole="button"
           >
-            <Text style={styles.continueButtonText}>Continue</Text>
+            <Text style={styles.continueButtonText}>{t.common.continue}</Text>
             <Icon name="arrow-right" size={16} color="#ffffff" style={styles.iconSpacing} />
           </TouchableOpacity>
         </View>

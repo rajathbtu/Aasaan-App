@@ -35,6 +35,7 @@ interface AuthContextProps {
   logout: () => void;
   refreshUser: () => Promise<void>;
   updateUser: (updates: UpdatePayload) => Promise<void>;
+  setLanguage: (lang: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -106,8 +107,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const setLanguage = async (lang: string) => {
+    if (!user) return;
+    // optimistic local update
+    const next = { ...user, language: lang } as User;
+    setUser(next);
+    await SecureStore.setItemAsync('aasaan_user', JSON.stringify(next));
+    // persist to backend when token is present
+    if (token) {
+      try {
+        await updateUser({ language: lang });
+      } catch (e) {
+        // ignore errors for now; user can retry later
+      }
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, refreshUser, updateUser }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, refreshUser, updateUser, setLanguage }}>
       {children}
     </AuthContext.Provider>
   );
