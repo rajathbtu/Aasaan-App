@@ -106,27 +106,37 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
         {/* Search bar (icon inside input) */}
         <View style={styles.searchWrapper}>
-          <Ionicons name="search" size={18} color={colors.primary} style={styles.searchIcon} />
+          <Ionicons name="search" size={18} color={colors.grey} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={styles.searchInput} 
             placeholder="Search for services..."
             placeholderTextColor={colors.grey}
             value={query}
             onChangeText={setQuery}
           />
+          {query.trim() !== '' && (
+            <TouchableOpacity
+              style={styles.resetButton}
+              onPress={() => setQuery('')}
+            >
+              <Ionicons name="close-circle" size={18} color={colors.grey} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       {/* Recently Used */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recently Used</Text>
-        <View style={styles.gridRow}>
-          {recentIds.map(id => {
-            const svc = services.find(s => s.id === id);
-            return svc ? renderServiceCard(svc) : null;
-          })}
+      {query.trim() === '' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recently Used</Text>
+          <View style={styles.gridRow}>
+            {recentIds.map(id => {
+              const svc = services.find(s => s.id === id);
+              return svc ? renderServiceCard(svc) : null;
+            })}
+          </View>
         </View>
-      </View>
+      )}
 
       {/* All Services */}
       <View style={styles.section}>
@@ -214,10 +224,16 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     paddingHorizontal: spacing.md,
-    paddingLeft: spacing.xl, // room for icon (pl-10)
+    paddingLeft: spacing.xl * 1.5, // Adjusted padding to ensure proper spacing
     paddingVertical: spacing.md,
     fontSize: 16,
     color: colors.dark,
+  },
+  resetButton: {
+    position: 'absolute',
+    right: spacing.md,
+    top: 10,
+    padding: 4,
   },
 
   section: {
