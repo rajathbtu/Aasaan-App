@@ -19,7 +19,8 @@ export function sendOtp(req: Request, res: Response): void {
     res.status(400).json({ message: 'Invalid phone number' });
     return;
   }
-  const otp = generateOTP();
+  // const otp = generateOTP();
+  const otp = 8891; // TODO: Fixed OTP for testing; revert to generateOTP() for production
   pendingOtps.set(phone, otp);
   // In a real app you would send the OTP via SMS here
   console.log(`Generated OTP ${otp} for phone ${phone}`);
