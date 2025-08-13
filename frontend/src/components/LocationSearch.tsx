@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, FlatList, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import axios from 'axios';
 
 const GOOGLE_PLACES_API_KEY = 'AIzaSyA38lonSYxTC6Ro6sBQB11Gg7IragTG2XU'; // Replace with your API key
@@ -38,6 +38,8 @@ const LocationSearch = ({ onSelect }: { onSelect: (location: any) => void }) => 
     }
   };
 
+  const shown = suggestions.slice(0, 5);
+
   return (
     <View style={styles.container}>
       <TextInput
@@ -49,15 +51,13 @@ const LocationSearch = ({ onSelect }: { onSelect: (location: any) => void }) => 
           fetchSuggestions(text);
         }}
       />
-      <FlatList
-        data={suggestions}
-        keyExtractor={(item) => item.place_id}
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => handleSelect(item)}>
+      <View style={styles.suggestionsContainer}>
+        {shown.map((item) => (
+          <TouchableOpacity key={item.place_id} onPress={() => handleSelect(item)}>
             <Text style={styles.suggestion}>{item.description}</Text>
           </TouchableOpacity>
-        )}
-      />
+        ))}
+      </View>
     </View>
   );
 };
@@ -72,6 +72,12 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 10,
+  },
+  suggestionsContainer: {
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 5,
+    overflow: 'hidden',
   },
   suggestion: {
     padding: 10,

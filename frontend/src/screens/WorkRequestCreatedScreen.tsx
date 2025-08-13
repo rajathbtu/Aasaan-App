@@ -21,10 +21,14 @@ import Header from '../components/Header';
 const WorkRequestCreatedScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { request } = (route.params as any) || {};
+  const { request, locationName: locationNameParam } = (route.params as any) || {};
   // Safeguards for possibly missing fields in request
   const serviceName = request?.service ?? 'Service';
-  const locationName = request?.location?.name ?? request?.locationName ?? 'Your area';
+  const locationName =
+    locationNameParam ??
+    request?.location?.name ??
+    request?.locationName ??
+    'Your area';
   const tags = Array.isArray(request?.tags) ? request.tags.slice(0, 2) : [];
 
   const goToMyRequests = () => {

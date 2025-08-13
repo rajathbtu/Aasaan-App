@@ -72,8 +72,9 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
           lng: selectedLocation.lng,
         },
         tags: selectedTags,
+        force: true // TODO: SET TO FALSE IN PRODUCTION
       });
-      navigation.navigate('WorkRequestCreated', { request: wr });
+      navigation.navigate('WorkRequestCreated', { request: wr, locationName: selectedLocation.description });
     } catch (err: any) {
       const message = err?.response?.data?.message || err.message || 'Failed to create request';
       Alert.alert('Error', message);
