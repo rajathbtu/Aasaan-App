@@ -98,6 +98,17 @@ export async function list(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
   if (user.role === 'endUser') {
     const my = await pAny.workRequest.findMany({ where: { userId: user.id } });
+    // Enrich with location objects so clients can display location.name
+    try {
+      const locationIds = Array.from(new Set((my as any[]).map((r: any) => r.locationId).filter(Boolean)));
+      if (locationIds.length && pAny.location?.findMany) {
+        const locations = await pAny.location.findMany({ where: { id: { in: locationIds } } });
+        const locMap = new Map(locations.map((l: any) => [l.id, l]));
+        const enriched = (my as any[]).map((r: any) => ({ ...r, location: locMap.get(r.locationId) || null }));
+        res.json(enriched);
+        return;
+      }
+    } catch {}
     res.json(my);
     return;
   }
