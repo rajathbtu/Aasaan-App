@@ -199,7 +199,7 @@ const SPWorkRequestsScreen: React.FC = () => {
       cook: { icon: 'restaurant', color: '#dcfce7' },
       carpenter: { icon: 'hammer', color: '#fef2f2' },
       painter: { icon: 'color-palette', color: '#fffbeb' },
-      maid: { icon: 'broom', color: '#fce7f3' },
+      maid: { icon: 'brush', color: '#fce7f3' },
       cleaner: { icon: 'sparkles', color: '#e0f2fe' },
     };
     const serviceKey = (item.service || '').toLowerCase().replace(/\s+/g, '');
@@ -354,7 +354,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         onPress={() => navigation.navigate('Subscription')}
       >
         <View style={styles.proIconWrapper}>
-          <Ionicons name="crown" size={20} color="#a855f7" />
+          <Ionicons name="trophy" size={20} color="#a855f7" />
         </View>
         <View style={{ flex: 1, marginLeft: spacing.sm }}>
           <Text style={styles.proTitle}>Go Pro</Text>

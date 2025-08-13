@@ -1,19 +1,28 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { services } from '../data/services';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
- * Onboarding step for service providers to select the types of services
- * they offer.  Providers can choose up to three services.  The
- * selection is saved to the backend and used to match them with end
- * users.  Services are grouped by category for easier browsing.
+ * Onboarding step or editor for service providers to select the types of services they offer.
+ * - In onboarding mode (default), persists selection and navigates to SPSelectLocation.
+ * - In edit mode (invoked from Profile), returns selection via `onDone` without persisting.
  */
 const SPSelectServicesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { updateUser } = useAuth();
-  const [selected, setSelected] = useState<string[]>([]);
+  const mode: 'edit' | 'onboarding' = (route.params?.mode as any) === 'edit' ? 'edit' : 'onboarding';
+  const initialSelected: string[] = Array.isArray(route.params?.initialSelected) ? route.params?.initialSelected : [];
+  const onDone: undefined | ((sel: string[]) => void) = route.params?.onDone;
+
+  const [selected, setSelected] = useState<string[]>(initialSelected);
+
+  useEffect(() => {
+    // Keep state in sync if screen is refocused with different params
+    setSelected(initialSelected);
+  }, [initialSelected.join(',')]);
 
   // Group services by category for rendering
   const grouped = useMemo(() => {
@@ -43,6 +52,13 @@ const SPSelectServicesScreen: React.FC = () => {
       Alert.alert('Select services', 'Please choose at least one service');
       return;
     }
+
+    if (mode === 'edit' && onDone) {
+      onDone(selected);
+      navigation.goBack();
+      return;
+    }
+
     try {
       await updateUser({ services: selected });
       navigation.navigate('SPSelectLocation');
@@ -74,11 +90,11 @@ const SPSelectServicesScreen: React.FC = () => {
         </View>
       ))}
       <TouchableOpacity
-        style={[styles.button, selected.length === 0 && { opacity: 0.6 }]}
+        style={[styles.button, selected.length === 0 && { opacity: 0.6 }]} 
         onPress={handleContinue}
         disabled={selected.length === 0}
       >
-        <Text style={styles.buttonText}>Continue</Text>
+        <Text style={styles.buttonText}>{mode === 'edit' ? 'Done' : 'Continue'}</Text>
       </TouchableOpacity>
     </ScrollView>
   );

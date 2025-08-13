@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   web-deploy:
-    name: Build and Deploy Expo Web to GitHub Pages (main only)
+    name: Build and Deploy Aasaan Web
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

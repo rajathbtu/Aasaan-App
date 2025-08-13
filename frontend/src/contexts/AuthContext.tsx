@@ -19,7 +19,7 @@ interface User {
 
 type UpdatePayload = Partial<User> & {
   services?: string[];
-  location?: { name: string; lat: number; lng: number } | null;
+  location?: { name: string; lat: number; lng: number; placeId?: string } | null;
   radius?: number;
   plan?: 'free' | 'basic' | 'pro';
   role?: 'endUser' | 'serviceProvider';

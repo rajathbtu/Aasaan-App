@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 
 // Import screens
 import LaunchScreen from './src/screens/LaunchScreen';
@@ -48,19 +49,21 @@ function RootNavigator() {
         <>
           {/* Main tab navigator */}
           <Stack.Screen name="Main" component={MainTabs} />
-          {/* Screens that sit on top of the tab navigator.  These screens
-              handle flows such as creating a work request, viewing details
-              or processing a payment.  They are only accessible once the
-              user is authenticated. */}
+          {/* Screens accessible post-auth */}
           <Stack.Screen name="WorkRequestAddDetails" component={WorkRequestAddDetailsScreen} />
           <Stack.Screen name="WorkRequestCreated" component={WorkRequestCreatedScreen} />
           <Stack.Screen name="BoostRequest" component={BoostRequestScreen} />
           <Stack.Screen name="WorkRequestDetails" component={WorkRequestDetailsScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+          {/* Provider edit/onboarding tools available from Profile */}
+          <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
+          <Stack.Screen name="SPSelectLocation" component={SPSelectLocationScreen} />
         </>
       ) : (
-        <Stack.Screen name="Auth" component={AuthStack} />
+        <>
+          <Stack.Screen name="Auth" component={AuthStack} />
+        </>
       )}
     </Stack.Navigator>
   );
@@ -124,6 +127,7 @@ export default function App() {
   return (
     <AuthProvider>
       <NavigationContainer>
+        <StatusBar style="dark" />
         <RootNavigator />
       </NavigationContainer>
     </AuthProvider>

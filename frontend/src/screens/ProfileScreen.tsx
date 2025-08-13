@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
+import LocationSearch from '../components/LocationSearch';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users
@@ -25,19 +26,35 @@ import { colors, spacing, radius } from '../theme';
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user, updateUser, logout } = useAuth();
-  const [name, setName] = useState(user?.name || '');
-  const [editing, setEditing] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
 
-  const phone = user?.phoneNumber || user?.phone || '';
-  const language = user?.language || 'English';
-  const services: string[] = Array.isArray(user?.serviceProviderInfo?.services)
+  // Derive initial values from user
+  const initialName = user?.name || '';
+  const initialRole: 'endUser' | 'serviceProvider' = (user?.role as any) || 'endUser';
+  const initialServices: string[] = Array.isArray(user?.serviceProviderInfo?.services)
     ? (user!.serviceProviderInfo!.services as string[])
     : [];
-  const serviceLocation = user?.serviceProviderInfo?.location?.name || '';
-  const radiusValue = (user?.serviceProviderInfo?.radius as number | undefined) ?? 5;
+  const initialLocation = user?.serviceProviderInfo?.location || null;
+  const initialRadius = (user?.serviceProviderInfo?.radius as number | undefined) ?? 5;
 
-  const canSave = useMemo(() => editing && name.trim().length > 0 && name.trim() !== (user?.name || ''), [editing, name, user?.name]);
+  // Pending editable state (changed only on Save)
+  const [name, setName] = useState(initialName);
+  const [editing, setEditing] = useState(false);
+  const [pendingRole, setPendingRole] = useState<'endUser' | 'serviceProvider'>(initialRole);
+  const [pendingServices, setPendingServices] = useState<string[]>(initialServices);
+  const [pendingLocation, setPendingLocation] = useState<any>(initialLocation);
+  const [pendingRadius, setPendingRadius] = useState<number>(initialRadius);
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    // If user object updates (after save), sync pending state
+    if (!user) return;
+    setEditing(false);
+    setName(user.name || '');
+    setPendingRole(user.role);
+    setPendingServices(Array.isArray(user?.serviceProviderInfo?.services) ? (user!.serviceProviderInfo!.services as string[]) : []);
+    setPendingLocation(user?.serviceProviderInfo?.location || null);
+    setPendingRadius((user?.serviceProviderInfo?.radius as number | undefined) ?? 5);
+  }, [user?.id, user?.name, user?.role]);
 
   if (!user) {
     return (
@@ -47,15 +64,38 @@ const ProfileScreen: React.FC = () => {
     );
   }
 
+  const deepEqualArray = (a: any[], b: any[]) => a.length === b.length && a.every((v, i) => v === b[i]);
+  const locationEqual = (a: any, b: any) => {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    return a.name === b.name && a.lat === b.lat && a.lng === b.lng && a.placeId === b.placeId;
+  };
+
+  const canSave = useMemo(() => {
+    const nameChanged = editing && name.trim() !== initialName.trim();
+    const roleChanged = pendingRole !== initialRole;
+    const servicesChanged = !deepEqualArray(pendingServices, initialServices);
+    const radiusChanged = pendingRadius !== initialRadius;
+    const locationChanged = !locationEqual(pendingLocation, initialLocation);
+    return nameChanged || roleChanged || servicesChanged || radiusChanged || locationChanged;
+  }, [editing, name, pendingRole, pendingServices, pendingRadius, pendingLocation, initialName, initialRole, initialServices, initialRadius, initialLocation]);
+
   const onSave = async () => {
-    if (!editing) return; // Only saves name edits
-    const trimmed = name.trim();
-    if (!trimmed) {
-      Alert.alert('Name required', 'Please enter a valid name');
-      return;
-    }
+    if (!canSave) return;
+    const updates: any = {};
+    if (editing && name.trim() !== initialName.trim()) updates.name = name.trim();
+    if (pendingRole !== initialRole) updates.role = pendingRole;
+    if (!deepEqualArray(pendingServices, initialServices)) updates.services = pendingServices;
+    if (pendingRadius !== initialRadius) updates.radius = pendingRadius;
+    if (!locationEqual(pendingLocation, initialLocation)) updates.location = pendingLocation ? {
+      name: pendingLocation.name,
+      lat: pendingLocation.lat,
+      lng: pendingLocation.lng,
+      placeId: pendingLocation.place_id || pendingLocation.placeId,
+    } : null;
+
     try {
-      await updateUser({ name: trimmed });
+      await updateUser(updates);
       setEditing(false);
       Alert.alert('Updated', 'Changes saved');
     } catch (err: any) {
@@ -63,19 +103,7 @@ const ProfileScreen: React.FC = () => {
     }
   };
 
-  const toggleRole = async (role: 'endUser' | 'serviceProvider') => {
-    if (role === user.role) return;
-    try {
-      await updateUser({ role });
-      if (role === 'serviceProvider') {
-        navigation.navigate('SPSelectServices');
-      } else {
-        navigation.navigate('Main');
-      }
-    } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to switch role');
-    }
-  };
+  const canGoBack = navigation.canGoBack?.() ?? false;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.light }}>
@@ -83,9 +111,11 @@ const ProfileScreen: React.FC = () => {
         {/* Header */}
         <View style={styles.header}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={18} color={'#6b7280'} />
-            </TouchableOpacity>
+            {canGoBack && (
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                <Ionicons name="arrow-back" size={18} color={'#6b7280'} />
+              </TouchableOpacity>
+            )}
             <Text style={styles.headerTitle}>Profile</Text>
           </View>
           <TouchableOpacity
@@ -112,7 +142,6 @@ const ProfileScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.cameraBtn}
               onPress={async () => {
-                // Simple URL prompt substitute for mobile: suggest pasting an image URL
                 Alert.prompt?.('Change Photo', 'Paste an image URL to use as your profile photo', [
                   { text: 'Cancel', style: 'cancel' },
                   { text: 'Save', onPress: async (value?: string) => { if (!value) return; try { await updateUser({ avatarUrl: value }); } catch (e:any) { Alert.alert('Error', e.message || 'Failed to update photo'); } } },
@@ -154,7 +183,7 @@ const ProfileScreen: React.FC = () => {
           <View style={{ marginBottom: spacing.md }}>
             <Text style={styles.fieldLabel}>Mobile Number</Text>
             <View style={styles.infoCell}>
-              <Text style={styles.infoValue}>{phone}</Text>
+              <Text style={styles.infoValue}>{user?.phoneNumber || user?.phone || ''}</Text>
               <TouchableOpacity onPress={() => Alert.alert('Not editable', 'Mobile number cannot be changed')}>
                 <Ionicons name="pencil" size={14} color={'#9ca3af'} />
               </TouchableOpacity>
@@ -165,7 +194,7 @@ const ProfileScreen: React.FC = () => {
           <View style={{ marginBottom: spacing.sm }}>
             <Text style={styles.fieldLabel}>Language</Text>
             <View style={styles.infoCell}>
-              <Text style={styles.infoValue}>{language}</Text>
+              <Text style={styles.infoValue}>{user?.language || 'English'}</Text>
               <TouchableOpacity onPress={() => Alert.alert('Not editable', 'Language cannot be changed in this demo')}>
                 <Ionicons name="pencil" size={14} color={'#9ca3af'} />
               </TouchableOpacity>
@@ -178,28 +207,28 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>User Role</Text>
           <View style={styles.roleGrid}>
             <TouchableOpacity
-              style={[styles.roleCard, user.role === 'endUser' ? styles.roleCardSelected : styles.roleCardUnselected]}
-              onPress={() => toggleRole('endUser')}
+              style={[styles.roleCard, pendingRole === 'endUser' ? styles.roleCardSelected : styles.roleCardUnselected]}
+              onPress={() => setPendingRole('endUser')}
             >
-              <View style={[styles.roleIconCircle, user.role === 'endUser' ? { backgroundColor: colors.primary } : { backgroundColor: '#e5e7eb' }]}>
-                <Ionicons name="search" size={18} color={user.role === 'endUser' ? '#fff' : '#6b7280'} />
+              <View style={[styles.roleIconCircle, pendingRole === 'endUser' ? { backgroundColor: colors.primary } : { backgroundColor: '#e5e7eb' }]}>
+                <Ionicons name="search" size={18} color={pendingRole === 'endUser' ? '#fff' : '#6b7280'} />
               </View>
-              <Text style={[styles.roleText, user.role === 'endUser' ? { color: colors.primary } : { color: '#6b7280' }]}>Find people to get work done</Text>
+              <Text style={[styles.roleText, pendingRole === 'endUser' ? { color: colors.primary } : { color: '#6b7280' }]}>Find people to get work done</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.roleCard, user.role === 'serviceProvider' ? styles.roleCardSelected : styles.roleCardUnselected]}
-              onPress={() => toggleRole('serviceProvider')}
+              style={[styles.roleCard, pendingRole === 'serviceProvider' ? styles.roleCardSelected : styles.roleCardUnselected]}
+              onPress={() => setPendingRole('serviceProvider')}
             >
-              <View style={[styles.roleIconCircle, user.role === 'serviceProvider' ? { backgroundColor: '#e5e7eb' } : { backgroundColor: '#e5e7eb' }]}>
-                <Ionicons name="briefcase" size={18} color={user.role === 'serviceProvider' ? '#6b7280' : '#6b7280'} />
+              <View style={[styles.roleIconCircle, { backgroundColor: '#e5e7eb' }]}>
+                <Ionicons name="briefcase" size={18} color={'#6b7280'} />
               </View>
-              <Text style={[styles.roleText, user.role === 'serviceProvider' ? { color: '#6b7280' } : { color: '#6b7280' }]}>Find work opportunities</Text>
+              <Text style={[styles.roleText, { color: '#6b7280' }]}>Find work opportunities</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Service Provider Information */}
-        {user.role === 'serviceProvider' && (
+        {pendingRole === 'serviceProvider' && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Service Provider Information</Text>
 
@@ -208,8 +237,8 @@ const ProfileScreen: React.FC = () => {
               <Text style={styles.fieldLabel}>Services Offered</Text>
               <View style={styles.servicesBox}>
                 <View style={styles.servicesChipsRow}>
-                  {services && services.length > 0 ? (
-                    services.map((svc: string) => (
+                  {pendingServices && pendingServices.length > 0 ? (
+                    pendingServices.map((svc: string) => (
                       <View key={svc} style={styles.serviceChipPrimary}>
                         <Text style={styles.serviceChipTextWhite}>{svc}</Text>
                       </View>
@@ -218,7 +247,16 @@ const ProfileScreen: React.FC = () => {
                     <Text style={{ fontSize: 12, color: '#6b7280' }}>No services selected</Text>
                   )}
                 </View>
-                <TouchableOpacity onPress={() => navigation.navigate('SPSelectServices')} style={styles.addServiceFullButton}>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate('SPSelectServices', {
+                      mode: 'edit',
+                      initialSelected: pendingServices,
+                      onDone: (sel: string[]) => setPendingServices(sel),
+                    })
+                  }
+                  style={styles.addServiceFullButton}
+                >
                   <Ionicons name="add" size={16} color={'#fff'} style={{ marginRight: spacing.xs }} />
                   <Text style={styles.addServiceFullText}>Add Service</Text>
                 </TouchableOpacity>
@@ -228,14 +266,13 @@ const ProfileScreen: React.FC = () => {
             {/* Service Location */}
             <View style={{ marginBottom: spacing.md }}>
               <Text style={styles.fieldLabel}>Service Location</Text>
-              <View style={styles.infoCell}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                  <Ionicons name="location" size={14} color={'#9ca3af'} style={{ marginRight: spacing.xs }} />
-                  <Text style={styles.infoValue}>{serviceLocation || 'Select location'}</Text>
+              <View style={[styles.infoCell, { paddingVertical: 0 }]}> 
+                <View style={{ flex: 1 }}>
+                  <LocationSearch
+                    onSelect={(loc) => setPendingLocation({ name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng })}
+                    initialValue={pendingLocation?.name || ''}
+                  />
                 </View>
-                <TouchableOpacity onPress={() => navigation.navigate('SPSelectLocation')}>
-                  <Ionicons name="pencil" size={14} color={'#9ca3af'} />
-                </TouchableOpacity>
               </View>
             </View>
 
@@ -244,12 +281,12 @@ const ProfileScreen: React.FC = () => {
               <Text style={styles.fieldLabel}>Service Radius</Text>
               <View style={styles.radiusGrid}>
                 {[5, 10, 15, 20].map(r => {
-                  const selected = radiusValue === r;
+                  const selected = pendingRadius === r;
                   return (
                     <TouchableOpacity
                       key={r}
                       style={[styles.radiusCell, selected ? styles.radiusCellSelected : styles.radiusCellUnselected]}
-                      onPress={() => updateUser({ radius: r })}
+                      onPress={() => setPendingRadius(r)}
                     >
                       <Text style={[styles.radiusCellText, selected ? { color: colors.primary, fontWeight: '700' } : { color: '#6b7280' }]}>
                         {r} km
