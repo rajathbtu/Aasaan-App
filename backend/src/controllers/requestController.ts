@@ -39,13 +39,14 @@ export interface FullWorkRequest {
 async function buildFullWorkRequest(id: string): Promise<FullWorkRequest | null> {
   const wr = await pAny.workRequest.findUnique({ where: { id } });
   if (!wr) return null;
+  const locationId = (wr as any).locationId as string | undefined;
   const [location, acceptedProviders, rating] = await Promise.all([
-    pAny.location?.findUnique ? pAny.location.findUnique({ where: { id: (wr as any).locationId } }).catch(() => null) : null,
+    locationId && pAny.location?.findUnique ? pAny.location.findUnique({ where: { id: locationId } }).catch(() => null) : null,
     pAny.acceptedProvider?.findMany ? pAny.acceptedProvider.findMany({ where: { workRequestId: id } }) : [],
-    pAny.rating?.findUnique ? pAny.rating.findUnique({ where: { workRequestId: id } }) : null
+    pAny.rating?.findFirst ? pAny.rating.findFirst({ where: { workRequestId: id } }) : null
   ]);
 
-  // Enrich accepted providers with user profile (name, phone)
+  // Enrich accepted providers with user profile (name, phone, avatarUrl)
   let acceptedWithDetails: any[] = acceptedProviders || [];
   try {
     const ids = Array.from(new Set((acceptedProviders || []).map((p: any) => p.providerId)));
@@ -156,17 +157,22 @@ export async function list(req: Request, res: Response): Promise<void> {
  * 403.
  */
 export async function getById(req: Request, res: Response): Promise<void> {
-  const user = (req as any).user;
-  const { id } = req.params;
-  const wr = await pAny.workRequest.findUnique({ where: { id } });
-  if (!wr) { res.status(404).json({ message: 'Work request not found' }); return; }
-  if (user.role === 'endUser' && (wr as any).userId !== user.id) { res.status(403).json({ message: 'Not authorised' }); return; }
-  if (user.role === 'serviceProvider') {
-    const accepted = await pAny.acceptedProvider?.findFirst?.({ where: { workRequestId: id, providerId: user.id } });
-    if (!accepted) { res.status(403).json({ message: 'Not authorised' }); return; }
+  try {
+    const user = (req as any).user;
+    const { id } = req.params;
+    const wr = await pAny.workRequest.findUnique({ where: { id } });
+    if (!wr) { res.status(404).json({ message: 'Work request not found' }); return; }
+    if (user.role === 'endUser' && (wr as any).userId !== user.id) { res.status(403).json({ message: 'Not authorised' }); return; }
+    if (user.role === 'serviceProvider') {
+      const accepted = await pAny.acceptedProvider?.findFirst?.({ where: { workRequestId: id, providerId: user.id } });
+      if (!accepted) { res.status(403).json({ message: 'Not authorised' }); return; }
+    }
+    const full = await buildFullWorkRequest(id);
+    res.json(full);
+  } catch (e) {
+    console.error('getById error', e);
+    res.status(500).json({ message: 'Failed to fetch work request' });
   }
-  const full = await buildFullWorkRequest(id);
-  res.json(full);
 }
 
 /**
@@ -205,19 +211,34 @@ export async function accept(req: Request, res: Response): Promise<void> {
  * for future reference.  The request status is changed to 'closed'.
  */
 export async function close(req: Request, res: Response): Promise<void> {
-  const user = (req as any).user;
-  if (user.role !== 'endUser') { res.status(403).json({ message: 'Only end users can close requests' }); return; }
-  const { id } = req.params;
-  const { providerId, stars, review } = req.body as any;
-  const wr = await pAny.workRequest.findFirst({ where: { id, userId: user.id } });
-  if (!wr) { res.status(404).json({ message: 'Work request not found' }); return; }
-  if ((wr as any).status === 'closed') { res.status(409).json({ message: 'Already closed' }); return; }
-  await pAny.workRequest.update({ where: { id }, data: { status: 'closed', closedAt: new Date() } });
-  if (providerId && stars !== undefined) {
-    const s = Number(stars);
-    if (!Number.isInteger(s) || s < 1 || s > 5) { res.status(400).json({ message: 'Invalid star rating (1-5)' }); return; }
-    await pAny.rating?.create?.({ data: { workRequestId: id, providerId, stars: s, review } });
+  try {
+    const user = (req as any).user;
+    if (user.role !== 'endUser') { res.status(403).json({ message: 'Only end users can close requests' }); return; }
+    const { id } = req.params;
+    const { providerId, stars, review } = req.body as any;
+    const wr = await pAny.workRequest.findFirst({ where: { id, userId: user.id } });
+    if (!wr) { res.status(404).json({ message: 'Work request not found' }); return; }
+    if ((wr as any).status === 'closed') { res.status(409).json({ message: 'Already closed' }); return; }
+
+    await pAny.workRequest.update({ where: { id }, data: { status: 'closed', closedAt: new Date() } });
+
+    if (providerId && stars !== undefined) {
+      const s = Number(stars);
+      if (!Number.isInteger(s) || s < 1 || s > 5) { res.status(400).json({ message: 'Invalid star rating (1-5)' }); return; }
+      // Optional: ensure providerId actually accepted this request
+      const accepted = await pAny.acceptedProvider.findFirst({ where: { workRequestId: id, providerId } });
+      if (!accepted) { res.status(400).json({ message: 'Selected provider did not accept this request' }); return; }
+      try {
+        await pAny.rating?.create?.({ data: { workRequestId: id, providerId, stars: s, review } });
+      } catch (err) {
+        console.warn('rating create failed, ignoring', err);
+      }
+    }
+
+    const full = await buildFullWorkRequest(id);
+    res.json(full);
+  } catch (e) {
+    console.error('close error', e);
+    res.status(500).json({ message: 'Close failed' });
   }
-  const full = await buildFullWorkRequest(id);
-  res.json(full);
 }
