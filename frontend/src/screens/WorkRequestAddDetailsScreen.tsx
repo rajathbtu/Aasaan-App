@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
@@ -17,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { services } from '../data/services';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
+import LocationSearch from '../components/LocationSearch';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -32,7 +32,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
   const route = useRoute<any>();
   const { serviceId } = (route.params as any) || {};
   const service = services.find(s => s.id === serviceId);
-  const [locationName, setLocationName] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const { token } = useAuth();
 
@@ -54,9 +54,8 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
   };
 
   const handleConfirm = async () => {
-    const trimmedLoc = locationName.trim();
-    if (!trimmedLoc) {
-      Alert.alert('Location required', 'Please enter where you need the service');
+    if (!selectedLocation) {
+      Alert.alert('Location required', 'Please select where you need the service');
       return;
     }
     if (!token) {
@@ -66,7 +65,12 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
     try {
       const wr: any = await API.createWorkRequest(token, {
         service: service.name,
-        location: { name: trimmedLoc, lat: 0, lng: 0 },
+        location: {
+          name: selectedLocation.description,
+          placeId: selectedLocation.place_id,
+          lat: selectedLocation.lat,
+          lng: selectedLocation.lng,
+        },
         tags: selectedTags,
       });
       navigation.navigate('WorkRequestCreated', { request: wr });
@@ -108,20 +112,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Location</Text>
         </View>
         <View style={styles.locationCard}>
-          <View style={styles.locationRow}>
-            <View style={{ flex: 1 }}>
-              <TextInput
-                placeholder="Area or neighbourhood"
-                placeholderTextColor={colors.grey}
-                style={styles.locationInput}
-                value={locationName}
-                onChangeText={setLocationName}
-              />
-            </View>
-            <TouchableOpacity onPress={() => setLocationName('')} style={styles.locationEditButton}>
-              <Ionicons name="pencil" size={18} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
+          <LocationSearch onSelect={(location) => setSelectedLocation(location)} />
           <Text style={styles.locationNote}>
             <Ionicons name="information-circle" size={14} color={colors.grey} />
             {'  '}Precise location will not be shared with service providers

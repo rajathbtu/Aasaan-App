@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import LocationSearch from '../components/LocationSearch';
 
 /**
  * Final onboarding step for service providers.  Providers specify the
@@ -13,17 +14,23 @@ import { useAuth } from '../contexts/AuthContext';
 const SPSelectLocationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { updateUser } = useAuth();
-  const [locationName, setLocationName] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [radius, setRadius] = useState<number>(5);
 
   const handleSave = async () => {
-    const trimmed = locationName.trim();
-    if (!trimmed) {
-      Alert.alert('Required', 'Please enter a location');
+    if (!selectedLocation) {
+      Alert.alert('Required', 'Please select a location');
       return;
     }
     try {
-      await updateUser({ location: { name: trimmed, lat: 0, lng: 0 }, radius });
+      await updateUser({
+        location: {
+          name: selectedLocation.description,
+          lat: selectedLocation.lat,
+          lng: selectedLocation.lng,
+        } as any,
+        radius,
+      });
       navigation.navigate('Main');
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to save location');
@@ -33,12 +40,7 @@ const SPSelectLocationScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Where do you work?</Text>
-      <TextInput
-        placeholder="Area or neighbourhood"
-        style={styles.input}
-        value={locationName}
-        onChangeText={setLocationName}
-      />
+      <LocationSearch onSelect={(location) => setSelectedLocation(location)} />
       <Text style={styles.subtitle}>Select radius (km)</Text>
       <View style={styles.radiusRow}>
         {[3, 5, 10, 15].map(value => (
@@ -69,16 +71,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 16,
     color: '#111827',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    marginBottom: 24,
-    backgroundColor: '#fff',
   },
   subtitle: {
     fontSize: 16,
