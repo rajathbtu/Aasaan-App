@@ -17,7 +17,7 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
 
 export async function updateProfile(req: Request, res: Response): Promise<void> {
   const authUser = (req as any).user as { id: string };
-  const { name, language, role, services, location, radius, plan } = req.body as {
+  const { name, language, role, services, location, radius, plan, avatarUrl } = req.body as {
     name?: string;
     language?: string;
     role?: Role;
@@ -25,6 +25,7 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     location?: { name: string; lat: number; lng: number } | null;
     radius?: number;
     plan?: 'free' | 'basic' | 'pro';
+    avatarUrl?: string | null;
   };
 
   const data: any = {};
@@ -35,6 +36,10 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
   if (language !== undefined) data.language = language;
   if (plan !== undefined) data.plan = plan;
   if (role !== undefined) data.role = role;
+  if (avatarUrl !== undefined) {
+    if (avatarUrl !== null && typeof avatarUrl !== 'string') { res.status(400).json({ message: 'Invalid avatarUrl' }); return; }
+    data.avatarUrl = avatarUrl;
+  }
 
   // Validate services if provided
   if (services !== undefined) {

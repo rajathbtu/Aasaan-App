@@ -14,7 +14,18 @@ interface User {
   serviceProviderInfo?: any;
   creditPoints: number;
   plan: 'free' | 'basic' | 'pro';
+  avatarUrl?: string | null;
 }
+
+type UpdatePayload = Partial<User> & {
+  services?: string[];
+  location?: { name: string; lat: number; lng: number } | null;
+  radius?: number;
+  plan?: 'free' | 'basic' | 'pro';
+  role?: 'endUser' | 'serviceProvider';
+  language?: string;
+  avatarUrl?: string | null;
+};
 
 interface AuthContextProps {
   user: User | null;
@@ -23,7 +34,7 @@ interface AuthContextProps {
   login: (token: string, user: User) => void;
   logout: () => void;
   refreshUser: () => Promise<void>;
-  updateUser: (updates: Partial<User>) => Promise<void>;
+  updateUser: (updates: UpdatePayload) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -79,14 +90,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateUser = async (updates: Partial<User>) => {
+  const updateUser = async (updates: UpdatePayload) => {
     if (!token || !user) return;
     try {
       let updated: any;
       if (USE_MOCK_API) {
-        updated = await mock.updateProfile(token, updates as any);
+        updated = await (mock as any).updateProfile(token, updates as any);
       } else {
-        updated = await updateProfile(token, updates);
+        updated = await updateProfile(token, updates as any);
       }
       setUser(updated);
       await SecureStore.setItemAsync('aasaan_user', JSON.stringify(updated));

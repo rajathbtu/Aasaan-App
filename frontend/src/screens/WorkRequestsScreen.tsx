@@ -74,7 +74,11 @@ const WorkRequestsScreen: React.FC = () => {
   const completedRequests = requests.filter(req => req.status === 'closed');
 
   const renderRequestCard = (item: any) => (
-    <View style={styles.requestCard}>
+    <TouchableOpacity
+      style={styles.requestCard}
+      activeOpacity={0.8}
+      onPress={() => navigation.navigate('WorkRequestDetails', { id: item.id, request: item })}
+    >
       <View style={styles.cardHeader}>
         <View style={styles.iconContainer}>
           <Ionicons name="construct" size={24} color="#2563eb" />
@@ -98,12 +102,8 @@ const WorkRequestsScreen: React.FC = () => {
           ))}
         </View>
       </View>
-      <View style={styles.cardFooter}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('WorkRequestDetails', { id: item.id, request: item })}>
-          <Text style={styles.actionButtonText}>View Details</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      {/* Removed footer button; whole card is tappable */}
+    </TouchableOpacity>
   );
 
   if (loading) {

@@ -101,12 +101,24 @@ const ProfileScreen: React.FC = () => {
         <View style={styles.photoSection}>
           <View style={{ position: 'relative', marginBottom: spacing.xs }}>
             <View style={styles.avatarShell}>
-              {/* No avatarUrl in User type; show placeholder icon */}
-              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                <Ionicons name="person" size={56} color={'#9ca3af'} />
-              </View>
+              {user.avatarUrl ? (
+                <Image source={{ uri: user.avatarUrl }} style={{ width: '100%', height: '100%' }} />
+              ) : (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="person" size={56} color={'#9ca3af'} />
+                </View>
+              )}
             </View>
-            <TouchableOpacity style={styles.cameraBtn} onPress={() => Alert.alert('Not available', 'Profile photo update is not available in this demo')}>
+            <TouchableOpacity
+              style={styles.cameraBtn}
+              onPress={async () => {
+                // Simple URL prompt substitute for mobile: suggest pasting an image URL
+                Alert.prompt?.('Change Photo', 'Paste an image URL to use as your profile photo', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Save', onPress: async (value?: string) => { if (!value) return; try { await updateUser({ avatarUrl: value }); } catch (e:any) { Alert.alert('Error', e.message || 'Failed to update photo'); } } },
+                ], 'plain-text');
+              }}
+            >
               <Ionicons name="camera" size={14} color={'#fff'} />
             </TouchableOpacity>
           </View>
@@ -237,7 +249,7 @@ const ProfileScreen: React.FC = () => {
                     <TouchableOpacity
                       key={r}
                       style={[styles.radiusCell, selected ? styles.radiusCellSelected : styles.radiusCellUnselected]}
-                      onPress={() => updateUser({ serviceProviderInfo: { ...(user.serviceProviderInfo || {}), radius: r } as any })}
+                      onPress={() => updateUser({ radius: r })}
                     >
                       <Text style={[styles.radiusCellText, selected ? { color: colors.primary, fontWeight: '700' } : { color: '#6b7280' }]}>
                         {r} km
