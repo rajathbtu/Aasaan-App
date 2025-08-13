@@ -7,6 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  SafeAreaView,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +18,26 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 
 const API = USE_MOCK_API ? mockApi : realApi;
+
+// Pricing constants (can be moved to config or fetched later)
+const MONEY_PRICE_INR = 100;
+const CREDIT_COST = 100;
+
+// Helper: relative time
+const timeAgo = (value: any): string => {
+  if (!value) return 'Just now';
+  const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
+  const t = d?.getTime?.() || 0;
+  const diff = Date.now() - t;
+  if (!Number.isFinite(diff) || diff < 0) return 'Just now';
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'Just now';
+  if (m < 60) return `${m} min${m === 1 ? '' : 's'} ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`;
+  const dys = Math.floor(h / 24);
+  return `${dys} day${dys === 1 ? '' : 's'} ago`;
+};
 
 /**
  * Payment screen to boost a work request.  Users can choose to pay with
@@ -31,6 +52,9 @@ const BoostRequestScreen: React.FC = () => {
   const { token, user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState<'money' | 'credits'>('money');
+
+  const credits = user?.creditPoints ?? 0;
+  const hasEnoughCredits = credits >= CREDIT_COST;
 
   const handleBoost = async (useCredits: boolean) => {
     if (!token || !request) return;
@@ -56,9 +80,7 @@ const BoostRequestScreen: React.FC = () => {
   }
 
   const renderRequestSummary = () => {
-    const createdText = request.createdAt
-      ? new Date(request.createdAt).toLocaleDateString()
-      : 'Created today';
+    const createdText = request.createdAt ? timeAgo(request.createdAt) : 'Just now';
     return (
       <View style={styles.summaryCard}>
         <View style={styles.summaryRow}>
@@ -86,88 +108,109 @@ const BoostRequestScreen: React.FC = () => {
     );
   };
 
+  const alreadyBoosted = !!request.boosted;
+
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ padding: spacing.lg }}>
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={20} color={colors.dark} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Boost Request</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      {/* Request Summary */}
-      {renderRequestSummary()}
-
-      {/* Boost Benefits */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Boost Your Request</Text>
-        <View style={styles.benefitRow}>
-          <Ionicons name="arrow-up-circle" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-          <Text style={styles.benefitText}>Get higher visibility to service providers</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.light }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xl + 40 }}>
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={20} color={colors.dark} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Boost Request</Text>
+          <View style={{ width: 24 }} />
         </View>
-        <View style={styles.benefitRow}>
-          <Ionicons name="trophy" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-          <Text style={styles.benefitText}>Priority placement at the top of listings</Text>
-        </View>
-        <View style={styles.benefitRow}>
-          <Ionicons name="alert" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-          <Text style={styles.benefitText}>Add "Urgent" badge to attract attention</Text>
-        </View>
-      </View>
 
-      {/* Payment Options */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Payment Options</Text>
-        <TouchableOpacity
-          style={[styles.optionCard, selectedOption === 'money' && styles.optionCardSelected]}
-          onPress={() => setSelectedOption('money')}
-        >
-          <View style={styles.optionRow}>
-            <View style={styles.optionRadioOuter}>
-              {selectedOption === 'money' && <View style={styles.optionRadioInner} />}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.optionTitle}>Pay with Money</Text>
-              <Text style={styles.optionSubtitle}>One‑time boost for this work request</Text>
-            </View>
-            <Text style={styles.optionPrice}>₹100</Text>
+        {/* Request Summary */}
+        {renderRequestSummary()}
+
+        {/* Already boosted banner */}
+        {alreadyBoosted && (
+          <View style={styles.infoBanner}>
+            <Ionicons name="information-circle" size={16} color={colors.primary} style={{ marginRight: 6 }} />
+            <Text style={styles.infoBannerText}>This request is already boosted.</Text>
           </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.optionCard, selectedOption === 'credits' && styles.optionCardSelected]}
-          onPress={() => setSelectedOption('credits')}
-          disabled={user ? user.creditPoints < 100 : true}
-        >
-          <View style={styles.optionRow}>
-            <View style={styles.optionRadioOuter}>
-              {selectedOption === 'credits' && <View style={styles.optionRadioInner} />}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.optionTitle}>Use Credit Points</Text>
-              <Text style={styles.optionSubtitle}>Your balance: {user?.creditPoints ?? 0} points</Text>
-            </View>
-            <Text style={styles.optionPrice}>100 points</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {/* Call to Action */}
-      <TouchableOpacity
-        style={styles.ctaButton}
-        onPress={() => handleBoost(selectedOption === 'credits')}
-        disabled={loading || (selectedOption === 'credits' && (user ? user.creditPoints < 100 : true))}
-      >
-        {loading ? (
-          <ActivityIndicator color="white" />
-        ) : (
-          <Text style={styles.ctaText}>
-            {selectedOption === 'credits' ? 'Use Credits' : 'Pay ₹100'}
-          </Text>
         )}
-      </TouchableOpacity>
-    </ScrollView>
+
+        {/* Boost Benefits */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Boost Your Request</Text>
+          <View style={styles.benefitRow}>
+            <Ionicons name="arrow-up-circle" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
+            <Text style={styles.benefitText}>Get higher visibility to service providers</Text>
+          </View>
+          <View style={styles.benefitRow}>
+            <Ionicons name="trophy" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
+            <Text style={styles.benefitText}>Priority placement at the top of listings</Text>
+          </View>
+          <View style={styles.benefitRow}>
+            <Ionicons name="alert" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
+            <Text style={styles.benefitText}>Add "Urgent" badge to attract attention</Text>
+          </View>
+        </View>
+
+        {/* Payment Options */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Payment Options</Text>
+          <TouchableOpacity
+            style={[styles.optionCard, selectedOption === 'money' && styles.optionCardSelected]}
+            onPress={() => setSelectedOption('money')}
+            disabled={alreadyBoosted}
+          >
+            <View style={styles.optionRow}>
+              <View style={styles.optionRadioOuter}>
+                {selectedOption === 'money' && <View style={styles.optionRadioInner} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.optionTitle}>Pay with Money</Text>
+                <Text style={styles.optionSubtitle}>One‑time boost for this work request</Text>
+              </View>
+              <Text style={styles.optionPrice}>₹{MONEY_PRICE_INR}</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.optionCard, selectedOption === 'credits' && styles.optionCardSelected, !hasEnoughCredits && { opacity: 0.6 }]}
+            onPress={() => setSelectedOption('credits')}
+            disabled={!hasEnoughCredits || alreadyBoosted}
+          >
+            <View style={styles.optionRow}>
+              <View style={styles.optionRadioOuter}>
+                {selectedOption === 'credits' && <View style={styles.optionRadioInner} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.optionTitle}>Use Credit Points</Text>
+                <Text style={styles.optionSubtitle}>Your balance: {credits} points</Text>
+                {!hasEnoughCredits && (
+                  <Text style={[styles.optionSubtitle, { color: colors.error }]}>Need {CREDIT_COST - credits} more points</Text>
+                )}
+              </View>
+              <Text style={styles.optionPrice}>{CREDIT_COST} points</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Call to Action */}
+        <TouchableOpacity
+          style={[styles.ctaButton, alreadyBoosted && { backgroundColor: colors.greyLight }]}
+          onPress={() => handleBoost(selectedOption === 'credits')}
+          disabled={loading || (selectedOption === 'credits' && !hasEnoughCredits) || alreadyBoosted}
+        >
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.ctaText}>
+              {alreadyBoosted
+                ? 'Already Boosted'
+                : selectedOption === 'credits'
+                  ? 'Use Credits'
+                  : `Pay ₹${MONEY_PRICE_INR}`}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -306,6 +349,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
   },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  infoBannerText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '600',
+  },
   ctaButton: {
     backgroundColor: colors.primary,
     paddingVertical: spacing.md,
@@ -313,6 +371,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.md,
+    marginBottom: spacing.md,
   },
   ctaText: {
     color: '#fff',
