@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,8 @@ import {
   StyleSheet,
   Platform,
   StatusBar,
-  BackHandler,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, usePreventRemove } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { languages, getLanguageDisplay } from '../data/languages';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -24,26 +23,20 @@ const LanguageSelectionScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { setLanguage, user } = useAuth();
   const preferred = (route.params && route.params.preferred) || undefined;
-  const allowLeave = useRef(false);
+  const [canLeave, setCanLeave] = useState(false);
 
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(
     preferred || user?.language || null
   );
 
-  // Block back navigation only during onboarding (no user). Allow when opened in-app (user exists)
+  // Prevent leaving only during onboarding (no user) until Continue is pressed
+  const prevent = !user && !canLeave;
+  usePreventRemove(prevent, () => {});
+
+  // Disable header back button menu and native gestures while preventing remove
   useEffect(() => {
-    if (user) return; // in-app flow; do not block
-    const onBackPress = () => (allowLeave.current ? false : true);
-    const backSub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    const navSub = navigation.addListener('beforeRemove', (e: any) => {
-      if (allowLeave.current) return; // allow leave after Continue
-      e.preventDefault();
-    });
-    return () => {
-      backSub.remove();
-      navSub();
-    };
-  }, [navigation, user]);
+    navigation.setOptions?.({ headerBackButtonMenuEnabled: false, gestureEnabled: !prevent });
+  }, [navigation, prevent]);
 
   const t = useMemo(() => {
     const lang = (selectedLanguage || 'en') as SupportedLocale;
@@ -56,19 +49,16 @@ const LanguageSelectionScreen: React.FC = () => {
 
   const handleContinue = async () => {
     if (!selectedLanguage) return;
-    // persist globally
     await setLanguage(selectedLanguage);
 
     // allow this screen to be popped/navigated away
-    allowLeave.current = true;
+    setCanLeave(true);
 
-    // If user is authenticated, just go back to previous screen
     if (user) {
       navigation.goBack();
       return;
     }
 
-    // Default onboarding flow
     navigation.navigate('MobileInput', { language: selectedLanguage });
   };
 
