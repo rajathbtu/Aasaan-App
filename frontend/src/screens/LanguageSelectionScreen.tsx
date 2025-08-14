@@ -23,18 +23,16 @@ const LanguageSelectionScreen: React.FC = () => {
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const { setLanguage, user } = useAuth();
-  const onDone = (route.params && route.params.onDone) || undefined;
   const preferred = (route.params && route.params.preferred) || undefined;
-  const hasOnDone = typeof onDone === 'function';
   const allowLeave = useRef(false);
 
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(
     preferred || user?.language || null
   );
 
-  // Block back navigation only during onboarding; allow when opened with onDone
+  // Block back navigation only during onboarding (no user). Allow when opened in-app (user exists)
   useEffect(() => {
-    if (hasOnDone) return; // Do not block in in-app flow
+    if (user) return; // in-app flow; do not block
     const onBackPress = () => (allowLeave.current ? false : true);
     const backSub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     const navSub = navigation.addListener('beforeRemove', (e: any) => {
@@ -45,7 +43,7 @@ const LanguageSelectionScreen: React.FC = () => {
       backSub.remove();
       navSub();
     };
-  }, [navigation, hasOnDone]);
+  }, [navigation, user]);
 
   const t = useMemo(() => {
     const lang = (selectedLanguage || 'en') as SupportedLocale;
@@ -64,13 +62,9 @@ const LanguageSelectionScreen: React.FC = () => {
     // allow this screen to be popped/navigated away
     allowLeave.current = true;
 
-    // If caller provided a callback (from Profile/MobileInput), use it and go back
-    if (hasOnDone) {
-      try {
-        await onDone(selectedLanguage);
-      } finally {
-        navigation.goBack();
-      }
+    // If user is authenticated, just go back to previous screen
+    if (user) {
+      navigation.goBack();
       return;
     }
 

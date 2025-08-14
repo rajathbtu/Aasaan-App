@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
+import { getLanguageDisplay } from '../data/languages';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users
@@ -181,19 +182,10 @@ const ProfileScreen: React.FC = () => {
           <View style={{ marginBottom: spacing.sm }}>
             <Text style={styles.fieldLabel}>{t('profile.languageLabel')}</Text>
             <View style={styles.infoCell}>
-              <Text style={styles.infoValue}>{user?.language || 'English'}</Text>
+              <Text style={styles.infoValue}>{getLanguageDisplay(user?.language || lang || 'en')}</Text>
               <TouchableOpacity
                 onPress={() =>
                   navigation.navigate('LanguageSelection', {
-                    onDone: async (code: string) => {
-                      try {
-                        await updateUser({ language: code });
-                        await setGlobalLanguage(code);
-                        Alert.alert(t('common.updated'), t('common.updatedDesc'));
-                      } catch (e: any) {
-                        Alert.alert(t('common.error'), e.message || 'Failed to update language');
-                      }
-                    },
                     preferred: user?.language || lang,
                   })
                 }

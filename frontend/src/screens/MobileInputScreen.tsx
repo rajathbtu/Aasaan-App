@@ -11,10 +11,12 @@ import {
   Platform,
   StatusBar,
   ScrollView,
+  Modal,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { WebView } from 'react-native-webview';
 
 import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
@@ -39,6 +41,19 @@ const MobileInputScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // In-app webview modal state
+  const [webOpen, setWebOpen] = useState(false);
+  const [webUrl, setWebUrl] = useState<string>('');
+  const [webTitle, setWebTitle] = useState<string>('');
+
+  // Re-render when screen regains focus so useI18n picks up global language
+  useFocusEffect(
+    React.useCallback(() => {
+      // no-op; simply forces rerender on focus change via hook
+      return () => {};
+    }, [])
+  );
 
   const handleSendOtp = async () => {
     const trimmed = phone.trim();
@@ -73,11 +88,18 @@ const MobileInputScreen: React.FC = () => {
   const openLanguagePicker = () => {
     navigation.navigate('LanguageSelection', {
       preferred: language,
-      onDone: async (code: string) => {
-        await setGlobalLanguage(code);
-        navigation.setParams({ language: code });
-      },
     });
+  };
+
+  const openWeb = (type: 'terms' | 'privacy') => {
+    const url =
+      type === 'terms'
+        ? 'https://www.aasaanapp.in/terms.html'
+        : 'https://www.aasaanapp.in/privacy.html';
+    const title = type === 'terms' ? t('mobile.tos') : t('mobile.privacy');
+    setWebUrl(url);
+    setWebTitle(title);
+    setWebOpen(true);
   };
 
   // purely for UI hint (do NOT change logic)
@@ -171,8 +193,8 @@ const MobileInputScreen: React.FC = () => {
 
           {/* Terms */}
           <Text style={styles.terms}>
-            {t('mobile.terms')} <Text style={styles.link}>{t('mobile.tos')}</Text> and{' '}
-            <Text style={styles.link}>{t('mobile.privacy')}</Text>
+            {t('mobile.terms')} <Text style={styles.link} onPress={() => openWeb('terms')}>{t('mobile.tos')}</Text> and{' '}
+            <Text style={styles.link} onPress={() => openWeb('privacy')}>{t('mobile.privacy')}</Text>
           </Text>
 
           {/* Send OTP */}
@@ -201,6 +223,31 @@ const MobileInputScreen: React.FC = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* In-app WebView Modal */}
+      <Modal visible={webOpen} animationType="slide" onRequestClose={() => setWebOpen(false)}>
+        <SafeAreaProvider>
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e7eb' }}>
+              <TouchableOpacity onPress={() => setWebOpen(false)} style={{ padding: 8 }}>
+                <Icon name="close" size={18} color="#111827" />
+              </TouchableOpacity>
+              <Text style={{ fontSize: 16, fontWeight: '600', marginLeft: 6, color: '#111827' }}>{webTitle}</Text>
+            </View>
+            <WebView 
+              style={{ flex: 1, backgroundColor: '#fff' }}
+              source={{ uri: webUrl }}
+              startInLoadingState={true}
+              contentInsetAdjustmentBehavior="never"
+              renderLoading={() => (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
+                  <ActivityIndicator size="large" />
+                </View>
+              )} 
+            />
+          </SafeAreaView>
+        </SafeAreaProvider>
+      </Modal>
     </SafeAreaView>
   );
 };

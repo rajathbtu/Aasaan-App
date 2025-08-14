@@ -9,7 +9,9 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
+import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
@@ -18,6 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { languages } from '../data/languages';
 import { useI18n } from '../i18n';
+import { WebView } from 'react-native-webview';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -31,6 +34,9 @@ const OTPVerificationScreen: React.FC = () => {
   const [seconds, setSeconds] = useState(30);
   const { login, user, setLanguage } = useAuth();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [webOpen, setWebOpen] = useState(false);
+  const [webUrl, setWebUrl] = useState<string>('');
+  const [webTitle, setWebTitle] = useState<string>('');
 
   const { t, lang } = useI18n(user?.language || language);
 
@@ -117,107 +123,154 @@ const OTPVerificationScreen: React.FC = () => {
     }
   };
 
+  const openWeb = (type: 'terms' | 'privacy') => {
+    const url = type === 'terms' ? 'https://www.aasaanapp.in/terms.html' : 'https://www.aasaanapp.in/privacy.html';
+    const title = type === 'terms' ? t('mobile.tos') : t('mobile.privacy');
+    setWebUrl(url);
+    setWebTitle(title);
+    setWebOpen(true);
+  };
+
   const timerText = seconds > 0 ? `00:${String(seconds).padStart(2, '0')}` : '';
 
   return (
-    <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Icon name="arrow-left" size={18} color="#4b5563" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('otp.header')}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Icon name="arrow-left" size={18} color="#4b5563" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{t('otp.header')}</Text>
+          </View>
+          {/* Language picker */}
+          <View>
+            <TouchableOpacity onPress={() => setPickerOpen(o => !o)}>
+              <Icon name="globe" size={18} color="#4b5563" />
+            </TouchableOpacity>
+            {pickerOpen && (
+              <View style={styles.menu}>
+                {languages.map(l => (
+                  <TouchableOpacity key={l.code} style={styles.menuItem} onPress={async () => { await setLanguage(l.code); }}>
+                    <Text style={styles.menuItemText}>{l.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
-        {/* Language picker */}
-        <View>
-          <TouchableOpacity onPress={() => setPickerOpen(o => !o)}>
-            <Icon name="globe" size={18} color="#4b5563" />
-          </TouchableOpacity>
-          {pickerOpen && (
-            <View style={styles.menu}>
-              {languages.map(l => (
-                <TouchableOpacity key={l.code} style={styles.menuItem} onPress={async () => { await setLanguage(l.code); }}>
-                  <Text style={styles.menuItemText}>{l.label}</Text>
-                </TouchableOpacity>
-              ))}
+
+        {/* Separator */}
+        <View style={styles.separator} />
+
+        {/* Content */}
+        <View style={styles.content}>
+          {/* Title + phone + change */}
+          <View style={styles.topBlock}>
+            <Text style={styles.title}>{t('otp.title')}</Text>
+            <Text style={styles.subtle}>{t('otp.sentInfo')}</Text>
+            <View style={styles.phoneRow}>
+              <Text style={styles.phoneText}>+91 {String(phone || '').replace(/^\+?91/, '')}</Text>
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Text style={styles.changeLink}>{t('common.change')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* 4 boxed inputs */}
+          <View style={styles.otpRow}>
+            {[0, 1, 2, 3].map((i) => (
+              <TextInput
+                key={i}
+                ref={(el) => { inputsRef.current[i] = el; }}
+                keyboardType="number-pad"
+                maxLength={1}
+                value={otp[i]}
+                onChangeText={(t) => onChangeDigit(t, i)}
+                onKeyPress={(e) => onKeyPress(e, i)}
+                style={styles.otpBox}
+                returnKeyType="next"
+              />
+            ))}
+          </View>
+
+          {/* Auto-read indicator */}
+          {showAutoRead && (
+            <View style={styles.autoReadRow}>
+              <Icon name="mobile" size={14} color="#2563eb" style={{ marginRight: 6 }} />
+              <Text style={styles.autoReadText}>{t('otp.autoRead')}</Text>
             </View>
           )}
-        </View>
-      </View>
 
-      {/* Separator */}
-      <View style={styles.separator} />
-
-      {/* Content */}
-      <View style={styles.content}>
-        {/* Title + phone + change */}
-        <View style={styles.topBlock}>
-          <Text style={styles.title}>{t('otp.title')}</Text>
-          <Text style={styles.subtle}>{t('otp.sentInfo')}</Text>
-          <View style={styles.phoneRow}>
-            <Text style={styles.phoneText}>+91 {String(phone || '').replace(/^\+?91/, '')}</Text>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.changeLink}>{t('common.change')}</Text>
+          {/* Resend */}
+          <View style={styles.resendBlock}>
+            <Text style={styles.resendHint}>
+              {t('otp.didntReceive')} {timerText ? <Text style={styles.resendTimer}>{timerText}</Text> : null}
+            </Text>
+            <TouchableOpacity onPress={handleResend} disabled={seconds > 0 || loading}>
+              <Text style={[styles.resendLink, (seconds > 0 || loading) && { opacity: 0.5 }]}>
+                {t('common.resendOtp')}
+              </Text>
             </TouchableOpacity>
           </View>
-        </View>
 
-        {/* 4 boxed inputs */}
-        <View style={styles.otpRow}>
-          {[0, 1, 2, 3].map((i) => (
-            <TextInput
-              key={i}
-              ref={(el) => { inputsRef.current[i] = el; }}
-              keyboardType="number-pad"
-              maxLength={1}
-              value={otp[i]}
-              onChangeText={(t) => onChangeDigit(t, i)}
-              onKeyPress={(e) => onKeyPress(e, i)}
-              style={styles.otpBox}
-              returnKeyType="next"
-            />
-          ))}
-        </View>
-
-        {/* Auto-read indicator */}
-        {showAutoRead && (
-          <View style={styles.autoReadRow}>
-            <Icon name="mobile" size={14} color="#2563eb" style={{ marginRight: 6 }} />
-            <Text style={styles.autoReadText}>{t('otp.autoRead')}</Text>
-          </View>
-        )}
-
-        {/* Resend */}
-        <View style={styles.resendBlock}>
-          <Text style={styles.resendHint}>
-            {t('otp.didntReceive')} {timerText ? <Text style={styles.resendTimer}>{timerText}</Text> : null}
-          </Text>
-          <TouchableOpacity onPress={handleResend} disabled={seconds > 0 || loading}>
-            <Text style={[styles.resendLink, (seconds > 0 || loading) && { opacity: 0.5 }]}>
-              {t('common.resendOtp')}
-            </Text>
+          {/* Verify button */}
+          <TouchableOpacity style={[styles.verifyBtn, loading && { opacity: 0.85 }]} onPress={handleVerify} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <View style={styles.verifyInner}>
+                <Icon name="check-circle" size={16} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.verifyText}>{t('otp.verifyAndContinue')}</Text>
+              </View>
+            )}
           </TouchableOpacity>
+
+          {/* Help text */}
+          <Text style={styles.helpText}>
+            {t('common.helpLine')} <Text style={styles.helpLink}>help@aasaan.com</Text>
+          </Text>
+
+          {/* Terms and Privacy (open in in-app WebView) */}
+          <Text style={styles.terms}>
+            {t('mobile.terms')} <Text style={styles.link} onPress={() => openWeb('terms')}>{t('mobile.tos')}</Text> and{' '}
+            <Text style={styles.link} onPress={() => openWeb('privacy')}>{t('mobile.privacy')}</Text>
+          </Text>
         </View>
 
-        {/* Verify button */}
-        <TouchableOpacity style={[styles.verifyBtn, loading && { opacity: 0.85 }]} onPress={handleVerify} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <View style={styles.verifyInner}>
-              <Icon name="check-circle" size={16} color="#fff" style={{ marginRight: 8 }} />
-              <Text style={styles.verifyText}>{t('otp.verifyAndContinue')}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        {/* Help text */}
-        <Text style={styles.helpText}>
-          {t('common.helpLine')} <Text style={styles.helpLink}>help@aasaan.com</Text>
-        </Text>
-      </View>
-    </KeyboardAvoidingView>
+        {/* In-app WebView Modal */}
+        <Modal
+          visible={webOpen}
+          animationType="slide"
+          onRequestClose={() => setWebOpen(false)}
+          presentationStyle="fullScreen"
+          statusBarTranslucent={true}
+        >
+          <SafeAreaProvider>
+            <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e7eb' }}>
+                <TouchableOpacity onPress={() => setWebOpen(false)} style={{ padding: 8 }}>
+                  <Icon name="close" size={18} color="#111827" />
+                </TouchableOpacity>
+                <Text style={{ fontSize: 16, fontWeight: '600', marginLeft: 6, color: '#111827' }}>{webTitle}</Text>
+              </View>
+              <WebView
+                style={{ flex: 1, backgroundColor: '#fff' }}
+                source={{ uri: webUrl }}
+                startInLoadingState={true}
+                contentInsetAdjustmentBehavior="never"
+                renderLoading={() => (
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
+                    <ActivityIndicator size="large" />
+                  </View>
+                )}
+              />
+            </SafeAreaView>
+          </SafeAreaProvider>
+        </Modal>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -376,6 +429,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
   },
+  terms: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 8,
+  },
+  link: { color: '#2563eb', fontWeight: '600' },
 });
 
 export default OTPVerificationScreen;

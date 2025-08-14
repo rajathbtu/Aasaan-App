@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Import screens
 import LaunchScreen from './src/screens/LaunchScreen';
@@ -128,10 +129,12 @@ function MainTabs() {
 export default function App() {
   return (
     <AuthProvider>
-      <NavigationContainer>
-        <StatusBar style="dark" />
-        <RootNavigator />
-      </NavigationContainer>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <StatusBar style="dark" />
+          <RootNavigator />
+        </NavigationContainer>
+      </SafeAreaProvider>
     </AuthProvider>
   );
 }
