@@ -77,7 +77,20 @@ const LanguageSelectionScreen: React.FC = () => {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
+          {user ? (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.headerBack}
+              accessibilityRole="button"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Icon name="arrow-left" size={18} color="#4b5563" />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.headerBack} />
+          )}
           <Text style={styles.headerTitle}>Aasaan</Text>
+          <View style={styles.headerBack} />
         </View>
 
         {/* Language Selection Content */}
@@ -158,8 +171,10 @@ const styles = StyleSheet.create({
   header: {
     height: 48,
     backgroundColor: '#ffffff',
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
@@ -167,6 +182,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#2563eb',
+    textAlign: 'center',
+  },
+  headerBack: {
+    width: 32,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   languageSelection: {
     padding: 16,
