@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useI18n } from '../i18n';
 
 /**
  * A simple splash screen shown on startup.  It displays the app name
@@ -11,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
  */
 const LaunchScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { t } = useI18n();
   useEffect(() => {
     const timer = setTimeout(() => {
       navigation.navigate('LanguageSelection');
@@ -20,7 +22,7 @@ const LaunchScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Aasaan</Text>
-      <Text style={styles.subtitle}>Connecting you with local help</Text>
+      <Text style={styles.subtitle}>{t('launch.subtitle')}</Text>
     </View>
   );
 };

@@ -1,15 +1,10 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
+import { useI18n } from '../i18n';
 
 /**
  * Confirmation screen displayed after a work request has been created.
@@ -21,14 +16,10 @@ import Header from '../components/Header';
 const WorkRequestCreatedScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const { t } = useI18n();
   const { request, locationName: locationNameParam } = (route.params as any) || {};
-  // Safeguards for possibly missing fields in request
   const serviceName = request?.service ?? 'Service';
-  const locationName =
-    locationNameParam ??
-    request?.location?.name ??
-    request?.locationName ??
-    'Your area';
+  const locationName = locationNameParam ?? request?.location?.name ?? request?.locationName ?? t('userRequests.locationFallback');
   const tags = Array.isArray(request?.tags) ? request.tags.slice(0, 2) : [];
 
   const goToMyRequests = () => {
@@ -43,32 +34,23 @@ const WorkRequestCreatedScreen: React.FC = () => {
     return (
       <View style={styles.emptyContainer}>
         <Ionicons name="checkmark-circle" size={64} color={colors.success} style={{ marginBottom: spacing.lg }} />
-        <Text style={styles.emptyTitle}>Request Created!</Text>
+        <Text style={styles.emptyTitle}>{t('createRequest.created.title')}</Text>
         <TouchableOpacity style={styles.primaryButton} onPress={goToMyRequests}>
-          <Text style={styles.primaryButtonText}>Go to My Requests</Text>
+          <Text style={styles.primaryButtonText}>{t('createRequest.created.goToMyRequests')}</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.light }}
-      contentContainerStyle={{ paddingBottom: spacing.xl }}
-    >
-      {/* Header */}
+    <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
       <Header title="Aasaan" showNotification={false} showBackButton={true} />
 
-      {/* Success icon */}
       <View style={styles.successIconContainer}>
         <Ionicons name="checkmark-circle" size={64} color={colors.success} />
       </View>
-      {/* Title */}
-      <Text style={styles.title}>Work Request Created!</Text>
-      <Text style={styles.subtitle}>
-        Your request has been successfully created and is now visible to service providers in your area.
-      </Text>
-      {/* Summary card */}
+      <Text style={styles.title}>{t('createRequest.created.title')}</Text>
+      <Text style={styles.subtitle}>{t('createRequest.created.subtitle')}</Text>
       <View style={styles.summaryCard}>
         <View style={styles.summaryRow}>
           <Ionicons name="flash" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
@@ -91,45 +73,42 @@ const WorkRequestCreatedScreen: React.FC = () => {
         </View>
         <View style={styles.summaryRow}>
           <Ionicons name="time" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
-          <Text style={styles.summaryLabel}>Just now</Text>
+          <Text style={styles.summaryLabel}>{t('common.relative.justNow')}</Text>
         </View>
       </View>
-      {/* What happens next */}
-      <Text style={styles.nextTitle}>What happens next?</Text>
+      <Text style={styles.nextTitle}>{t('createRequest.created.nextTitle')}</Text>
       <View style={styles.stepsList}>
         <View style={styles.stepItem}>
           <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.stepPrimary}>Service providers will see your request</Text>
-            <Text style={styles.stepSecondary}>Providers in your area will be notified about your request</Text>
+            <Text style={styles.stepPrimary}>{t('createRequest.created.step1Title')}</Text>
+            <Text style={styles.stepSecondary}>{t('createRequest.created.step1Desc')}</Text>
           </View>
         </View>
         <View style={styles.stepItem}>
           <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.stepPrimary}>You’ll get notified when they respond</Text>
-            <Text style={styles.stepSecondary}>You’ll receive notifications when providers accept your request</Text>
+            <Text style={styles.stepPrimary}>{t('createRequest.created.step2Title')}</Text>
+            <Text style={styles.stepSecondary}>{t('createRequest.created.step2Desc')}</Text>
           </View>
         </View>
         <View style={styles.stepItem}>
           <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>3</Text></View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.stepPrimary}>Call and hire the right provider</Text>
-            <Text style={styles.stepSecondary}>View all responses and call providers directly from the app</Text>
+            <Text style={styles.stepPrimary}>{t('createRequest.created.step3Title')}</Text>
+            <Text style={styles.stepSecondary}>{t('createRequest.created.step3Desc')}</Text>
           </View>
         </View>
       </View>
-      {/* Boost card */}
       <View style={styles.boostCard}>
-        <Text style={styles.boostTitle}>Want faster responses?</Text>
-        <Text style={styles.boostSubtitle}>Boost your request to get noticed by more service providers</Text>
+        <Text style={styles.boostTitle}>{t('createRequest.created.boostTitle')}</Text>
+        <Text style={styles.boostSubtitle}>{t('createRequest.created.boostSubtitle')}</Text>
         <TouchableOpacity style={styles.boostButton} onPress={handleBoost}>
-          <Text style={styles.boostButtonText}>Boost Request</Text>
+          <Text style={styles.boostButtonText}>{t('createRequest.created.boostButton')}</Text>
         </TouchableOpacity>
       </View>
-      {/* View requests link */}
       <TouchableOpacity onPress={goToMyRequests} style={{ alignSelf: 'center', marginTop: spacing.lg, marginBottom: spacing.xl }}>
-        <Text style={styles.viewRequestsText}>View My Requests</Text>
+        <Text style={styles.viewRequestsText}>{t('createRequest.created.viewMyRequests')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );

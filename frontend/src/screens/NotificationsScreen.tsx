@@ -16,23 +16,24 @@ import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
+import { useI18n } from '../i18n';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
-// Relative time helper
-const timeAgo = (value: any): string => {
-  if (!value) return 'Just now';
+// Relative time helper (localized)
+const buildTimeAgo = (t: ReturnType<typeof useI18n>['t']) => (value: any): string => {
+  if (!value) return t('common.relative.justNow');
   const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
-  const t = d?.getTime?.() || 0;
-  const diff = Date.now() - t;
-  if (!Number.isFinite(diff) || diff < 0) return 'Just now';
+  const tms = d?.getTime?.() || 0;
+  const diff = Date.now() - tms;
+  if (!Number.isFinite(diff) || diff < 0) return t('common.relative.justNow');
   const m = Math.floor(diff / 60000);
-  if (m < 1) return 'Just now';
-  if (m < 60) return `${m} min${m === 1 ? '' : 's'} ago`;
+  if (m < 1) return t('common.relative.justNow');
+  if (m < 60) return t('common.relative.minAgo', { count: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`;
+  if (h < 24) return t('common.relative.hourAgo', { count: h });
   const dys = Math.floor(h / 24);
-  return `${dys} day${dys === 1 ? '' : 's'} ago`;
+  return t('common.relative.dayAgo', { count: dys });
 };
 
 /**
@@ -44,6 +45,8 @@ const timeAgo = (value: any): string => {
 const NotificationsScreen: React.FC = () => {
   const { token } = useAuth();
   const navigation = useNavigation<any>();
+  const { t } = useI18n();
+  const timeAgo = buildTimeAgo(t);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -150,7 +153,7 @@ const NotificationsScreen: React.FC = () => {
                   style={styles.actionButton}
                   onPress={() => navigation.navigate('WorkRequestDetails', { id: requestId })}
                 >
-                  <Text style={styles.actionButtonText}>View Details</Text>
+                  <Text style={styles.actionButtonText}>{t('notifications.viewDetails')}</Text>
                 </TouchableOpacity>
               </View>
             ) : <View />}
@@ -175,16 +178,16 @@ const NotificationsScreen: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={20} color={colors.dark} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={styles.headerTitle}>{t('notifications.title')}</Text>
         <TouchableOpacity onPress={markAllRead}>
-          <Text style={styles.markAllText}>Mark all read</Text>
+          <Text style={styles.markAllText}>{t('notifications.markAllRead')}</Text>
         </TouchableOpacity>
       </View>
       <FlatList
         data={notifications}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        ListEmptyComponent={<Text style={styles.emptyText}>No notifications</Text>}
+        ListEmptyComponent={<Text style={styles.emptyText}>{t('notifications.empty')}</Text>}
         contentContainerStyle={{ paddingBottom: spacing.xl + 80 }}
         showsVerticalScrollIndicator={false}
       />

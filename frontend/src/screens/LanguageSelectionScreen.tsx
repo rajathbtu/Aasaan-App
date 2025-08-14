@@ -9,7 +9,7 @@ import {
   StatusBar,
   BackHandler,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { languages, getLanguageDisplay } from '../data/languages';
 import Icon from 'react-native-vector-icons/FontAwesome';
@@ -20,12 +20,17 @@ const STICKY_HEIGHT = 72; // approx height of the bottom CTA area (padding + but
 
 const LanguageSelectionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const { setLanguage, user } = useAuth();
-  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(user?.language || null);
+  const preferred: string | undefined = route.params?.preferred;
+  const onDone: undefined | ((code: string) => void | Promise<void>) = route.params?.onDone;
+  const isOnboarding = !user && !onDone; // only block back and jump to MobileInput during onboarding
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(preferred || user?.language || null);
 
-  // Block back navigation (hardware + gestures/back button)
+  // Block back navigation only during onboarding
   useEffect(() => {
+    if (!isOnboarding) return;
     const onBackPress = () => true; // returning true prevents default back
     const backSub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     const navSub = navigation.addListener('beforeRemove', (e: any) => {
@@ -36,7 +41,7 @@ const LanguageSelectionScreen: React.FC = () => {
       backSub.remove();
       navSub();
     };
-  }, [navigation]);
+  }, [navigation, isOnboarding]);
 
   const t = useMemo(() => {
     const lang = (selectedLanguage || 'en') as SupportedLocale;
@@ -48,9 +53,19 @@ const LanguageSelectionScreen: React.FC = () => {
   };
 
   const handleContinue = async () => {
-    if (selectedLanguage) {
-      await setLanguage(selectedLanguage);
+    if (!selectedLanguage) return;
+    await setLanguage(selectedLanguage);
+
+    if (onDone) {
+      try { await onDone(selectedLanguage); } catch {}
+      navigation.goBack();
+      return;
+    }
+
+    if (isOnboarding) {
       navigation.navigate('MobileInput', { language: selectedLanguage });
+    } else {
+      navigation.goBack();
     }
   };
 

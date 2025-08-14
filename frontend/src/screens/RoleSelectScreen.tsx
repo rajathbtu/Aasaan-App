@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n';
 
 /**
  * Allows the newly registered user to choose whether they want to use
@@ -12,6 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 const RoleSelectScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { updateUser } = useAuth();
+  const { t } = useI18n();
 
   const handleSelectRole = async (role: 'endUser' | 'serviceProvider') => {
     try {
@@ -22,26 +24,26 @@ const RoleSelectScreen: React.FC = () => {
         navigation.navigate('Main');
       }
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to update role');
+      Alert.alert(t('common.error'), err.message || t('roleSelect.updateRoleError'));
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>How would you like to use Aasaan?</Text>
+      <Text style={styles.title}>{t('roleSelect.title')}</Text>
       <TouchableOpacity
         style={[styles.card, { backgroundColor: '#ecfdf5' }]}
         onPress={() => handleSelectRole('endUser')}
       >
-        <Text style={styles.cardTitle}>I need help</Text>
-        <Text style={styles.cardDesc}>Post tasks and get matched with nearby professionals</Text>
+        <Text style={styles.cardTitle}>{t('roleSelect.endUserTitle')}</Text>
+        <Text style={styles.cardDesc}>{t('roleSelect.endUserDesc')}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.card, { backgroundColor: '#eef2ff' }]}
         onPress={() => handleSelectRole('serviceProvider')}
       >
-        <Text style={styles.cardTitle}>I provide services</Text>
-        <Text style={styles.cardDesc}>Offer your skills and earn money from local clients</Text>
+        <Text style={styles.cardTitle}>{t('roleSelect.spTitle')}</Text>
+        <Text style={styles.cardDesc}>{t('roleSelect.spDesc')}</Text>
       </TouchableOpacity>
     </View>
   );

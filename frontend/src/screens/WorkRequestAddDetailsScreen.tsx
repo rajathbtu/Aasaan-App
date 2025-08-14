@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ScrollView,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { USE_MOCK_API } from '../config';
@@ -17,6 +10,7 @@ import { services } from '../data/services';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import LocationSearch from '../components/LocationSearch';
+import { useI18n } from '../i18n';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -35,31 +29,27 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const { token } = useAuth();
+  const { t } = useI18n();
 
   if (!service) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Unknown service</Text>
+        <Text style={styles.emptyText}>{t('createRequest.addDetails.unknownService')}</Text>
       </View>
     );
   }
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => {
-      if (prev.includes(tag)) {
-        return prev.filter(t => t !== tag);
-      }
-      return [...prev, tag];
-    });
+    setSelectedTags(prev => (prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]));
   };
 
   const handleConfirm = async () => {
     if (!selectedLocation) {
-      Alert.alert('Location required', 'Please select where you need the service');
+      Alert.alert(t('createRequest.addDetails.locationRequiredTitle'), t('createRequest.addDetails.locationRequiredDesc'));
       return;
     }
     if (!token) {
-      Alert.alert('Not authenticated', 'Please login again');
+      Alert.alert(t('createRequest.addDetails.authRequiredTitle'), t('createRequest.addDetails.authRequiredDesc'));
       return;
     }
     try {
@@ -72,25 +62,23 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
           lng: selectedLocation.lng,
         },
         tags: selectedTags,
-        force: true // TODO: SET TO FALSE IN PRODUCTION
+        force: true,
       });
       navigation.navigate('WorkRequestCreated', { request: wr, locationName: selectedLocation.description });
     } catch (err: any) {
-      const message = err?.response?.data?.message || err.message || 'Failed to create request';
-      Alert.alert('Error', message);
+      const message = err?.response?.data?.message || err.message || t('createRequest.addDetails.createFailed');
+      Alert.alert(t('common.error'), message);
     }
   };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
-      {/* Header */}
-      <Header title="Add work details" showNotification={true} notificationCount={3} showBackButton={true} />
+      <Header title={t('createRequest.addDetails.headerTitle')} showNotification={true} notificationCount={3} showBackButton={true} />
 
-      {/* Service section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="briefcase" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-          <Text style={styles.sectionTitle}>Service</Text>
+          <Text style={styles.sectionTitle}>{t('createRequest.addDetails.serviceTitle')}</Text>
         </View>
         <View style={styles.serviceCard}>
           <View style={styles.serviceIconContainer}>
@@ -98,7 +86,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.serviceName}>{service.name}</Text>
-            <Text style={styles.serviceSubtitle}>Selected service</Text>
+            <Text style={styles.serviceSubtitle}>{t('createRequest.addDetails.serviceSubtitle')}</Text>
           </View>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.editButton}>
             <Ionicons name="pencil" size={18} color={colors.primary} />
@@ -106,38 +94,32 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Location section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="location" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-          <Text style={styles.sectionTitle}>Location</Text>
+          <Text style={styles.sectionTitle}>{t('createRequest.addDetails.locationTitle')}</Text>
         </View>
         <View style={styles.locationCard}>
           <LocationSearch onSelect={(location) => setSelectedLocation(location)} />
           <Text style={styles.locationNote}>
             <Ionicons name="information-circle" size={14} color={colors.grey} />
-            {'  '}Precise location will not be shared with service providers
+            {'  '}{t('createRequest.addDetails.locationNote')}
           </Text>
         </View>
       </View>
 
-      {/* Tags section */}
       {service.tags && service.tags.length > 0 && (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="pricetags" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.sectionTitle}>Tags</Text>
+            <Text style={styles.sectionTitle}>{t('createRequest.addDetails.tagsTitle')}</Text>
           </View>
-          <Text style={styles.tagHint}>Select tags that describe your work</Text>
+          <Text style={styles.tagHint}>{t('createRequest.addDetails.tagHint')}</Text>
           <View style={styles.tagsRow}>
             {service.tags.map(tag => {
               const selected = selectedTags.includes(tag);
               return (
-                <TouchableOpacity
-                  key={tag}
-                  style={[styles.tagChip, selected && styles.tagChipSelected]}
-                  onPress={() => toggleTag(tag)}
-                >
+                <TouchableOpacity key={tag} style={[styles.tagChip, selected && styles.tagChipSelected]} onPress={() => toggleTag(tag)}>
                   <Text style={[styles.tagText, selected && styles.tagTextSelected]}>
                     {tag}
                     {selected && <Ionicons name="checkmark" size={12} color="#fff" />}
@@ -149,15 +131,14 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
         </View>
       )}
 
-      {/* Confirm and Cancel buttons */}
       <View style={styles.actionsSection}>
         <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
           <Ionicons name="checkmark" size={18} color="#fff" style={{ marginRight: spacing.sm }} />
-          <Text style={styles.confirmButtonText}>Confirm Request</Text>
+          <Text style={styles.confirmButtonText}>{t('createRequest.addDetails.confirmButton')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
           <Ionicons name="close" size={18} color={colors.grey} style={{ marginRight: spacing.sm }} />
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

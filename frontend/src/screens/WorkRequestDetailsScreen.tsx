@@ -16,27 +16,32 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
 import { getWorkRequest, closeWorkRequest } from '../api/index';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n';
 
-// Helper: relative time
-function timeAgo(value: any): string {
-  if (!value) return 'Just now';
-  const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
-  const t = d?.getTime?.() || 0;
-  const diff = Date.now() - t;
-  if (!Number.isFinite(diff) || diff < 0) return 'Just now';
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'Just now';
-  if (m < 60) return `${m} min${m === 1 ? '' : 's'} ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`;
-  const dys = Math.floor(h / 24);
-  return `${dys} day${dys === 1 ? '' : 's'} ago`;
+// Helper: relative time (localized)
+function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
+  return (value: any): string => {
+    if (!value) return t('common.relative.justNow');
+    const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
+    const time = d?.getTime?.() || 0;
+    const diff = Date.now() - time;
+    if (!Number.isFinite(diff) || diff < 0) return t('common.relative.justNow');
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return t('common.relative.justNow');
+    if (m < 60) return t('common.relative.minAgo', { count: m });
+    const h = Math.floor(m / 60);
+    if (h < 24) return t('common.relative.hourAgo', { count: h });
+    const dny = Math.floor(h / 24);
+    return t('common.relative.dayAgo', { count: dny });
+  };
 }
 
 const WorkRequestDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { token } = useAuth();
+  const { t } = useI18n();
+  const timeAgo = buildTimeAgo(t);
   const [request, setRequest] = useState(route.params?.request || null);
   const [closeVisible, setCloseVisible] = useState(false);
   const [selectedProviderId, setSelectedProviderId] = useState<string | 'none' | null>(null);
@@ -54,7 +59,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
   if (!request) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Request not found</Text>
+        <Text style={styles.emptyText}>{t('requestDetails.notFound')}</Text>
       </View>
     );
   }
@@ -82,11 +87,11 @@ const WorkRequestDetailsScreen: React.FC = () => {
       await closeWorkRequest(token, request.id, payload);
       setCloseVisible(false);
       setRequest({ ...request, status: 'closed' });
-      Alert.alert('Closed', 'Your request has been closed', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+      Alert.alert(t('requestDetails.closedTitle'), t('requestDetails.closedDesc'), [
+        { text: t('requestDetails.ok'), onPress: () => navigation.goBack() },
       ]);
     } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Failed to close request');
+      Alert.alert(t('common.error'), e?.message || 'Failed to close request');
     }
   };
 
@@ -118,7 +123,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
             <Text style={styles.summaryLabel}>{request.service}</Text>
             {request.status !== undefined && (
               <View style={[styles.statusBadge, { backgroundColor: isActive ? '#d1fae5' : colors.greyLight }]}> 
-                <Text style={[styles.statusBadgeText, { color: isActive ? '#10b981' : colors.dark }]}>{isActive ? 'Active' : (request.status as any)}</Text>
+                <Text style={[styles.statusBadgeText, { color: isActive ? '#10b981' : colors.dark }]}>{isActive ? t('requestDetails.statusActive') : (request.status as any)}</Text>
               </View>
             )}
           </View>
@@ -128,7 +133,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
           </View>
           <View style={styles.summaryRow}>
             <Ionicons name="location" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.summaryValue} numberOfLines={2} ellipsizeMode="tail">{request.location?.name || 'Your area'}</Text>
+            <Text style={styles.summaryValue} numberOfLines={2} ellipsizeMode="tail">{request.location?.name || t('userRequests.locationFallback')}</Text>
           </View>
           {request.tags && request.tags.length > 0 && (
             <View style={styles.tagsRow}>
@@ -145,21 +150,21 @@ const WorkRequestDetailsScreen: React.FC = () => {
         <View style={styles.actionButtonsRow}>
           <TouchableOpacity style={styles.boostButton} onPress={handleBoost}>
             <Ionicons name="flash" size={16} color={'#fff'} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.boostButtonText}>Boost</Text>
+            <Text style={styles.boostButtonText}>{t('requestDetails.boost')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
             <Ionicons name="close-circle" size={16} color={colors.dark} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.closeButtonText}>Close</Text>
+            <Text style={styles.closeButtonText}>{t('requestDetails.close')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Accepted providers */}
         {request.acceptedProviders && request.acceptedProviders.length > 0 && (
           <View style={styles.acceptedSection}>
-            <Text style={styles.acceptedTitle}>Accepted by ({request.acceptedProviders.length}):</Text>
+            <Text style={styles.acceptedTitle}>{t('requestDetails.acceptedBy', { count: request.acceptedProviders.length })}</Text>
             {request.acceptedProviders.map((p: any, index: number) => {
               const provider = p.provider || {};
-              const displayName = provider.name || p.providerId || 'Provider';
+              const displayName = provider.name || p.providerId || t('requestDetails.provider');
               const phone = provider.phoneNumber || '';
               const avatarUri = provider.avatarUrl || undefined;
               return (
@@ -184,14 +189,14 @@ const WorkRequestDetailsScreen: React.FC = () => {
                     <TouchableOpacity
                       style={styles.callButton}
                       onPress={() => {
-                        if (!phone) { Alert.alert('Unavailable', 'Provider phone not available'); return; }
-                        Linking.openURL(`tel:${phone}`).catch(() => Alert.alert('Failed', 'Unable to start call'));
+                        if (!phone) { Alert.alert(t('requestDetails.callUnavailableTitle'), t('requestDetails.callUnavailableDesc')); return; }
+                        Linking.openURL(`tel:${phone}`).catch(() => Alert.alert(t('requestDetails.callFailedTitle'), t('requestDetails.callFailedDesc')));
                       }}
                     >
                       <Ionicons name="call" size={16} color={colors.primary} style={{ marginRight: spacing.sm }} />
-                      <Text style={styles.callButtonText}>Call</Text>
+                      <Text style={styles.callButtonText}>{t('requestDetails.call')}</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.infoButton} onPress={() => Alert.alert('Provider', displayName)}>
+                    <TouchableOpacity style={styles.infoButton} onPress={() => Alert.alert(t('requestDetails.provider'), displayName)}>
                       <Ionicons name="information-circle" size={18} color={colors.dark} />
                     </TouchableOpacity>
                   </View>
@@ -211,7 +216,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
               <TouchableOpacity onPress={() => setCloseVisible(false)} style={{ padding: spacing.xs }}>
                 <Ionicons name="arrow-back" size={18} color={colors.dark} />
               </TouchableOpacity>
-              <Text style={{ flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700', color: colors.primary }}>Rate & Review</Text>
+              <Text style={{ flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700', color: colors.primary }}>{t('requestDetails.ratingTitle')}</Text>
               <View style={{ width: 24 }} />
             </View>
 
@@ -230,7 +235,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                   <Ionicons name="location" size={14} color={'#6b7280'} style={{ marginRight: 6 }} />
                   <Text style={{ fontSize: 12, color: '#4b5563' }} numberOfLines={2}>
-                    {request.location?.name || 'Your area'}
+                    {request.location?.name || t('userRequests.locationFallback')}
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
@@ -246,7 +251,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
               {request.acceptedProviders && request.acceptedProviders.length > 0 ? (
                 request.acceptedProviders.map((p: any, idx: number) => {
                   const provider = p.provider || {};
-                  const name = provider.name || p.providerId || 'Provider';
+                  const name = provider.name || p.providerId || t('requestDetails.provider');
                   const isSelected = selectedProviderId === p.providerId;
                   return (
                     <TouchableOpacity
@@ -261,13 +266,13 @@ const WorkRequestDetailsScreen: React.FC = () => {
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={{ fontWeight: '600', color: '#111827' }}>{name}</Text>
-                          <Text style={{ fontSize: 12, color: '#6b7280' }}>Accepted recently</Text>
+                          <Text style={{ fontSize: 12, color: '#6b7280' }}>{t('requestDetails.acceptedRecently')}</Text>
                         </View>
                         <Ionicons name={isSelected ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={isSelected ? colors.primary : '#d1d5db'} />
                       </View>
                       {isSelected && (
                         <View style={styles.ratingSection}>
-                          <Text style={{ textAlign: 'center', color: '#111827', fontWeight: '600', marginBottom: spacing.sm }}>Rate your experience:</Text>
+                          <Text style={{ textAlign: 'center', color: '#111827', fontWeight: '600', marginBottom: spacing.sm }}>{t('requestDetails.ratePrompt')}</Text>
                           <View style={{ flexDirection: 'row', alignSelf: 'center' }}>
                             {[1,2,3,4,5].map(n => (
                               <TouchableOpacity key={n} onPress={() => setStars(n)} style={[styles.starBtn, n <= stars ? styles.starBtnActive : styles.starBtnInactive]}>
@@ -276,8 +281,8 @@ const WorkRequestDetailsScreen: React.FC = () => {
                             ))}
                           </View>
                           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                            <Text style={styles.ratingHint}>Poor</Text>
-                            <Text style={styles.ratingHint}>Excellent</Text>
+                            <Text style={styles.ratingHint}>{t('requestDetails.poor')}</Text>
+                            <Text style={styles.ratingHint}>{t('requestDetails.excellent')}</Text>
                           </View>
                         </View>
                       )}
@@ -293,12 +298,12 @@ const WorkRequestDetailsScreen: React.FC = () => {
                 activeOpacity={0.8}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={[styles.modalAvatar, { backgroundColor: '#e5e7eb' }]}>
+                  <View style={[styles.modalAvatar, { backgroundColor: '#e5e7eb' }] }>
                     <Ionicons name="help" size={16} color={'#6b7280'} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: '600', color: '#374151' }}>None of these helped me</Text>
-                    <Text style={{ fontSize: 12, color: '#6b7280' }}>Someone else or no one helped</Text>
+                    <Text style={{ fontWeight: '600', color: '#374151' }}>{t('requestDetails.noneHelpedTitle')}</Text>
+                    <Text style={{ fontSize: 12, color: '#6b7280' }}>{t('requestDetails.noneHelpedSubtitle')}</Text>
                   </View>
                   <Ionicons name={selectedProviderId === 'none' ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={selectedProviderId === 'none' ? colors.primary : '#d1d5db'} />
                 </View>
@@ -308,10 +313,10 @@ const WorkRequestDetailsScreen: React.FC = () => {
             {/* Bottom actions */}
             <View style={{ flexDirection: 'row', marginTop: spacing.md }}>
               <TouchableOpacity style={[styles.bottomBtn, styles.bottomBtnOutline]} onPress={() => confirmClose(true)}>
-                <Text style={[styles.bottomBtnText, { color: '#374151' }]}>Skip for now</Text>
+                <Text style={[styles.bottomBtnText, { color: '#374151' }]}>{t('requestDetails.skip')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.bottomBtn, styles.bottomBtnPrimary]} onPress={() => confirmClose(false)}>
-                <Text style={[styles.bottomBtnText, { color: '#fff' }]}>Confirm & Close Request</Text>
+                <Text style={[styles.bottomBtnText, { color: '#fff' }]}>{t('requestDetails.confirmClose')}</Text>
               </TouchableOpacity>
             </View>
           </View>

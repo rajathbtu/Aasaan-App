@@ -16,8 +16,8 @@ import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { translations, SupportedLocale } from '../i18n/translations';
 import { languages } from '../data/languages';
+import { useI18n } from '../i18n';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -32,37 +32,28 @@ const OTPVerificationScreen: React.FC = () => {
   const { login, user, setLanguage } = useAuth();
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const currentLang = (user?.language || language || 'en') as SupportedLocale;
-  const t = useMemo(() => translations[currentLang], [currentLang]);
+  const { t, lang } = useI18n(user?.language || language);
 
   const inputsRef = useRef<Array<TextInput | null>>([null, null, null, null]);
 
-  // Derived OTP string for existing business logic
   const otpValue = useMemo(() => otp.join(''), [otp]);
 
   useEffect(() => {
-    // Hide "auto-reading" hint after a short delay (UI-only)
     const tmr = setTimeout(() => setShowAutoRead(false), 2500);
     return () => clearTimeout(tmr);
   }, []);
 
   useEffect(() => {
-    // Resend countdown UI (does not touch API logic)
     if (seconds <= 0) return;
     const id = setInterval(() => setSeconds(s => s - 1), 1000);
     return () => clearInterval(id);
   }, [seconds]);
 
   const focusNext = (index: number) => {
-    if (index < inputsRef.current.length - 1) {
-      inputsRef.current[index + 1]?.focus();
-    }
+    if (index < inputsRef.current.length - 1) inputsRef.current[index + 1]?.focus();
   };
-
   const focusPrev = (index: number) => {
-    if (index > 0) {
-      inputsRef.current[index - 1]?.focus();
-    }
+    if (index > 0) inputsRef.current[index - 1]?.focus();
   };
 
   const onChangeDigit = (text: string, index: number) => {
@@ -72,23 +63,20 @@ const OTPVerificationScreen: React.FC = () => {
     setOtp(next);
     if (sanitized) focusNext(index);
   };
-
   const onKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !otp[index]) {
-      focusPrev(index);
-    }
+    if (e.nativeEvent.key === 'Backspace' && !otp[index]) focusPrev(index);
   };
 
   const handleVerify = async () => {
     if (otpValue.length < 4) {
-      Alert.alert(t.common.invalidOtp, t.common.invalidOtpDesc);
+      Alert.alert(t('common.invalidOtp'), t('common.invalidOtpDesc'));
       return;
     }
     try {
       setLoading(true);
       const result: any = await API.verifyOtp(phone, Number(otpValue));
       if (result.needsRegistration) {
-        navigation.navigate('NameOTPValidation', { phone, language: currentLang });
+        navigation.navigate('NameOTPValidation', { phone, language: lang });
       } else if (result.token) {
         await login(result.token, result.user);
         const user = result.user;
@@ -105,10 +93,10 @@ const OTPVerificationScreen: React.FC = () => {
         }
         navigation.navigate('Main');
       } else if (result.error) {
-        Alert.alert(t.common.error, result.message || t.common.invalidOtp);
+        Alert.alert(t('common.error'), result.message || t('common.invalidOtp'));
       }
     } catch (err: any) {
-      Alert.alert(t.common.error, err.message || t.common.invalidOtp);
+      Alert.alert(t('common.error'), err.message || t('common.invalidOtp'));
     } finally {
       setLoading(false);
     }
@@ -120,10 +108,10 @@ const OTPVerificationScreen: React.FC = () => {
       await API.sendOtp(phone);
       setOtp(['', '', '', '']);
       inputsRef.current[0]?.focus();
-      setSeconds(30); // restart timer (UI-only)
-      Alert.alert(t.common.otpSent, t.common.otpSentDesc);
+      setSeconds(30);
+      Alert.alert(t('common.otpSent'), t('common.otpSentDesc'));
     } catch (err: any) {
-      Alert.alert(t.common.error, err.message || t.common.invalidOtp);
+      Alert.alert(t('common.error'), err.message || t('common.invalidOtp'));
     } finally {
       setLoading(false);
     }
@@ -132,17 +120,14 @@ const OTPVerificationScreen: React.FC = () => {
   const timerText = seconds > 0 ? `00:${String(seconds).padStart(2, '0')}` : '';
 
   return (
-    <KeyboardAvoidingView
-      style={styles.page}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Icon name="arrow-left" size={18} color="#4b5563" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t.otp.header}</Text>
+          <Text style={styles.headerTitle}>{t('otp.header')}</Text>
         </View>
         {/* Language picker */}
         <View>
@@ -168,12 +153,12 @@ const OTPVerificationScreen: React.FC = () => {
       <View style={styles.content}>
         {/* Title + phone + change */}
         <View style={styles.topBlock}>
-          <Text style={styles.title}>{t.otp.title}</Text>
-          <Text style={styles.subtle}>{t.otp.sentInfo}</Text>
+          <Text style={styles.title}>{t('otp.title')}</Text>
+          <Text style={styles.subtle}>{t('otp.sentInfo')}</Text>
           <View style={styles.phoneRow}>
             <Text style={styles.phoneText}>+91 {String(phone || '').replace(/^\+?91/, '')}</Text>
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.changeLink}>{t.common.change}</Text>
+              <Text style={styles.changeLink}>{t('common.change')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -199,46 +184,37 @@ const OTPVerificationScreen: React.FC = () => {
         {showAutoRead && (
           <View style={styles.autoReadRow}>
             <Icon name="mobile" size={14} color="#2563eb" style={{ marginRight: 6 }} />
-            <Text style={styles.autoReadText}>{t.otp.autoRead}</Text>
+            <Text style={styles.autoReadText}>{t('otp.autoRead')}</Text>
           </View>
         )}
 
         {/* Resend */}
         <View style={styles.resendBlock}>
           <Text style={styles.resendHint}>
-            {t.otp.didntReceive} {timerText ? <Text style={styles.resendTimer}>{timerText}</Text> : null}
+            {t('otp.didntReceive')} {timerText ? <Text style={styles.resendTimer}>{timerText}</Text> : null}
           </Text>
           <TouchableOpacity onPress={handleResend} disabled={seconds > 0 || loading}>
-            <Text
-              style={[
-                styles.resendLink,
-                (seconds > 0 || loading) && { opacity: 0.5 },
-              ]}
-            >
-              {t.common.resendOtp}
+            <Text style={[styles.resendLink, (seconds > 0 || loading) && { opacity: 0.5 }]}>
+              {t('common.resendOtp')}
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Verify button */}
-        <TouchableOpacity
-          style={[styles.verifyBtn, loading && { opacity: 0.85 }]}
-          onPress={handleVerify}
-          disabled={loading}
-        >
+        <TouchableOpacity style={[styles.verifyBtn, loading && { opacity: 0.85 }]} onPress={handleVerify} disabled={loading}>
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <View style={styles.verifyInner}>
               <Icon name="check-circle" size={16} color="#fff" style={{ marginRight: 8 }} />
-              <Text style={styles.verifyText}>{t.otp.verifyAndContinue}</Text>
+              <Text style={styles.verifyText}>{t('otp.verifyAndContinue')}</Text>
             </View>
           )}
         </TouchableOpacity>
 
         {/* Help text */}
         <Text style={styles.helpText}>
-          {t.common.helpLine} <Text style={styles.helpLink}>help@aasaan.com</Text>
+          {t('common.helpLine')} <Text style={styles.helpLink}>help@aasaan.com</Text>
         </Text>
       </View>
     </KeyboardAvoidingView>

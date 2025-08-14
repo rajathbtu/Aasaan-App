@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  ScrollView,
-  SafeAreaView,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, SafeAreaView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { USE_MOCK_API } from '../config';
@@ -16,40 +7,36 @@ import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
+import { useI18n } from '../i18n';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
-// Pricing constants (can be moved to config or fetched later)
 const MONEY_PRICE_INR = 100;
 const CREDIT_COST = 100;
 
-// Helper: relative time
-const timeAgo = (value: any): string => {
-  if (!value) return 'Just now';
-  const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
-  const t = d?.getTime?.() || 0;
-  const diff = Date.now() - t;
-  if (!Number.isFinite(diff) || diff < 0) return 'Just now';
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'Just now';
-  if (m < 60) return `${m} min${m === 1 ? '' : 's'} ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`;
-  const dys = Math.floor(h / 24);
-  return `${dys} day${dys === 1 ? '' : 's'} ago`;
-};
+function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
+  return (value: any): string => {
+    if (!value) return t('common.relative.justNow');
+    const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
+    const diff = Date.now() - (d?.getTime?.() || 0);
+    if (!Number.isFinite(diff) || diff < 0) return t('common.relative.justNow');
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return t('common.relative.justNow');
+    if (m < 60) return t('common.relative.minAgo', { count: m });
+    const h = Math.floor(m / 60);
+    if (h < 24) return t('common.relative.hourAgo', { count: h });
+    const days = Math.floor(h / 24);
+    return t('common.relative.dayAgo', { count: days });
+  };
+}
 
-/**
- * Payment screen to boost a work request.  Users can choose to pay with
- * cash (simulated) or use their accumulated credit points.  After a
- * successful boost the screen navigates back to the request list.  In
- * production this screen would integrate with a payment gateway.
- */
 const BoostRequestScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { request } = (route.params as any) || {};
   const { token, user, refreshUser } = useAuth();
+  const { t } = useI18n();
+  const timeAgo = buildTimeAgo(t);
   const [loading, setLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState<'money' | 'credits'>('money');
 
@@ -62,10 +49,10 @@ const BoostRequestScreen: React.FC = () => {
       setLoading(true);
       await API.boostWorkRequest(token, request.id, useCredits);
       await refreshUser();
-      Alert.alert('Success', 'Your request has been boosted');
+      Alert.alert(t('common.success'), t('boostRequest.successDesc'));
       navigation.navigate('Main', { screen: 'MyRequests' });
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to boost request');
+      Alert.alert(t('common.error'), err.message || t('boostRequest.errorBoostFailed'));
     } finally {
       setLoading(false);
     }
@@ -74,13 +61,13 @@ const BoostRequestScreen: React.FC = () => {
   if (!request) {
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No request found</Text>
+        <Text style={styles.emptyText}>{t('boostRequest.notFound')}</Text>
       </View>
     );
   }
 
   const renderRequestSummary = () => {
-    const createdText = request.createdAt ? timeAgo(request.createdAt) : 'Just now';
+    const createdText = request.createdAt ? timeAgo(request.createdAt) : t('common.relative.justNow');
     return (
       <View style={styles.summaryCard}>
         <View style={styles.summaryRow}>
@@ -118,7 +105,7 @@ const BoostRequestScreen: React.FC = () => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={20} color={colors.dark} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Boost Request</Text>
+          <Text style={styles.headerTitle}>{t('boostRequest.title')}</Text>
           <View style={{ width: 24 }} />
         </View>
 
@@ -129,30 +116,30 @@ const BoostRequestScreen: React.FC = () => {
         {alreadyBoosted && (
           <View style={styles.infoBanner}>
             <Ionicons name="information-circle" size={16} color={colors.primary} style={{ marginRight: 6 }} />
-            <Text style={styles.infoBannerText}>This request is already boosted.</Text>
+            <Text style={styles.infoBannerText}>{t('boostRequest.alreadyBoosted')}</Text>
           </View>
         )}
 
         {/* Boost Benefits */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Boost Your Request</Text>
+          <Text style={styles.sectionTitle}>{t('boostRequest.benefitsTitle')}</Text>
           <View style={styles.benefitRow}>
             <Ionicons name="arrow-up-circle" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.benefitText}>Get higher visibility to service providers</Text>
+            <Text style={styles.benefitText}>{t('boostRequest.benefitVisibility')}</Text>
           </View>
           <View style={styles.benefitRow}>
             <Ionicons name="trophy" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.benefitText}>Priority placement at the top of listings</Text>
+            <Text style={styles.benefitText}>{t('boostRequest.benefitPriority')}</Text>
           </View>
           <View style={styles.benefitRow}>
             <Ionicons name="alert" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.benefitText}>Add "Urgent" badge to attract attention</Text>
+            <Text style={styles.benefitText}>{t('boostRequest.benefitUrgentBadge')}</Text>
           </View>
         </View>
 
         {/* Payment Options */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Options</Text>
+          <Text style={styles.sectionTitle}>{t('boostRequest.paymentTitle')}</Text>
           <TouchableOpacity
             style={[styles.optionCard, selectedOption === 'money' && styles.optionCardSelected]}
             onPress={() => setSelectedOption('money')}
@@ -163,8 +150,8 @@ const BoostRequestScreen: React.FC = () => {
                 {selectedOption === 'money' && <View style={styles.optionRadioInner} />}
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.optionTitle}>Pay with Money</Text>
-                <Text style={styles.optionSubtitle}>One‑time boost for this work request</Text>
+                <Text style={styles.optionTitle}>{t('boostRequest.payWithMoney')}</Text>
+                <Text style={styles.optionSubtitle}>{t('boostRequest.moneySubtitle')}</Text>
               </View>
               <Text style={styles.optionPrice}>₹{MONEY_PRICE_INR}</Text>
             </View>
@@ -180,10 +167,10 @@ const BoostRequestScreen: React.FC = () => {
                 {selectedOption === 'credits' && <View style={styles.optionRadioInner} />}
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.optionTitle}>Use Credit Points</Text>
-                <Text style={styles.optionSubtitle}>Your balance: {credits} points</Text>
+                <Text style={styles.optionTitle}>{t('boostRequest.useCredits')}</Text>
+                <Text style={styles.optionSubtitle}>{t('boostRequest.balance', { points: credits })}</Text>
                 {!hasEnoughCredits && (
-                  <Text style={[styles.optionSubtitle, { color: colors.error }]}>Need {CREDIT_COST - credits} more points</Text>
+                  <Text style={[styles.optionSubtitle, { color: colors.error }]}>{t('boostRequest.needMore', { diff: CREDIT_COST - credits })}</Text>
                 )}
               </View>
               <Text style={styles.optionPrice}>{CREDIT_COST} points</Text>
@@ -202,10 +189,10 @@ const BoostRequestScreen: React.FC = () => {
           ) : (
             <Text style={styles.ctaText}>
               {alreadyBoosted
-                ? 'Already Boosted'
+                ? t('boostRequest.ctaAlreadyBoosted')
                 : selectedOption === 'credits'
-                  ? 'Use Credits'
-                  : `Pay ₹${MONEY_PRICE_INR}`}
+                ? t('boostRequest.ctaUseCredits')
+                : t('boostRequest.ctaPay', { price: MONEY_PRICE_INR })}
             </Text>
           )}
         </TouchableOpacity>

@@ -3,16 +3,13 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'rea
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { services } from '../data/services';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n';
 
-/**
- * Onboarding step or editor for service providers to select the types of services they offer.
- * - In onboarding mode (default), persists selection and navigates to SPSelectLocation.
- * - In edit mode (invoked from Profile), returns selection via `onDone` without persisting.
- */
 const SPSelectServicesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { updateUser } = useAuth();
+  const { t } = useI18n();
   const mode: 'edit' | 'onboarding' = (route.params?.mode as any) === 'edit' ? 'edit' : 'onboarding';
   const initialSelected: string[] = Array.isArray(route.params?.initialSelected) ? route.params?.initialSelected : [];
   const onDone: undefined | ((sel: string[]) => void) = route.params?.onDone;
@@ -20,17 +17,12 @@ const SPSelectServicesScreen: React.FC = () => {
   const [selected, setSelected] = useState<string[]>(initialSelected);
 
   useEffect(() => {
-    // Keep state in sync if screen is refocused with different params
     setSelected(initialSelected);
   }, [initialSelected.join(',')]);
 
-  // Group services by category for rendering
   const grouped = useMemo(() => {
     const map: Record<string, typeof services> = {};
-    services.forEach(s => {
-      if (!map[s.category]) map[s.category] = [];
-      map[s.category].push(s);
-    });
+    services.forEach(s => { if (!map[s.category]) map[s.category] = []; map[s.category].push(s); });
     return map;
   }, []);
 
@@ -40,7 +32,7 @@ const SPSelectServicesScreen: React.FC = () => {
         return prev.filter(sid => sid !== id);
       }
       if (prev.length >= 3) {
-        Alert.alert('Limit reached', 'You can select up to 3 services');
+        Alert.alert(t('sp.selectServices.limitTitle'), t('sp.selectServices.limitDesc'));
         return prev;
       }
       return [...prev, id];
@@ -49,7 +41,7 @@ const SPSelectServicesScreen: React.FC = () => {
 
   const handleContinue = async () => {
     if (selected.length === 0) {
-      Alert.alert('Select services', 'Please choose at least one service');
+      Alert.alert(t('sp.selectServices.selectTitle'), t('sp.selectServices.selectDesc'));
       return;
     }
 
@@ -63,13 +55,13 @@ const SPSelectServicesScreen: React.FC = () => {
       await updateUser({ services: selected });
       navigation.navigate('SPSelectLocation');
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to save services');
+      Alert.alert('Error', t('sp.selectServices.saveFailed'));
     }
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
-      <Text style={styles.title}>Select the services you offer</Text>
+      <Text style={styles.title}>{t('sp.selectServices.title')}</Text>
       {Object.keys(grouped).map(category => (
         <View key={category} style={styles.categorySection}>
           <Text style={styles.categoryTitle}>{category}</Text>
@@ -77,11 +69,7 @@ const SPSelectServicesScreen: React.FC = () => {
             {grouped[category].map(service => {
               const isSelected = selected.includes(service.id);
               return (
-                <TouchableOpacity
-                  key={service.id}
-                  style={[styles.serviceCard, isSelected && styles.serviceCardSelected]}
-                  onPress={() => toggleService(service.id)}
-                >
+                <TouchableOpacity key={service.id} style={[styles.serviceCard, isSelected && styles.serviceCardSelected]} onPress={() => toggleService(service.id)}>
                   <Text style={[styles.serviceName, isSelected && styles.serviceNameSelected]}>{service.name}</Text>
                 </TouchableOpacity>
               );
@@ -89,12 +77,8 @@ const SPSelectServicesScreen: React.FC = () => {
           </View>
         </View>
       ))}
-      <TouchableOpacity
-        style={[styles.button, selected.length === 0 && { opacity: 0.6 }]} 
-        onPress={handleContinue}
-        disabled={selected.length === 0}
-      >
-        <Text style={styles.buttonText}>{mode === 'edit' ? 'Done' : 'Continue'}</Text>
+      <TouchableOpacity style={[styles.button, selected.length === 0 && { opacity: 0.6 }]} onPress={handleContinue} disabled={selected.length === 0}>
+        <Text style={styles.buttonText}>{mode === 'edit' ? t('sp.selectServices.done') : t('common.continue')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );

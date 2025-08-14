@@ -19,6 +19,9 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
 import * as mockApi from '../api/mock';
+import { useI18n } from '../i18n';
+import { getLanguageDisplay } from '../data/languages';
+import { useAuth } from '../contexts/AuthContext';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -30,6 +33,8 @@ const MobileInputScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { language } = (route.params as any) || {};
+  const { t } = useI18n(language);
+  const { setLanguage: setGlobalLanguage } = useAuth();
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -38,7 +43,7 @@ const MobileInputScreen: React.FC = () => {
   const handleSendOtp = async () => {
     const trimmed = phone.trim();
     if (!trimmed || trimmed.length < 10) {
-      // Alert.alert('Invalid number', 'Please enter a valid mobile number');
+      // Input validation UI handled below; do nothing here
       return;
     }
     try {
@@ -46,7 +51,7 @@ const MobileInputScreen: React.FC = () => {
       await API.sendOtp(trimmed);
       navigation.navigate('OTPVerification', { phone: trimmed, language });
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to send OTP');
+      Alert.alert(t('common.error'), err.message || 'Failed to send OTP');
     } finally {
       setLoading(false);
     }
@@ -55,7 +60,7 @@ const MobileInputScreen: React.FC = () => {
   const handleBlur = () => {
     setIsFocused(false);
     if (phone.length !== 10 || !/^[0-9]+$/.test(phone)) {
-      setErrorMessage('Please enter a valid 10-digit mobile number');
+      setErrorMessage(t('mobile.invalid'));
     } else {
       setErrorMessage('');
     }
@@ -63,6 +68,16 @@ const MobileInputScreen: React.FC = () => {
 
   const handleFocus = () => {
     setIsFocused(true);
+  };
+
+  const openLanguagePicker = () => {
+    navigation.navigate('LanguageSelection', {
+      preferred: language,
+      onDone: async (code: string) => {
+        await setGlobalLanguage(code);
+        navigation.setParams({ language: code });
+      },
+    });
   };
 
   // purely for UI hint (do NOT change logic)
@@ -90,12 +105,12 @@ const MobileInputScreen: React.FC = () => {
               <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Icon name="arrow-left" size={18} color="#4b5563" />
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>Enter Mobile Number</Text>
+              <Text style={styles.headerTitle}>{t('mobile.header')}</Text>
             </View>
 
-            <TouchableOpacity style={styles.langChip} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.langChip} activeOpacity={0.8} onPress={openLanguagePicker}>
               <Icon name="globe" size={12} color="#374151" />
-              <Text style={styles.langChipText}>English</Text>
+              <Text style={styles.langChipText}>{getLanguageDisplay(language || 'en')}</Text>
               <Icon name="chevron-down" size={10} color="#6b7280" />
             </TouchableOpacity>
           </View>
@@ -112,15 +127,15 @@ const MobileInputScreen: React.FC = () => {
 
           {/* Instructions */}
           <View style={styles.instructions}>
-            <Text style={styles.welcome}>Welcome to Aasaan</Text>
+            <Text style={styles.welcome}>{t('mobile.welcome')}</Text>
             <Text style={styles.instructionSub}>
-              Please enter your 10-digit mobile number to continue
+              {t('mobile.instruction')}
             </Text>
           </View>
 
           {/* Labeled input with country box */}
           <View style={styles.inputBlock}>
-            <Text style={styles.label}>Mobile Number</Text>
+            <Text style={styles.label}>{t('mobile.label')}</Text>
 
             <View style={styles.inputGroup}>
               {/* Country code (non-editable) */}
@@ -135,7 +150,7 @@ const MobileInputScreen: React.FC = () => {
 
               {/* Phone input */}
               <TextInput
-                placeholder="Enter 10-digit number"
+                placeholder={t('mobile.placeholder')}
                 keyboardType="phone-pad"
                 style={styles.input}
                 value={phone}
@@ -156,9 +171,8 @@ const MobileInputScreen: React.FC = () => {
 
           {/* Terms */}
           <Text style={styles.terms}>
-            By continuing, you agree to our{' '}
-            <Text style={styles.link}>Terms of Service</Text> and{' '}
-            <Text style={styles.link}>Privacy Policy</Text>
+            {t('mobile.terms')} <Text style={styles.link}>{t('mobile.tos')}</Text> and{' '}
+            <Text style={styles.link}>{t('mobile.privacy')}</Text>
           </Text>
 
           {/* Send OTP */}
@@ -172,7 +186,7 @@ const MobileInputScreen: React.FC = () => {
               <ActivityIndicator color="#ffffff" />
             ) : (
               <>
-                <Text style={styles.ctaText}>Send OTP</Text>
+                <Text style={styles.ctaText}>{t('mobile.sendOtp')}</Text>
                 <Icon name="arrow-right" size={14} color="#ffffff" style={{ marginLeft: 8 }} />
               </>
             )}
@@ -182,7 +196,7 @@ const MobileInputScreen: React.FC = () => {
           <View style={styles.motivation}>
             <Icon name="users" size={14} color="#2563eb" style={{ marginRight: 8 }} />
             <Text style={styles.motivationText}>
-              Join 10,000+ users finding work easily
+              {t('mobile.joinHint')}
             </Text>
           </View>
         </ScrollView>

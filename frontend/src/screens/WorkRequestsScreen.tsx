@@ -15,27 +15,30 @@ import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
-/** Helper: relative "time ago" for createdAt */
-function timeAgo(value: any): string {
-  if (!value) return 'Just now';
-  const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
-  const diffMs = Date.now() - (d?.getTime?.() || 0);
-  if (!Number.isFinite(diffMs) || diffMs < 0) return 'Just now';
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins} min${mins === 1 ? '' : 's'} ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days === 1 ? '' : 's'} ago`;
+/** Helper: relative "time ago" for createdAt (localized) */
+function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
+  return (value: any): string => {
+    if (!value) return t('common.relative.justNow');
+    const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
+    const diffMs = Date.now() - (d?.getTime?.() || 0);
+    if (!Number.isFinite(diffMs) || diffMs < 0) return t('common.relative.justNow');
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return t('common.relative.justNow');
+    if (mins < 60) return t('common.relative.minAgo', { count: mins });
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return t('common.relative.hourAgo', { count: hours });
+    const days = Math.floor(hours / 24);
+    return t('common.relative.dayAgo', { count: days });
+  };
 }
 
 /** Helper: pick a location name if present */
-function getLocationName(item: any): string {
-  return item?.location?.name || item?.locationName || 'Your area';
+function getLocationName(item: any, t: ReturnType<typeof useI18n>['t']): string {
+  return item?.location?.name || item?.locationName || t('userRequests.locationFallback');
 }
 
 /**
@@ -47,6 +50,8 @@ function getLocationName(item: any): string {
 const WorkRequestsScreen: React.FC = () => {
   const { token } = useAuth();
   const navigation = useNavigation<any>();
+  const { t } = useI18n();
+  const timeAgo = buildTimeAgo(t);
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
@@ -89,12 +94,12 @@ const WorkRequestsScreen: React.FC = () => {
         </View>
         <View style={styles.statusBadge}>
           <Ionicons name={item.status === 'closed' ? 'checkmark-circle' : 'ellipse'} size={10} color={item.status === 'closed' ? '#10b981' : '#10b981'} style={{ marginRight: 4 }} />
-          <Text style={styles.statusText}>{item.status === 'closed' ? 'Completed' : 'Active'}</Text>
+          <Text style={styles.statusText}>{item.status === 'closed' ? t('userRequests.statusCompleted') : t('userRequests.statusActive')}</Text>
         </View>
       </View>
       <View style={styles.cardBody}>
         <Text style={styles.cardLocation} numberOfLines={2} ellipsizeMode="tail">
-          <Ionicons name="location" size={14} color="#6b7280" /> {getLocationName(item)}
+          <Ionicons name="location" size={14} color="#6b7280" /> {getLocationName(item, t)}
         </Text>
         <View style={styles.tagContainer}>
           {(item.tags || []).map((tag: string) => (
@@ -124,7 +129,7 @@ const WorkRequestsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header title="My Requests" showNotification={true} notificationCount={3} showBackButton={false} />
+      <Header title={t('userRequests.title')} showNotification={true} notificationCount={3} showBackButton={false} />
 
       {/* Filter Tabs */}
       <View style={styles.filterTabs}>
@@ -133,7 +138,7 @@ const WorkRequestsScreen: React.FC = () => {
           onPress={() => setActiveTab('active')}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={[styles.filterTabText, activeTab === 'active' && styles.activeTabText]}>Active Requests</Text>
+            <Text style={[styles.filterTabText, activeTab === 'active' && styles.activeTabText]}>{t('userRequests.tabActive')}</Text>
             <View style={[styles.countBadge, activeTab === 'active' ? styles.countBadgeActive : styles.countBadgeInactive]}>
               <Text style={[styles.countBadgeText, activeTab === 'active' && styles.countBadgeTextActive]}>{activeRequests.length}</Text>
             </View>
@@ -144,7 +149,7 @@ const WorkRequestsScreen: React.FC = () => {
           onPress={() => setActiveTab('completed')}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={[styles.filterTabText, activeTab === 'completed' && styles.activeTabText]}>Completed</Text>
+            <Text style={[styles.filterTabText, activeTab === 'completed' && styles.activeTabText]}>{t('userRequests.tabCompleted')}</Text>
             <View style={[styles.countBadge, activeTab === 'completed' ? styles.countBadgeActive : styles.countBadgeInactive]}>
               <Text style={[styles.countBadgeText, activeTab === 'completed' && styles.countBadgeTextActive]}>{completedRequests.length}</Text>
             </View>
@@ -158,7 +163,7 @@ const WorkRequestsScreen: React.FC = () => {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => renderRequestCard(item)}
         contentContainerStyle={requests.length === 0 ? styles.emptyContainer : undefined}
-        ListEmptyComponent={<Text style={styles.emptyText}>No requests found</Text>}
+        ListEmptyComponent={<Text style={styles.emptyText}>{t('userRequests.empty')}</Text>}
       />
     </View>
   );

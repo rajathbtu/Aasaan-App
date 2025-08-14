@@ -59,6 +59,8 @@ function RootNavigator() {
           {/* Provider edit/onboarding tools available from Profile */}
           <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
           <Stack.Screen name="SPSelectLocation" component={SPSelectLocationScreen} />
+          {/* Allow language change from Profile after login */}
+          <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
         </>
       ) : (
         <>

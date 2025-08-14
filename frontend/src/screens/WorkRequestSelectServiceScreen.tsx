@@ -1,17 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { services } from '../data/services';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
+import { useI18n } from '../i18n';
 
 /**
  * Entry point for end users to create a new work request.  Displays a
@@ -21,6 +15,7 @@ import Header from '../components/Header';
 const WorkRequestSelectServiceScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const [query, setQuery] = useState('');
+  const { t } = useI18n();
 
   // Predefine a few recently used services.
   const recentIds = ['electrician', 'plumber', 'cook'];
@@ -93,32 +88,26 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   };
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: colors.light }}
-      contentContainerStyle={{ paddingBottom: spacing.lg }}
-    >
+    <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.lg }}>
       {/* Header */}
       <Header title="Aasaan" showNotification={true} notificationCount={2} showBackButton={false} />
 
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
-        <Text style={styles.pageTitle}>Get your work done!</Text>
-        <Text style={styles.subtitle}>Select type of work</Text>
+        <Text style={styles.pageTitle}>{t('createRequest.selectService.title')}</Text>
+        <Text style={styles.subtitle}>{t('createRequest.selectService.subtitle')}</Text>
 
         {/* Search bar (icon inside input) */}
         <View style={styles.searchWrapper}>
           <Ionicons name="search" size={18} color={colors.grey} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput} 
-            placeholder="Search for services..."
+            style={styles.searchInput}
+            placeholder={t('createRequest.selectService.searchPlaceholder')}
             placeholderTextColor={colors.grey}
             value={query}
             onChangeText={setQuery}
           />
           {query.trim() !== '' && (
-            <TouchableOpacity
-              style={styles.resetButton}
-              onPress={() => setQuery('')}
-            >
+            <TouchableOpacity style={styles.resetButton} onPress={() => setQuery('')}>
               <Ionicons name="close-circle" size={18} color={colors.grey} />
             </TouchableOpacity>
           )}
@@ -128,7 +117,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
       {/* Recently Used */}
       {query.trim() === '' && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recently Used</Text>
+          <Text style={styles.sectionTitle}>{t('createRequest.selectService.recentlyUsed')}</Text>
           <View style={styles.gridRow}>
             {recentIds.map(id => {
               const svc = services.find(s => s.id === id);
@@ -140,13 +129,11 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
       {/* All Services */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>All Services</Text>
+        <Text style={styles.sectionTitle}>{t('createRequest.selectService.allServices')}</Text>
         {Object.keys(filtered).map(category => (
           <View key={category} style={styles.categorySection}>
             <Text style={styles.categoryTitle}>{category}</Text>
-            <View style={styles.gridRow}>
-              {filtered[category].map(svc => renderServiceCard(svc))}
-            </View>
+            <View style={styles.gridRow}>{filtered[category].map(svc => renderServiceCard(svc))}</View>
           </View>
         ))}
       </View>

@@ -15,6 +15,7 @@ import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
+import { useI18n } from '../i18n';
 
 // Determine which API implementation to use (real or mock)
 const API = USE_MOCK_API ? mockApi : realApi;
@@ -29,6 +30,7 @@ const API = USE_MOCK_API ? mockApi : realApi;
 const SPWorkRequestsScreen: React.FC = () => {
   const { token, user } = useAuth();
   const navigation = useNavigation<any>();
+  const { t } = useI18n();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<'all' | 'accepted'>('all');
@@ -93,10 +95,10 @@ const SPWorkRequestsScreen: React.FC = () => {
     if (!token) return;
     try {
       await API.acceptWorkRequest(token, item.id);
-      Alert.alert('Accepted', 'You have accepted the work request');
+      Alert.alert(t('common.success'), t('spRequests.accept'));
       fetchRequests();
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to accept request');
+      Alert.alert(t('common.error'), err.message || 'Failed to accept request');
     }
   };
 
@@ -249,7 +251,7 @@ const SPWorkRequestsScreen: React.FC = () => {
               onPress={() => handleAccept(item)}
             >
               <Ionicons name="checkmark" size={16} color="white" style={{ marginRight: 4 }} />
-              <Text style={styles.actionButtonText}>Accept</Text>
+              <Text style={styles.actionButtonText}>{t('spRequests.accept')}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -257,7 +259,7 @@ const SPWorkRequestsScreen: React.FC = () => {
             onPress={() => Alert.alert('Calling', 'Contacting the requester...')}
           >
             <Ionicons name="call" size={16} color="white" style={{ marginRight: 4 }} />
-            <Text style={styles.actionButtonText}>{accepted ? 'Call Now' : 'Call'}</Text>
+            <Text style={styles.actionButtonText}>{accepted ? t('spRequests.callNow') : t('spRequests.call')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -291,7 +293,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
       {/* Title */}
-      <Text style={styles.pageTitle}>Work Requests for you</Text>
+      <Text style={styles.pageTitle}>{t('spRequests.title')}</Text>
       {/* Segmented control */}
       <View style={styles.segmentContainer}>
         <TouchableOpacity
@@ -299,7 +301,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           onPress={() => setTab('all')}
         >
           <Text style={[styles.segmentLabel, tab === 'all' && styles.segmentLabelActive]}>
-            All Requests ({totalCount})
+            {t('spRequests.allTab', { count: totalCount })}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -307,19 +309,15 @@ const SPWorkRequestsScreen: React.FC = () => {
           onPress={() => setTab('accepted')}
         >
           <Text style={[styles.segmentLabel, tab === 'accepted' && styles.segmentLabelActive]}>
-            Accepted Requests ({acceptedCount})
+            {t('spRequests.acceptedTab', { count: acceptedCount })}
           </Text>
         </TouchableOpacity>
       </View>
       {/* Filter chips */}
       <View style={styles.filterRow}>
         {(['all', 'today', 'within3'] as const).map(f => {
-          const labels: any = {
-            all: 'All',
-            today: 'Requested today',
-            within3: 'Within 3 kms',
-          };
           const active = filter === f;
+          const labelKey = f === 'all' ? 'spRequests.filterAll' : f === 'today' ? 'spRequests.filterToday' : 'spRequests.filterWithin3';
           return (
             <TouchableOpacity
               key={f}
@@ -329,7 +327,7 @@ const SPWorkRequestsScreen: React.FC = () => {
                 active && { backgroundColor: colors.primary },
               ]}
             >
-              <Text style={[styles.filterLabel, active && { color: 'white' }]}>{labels[f]}</Text>
+              <Text style={[styles.filterLabel, active && { color: 'white' }]}>{t(labelKey)}</Text>
             </TouchableOpacity>
           );
         })}
@@ -337,7 +335,7 @@ const SPWorkRequestsScreen: React.FC = () => {
       {/* List */}
       {filteredRequests.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No requests available</Text>
+          <Text style={styles.emptyText}>{t('spRequests.empty')}</Text>
         </View>
       ) : (
         <FlatList
@@ -357,11 +355,11 @@ const SPWorkRequestsScreen: React.FC = () => {
           <Ionicons name="trophy" size={20} color="#a855f7" />
         </View>
         <View style={{ flex: 1, marginLeft: spacing.sm }}>
-          <Text style={styles.proTitle}>Go Pro</Text>
-          <Text style={styles.proSubtitle}>Get early access to work requests</Text>
+          <Text style={styles.proTitle}>{t('spRequests.goPro')}</Text>
+          <Text style={styles.proSubtitle}>{t('spRequests.goProSubtitle')}</Text>
         </View>
         <View style={styles.proPriceWrapper}>
-          <Text style={styles.proPrice}>₹100/mo</Text>
+          <Text style={styles.proPrice}>{t('spRequests.perMonth', { price: '₹100' })}</Text>
         </View>
       </TouchableOpacity>
     </View>

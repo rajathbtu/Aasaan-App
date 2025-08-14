@@ -16,6 +16,7 @@ import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
+import { useI18n } from '../i18n';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -34,6 +35,7 @@ const PLAN_PRICING: Record<'basic' | 'pro', { priceInr: number; points: number }
 const SubscriptionScreen: React.FC = () => {
   const { token, user, refreshUser } = useAuth();
   const navigation = useNavigation<any>();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'basic' | 'pro' | null>(null);
 
@@ -46,10 +48,10 @@ const SubscriptionScreen: React.FC = () => {
       setLoading(true);
       await API.subscribePlan(token, plan, useCredits);
       await refreshUser();
-      Alert.alert('Subscribed', `You are now on the ${plan} plan`);
+      Alert.alert(t('subscription.subscribedTitle'), t('subscription.subscribedDesc', { plan: t(`subscription.plan.${plan}`) }));
       setSelectedPlan(null);
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to subscribe');
+      Alert.alert(t('common.error'), err.message || t('subscription.subscribeFailed'));
     } finally {
       setLoading(false);
     }
@@ -58,27 +60,27 @@ const SubscriptionScreen: React.FC = () => {
   const plans = [
     {
       key: 'basic' as const,
-      title: 'Basic Plan',
+      title: t('subscription.plan.basic'),
       price: PLAN_PRICING.basic.priceInr,
       features: [
-        'Early notifications for new work requests',
-        'Standard service radius',
-        'Multiple service locations',
-        'Priority listing',
+        t('subscription.features.early'),
+        t('subscription.features.standardRadius'),
+        t('subscription.features.multiLoc'),
+        t('subscription.features.priority'),
       ],
-      badge: 'Popular',
+      badge: t('subscription.badge.popular'),
     },
     {
       key: 'pro' as const,
-      title: 'Pro Plan',
+      title: t('subscription.plan.pro'),
       price: PLAN_PRICING.pro.priceInr,
       features: [
-        'Early notifications for new work requests',
-        'Increased service radius (up to 20km)',
-        'Multiple service locations (up to 5)',
-        'Priority listing in end user’s view',
+        t('subscription.features.early'),
+        t('subscription.features.increasedRadius'),
+        t('subscription.features.multiLoc'),
+        t('subscription.features.priority'),
       ],
-      badge: 'Best Value',
+      badge: t('subscription.badge.bestValue'),
     },
   ];
 
@@ -90,24 +92,24 @@ const SubscriptionScreen: React.FC = () => {
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={20} color={colors.dark} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Professional Plans</Text>
+          <Text style={styles.headerTitle}>{t('subscription.headerTitle')}</Text>
         </View>
 
         {/* Upgrade copy */}
-        <Text style={styles.pageTitle}>Upgrade your experience</Text>
-        <Text style={styles.subtitle}>Choose a plan that suits your needs and get more work opportunities</Text>
+        <Text style={styles.pageTitle}>{t('subscription.pageTitle')}</Text>
+        <Text style={styles.subtitle}>{t('subscription.subtitle')}</Text>
 
         {/* Current Plan */}
         <View style={styles.currentPlanCard}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View>
-              <Text style={styles.currentPlanLabel}>Current Plan</Text>
+              <Text style={styles.currentPlanLabel}>{t('subscription.currentPlan')}</Text>
               <Text style={styles.currentPlanName}>
-                {currentPlan === 'basic' ? 'Basic Plan' : currentPlan === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                {currentPlan === 'basic' ? t('subscription.plan.basic') : currentPlan === 'pro' ? t('subscription.plan.pro') : t('subscription.plan.free')}
               </Text>
             </View>
             <View style={styles.activeBadge}>
-              <Text style={styles.activeBadgeText}>Active</Text>
+              <Text style={styles.activeBadgeText}>{t('subscription.active')}</Text>
             </View>
           </View>
         </View>
@@ -116,7 +118,7 @@ const SubscriptionScreen: React.FC = () => {
         {currentPlan !== 'free' && (
           <View style={styles.infoBanner}>
             <Ionicons name="information-circle" size={16} color={colors.primary} style={{ marginRight: 6 }} />
-            <Text style={styles.infoBannerText}>You’re currently on the {currentPlan} plan.</Text>
+            <Text style={styles.infoBannerText}>{t('subscription.currentPlanInfo', { plan: t(`subscription.plan.${currentPlan}`) })}</Text>
           </View>
         )}
 
@@ -148,7 +150,7 @@ const SubscriptionScreen: React.FC = () => {
               style={styles.selectButton}
               onPress={() => setSelectedPlan(plan.key)}
             >
-              <Text style={styles.selectButtonText}>Select Plan</Text>
+              <Text style={styles.selectButtonText}>{t('subscription.selectPlan')}</Text>
             </TouchableOpacity>
           </View>
         ))}
@@ -164,7 +166,7 @@ const SubscriptionScreen: React.FC = () => {
                 activeOpacity={0.8}
               >
                 {loading ? <ActivityIndicator color="#fff" /> : (
-                  <Text style={styles.payBtnText}>Pay ₹{PLAN_PRICING[selectedPlan].priceInr}</Text>
+                  <Text style={styles.payBtnText}>{t('subscription.payMoney', { price: PLAN_PRICING[selectedPlan].priceInr })}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -177,7 +179,9 @@ const SubscriptionScreen: React.FC = () => {
               >
                 {loading ? <ActivityIndicator color="#fff" /> : (
                   <Text style={styles.payBtnText}>
-                    {credits >= PLAN_PRICING[selectedPlan].points ? `Use ${PLAN_PRICING[selectedPlan].points} Credits` : `Need ${PLAN_PRICING[selectedPlan].points - credits} more`}
+                    {credits >= PLAN_PRICING[selectedPlan].points
+                      ? t('subscription.useCredits', { points: PLAN_PRICING[selectedPlan].points })
+                      : t('subscription.needMore', { diff: PLAN_PRICING[selectedPlan].points - credits })}
                   </Text>
                 )}
               </TouchableOpacity>

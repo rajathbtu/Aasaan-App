@@ -20,6 +20,7 @@ import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -31,6 +32,7 @@ const NameOTPValidationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { phone, language } = (route.params as any) || {};
+  const { t } = useI18n(language);
   const [name, setName] = useState('');
   const [otp, setOtp] = useState(['', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -75,7 +77,7 @@ const NameOTPValidationScreen: React.FC = () => {
   const handleContinue = async () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      Alert.alert('Name required', 'Please enter your full name');
+      Alert.alert(t('nameReg.nameRequired'), t('nameReg.nameRequiredDesc'));
       return;
     }
     try {
@@ -89,7 +91,7 @@ const NameOTPValidationScreen: React.FC = () => {
       await login(result.token, result.user);
       navigation.navigate('RoleSelect');
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to register');
+      Alert.alert(t('common.error'), err.message || 'Failed to register');
     } finally {
       setLoading(false);
     }
@@ -113,7 +115,7 @@ const NameOTPValidationScreen: React.FC = () => {
               <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Icon name="arrow-left" size={18} color="#4b5563" />
               </TouchableOpacity>
-              <Text style={styles.headerTitle}>Complete Registration</Text>
+              <Text style={styles.headerTitle}>{t('nameReg.header')}</Text>
             </View>
           </View>
 
@@ -121,19 +123,19 @@ const NameOTPValidationScreen: React.FC = () => {
 
           {/* Form header */}
           <View style={styles.formHeader}>
-            <Text style={styles.formTitle}>Enter Your Details</Text>
+            <Text style={styles.formTitle}>{t('nameReg.title')}</Text>
             <Text style={styles.formSub}>
-              Please provide your name and verify your phone number
+              {t('nameReg.subtitle')}
             </Text>
           </View>
 
           {/* Full name */}
           <View style={styles.block}>
             <Text style={styles.label}>
-              <Icon name="user" size={12} color="#2563eb" /> Full Name
+              <Icon name="user" size={12} color="#2563eb" /> {t('nameReg.fullName')}
             </Text>
             <TextInput
-              placeholder="Enter your full name"
+              placeholder={t('nameReg.fullNamePlaceholder')}
               style={styles.input}
               value={name}
               onChangeText={setName}
@@ -144,7 +146,7 @@ const NameOTPValidationScreen: React.FC = () => {
           {/* Phone (read-only display) */}
           <View style={styles.block}>
             <Text style={styles.label}>
-              <Icon name="phone" size={12} color="#2563eb" /> Mobile Number
+              <Icon name="phone" size={12} color="#2563eb" /> {t('nameReg.mobileNumber')}
             </Text>
             <View style={styles.phoneRow}>
               <View style={styles.ccBox}>
@@ -158,7 +160,7 @@ const NameOTPValidationScreen: React.FC = () => {
               <View style={styles.phoneBox}>
                 <Text style={styles.phoneText}>{phone || '9876543210'}</Text>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
-                  <Text style={styles.changeLink}>Change</Text>
+                  <Text style={styles.changeLink}>{t('common.change')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -167,10 +169,10 @@ const NameOTPValidationScreen: React.FC = () => {
           {/* OTP visual section (UI only, ignored by logic) */}
           <View style={[styles.block, { marginBottom: 24 }]}>
             <Text style={styles.label}>
-              <Icon name="shield" size={12} color="#2563eb" /> Verification Code
+              <Icon name="shield" size={12} color="#2563eb" /> {t('nameReg.verificationCode')}
             </Text>
             <Text style={styles.otpHelp}>
-              We've sent a 4-digit code to your mobile number
+              {t('nameReg.sentHint')}
             </Text>
 
             <View style={styles.otpRow}>
@@ -193,16 +195,16 @@ const NameOTPValidationScreen: React.FC = () => {
 
             <View style={styles.autoRead}>
               <Icon name="mobile" size={14} color="#2563eb" style={{ marginRight: 6 }} />
-              <Text style={styles.autoReadText}>Auto-reading SMS...</Text>
+              <Text style={styles.autoReadText}>{t('nameReg.autoRead')}</Text>
             </View>
 
             <View style={styles.resendWrap}>
               <Text style={styles.resendInfo}>
-                Didn’t receive the code?{' '}
+                {t('nameReg.didntReceive')}{' '}
                 {seconds > 0 ? <Text style={{ fontWeight: '600' }}>00:{String(seconds).padStart(2, '0')}</Text> : null}
               </Text>
               <TouchableOpacity onPress={() => setSeconds(30)} disabled={seconds > 0 || loading}>
-                <Text style={[styles.resendBtn, (seconds > 0 || loading) && { opacity: 0.5 }]}>Resend OTP</Text>
+                <Text style={[styles.resendBtn, (seconds > 0 || loading) && { opacity: 0.5 }]}>{t('common.resendOtp')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -219,7 +221,7 @@ const NameOTPValidationScreen: React.FC = () => {
             ) : (
               <>
                 <Icon name="shield" size={14} color="#ffffff" style={{ marginRight: 8 }} />
-                <Text style={styles.ctaText}>Verify &amp; Continue</Text>
+                <Text style={styles.ctaText}>{t('nameReg.verifyAndContinue')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -227,7 +229,7 @@ const NameOTPValidationScreen: React.FC = () => {
           {/* Help text */}
           <View style={styles.help}>
             <Text style={styles.helpText}>
-              Having trouble? Contact support at <Text style={styles.link}>help@aasaan.com</Text>
+              {t('common.helpLine')} <Text style={styles.link}>help@aasaan.com</Text>
             </Text>
           </View>
 
@@ -238,7 +240,7 @@ const NameOTPValidationScreen: React.FC = () => {
         {/* Security info pinned visually near bottom */}
         <View style={styles.securityInfo}>
           <Icon name="shield" size={12} color="#6b7280" style={{ marginRight: 6 }} />
-          <Text style={styles.securityText}>Your data is encrypted and secure</Text>
+          <Text style={styles.securityText}>{t('nameReg.help')}</Text>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
