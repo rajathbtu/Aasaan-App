@@ -1,0 +1,311 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>::-webkit-scrollbar { display: none;}</style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2563eb",
+        "secondary": "#10b981",
+        "accent": "#f97316",
+        "light": "#f3f4f6",
+        "dark": "#1f2937"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="font-sans bg-gray-50 text-dark">
+    <div id="app-wrapper" class="max-w-md mx-auto bg-white min-h-[100vh] relative pb-20">
+        <!-- Status Bar -->
+        <div id="status-bar" class="bg-white h-6 flex items-center justify-between px-4">
+            <div class="text-xs font-medium">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+        
+        <!-- App Header -->
+        <div id="header" class="bg-white px-4 py-3 flex items-center justify-between border-b border-gray-200">
+            <div class="flex items-center space-x-3">
+                <button id="back-btn" class="text-gray-600">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="text-lg font-bold text-primary">
+                    <span>Complete Registration</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div id="registration-form" class="px-4 py-6">
+    <div id="form-header" class="mb-6 text-center">
+        <h1 class="text-xl font-bold mb-2">Enter Your Details</h1>
+        <p class="text-gray-600 text-sm">Please provide your name and verify your phone number</p>
+    </div>
+    
+    <!-- Full Name Section -->
+    <div id="name-section" class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+            <i class="fa-solid fa-user text-primary mr-2"></i>Full Name
+        </label>
+        <input type="text" id="full-name" placeholder="Enter your full name" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-base focus:border-primary focus:outline-none">
+    </div>
+    
+    <!-- Phone Number Section -->
+    <div id="phone-section" class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+            <i class="fa-solid fa-phone text-primary mr-2"></i>Mobile Number
+        </label>
+        <div class="flex items-center">
+            <div class="flex items-center bg-gray-100 px-3 py-3 border-2 border-gray-300 rounded-l-lg">
+                <span class="text-base font-medium">+91</span>
+            </div>
+            <div class="flex-1 flex items-center justify-between bg-gray-100 px-4 py-3 border-2 border-l-0 border-gray-300 rounded-r-lg">
+                <span class="text-base font-medium">9876543210</span>
+                <button id="change-number-btn" class="text-primary text-sm underline ml-2">Change</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- OTP Verification Section -->
+    <div id="otp-section" class="mb-8">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+            <i class="fa-solid fa-shield-alt text-primary mr-2"></i>Verification Code
+        </label>
+        <p class="text-sm text-gray-600 mb-4">We've sent a 4-digit code to your mobile number</p>
+        
+        <div class="flex justify-center space-x-3 mb-4">
+            <input type="text" maxlength="1" class="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none">
+            <input type="text" maxlength="1" class="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none">
+            <input type="text" maxlength="1" class="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none">
+            <input type="text" maxlength="1" class="w-12 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none">
+        </div>
+        
+        <!-- Auto-read indicator -->
+        <div id="auto-read-indicator" class="flex items-center justify-center mb-4">
+            <div class="flex items-center text-sm text-gray-600">
+                <i class="fa-solid fa-mobile-alt text-primary mr-2"></i>
+                <span class="text-primary">Auto-reading SMS...</span>
+            </div>
+        </div>
+        
+        <!-- Resend OTP Option -->
+        <div id="resend-option" class="text-center">
+            <p class="text-sm text-gray-600">Didn't receive the code? <span id="timer" class="font-medium">00:30</span></p>
+            <button id="resend-btn" class="text-primary font-medium text-sm mt-1 disabled:opacity-50 disabled:cursor-not-allowed" disabled="">Resend OTP</button>
+        </div>
+    </div>
+    
+    <!-- Verify & Continue Button -->
+    <div id="register-button-container" class="mb-6">
+        <button id="register-btn" class="w-full bg-primary text-white text-base font-medium py-3 rounded-lg flex items-center justify-center">
+            <i class="fa-solid fa-shield-check mr-2"></i> Verify &amp; Continue
+        </button>
+    </div>
+    
+    <!-- Help Text -->
+    <div id="help-text" class="text-center">
+        <p class="text-xs text-gray-500">Having trouble? Contact support at <span class="text-primary">help@aasaan.com</span></p>
+    </div>
+</div>
+        
+        <!-- Security Info -->
+        <div id="security-info" class="absolute bottom-24 left-0 right-0 px-4 text-center">
+            <div class="flex items-center justify-center text-gray-500 text-xs">
+                <i class="fa-solid fa-shield-alt mr-1"></i>
+                <span>Your data is encrypted and secure</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fullNameInput = document.getElementById('full-name');
+            const otpInputs = document.querySelectorAll('#otp-section input');
+            const registerBtn = document.getElementById('register-btn');
+            
+            // Auto-focus the name input on page load
+            fullNameInput.focus();
+            
+            // Name input validation
+            fullNameInput.addEventListener('input', function() {
+                validateForm();
+            });
+            
+            // OTP input handling
+            otpInputs.forEach((input, index) => {
+                input.addEventListener('input', function() {
+                    if (this.value.length === 1 && index < otpInputs.length - 1) {
+                        otpInputs[index + 1].focus();
+                    }
+                    validateForm();
+                });
+                
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && !this.value && index > 0) {
+                        otpInputs[index - 1].focus();
+                    }
+                });
+            });
+            
+            // Form validation
+            function validateForm() {
+                const name = fullNameInput.value.trim();
+                let otp = '';
+                otpInputs.forEach(input => {
+                    otp += input.value;
+                });
+                
+                if (name.length >= 2 && otp.length === 4) {
+                    registerBtn.disabled = false;
+                } else {
+                    registerBtn.disabled = true;
+                }
+            }
+            
+            // Timer for resend OTP
+            let seconds = 30;
+            const timerElement = document.getElementById('timer');
+            const resendBtn = document.getElementById('resend-btn');
+            
+            const countdown = setInterval(() => {
+                seconds--;
+                const displaySeconds = seconds < 10 ? `0${seconds}` : seconds;
+                timerElement.textContent = `00:${displaySeconds}`;
+                
+                if (seconds <= 0) {
+                    clearInterval(countdown);
+                    timerElement.textContent = '';
+                    resendBtn.disabled = false;
+                }
+            }, 1000);
+            
+            // Change phone number button
+            document.getElementById('change-number-btn').addEventListener('click', function() {
+                console.log('Navigate back to phone number entry');
+            });
+            
+            // Resend OTP button
+            resendBtn.addEventListener('click', function() {
+                seconds = 30;
+                timerElement.textContent = '00:30';
+                this.disabled = true;
+                
+                otpInputs.forEach(input => {
+                    input.value = '';
+                });
+                
+                validateForm();
+                showToast('OTP resent successfully!');
+            });
+            
+            // Back button
+            document.getElementById('back-btn').addEventListener('click', function() {
+                console.log('Navigate back');
+            });
+            
+            // Register button
+            registerBtn.addEventListener('click', function() {
+                const name = fullNameInput.value.trim();
+                let otp = '';
+                otpInputs.forEach(input => {
+                    otp += input.value;
+                });
+                
+                if (name.length >= 2 && otp.length === 4) {
+                    this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Creating Account...';
+                    this.disabled = true;
+                    
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="fa-solid fa-check-circle mr-2"></i> Account Created!';
+                        this.classList.remove('bg-primary');
+                        this.classList.add('bg-green-600');
+                        
+                        setTimeout(() => {
+                            console.log('Navigate to role selection');
+                        }, 1000);
+                    }, 2000);
+                } else {
+                    if (name.length < 2) {
+                        showToast('Please enter your full name');
+                        fullNameInput.focus();
+                    } else {
+                        showToast('Please enter the complete 4-digit OTP');
+                    }
+                }
+            });
+            
+            // Toast notification function
+            function showToast(message) {
+                const toast = document.createElement('div');
+                toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-dark text-white text-sm py-2 px-4 rounded-lg shadow-lg z-50';
+                toast.textContent = message;
+                
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 300);
+                }, 3000);
+            }
+            
+            // Auto-read OTP simulation
+            setTimeout(() => {
+                document.getElementById('auto-read-indicator').style.display = 'none';
+                
+                otpInputs[0].value = '1';
+                otpInputs[1].value = '2';
+                otpInputs[2].value = '3';
+                otpInputs[3].value = '4';
+                
+                validateForm();
+                showToast('OTP auto-detected');
+            }, 3000);
+        });
+    </script>
+
+</body></html>

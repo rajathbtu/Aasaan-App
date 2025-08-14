@@ -1,0 +1,348 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>::-webkit-scrollbar { display: none;}</style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2563eb",
+        "secondary": "#10b981",
+        "accent": "#f97316",
+        "light": "#f3f4f6",
+        "dark": "#1f2937"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="font-sans bg-gray-50 text-dark">
+    <div id="app-wrapper" class="max-w-md mx-auto bg-white min-h-[100vh] relative pb-20">
+        <!-- Status Bar -->
+        <div id="status-bar" class="bg-white h-6 flex items-center justify-between px-4">
+            <div class="text-xs font-medium">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+        
+        <!-- App Header -->
+        <div id="header" class="bg-white px-4 py-4 flex items-center justify-between border-b border-gray-200">
+            <h1 class="text-xl font-bold text-dark">Aasaan</h1>
+            <button id="notification-btn" class="relative">
+                <i class="fa-regular fa-bell text-gray-600 text-xl"></i>
+                <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">2</span>
+            </button>
+        </div>
+        
+        <!-- Main Content Area - Service Selection -->
+        <div id="service-selection" class="px-4 py-4">
+    <div id="page-title" class="mb-6">
+        <h1 class="text-2xl font-bold">Get your work done!</h1>
+        <p class="text-gray-600 text-base">Select type of work</p>
+    </div>
+    
+    <!-- Search Bar -->
+    <div id="search-section" class="mb-6">
+        <div class="relative">
+            <input type="text" id="service-search" placeholder="Search for services..." class="w-full px-4 py-3 pl-10 bg-white border-2 border-primary/30 rounded-lg text-base focus:outline-none focus:border-primary focus:bg-white shadow-sm">
+            <i class="fa-solid fa-search absolute left-3 top-4 text-primary"></i>
+        </div>
+    </div>
+    
+    <!-- Recently Used Services -->
+    <div id="recent-services-section" class="mb-6">
+        <h2 class="text-lg font-semibold mb-4">Recently Used</h2>
+        
+        <div class="grid grid-cols-3 gap-3">
+            <div id="service-recent-electrician" class="bg-blue-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                <div class="bg-blue-100 rounded-full p-3 mb-2">
+                    <i class="fa-solid fa-bolt text-primary text-2xl"></i>
+                </div>
+                <span class="text-base font-medium text-center">Electrician</span>
+            </div>
+            
+            <div id="service-recent-plumber" class="bg-blue-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                <div class="bg-blue-100 rounded-full p-3 mb-2">
+                    <i class="fa-solid fa-faucet text-blue-600 text-2xl"></i>
+                </div>
+                <span class="text-base font-medium text-center">Plumber</span>
+            </div>
+            
+            <div id="service-recent-cook" class="bg-green-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                <div class="bg-green-100 rounded-full p-3 mb-2">
+                    <i class="fa-solid fa-utensils text-green-600 text-2xl"></i>
+                </div>
+                <span class="text-base font-medium text-center">Cook</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- All Services -->
+    <div id="all-services-section" class="mb-4">
+        <h2 class="text-lg font-semibold mb-4">All Services</h2>
+        
+        <!-- Daily Help Category -->
+        <div id="categories-section" class="mb-6">
+            <h3 class="text-base font-bold mb-3 text-gray-800">Daily Help</h3>
+            
+            <div class="grid grid-cols-3 gap-3 mb-3">
+                <div id="service-maid" class="bg-purple-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-purple-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-broom text-purple-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Maid</span>
+                </div>
+                
+                <div id="service-cook-2" class="bg-green-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-green-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-utensils text-green-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Cook</span>
+                </div>
+                
+                <div id="service-babysitter" class="bg-pink-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-pink-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-baby text-pink-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Babysitter</span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-3">
+                <div id="service-cleaner" class="bg-cyan-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-cyan-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-spray-can text-cyan-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Cleaner</span>
+                </div>
+                
+                <div id="service-servant" class="bg-indigo-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-indigo-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-user-tie text-indigo-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Home Servant</span>
+                </div>
+                
+                <div id="service-car-cleaner" class="bg-slate-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-slate-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-car text-slate-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Car Cleaner</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Home Repairs Category -->
+        <div id="categories-section-2" class="mb-6">
+            <h3 class="text-base font-bold mb-3 text-gray-800">Home Repairs</h3>
+            
+            <div class="grid grid-cols-3 gap-3 mb-3">
+                <div id="service-electrician" class="bg-blue-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-blue-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-bolt text-primary text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Electrician</span>
+                </div>
+                
+                <div id="service-plumber" class="bg-blue-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-blue-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-faucet text-blue-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Plumber</span>
+                </div>
+                
+                <div id="service-carpenter" class="bg-amber-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-amber-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-hammer text-amber-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Carpenter</span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-3">
+                <div id="service-painter" class="bg-red-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-red-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-paint-roller text-red-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Painter</span>
+                </div>
+                
+                <div id="service-ac-repair" class="bg-sky-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-sky-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-wind text-sky-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">AC Repair</span>
+                </div>
+                
+                <div id="service-pest-control" class="bg-orange-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-orange-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-bug text-orange-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Pest Control</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Professional Services Category -->
+        <div id="categories-section-3" class="mb-6">
+            <h3 class="text-base font-bold mb-3 text-gray-800">Professional Services</h3>
+            
+            <div class="grid grid-cols-3 gap-3 mb-3">
+                <div id="service-photographer" class="bg-violet-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-violet-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-camera text-violet-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Photographer</span>
+                </div>
+                
+                <div id="service-yoga" class="bg-teal-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-teal-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-person-yoga text-teal-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Yoga Trainer</span>
+                </div>
+                
+                <div id="service-tutor" class="bg-emerald-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-emerald-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-book-open text-emerald-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Tutor</span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-3 gap-3">
+                <div id="service-dietician" class="bg-lime-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-lime-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-apple-whole text-lime-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Dietician</span>
+                </div>
+                
+                <div id="service-makeup" class="bg-rose-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-rose-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-palette text-rose-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Makeup Artist</span>
+                </div>
+                
+                <div id="service-event" class="bg-fuchsia-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-fuchsia-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-calendar-days text-fuchsia-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Event Planner</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- More Services -->
+        <div id="categories-section-4" class="mb-6">
+            <h3 class="text-base font-bold mb-3 text-gray-800">More Services</h3>
+            
+            <div class="grid grid-cols-3 gap-3 mb-3">
+                <div id="service-gardener" class="bg-green-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-green-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-seedling text-green-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Gardener</span>
+                </div>
+                
+                <div id="service-caterer" class="bg-yellow-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-yellow-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-utensils text-yellow-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Caterer</span>
+                </div>
+                
+                <div id="service-interior" class="bg-purple-50 border border-gray-200 rounded-lg p-3 flex flex-col items-center hover:border-primary cursor-pointer">
+                    <div class="bg-purple-100 rounded-full p-3 mb-2">
+                        <i class="fa-solid fa-home text-purple-600 text-2xl"></i>
+                    </div>
+                    <span class="text-base font-medium text-center">Interior Designer</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+        
+        <!-- Bottom Navigation -->
+        <div id="bottom-nav" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around py-2 px-4">
+            <div id="eu-nav" class="flex justify-around w-full">
+                <button class="flex flex-col items-center text-primary">
+                    <i class="fa-solid fa-plus-circle text-lg"></i>
+                    <span class="text-xs mt-1">Create</span>
+                </button>
+                <button class="flex flex-col items-center text-gray-500">
+                    <i class="fa-solid fa-list-ul text-lg"></i>
+                    <span class="text-xs mt-1">My Requests</span>
+                </button>
+                <button class="flex flex-col items-center text-gray-500">
+                    <i class="fa-solid fa-user text-lg"></i>
+                    <span class="text-xs mt-1">Profile</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Notification Popup -->
+        <div id="notification-popup" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+            <div class="absolute top-12 right-4 left-4 max-w-md mx-auto bg-white rounded-lg shadow-lg">
+                <div class="flex justify-between items-center p-3 border-b border-gray-200">
+                    <h3 class="font-semibold">Notifications</h3>
+                    <button id="close-notification" class="text-gray-500">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="max-h-[60vh] overflow-y-auto">
+                    <div class="p-3 border-b border-gray-100 flex items-start space-x-3">
+                        <div class="bg-blue-100 rounded-full p-2 mt-1">
+                            <i class="fa-solid fa-bell text-primary text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium">New service provider available</p>
+                            <p class="text-xs text-gray-600">An electrician is now available in your area</p>
+                            <p class="text-xs text-gray-400 mt-1">2 hours ago</p>
+                        </div>
+                    </div>
+                    
+                    </div></div></div></div></body></html>

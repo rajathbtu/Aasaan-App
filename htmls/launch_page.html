@@ -1,0 +1,78 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>::-webkit-scrollbar { display: none;}</style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2563eb",
+        "secondary": "#10b981",
+        "accent": "#f97316",
+        "light": "#f3f4f6",
+        "dark": "#1f2937"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="font-sans bg-white text-dark">
+    <div id="app-wrapper" class="max-w-md mx-auto bg-white h-[800px] relative">
+        <!-- Status Bar -->
+        <div id="status-bar" class="bg-white h-6 flex items-center justify-between px-4">
+            <div class="text-xs font-medium">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+        
+        <!-- App Name Screen -->
+        <div id="app-name-screen" class="bg-white h-[774px] flex items-center justify-center px-6">
+            <div class="text-center">
+                <h1 class="text-6xl font-bold text-primary mb-4">Aasaan</h1>
+                <p class="text-3xl text-gray-600 font-medium">आसान</p>
+            </div>
+        </div>
+    </div>
+
+</body></html>

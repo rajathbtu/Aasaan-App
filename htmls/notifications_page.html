@@ -1,0 +1,363 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>::-webkit-scrollbar { display: none;}</style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2563eb",
+        "secondary": "#10b981",
+        "accent": "#f97316",
+        "light": "#f3f4f6",
+        "dark": "#1f2937"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="font-sans bg-gray-50 text-dark">
+    <div id="app-wrapper" class="max-w-md mx-auto bg-white min-h-[100vh] relative">
+        <!-- Status Bar -->
+        <div id="status-bar" class="bg-white h-6 flex items-center justify-between px-4">
+            <div class="text-xs font-medium">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+        
+        <!-- Notification Screen Header -->
+        <div id="notification-header" class="bg-white px-4 py-4 flex items-center justify-between border-b border-gray-200">
+            <div class="flex items-center">
+                <button id="back-btn" class="mr-3">
+                    <i class="fa-solid fa-arrow-left text-gray-600 text-xl"></i>
+                </button>
+                <h1 class="text-xl font-bold text-dark">Notifications</h1>
+            </div>
+            <button id="mark-all-read" class="text-primary text-sm font-medium">
+                Mark all read
+            </button>
+        </div>
+        
+        <!-- Notifications List -->
+        <div id="notifications-list" class="px-4 pb-20">
+            <!-- New Work Request Created (For Service Providers) -->
+            <div id="notification-1" class="bg-blue-50 border-l-4 border-primary p-4 mb-3 rounded-r-lg cursor-pointer hover:bg-blue-100 transition-colors">
+                <div class="flex items-start space-x-3">
+                    <div class="bg-primary rounded-full p-2 mt-1">
+                        <i class="fa-solid fa-briefcase text-white text-sm"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-base font-semibold text-dark">New Work Opportunity Nearby!</p>
+                            <span class="bg-red-500 w-2 h-2 rounded-full"></span>
+                        </div>
+                        <p class="text-sm text-gray-700 mb-2">Priya Sharma in Sector 21 is looking for your service. Don't miss out!</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs text-gray-500">2 minutes ago</p>
+                            <div class="flex space-x-2">
+                                <button class="bg-primary text-white px-3 py-1 rounded text-xs font-medium">View Details</button>
+                                <button class="bg-secondary text-white px-3 py-1 rounded text-xs font-medium">Accept</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provider Accepted Request (For End Users) -->
+            <div id="notification-2" class="bg-green-50 border-l-4 border-secondary p-4 mb-3 rounded-r-lg cursor-pointer hover:bg-green-100 transition-colors">
+                <div class="flex items-start space-x-3">
+                    <div class="bg-secondary rounded-full p-2 mt-1">
+                        <i class="fa-solid fa-user-check text-white text-sm"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-base font-semibold text-dark">Provider Accepted Your Request</p>
+                            <span class="bg-red-500 w-2 h-2 rounded-full"></span>
+                        </div>
+                        <p class="text-sm text-gray-700 mb-2">Rajesh Kumar (Electrician) has accepted your work request. You can now contact him directly.</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs text-gray-500">15 minutes ago</p>
+                            <div class="flex space-x-2">
+                                <button class="bg-secondary text-white px-3 py-1 rounded text-xs font-medium">Call Now</button>
+                                <button class="border border-secondary text-secondary px-3 py-1 rounded text-xs font-medium">View Details</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Work Completion Confirmation -->
+            <div id="notification-3" class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-3 rounded-r-lg cursor-pointer hover:bg-yellow-100 transition-colors">
+                <div class="flex items-start space-x-3">
+                    <div class="bg-yellow-500 rounded-full p-2 mt-1">
+                        <i class="fa-solid fa-check-circle text-white text-sm"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-base font-semibold text-dark">Was your work completed?</p>
+                            <span class="bg-red-500 w-2 h-2 rounded-full"></span>
+                        </div>
+                        <p class="text-sm text-gray-700 mb-2">Your electrician request with Rajesh Kumar. Please confirm if the work was completed successfully.</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs text-gray-500">1 hour ago</p>
+                            <div class="flex space-x-2">
+                                <button class="bg-secondary text-white px-3 py-1 rounded text-xs font-medium">Yes</button>
+                                <button class="border border-gray-400 text-gray-700 px-3 py-1 rounded text-xs font-medium">No</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Boost Work Request -->
+            <div id="notification-4" class="bg-orange-50 border-l-4 border-orange-500 p-4 mb-3 rounded-r-lg cursor-pointer hover:bg-orange-100 transition-colors">
+                <div class="flex items-start space-x-3">
+                    <div class="bg-orange-500 rounded-full p-2 mt-1">
+                        <i class="fa-solid fa-rocket text-white text-sm"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-base font-semibold text-dark">Boost Your Request</p>
+                        </div>
+                        <p class="text-sm text-gray-700 mb-2">Get faster responses! Boost your painter request for just ₹100 and get priority visibility.</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs text-gray-500">3 hours ago</p>
+                            <div class="flex space-x-2">
+                                <button class="bg-orange-500 text-white px-3 py-1 rounded text-xs font-medium">Boost Now</button>
+                                <button class="border border-orange-500 text-orange-700 px-3 py-1 rounded text-xs font-medium">Maybe Later</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Request Auto-Closed -->
+            <div id="notification-5" class="bg-gray-100 border-l-4 border-gray-400 p-4 mb-3 rounded-r-lg cursor-pointer hover:bg-gray-200 transition-colors">
+                <div class="flex items-start space-x-3">
+                    <div class="bg-gray-400 rounded-full p-2 mt-1">
+                        <i class="fa-solid fa-clock text-white text-sm"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-base font-semibold text-dark">Request Auto-Closed</p>
+                        </div>
+                        <p class="text-sm text-gray-700 mb-2">Your cook request has been automatically closed after 7 days. Create a new request if still needed.</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs text-gray-500">2 days ago</p>
+                            <div class="flex space-x-2">
+                                <button class="bg-primary text-white px-3 py-1 rounded text-xs font-medium">Create New</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upgrade to Premium Plan (For Service Providers) -->
+            <div id="notification-6" class="bg-purple-50 border-l-4 border-purple-500 p-4 mb-3 rounded-r-lg cursor-pointer hover:bg-purple-100 transition-colors">
+                <div class="flex items-start space-x-3">
+                    <div class="bg-purple-500 rounded-full p-2 mt-1">
+                        <i class="fa-solid fa-crown text-white text-sm"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-base font-semibold text-dark">Upgrade to Professional Plan</p>
+                        </div>
+                        <p class="text-sm text-gray-700 mb-2">Get early notifications, multiple locations &amp; priority listing. Starting at just ₹100/month.</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs text-gray-500">5 hours ago</p>
+                            <div class="flex space-x-2">
+                                <button class="bg-purple-500 text-white px-3 py-1 rounded text-xs font-medium">Upgrade Now</button>
+                                <button class="border border-purple-500 text-purple-700 px-3 py-1 rounded text-xs font-medium">Learn More</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- End User Rated Service Provider -->
+            <div id="notification-7" class="bg-green-50 border-l-4 border-secondary p-4 mb-3 rounded-r-lg cursor-pointer hover:bg-green-100 transition-colors">
+                <div class="flex items-start space-x-3">
+                    <div class="bg-secondary rounded-full p-2 mt-1">
+                        <i class="fa-solid fa-star text-white text-sm"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-base font-semibold text-dark">You Got a 5-Star Rating!</p>
+                        </div>
+                        <p class="text-sm text-gray-700 mb-2">Priya Sharma rated you 5 stars for your excellent plumbing work. You earned 10 credit points!</p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs text-gray-500">1 day ago</p>
+                            <div class="flex space-x-2">
+                                <button class="bg-secondary text-white px-3 py-1 rounded text-xs font-medium">View Review</button>
+                                <button class="border border-secondary text-secondary px-3 py-1 rounded text-xs font-medium">Check Credits</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State Message -->
+            <div id="no-more-notifications" class="text-center py-8">
+                <i class="fa-regular fa-bell-slash text-gray-400 text-3xl mb-3"></i>
+                <p class="text-gray-500 text-sm">You're all caught up!</p>
+                <p class="text-gray-400 text-xs">No more notifications to show</p>
+            </div>
+        </div>
+        
+        <!-- Bottom Navigation -->
+        <div id="bottom-nav" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around py-2 px-4">
+            <div id="eu-nav" class="flex justify-around w-full">
+                <button class="flex flex-col items-center text-gray-500">
+                    <i class="fa-solid fa-plus-circle text-lg"></i>
+                    <span class="text-xs mt-1">Create</span>
+                </button>
+                <button class="flex flex-col items-center text-gray-500">
+                    <i class="fa-solid fa-list-ul text-lg"></i>
+                    <span class="text-xs mt-1">My Requests</span>
+                </button>
+                <button class="flex flex-col items-center text-gray-500">
+                    <i class="fa-solid fa-user text-lg"></i>
+                    <span class="text-xs mt-1">Profile</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Handle notification clicks
+        document.querySelectorAll('[id^="notification-"]').forEach(notification => {
+            notification.addEventListener('click', function() {
+                const notificationId = this.id;
+                // Remove red dot indicator
+                const redDot = this.querySelector('.bg-red-500');
+                if (redDot) {
+                    redDot.remove();
+                }
+                
+                // Navigate based on notification type
+                switch(notificationId) {
+                    case 'notification-1':
+                        // Navigate to My Requests page
+                        console.log('Navigate to My Requests');
+                        break;
+                    case 'notification-2':
+                        // Navigate to Work Request Details page
+                        console.log('Navigate to Work Request Details');
+                        break;
+                    case 'notification-3':
+                        // Navigate to Rating page
+                        console.log('Navigate to Rating page');
+                        break;
+                    case 'notification-4':
+                        // Navigate to Create Request page
+                        console.log('Navigate to Create Request');
+                        break;
+                    case 'notification-5':
+                        // Navigate to Boost Request page
+                        console.log('Navigate to Boost Request');
+                        break;
+                    case 'notification-6':
+                        // Navigate to Profile page (credit points)
+                        console.log('Navigate to Profile');
+                        break;
+                    case 'notification-7':
+                        // Navigate to Create Request page
+                        console.log('Navigate to Create Request');
+                        break;
+                }
+            });
+        });
+
+        // Handle back button
+        document.getElementById('back-btn').addEventListener('click', function() {
+            // Navigate back to previous screen
+            console.log('Navigate back');
+        });
+
+        // Handle mark all read
+        document.getElementById('mark-all-read').addEventListener('click', function() {
+            // Remove all red dot indicators
+            document.querySelectorAll('.bg-red-500').forEach(dot => {
+                if (dot.classList.contains('w-2')) {
+                    dot.remove();
+                }
+            });
+        });
+
+        // Handle action buttons
+        document.querySelectorAll('button').forEach(button => {
+            if (button.textContent.includes('Call Now')) {
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    console.log('Initiate call');
+                });
+            }
+            if (button.textContent.includes('View Details') || button.textContent.includes('View Request')) {
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    console.log('View details');
+                });
+            }
+            if (button.textContent.includes('Rate Now')) {
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    console.log('Navigate to rating');
+                });
+            }
+            if (button.textContent.includes('Boost Now')) {
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    console.log('Navigate to boost request');
+                });
+            }
+            if (button.textContent.includes('Create Request') || button.textContent.includes('Create New')) {
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    console.log('Navigate to create request');
+                });
+            }
+        });
+    </script>
+
+</body></html>

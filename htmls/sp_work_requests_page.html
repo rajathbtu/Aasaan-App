@@ -1,0 +1,410 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>::-webkit-scrollbar { display: none;}</style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2563eb",
+        "secondary": "#10b981",
+        "accent": "#f97316",
+        "light": "#f3f4f6",
+        "dark": "#1f2937"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="font-sans bg-gray-50 text-dark">
+    <div id="app-wrapper" class="max-w-md mx-auto bg-white min-h-[100vh] relative">
+        <!-- Status Bar -->
+        <div id="status-bar" class="bg-white h-6 flex items-center justify-between px-4">
+            <div class="text-xs font-medium">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+        
+        <!-- App Header -->
+        <div id="header" class="bg-white px-4 py-3 flex items-center justify-between border-b border-gray-200">
+            <div class="flex items-center space-x-3">
+                <div class="text-lg font-bold text-primary">
+                    <span class="text-primary">Aasaan</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="notification-btn" class="relative">
+                    <i class="fa-regular fa-bell text-gray-600"></i>
+                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">3</span>
+                </button>
+                <button id="profile-btn">
+                    <i class="fa-solid fa-user text-gray-600"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Content Area - Service Provider View -->
+        <div id="service-provider-view" class="px-2 py-2">
+            <!-- Page Headline -->
+            <div id="page-headline" class="px-2 mb-4">
+                <h1 class="text-xl font-bold text-dark">Work Requests for you</h1>
+            </div>
+            
+            <!-- Tab View -->
+            <div id="tab-view" class="mb-4">
+                <div class="flex bg-gray-100 rounded-xl p-1">
+                    <button class="tab-button flex-1 py-3 px-4 rounded-lg text-sm font-bold transition-all duration-200 bg-white text-primary shadow-sm border border-gray-200" data-tab="all">
+                        All Requests (12)
+                    </button>
+                    <button class="tab-button flex-1 py-3 px-4 rounded-lg text-sm font-bold transition-all duration-200 text-gray-600 hover:text-primary" data-tab="accepted">
+                        Accepted Requests (2)
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filter Bar -->
+            <div id="filter-bar" class="flex items-center space-x-2 mb-4 overflow-x-auto">
+                <button class="bg-primary text-white text-sm font-medium px-4 py-2 rounded-full flex items-center whitespace-nowrap">
+                    <span>All</span>
+                </button>
+                <button class="bg-white border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-full flex items-center whitespace-nowrap">
+                    <span>Requested today</span>
+                </button>
+                <button class="bg-white border border-gray-200 text-gray-700 text-sm font-medium px-4 py-2 rounded-full flex items-center whitespace-nowrap">
+                    <span>Within 3 kms</span>
+                </button>
+            </div>
+            
+            <!-- Work Requests Section -->
+            <div id="work-requests-section">
+                <!-- Work Request Card 1 -->
+                <div id="work-request-1" class="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center">
+                            <div class="bg-blue-500 text-white p-2 rounded-lg mr-3">
+                                <i class="fa-solid fa-bolt text-lg"></i>
+                            </div>
+                            <div>
+                                <span class="bg-blue-100 text-primary text-sm font-medium px-3 py-1 rounded-full">Electrician</span>
+                                <p class="text-xs text-gray-500 mt-1">2 hrs ago</p>
+                            </div>
+                        </div>
+                        <span class="text-sm font-medium text-gray-500">3.2 km</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="flex items-center text-dark text-lg font-semibold mb-1">
+                            <i class="fa-solid fa-location-dot mr-2"></i>
+                            <span>Indiranagar, Bangalore</span>
+                        </div>
+                        <h3 class="text-gray-600 text-base">Amit Kumar</h3>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full">Fan repair</span>
+                        <span class="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full">Switch board</span>
+                    </div>
+                    
+                    <div class="flex space-x-3">
+                        <button class="bg-secondary text-white text-base font-medium flex-1 py-3 rounded-xl flex items-center justify-center">
+                            <i class="fa-solid fa-check mr-2"></i> Accept
+                        </button>
+                        <button class="bg-primary text-white text-base font-medium px-6 py-3 rounded-xl flex items-center justify-center">
+                            <i class="fa-solid fa-phone"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Work Request Card 2 - Accepted State -->
+                <div id="work-request-2" class="bg-green-50 border border-green-200 rounded-xl p-4 mb-4 shadow-sm">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center">
+                            <div class="bg-blue-500 text-white p-2 rounded-lg mr-3">
+                                <i class="fa-solid fa-bolt text-lg"></i>
+                            </div>
+                            <div>
+                                <span class="bg-green-100 text-green-700 text-sm font-medium px-3 py-1 rounded-full">
+                                    <i class="fa-solid fa-check mr-1"></i>
+                                    Accepted
+                                </span>
+                                <p class="text-xs text-gray-500 mt-1">5 hrs ago</p>
+                            </div>
+                        </div>
+                        <span class="text-sm font-medium text-gray-500">1.5 km</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="flex items-center text-dark text-lg font-semibold mb-1">
+                            <i class="fa-solid fa-location-dot mr-2"></i>
+                            <span>Koramangala, Bangalore</span>
+                        </div>
+                        <h3 class="text-gray-600 text-base">Priya Singh</h3>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full">Light fixture</span>
+                        <span class="bg-orange-100 text-orange-700 text-sm px-3 py-1 rounded-full font-medium">Urgent</span>
+                    </div>
+                    
+                    <div class="flex space-x-3">
+                        <button class="bg-primary text-white text-base font-medium flex-1 py-3 rounded-xl flex items-center justify-center">
+                            <i class="fa-solid fa-phone mr-2"></i> Call Now
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pro Plan Promotion Card -->
+                <div id="pro-plan-promo" class="bg-gradient-to-r from-purple-400 to-purple-500 rounded-xl p-4 mb-4 shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-white bg-opacity-20 rounded-xl flex items-center justify-center mr-3">
+                                <i class="fas fa-crown text-white text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-white text-lg">Go Pro</h3>
+                                <p class="text-purple-100 text-sm">Get early access to work requests</p>
+                            </div>
+                        </div>
+                        <button class="bg-white text-purple-500 px-4 py-2 rounded-lg text-sm font-medium">
+                            ₹100/mo
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Work Request Card 3 -->
+                <div id="work-request-3" class="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center">
+                            <div class="bg-blue-500 text-white p-2 rounded-lg mr-3">
+                                <i class="fa-solid fa-bolt text-lg"></i>
+                            </div>
+                            <div>
+                                <span class="bg-blue-100 text-primary text-sm font-medium px-3 py-1 rounded-full">Electrician</span>
+                                <p class="text-xs text-gray-500 mt-1">8 hrs ago</p>
+                            </div>
+                        </div>
+                        <span class="text-sm font-medium text-gray-500">4.7 km</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="flex items-center text-dark text-lg font-semibold mb-1">
+                            <i class="fa-solid fa-location-dot mr-2"></i>
+                            <span>JP Nagar, Bangalore</span>
+                        </div>
+                        <h3 class="text-gray-600 text-base">Sanjay Patel</h3>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full">MCB issue</span>
+                        <span class="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full">Power failure</span>
+                    </div>
+                    
+                    <div class="flex space-x-3">
+                        <button class="bg-secondary text-white text-base font-medium flex-1 py-3 rounded-xl flex items-center justify-center">
+                            <i class="fa-solid fa-check mr-2"></i> Accept
+                        </button>
+                        <button class="bg-primary text-white text-base font-medium px-6 py-3 rounded-xl flex items-center justify-center">
+                            <i class="fa-solid fa-phone"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Work Request Card 4 -->
+                <div id="work-request-4" class="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center">
+                            <div class="bg-blue-500 text-white p-2 rounded-lg mr-3">
+                                <i class="fa-solid fa-bolt text-lg"></i>
+                            </div>
+                            <div>
+                                <span class="bg-blue-100 text-primary text-sm font-medium px-3 py-1 rounded-full">Electrician</span>
+                                <p class="text-xs text-gray-500 mt-1">12 hrs ago</p>
+                            </div>
+                        </div>
+                        <span class="text-sm font-medium text-gray-500">2.3 km</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="flex items-center text-dark text-lg font-semibold mb-1">
+                            <i class="fa-solid fa-location-dot mr-2"></i>
+                            <span>Whitefield, Bangalore</span>
+                        </div>
+                        <h3 class="text-gray-600 text-base">Meera Joshi</h3>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full">Wiring</span>
+                        <span class="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full">New installation</span>
+                    </div>
+                    
+                    <div class="flex space-x-3">
+                        <button class="bg-secondary text-white text-base font-medium flex-1 py-3 rounded-xl flex items-center justify-center">
+                            <i class="fa-solid fa-check mr-2"></i> Accept
+                        </button>
+                        <button class="bg-primary text-white text-base font-medium px-6 py-3 rounded-xl flex items-center justify-center">
+                            <i class="fa-solid fa-phone"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Work Request Card 5 -->
+                <div id="work-request-5" class="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center">
+                            <div class="bg-blue-500 text-white p-2 rounded-lg mr-3">
+                                <i class="fa-solid fa-bolt text-lg"></i>
+                            </div>
+                            <div>
+                                <span class="bg-blue-100 text-primary text-sm font-medium px-3 py-1 rounded-full">Electrician</span>
+                                <p class="text-xs text-gray-500 mt-1">1 day ago</p>
+                            </div>
+                        </div>
+                        <span class="text-sm font-medium text-gray-500">5.1 km</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="flex items-center text-dark text-lg font-semibold mb-1">
+                            <i class="fa-solid fa-location-dot mr-2"></i>
+                            <span>HSR Layout, Bangalore</span>
+                        </div>
+                        <h3 class="text-gray-600 text-base">Rajesh Kumar</h3>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <span class="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full">Socket repair</span>
+                        <span class="bg-gray-100 text-gray-700 text-sm px-3 py-1 rounded-full">Electrical check</span>
+                    </div>
+                    
+                    <div class="flex space-x-3">
+                        <button class="bg-secondary text-white text-base font-medium flex-1 py-3 rounded-xl flex items-center justify-center">
+                            <i class="fa-solid fa-check mr-2"></i> Accept
+                        </button>
+                        <button class="bg-primary text-white text-base font-medium px-6 py-3 rounded-xl flex items-center justify-center">
+                            <i class="fa-solid fa-phone"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- No More Requests Message -->
+                <div id="no-more-requests" class="text-center py-6">
+                    <p class="text-gray-500 text-base">You've reached the end of the list</p>
+                    <p class="text-primary text-base font-medium mt-2">Pull to refresh for new requests</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Floating Action Button for Pro Upgrade -->
+        <div id="pro-upgrade-fab" class="fixed bottom-4 right-4">
+            <button class="bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-full h-12 w-12 flex items-center justify-center shadow-lg">
+                <i class="fa-solid fa-crown"></i>
+            </button>
+        </div>
+        
+        <!-- Internet Connection Status -->
+        <div id="connection-status" class="fixed top-6 left-0 right-0 max-w-md mx-auto flex justify-center hidden">
+            <div class="bg-yellow-100 text-yellow-800 text-xs font-medium px-3 py-1 rounded-full flex items-center">
+                <i class="fa-solid fa-wifi-slash mr-1"></i>
+                <span>No internet connection</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Show/hide internet connection status
+        function updateOnlineStatus() {
+            const statusBar = document.getElementById('connection-status');
+            if (navigator.onLine) {
+                statusBar.classList.add('hidden');
+            } else {
+                statusBar.classList.remove('hidden');
+            }
+        }
+
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        
+        // Initialize connection status on page load
+        document.addEventListener('DOMContentLoaded', updateOnlineStatus);
+        
+        // Pull to refresh simulation
+        let startY;
+        const wrapper = document.getElementById('app-wrapper');
+        
+        wrapper.addEventListener('touchstart', (e) => {
+            startY = e.touches[0].clientY;
+        });
+        
+        wrapper.addEventListener('touchmove', (e) => {
+            const currentY = e.touches[0].clientY;
+            const diff = currentY - startY;
+            
+            if (diff > 50 && window.scrollY === 0) {
+                const refreshIndicator = document.getElementById('no-more-requests');
+                refreshIndicator.innerHTML = '<p class="text-gray-500 text-sm">Release to refresh</p>';
+            }
+        });
+        
+        wrapper.addEventListener('touchend', (e) => {
+            const endY = e.changedTouches[0].clientY;
+            const diff = endY - startY;
+            
+            if (diff > 50 && window.scrollY === 0) {
+                const refreshIndicator = document.getElementById('no-more-requests');
+                refreshIndicator.innerHTML = '<p class="text-gray-500 text-sm"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Refreshing...</p>';
+                
+                // Simulate refresh
+                setTimeout(() => {
+                    refreshIndicator.innerHTML = '<p class="text-gray-500 text-sm">You\'ve reached the end of the list</p><p class="text-primary text-sm font-medium mt-1">Pull to refresh for new requests</p>';
+                }, 1500);
+            }
+        });
+        
+        // Pro upgrade button click
+        document.getElementById('pro-upgrade-fab').addEventListener('click', function() {
+            // Redirect to Pro plan page or show modal
+            alert('Upgrade to Pro Plan to get early access to work requests!');
+        });
+    </script>
+
+</body></html>

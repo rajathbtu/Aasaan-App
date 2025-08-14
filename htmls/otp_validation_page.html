@@ -1,0 +1,281 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>::-webkit-scrollbar { display: none;}</style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2563eb",
+        "secondary": "#10b981",
+        "accent": "#f97316",
+        "light": "#f3f4f6",
+        "dark": "#1f2937"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="font-sans bg-gray-50 text-dark">
+    <div id="app-wrapper" class="max-w-md mx-auto bg-white min-h-[100vh] relative pb-20">
+        <!-- Status Bar -->
+        <div id="status-bar" class="bg-white h-6 flex items-center justify-between px-4">
+            <div class="text-xs font-medium">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+        
+        <!-- App Header -->
+        <div id="header" class="bg-white px-4 py-3 flex items-center justify-between border-b border-gray-200">
+            <div class="flex items-center space-x-3">
+                <button id="back-btn" class="text-gray-600">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="text-lg font-bold text-primary">
+                    <span>Verify OTP</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Area - OTP Verification -->
+        <div id="otp-verification" class="px-4 py-6">
+            <div id="otp-header" class="mb-6 text-center">
+                <h1 class="text-xl font-bold mb-2">Enter Verification Code</h1>
+                <p class="text-gray-600 text-sm">We've sent a 4-digit code to</p>
+                <div class="flex items-center justify-center mt-2">
+                    <p class="text-gray-800 font-medium">+91 9876543210</p>
+                    <button id="change-number-btn" class="ml-2 text-primary text-sm underline">Change</button>
+                </div>
+            </div>
+            
+            <!-- OTP Input Section -->
+            <div id="otp-input-section" class="mb-8">
+                <div class="flex justify-center space-x-3 mb-6">
+                    <input type="text" maxlength="1" class="w-14 h-14 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none">
+                    <input type="text" maxlength="1" class="w-14 h-14 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none">
+                    <input type="text" maxlength="1" class="w-14 h-14 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none">
+                    <input type="text" maxlength="1" class="w-14 h-14 text-center text-xl font-bold border-2 border-gray-300 rounded-lg focus:border-primary focus:outline-none">
+                </div>
+                
+                <!-- Auto-read indicator -->
+                <div id="auto-read-indicator" class="flex items-center justify-center mb-4">
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fa-solid fa-mobile-alt text-primary mr-2"></i>
+                        <span class="text-primary">Auto-reading SMS...</span>
+                    </div>
+                </div>
+                
+                <!-- Resend OTP Option -->
+                <div id="resend-option" class="text-center">
+                    <p class="text-sm text-gray-600">Didn't receive the code? <span id="timer" class="font-medium">00:30</span></p>
+                    <button id="resend-btn" class="text-primary font-medium text-sm mt-1 disabled:opacity-50 disabled:cursor-not-allowed" disabled="">Resend OTP</button>
+                </div>
+            </div>
+            
+            <!-- Verify Button -->
+            <div id="verify-button-container" class="px-4">
+                <button id="verify-btn" class="w-full bg-primary text-white text-base font-medium py-3 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-check-circle mr-2"></i> Verify &amp; Continue
+                </button>
+            </div>
+            
+            <!-- Help Text -->
+            <div id="help-text" class="mt-6 text-center">
+                <p class="text-xs text-gray-500">Having trouble? Contact support at <span class="text-primary">help@aasaan.com</span></p>
+            </div>
+        </div>
+        
+        <!-- Security Info -->
+        <div id="security-info" class="absolute bottom-24 left-0 right-0 px-4 text-center">
+            <div class="flex items-center justify-center text-gray-500 text-xs">
+                <i class="fa-solid fa-shield-alt mr-1"></i>
+                <span>Your data is encrypted and secure</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-focus the first input on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = document.querySelectorAll('#otp-input-section input');
+            if (inputs.length > 0) {
+                inputs[0].focus();
+            }
+            
+            // OTP input handling - move to next input after typing
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', function() {
+                    if (this.value.length === 1 && index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+                });
+                
+                // Allow backspace to go to previous input
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && !this.value && index > 0) {
+                        inputs[index - 1].focus();
+                    }
+                });
+            });
+            
+            // Timer for resend OTP
+            let seconds = 30;
+            const timerElement = document.getElementById('timer');
+            const resendBtn = document.getElementById('resend-btn');
+            
+            const countdown = setInterval(() => {
+                seconds--;
+                const displaySeconds = seconds < 10 ? `0${seconds}` : seconds;
+                timerElement.textContent = `00:${displaySeconds}`;
+                
+                if (seconds <= 0) {
+                    clearInterval(countdown);
+                    timerElement.textContent = '';
+                    resendBtn.disabled = false;
+                }
+            }, 1000);
+            
+            // Change phone number button
+            document.getElementById('change-number-btn').addEventListener('click', function() {
+                // In a real app, this would navigate back to phone number entry
+                console.log('Navigate back to phone number entry');
+            });
+            
+            // Resend OTP button
+            resendBtn.addEventListener('click', function() {
+                // Reset timer
+                seconds = 30;
+                timerElement.textContent = '00:30';
+                this.disabled = true;
+                
+                // Clear inputs
+                inputs.forEach(input => {
+                    input.value = '';
+                });
+                inputs[0].focus();
+                
+                // Start countdown again
+                countdown;
+                
+                // Show toast notification
+                showToast('OTP resent successfully!');
+            });
+            
+            // Back button
+            document.getElementById('back-btn').addEventListener('click', function() {
+                // In a real app, this would navigate back
+                console.log('Navigate back');
+            });
+            
+            // Verify button
+            document.getElementById('verify-btn').addEventListener('click', function() {
+                // Get OTP value
+                let otp = '';
+                inputs.forEach(input => {
+                    otp += input.value;
+                });
+                
+                // Check if OTP is complete
+                if (otp.length === 4) {
+                    // In a real app, this would verify the OTP
+                    console.log('Verifying OTP:', otp);
+                    
+                    // Simulate verification
+                    this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Verifying...';
+                    this.disabled = true;
+                    
+                    // Simulate success after 1.5 seconds
+                    setTimeout(() => {
+                        this.innerHTML = '<i class="fa-solid fa-check-circle mr-2"></i> Verified!';
+                        this.classList.remove('bg-primary');
+                        this.classList.add('bg-green-600');
+                        
+                        // In a real app, this would navigate to the next screen
+                        setTimeout(() => {
+                            console.log('Navigate to next screen');
+                        }, 1000);
+                    }, 1500);
+                } else {
+                    // Show error for incomplete OTP
+                    showToast('Please enter the complete 4-digit OTP');
+                }
+            });
+            
+            // Toast notification function
+            function showToast(message) {
+                // Create toast element
+                const toast = document.createElement('div');
+                toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-dark text-white text-sm py-2 px-4 rounded-lg shadow-lg z-50';
+                toast.textContent = message;
+                
+                // Add to body
+                document.body.appendChild(toast);
+                
+                // Remove after 3 seconds
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 300);
+                }, 3000);
+            }
+            
+            // Auto-read OTP simulation - happens by default
+            setTimeout(() => {
+                // Hide auto-read indicator after auto-fill
+                document.getElementById('auto-read-indicator').style.display = 'none';
+                
+                // Simulate auto-filling OTP
+                inputs[0].value = '1';
+                inputs[1].value = '2';
+                inputs[2].value = '3';
+                inputs[3].value = '4';
+                
+                // Show toast notification
+                showToast('OTP auto-detected');
+            }, 2000);
+        });
+    </script>
+
+</body></html>

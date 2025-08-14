@@ -1,0 +1,204 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>::-webkit-scrollbar { display: none;}</style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2563eb",
+        "secondary": "#10b981",
+        "accent": "#f97316",
+        "light": "#f3f4f6",
+        "dark": "#1f2937"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="font-sans bg-gray-50 text-dark">
+    <div id="app-wrapper" class="max-w-md mx-auto bg-white min-h-[100vh] relative pb-20">
+        <!-- Status Bar -->
+        <div id="status-bar" class="bg-white h-6 flex items-center justify-between px-4">
+            <div class="text-xs font-medium">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+        
+        <!-- App Header -->
+        <div id="header" class="bg-white px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <button id="back-btn" class="text-gray-600">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="text-lg font-bold text-primary">
+                    <span class="text-primary">Enter Mobile Number</span>
+                </div>
+            </div>
+            <button id="change-language-btn" class="bg-gray-100 text-gray-700 text-xs font-medium py-2 px-3 rounded-lg flex items-center">
+    <i class="fa-solid fa-globe mr-1 text-xs"></i>
+    English <i class="fa-solid fa-chevron-down ml-1 text-xs"></i>
+</button>
+        </div>
+        
+        <!-- Progress Separator -->
+        <div id="progress-separator" class="bg-gray-300 h-px"></div>
+        
+        <!-- Main Content Area -->
+        <div id="mobile-number-entry" class="px-4 py-6">
+            <!-- Illustration -->
+            <div id="illustration" class="flex justify-center mb-8">
+                <div class="w-24 h-24 bg-blue-50 rounded-2xl flex items-center justify-center">
+                    <i class="fa-solid fa-mobile-screen-button text-3xl text-primary"></i>
+                </div>
+            </div>
+            
+            <!-- Instructions -->
+            <div id="instructions" class="mb-6 text-center">
+                <h1 class="text-xl font-bold mb-2">Welcome to Aasaan</h1>
+                <p class="text-gray-600 text-base">Please enter your 10-digit mobile number to continue</p>
+            </div>
+            
+            <!-- Mobile Number Input -->
+            <div id="mobile-input-container" class="mb-8">
+                <label for="mobile-number" class="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
+                <div class="flex items-center border-2 border-gray-300 rounded-lg overflow-hidden focus-within:border-primary focus-within:ring-2 focus-within:ring-blue-100 shadow-sm">
+                    <!-- Country Code (Non-editable) -->
+                    <div class="bg-gray-50 py-4 px-3 border-r border-gray-300 flex items-center">
+                        <div class="w-6 h-4 mr-2 flex flex-col">
+                            <div class="h-1/3 bg-orange-500"></div>
+                            <div class="h-1/3 bg-white"></div>
+                            <div class="h-1/3 bg-green-600"></div>
+                        </div>
+                        <span class="text-gray-700 font-medium">+91</span>
+                    </div>
+                    
+                    <!-- Mobile Number Input Field -->
+                    <input type="tel" id="mobile-number" pattern="[0-9]{10}" maxlength="10" placeholder="Enter 10-digit number" class="w-full py-4 px-4 outline-none text-gray-800 text-base font-medium" autocomplete="tel" inputmode="numeric">
+                </div>
+                <p id="error-message" class="hidden text-red-500 text-sm mt-2">
+                    <i class="fa-solid fa-circle-exclamation mr-1"></i>
+                    Please enter a valid 10-digit mobile number
+                </p>
+            </div>
+            
+            <!-- Terms & Privacy Notice -->
+            <div id="terms-notice" class="text-center text-xs text-gray-500 mb-8">
+                By continuing, you agree to our 
+                <span class="text-primary cursor-pointer">Terms of Service</span> and 
+                <span class="text-primary cursor-pointer">Privacy Policy</span>
+            </div>
+            
+            <!-- Send OTP Button -->
+            <button id="send-otp-btn" class="w-full bg-primary text-white text-base font-medium py-3 rounded-lg flex items-center justify-center disabled:bg-gray-300 disabled:cursor-not-allowed mb-4">
+                <span>Send OTP</span>
+                <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+            
+            <!-- Motivational Element -->
+            <div id="motivation-element" class="flex items-center justify-center bg-blue-50 p-3 rounded-lg">
+                <div class="flex items-center text-gray-700">
+                    <i class="fa-solid fa-users text-primary mr-2"></i>
+                    <span class="text-sm">Join 10,000+ users finding work easily</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Mobile number validation
+        const mobileInput = document.getElementById('mobile-number');
+        const errorMessage = document.getElementById('error-message');
+        const sendOtpBtn = document.getElementById('send-otp-btn');
+        
+        // Initially disable the button
+        sendOtpBtn.disabled = true;
+        
+        mobileInput.addEventListener('input', function() {
+            // Remove non-numeric characters
+            this.value = this.value.replace(/\D/g, '');
+            
+            // Check if the input is a valid 10-digit number
+            if (this.value.length === 10 && /^[6-9]\d{9}$/.test(this.value)) {
+                errorMessage.classList.add('hidden');
+                sendOtpBtn.disabled = false;
+            } else {
+                if (this.value.length > 0) {
+                    errorMessage.classList.remove('hidden');
+                } else {
+                    errorMessage.classList.add('hidden');
+                }
+                sendOtpBtn.disabled = true;
+            }
+        });
+        
+        // Send OTP functionality
+        sendOtpBtn.addEventListener('click', function() {
+            if (!this.disabled) {
+                // Show loading state
+                this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Sending OTP...';
+                this.disabled = true;
+                
+                // Simulate API call (replace with actual implementation)
+                setTimeout(() => {
+                    // Navigate to OTP verification page
+                    window.location.href = '/otp-verification.html';
+                }, 1500);
+            }
+        });
+        
+        // Back button functionality
+        document.getElementById('back-btn').addEventListener('click', function() {
+            // Navigate back or to language selection
+            window.history.back();
+        });
+        
+        // Change language functionality
+        document.getElementById('change-language-btn').addEventListener('click', function() {
+            // Navigate back to language selection
+            window.location.href = '/language-selection.html';
+        });
+    </script>
+
+</body></html>

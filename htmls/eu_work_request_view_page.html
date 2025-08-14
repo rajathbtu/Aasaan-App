@@ -1,0 +1,393 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>::-webkit-scrollbar { display: none;}</style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2563eb",
+        "secondary": "#10b981",
+        "accent": "#f97316",
+        "light": "#f3f4f6",
+        "dark": "#1f2937"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="font-sans bg-gray-50 text-dark">
+    <div id="app-wrapper" class="max-w-md mx-auto bg-white min-h-[100vh] relative pb-20">
+        <!-- Status Bar -->
+        <div id="status-bar" class="bg-white h-6 flex items-center justify-between px-4">
+            <div class="text-xs font-medium">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+        
+        <!-- App Header -->
+        <div id="header" class="bg-white px-3 py-3 flex items-center justify-between border-b border-gray-200">
+            <div class="flex items-center space-x-2">
+                <button id="back-btn" class="text-gray-600">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="text-lg font-bold text-primary">
+                    <span>Electrician</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Area - Work Request Details -->
+        <div id="work-request-details" class="px-3 py-3">
+            <!-- Request Summary -->
+            <div id="request-summary" class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-3">
+                            <i class="fas fa-tools text-blue-600 text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 text-lg">Electrician</h3>
+                            <p class="text-sm text-gray-500">2 hours ago</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+                            <i class="fas fa-circle text-green-500 text-xs mr-1"></i>
+                            Active
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="flex items-center text-sm text-gray-600 mb-2">
+                        <i class="fas fa-map-marker-alt mr-2"></i>
+                        <span>Indiranagar, Bangalore</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">Fan repair</span>
+                        <span class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">Switch board</span>
+                        <span class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">Urgent</span>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-2">
+                    <button id="boost-btn" class="flex-1 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                        <i class="fa-solid fa-bolt mr-1.5"></i> Boost Request
+                    </button>
+                    <button id="close-btn" class="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors">
+                        <i class="fa-solid fa-times-circle mr-1.5"></i> Close Request
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Service Providers Section -->
+            <div id="service-providers-section">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-lg font-semibold">Accepted by (5):</h2>
+                    <div class="text-xs text-gray-500">Auto-closes in 5 days</div>
+                </div>
+                
+                <!-- Provider Card 1 -->
+                <div id="provider-1" class="bg-white border border-gray-200 rounded-lg p-4 mb-3 shadow-sm">
+                    <div class="flex items-start">
+                        <div class="h-12 w-12 rounded-full bg-gray-200 mr-3 overflow-hidden">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-3.jpg" alt="Provider" class="h-full w-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-medium">Rajesh Kumar</h3>
+                                    <div class="flex items-center">
+                                        <div class="flex items-center text-amber-500 mr-1">
+                                            <i class="fa-solid fa-star text-xs"></i>
+                                            <span class="text-xs ml-0.5">4.8</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500">(42 ratings)</span>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-medium text-green-600">Accepted 2 hrs ago</span>
+                            </div>
+                            
+                            <div class="mt-2 flex space-x-2">
+                                <button class="flex-1 bg-green-600 text-white text-sm font-medium py-2 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-phone mr-1.5"></i> Call
+                                </button>
+                                <button class="w-10 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-info"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Provider Card 2 -->
+                <div id="provider-2" class="bg-white border border-gray-200 rounded-lg p-4 mb-3 shadow-sm">
+                    <div class="flex items-start">
+                        <div class="h-12 w-12 rounded-full bg-gray-200 mr-3 overflow-hidden">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="Provider" class="h-full w-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-medium">Sunil Sharma</h3>
+                                    <div class="flex items-center">
+                                        <div class="flex items-center text-amber-500 mr-1">
+                                            <i class="fa-solid fa-star text-xs"></i>
+                                            <span class="text-xs ml-0.5">4.5</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500">(28 ratings)</span>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-medium text-green-600">Accepted 5 hrs ago</span>
+                            </div>
+                            
+                            <div class="mt-2 flex space-x-2">
+                                <button class="flex-1 bg-green-600 text-white text-sm font-medium py-2 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-phone mr-1.5"></i> Call
+                                </button>
+                                <button class="w-10 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-info"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Provider Card 3 -->
+                <div id="provider-3" class="bg-white border border-gray-200 rounded-lg p-4 mb-3 shadow-sm">
+                    <div class="flex items-start">
+                        <div class="h-12 w-12 rounded-full bg-gray-200 mr-3 overflow-hidden">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" alt="Provider" class="h-full w-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-medium">Vikram Singh</h3>
+                                    <div class="flex items-center">
+                                        <div class="flex items-center text-amber-500 mr-1">
+                                            <i class="fa-solid fa-star text-xs"></i>
+                                            <span class="text-xs ml-0.5">4.2</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500">(15 ratings)</span>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-medium text-green-600">Accepted yesterday</span>
+                            </div>
+                            
+                            <div class="mt-2 flex space-x-2">
+                                <button class="flex-1 bg-green-600 text-white text-sm font-medium py-2 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-phone mr-1.5"></i> Call
+                                </button>
+                                <button class="w-10 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-info"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Provider Card 4 -->
+                <div id="provider-4" class="bg-white border border-gray-200 rounded-lg p-4 mb-3 shadow-sm">
+                    <div class="flex items-start">
+                        <div class="h-12 w-12 rounded-full bg-gray-200 mr-3 overflow-hidden">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-9.jpg" alt="Provider" class="h-full w-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-medium">Manoj Tiwari</h3>
+                                    <div class="flex items-center">
+                                        <div class="flex items-center text-amber-500 mr-1">
+                                            <i class="fa-solid fa-star text-xs"></i>
+                                            <span class="text-xs ml-0.5">4.0</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500">(8 ratings)</span>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-medium text-green-600">Accepted yesterday</span>
+                            </div>
+                            
+                            <div class="mt-2 flex space-x-2">
+                                <button class="flex-1 bg-green-600 text-white text-sm font-medium py-2 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-phone mr-1.5"></i> Call
+                                </button>
+                                <button class="w-10 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-info"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Provider Card 5 (Pro) -->
+                <div id="provider-5" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3 shadow-sm">
+                    <div class="flex items-start">
+                        <div class="h-12 w-12 rounded-full bg-gray-200 mr-3 overflow-hidden">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-8.jpg" alt="Provider" class="h-full w-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center">
+                                        <h3 class="font-medium">Anil Verma</h3>
+                                        <span class="ml-2 bg-primary text-white text-xs px-1.5 py-0.5 rounded">PRO</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <div class="flex items-center text-amber-500 mr-1">
+                                            <i class="fa-solid fa-star text-xs"></i>
+                                            <span class="text-xs ml-0.5">4.9</span>
+                                        </div>
+                                        <span class="text-xs text-gray-500">(56 ratings)</span>
+                                    </div>
+                                </div>
+                                <span class="text-xs font-medium text-green-600">Accepted 1 hr ago</span>
+                            </div>
+                            
+                            <div class="mt-2 flex space-x-2">
+                                <button class="flex-1 bg-primary text-white text-sm font-medium py-2 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-phone mr-1.5"></i> Call
+                                </button>
+                                <button class="w-10 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg flex items-center justify-center">
+                                    <i class="fa-solid fa-info"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Promotional Card -->
+            <div id="promo-card" class="bg-gradient-to-r from-indigo-500 to-blue-500 rounded-lg p-4 mb-4 text-white">
+                <div class="flex items-center">
+                    <div class="flex-1">
+                        <h3 class="font-semibold mb-1">Get faster responses!</h3>
+                        <p class="text-xs mb-2 text-blue-100">Boost your request to reach more providers</p>
+                        <button class="bg-white text-primary text-sm font-medium py-1.5 px-3 rounded-lg">Boost Now</button>
+                    </div>
+                    <div class="ml-3">
+                        <i class="fa-solid fa-rocket text-3xl text-blue-100"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Rating Confirmation Modal (Hidden by default) -->
+        <div id="rating-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-xl p-5 mx-4 w-full max-w-sm">
+                <h3 class="text-lg font-semibold text-center mb-3">Was your work completed?</h3>
+                <p class="text-sm text-gray-600 text-center mb-4">Let us know if the service provider completed your work.</p>
+                
+                <div class="flex space-x-3 mb-2">
+                    <button id="work-completed-yes" class="flex-1 bg-green-600 text-white text-sm font-medium py-3 rounded-lg">
+                        Yes
+                    </button>
+                    <button id="work-completed-no" class="flex-1 bg-gray-200 text-gray-700 text-sm font-medium py-3 rounded-lg">
+                        No
+                    </button>
+                </div>
+                
+                <button id="cancel-rating" class="w-full text-gray-500 text-sm py-2">
+                    Cancel
+                </button>
+            </div>
+        </div>
+        
+        <!-- Bottom Navigation -->
+        <div id="bottom-nav" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around py-2 px-4">
+            <!-- End User Navigation -->
+            <div id="eu-nav" class="flex justify-around w-full">
+                <button class="flex flex-col items-center text-gray-500">
+                    <i class="fa-solid fa-plus-circle text-lg"></i>
+                    <span class="text-xs mt-1">Create</span>
+                </button>
+                <button class="flex flex-col items-center text-primary">
+                    <i class="fa-solid fa-list-ul text-lg"></i>
+                    <span class="text-xs mt-1">My Requests</span>
+                </button>
+                <button class="flex flex-col items-center text-gray-500">
+                    <i class="fa-solid fa-user text-lg"></i>
+                    <span class="text-xs mt-1">Profile</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Back button functionality
+        document.getElementById('back-btn').addEventListener('click', function() {
+            // In a real app, this would navigate back
+            alert('Navigate back to My Requests page');
+        });
+        
+        // Close request button
+        document.getElementById('close-btn').addEventListener('click', function() {
+            document.getElementById('rating-modal').classList.remove('hidden');
+        });
+        
+        // Rating modal functionality
+        document.getElementById('cancel-rating').addEventListener('click', function() {
+            document.getElementById('rating-modal').classList.add('hidden');
+        });
+        
+        document.getElementById('work-completed-yes').addEventListener('click', function() {
+            document.getElementById('rating-modal').classList.add('hidden');
+            // In a real app, this would open the provider selection screen
+            alert('Navigate to select service provider for rating');
+        });
+        
+        document.getElementById('work-completed-no').addEventListener('click', function() {
+            document.getElementById('rating-modal').classList.add('hidden');
+            // In a real app, this would close the request without rating
+            alert('Request closed without rating');
+        });
+        
+        // Boost button functionality
+        document.getElementById('boost-btn').addEventListener('click', function() {
+            // In a real app, this would navigate to the boost page
+            alert('Navigate to Boost Work Request page');
+        });
+    </script>
+
+</body></html>

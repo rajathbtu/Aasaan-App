@@ -1,0 +1,287 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>::-webkit-scrollbar { display: none;}</style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2563eb",
+        "secondary": "#10b981",
+        "accent": "#f97316",
+        "light": "#f3f4f6",
+        "dark": "#1f2937"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="font-sans bg-gray-50 text-dark">
+    <div id="app-wrapper" class="max-w-md mx-auto bg-white min-h-[100vh] relative pb-20">
+        <!-- Status Bar -->
+        <div id="status-bar" class="bg-white h-6 flex items-center justify-between px-4">
+            <div class="text-xs font-medium">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+        
+        <!-- App Header -->
+        <div id="header" class="bg-white px-4 py-3 flex items-center justify-between border-b border-gray-200">
+            <div class="flex items-center space-x-3">
+                <button id="back-btn" class="text-gray-600">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="text-lg font-bold text-primary">
+                    <span>Boost Request</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="help-btn" class="text-gray-600">
+                    <i class="fa-regular fa-circle-question"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div id="boost-request-content" class="px-4 py-4">
+            <!-- Work Request Summary -->
+            <div id="request-summary" class="bg-blue-50 rounded-lg p-4 mb-5">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <span class="bg-blue-100 text-primary text-xs font-medium px-2 py-1 rounded-full">Electrician</span>
+                    </div>
+                    <span class="text-xs font-medium text-gray-500">Created today</span>
+                </div>
+                
+                <div class="mb-2">
+                    <div class="flex items-center text-gray-600 text-sm">
+                        <i class="fa-solid fa-location-dot mr-1 text-xs"></i>
+                        <span>Indiranagar, Bangalore</span>
+                    </div>
+                </div>
+                
+                <div class="flex flex-wrap gap-1">
+                    <span class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">Fan repair</span>
+                    <span class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">Switch board</span>
+                </div>
+            </div>
+            
+            <!-- Boost Benefits -->
+            <div id="boost-benefits" class="mb-6">
+                <h2 class="text-lg font-semibold mb-3">Boost Your Request</h2>
+                
+                <div class="space-y-3">
+                    <div class="flex items-center">
+                        <div class="bg-primary rounded-full p-1.5 mr-3 text-white">
+                            <i class="fa-solid fa-bolt text-sm"></i>
+                        </div>
+                        <p class="text-sm">Get higher visibility to service providers</p>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <div class="bg-primary rounded-full p-1.5 mr-3 text-white">
+                            <i class="fa-solid fa-star text-sm"></i>
+                        </div>
+                        <p class="text-sm">Priority placement at the top of listings</p>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <div class="bg-primary rounded-full p-1.5 mr-3 text-white">
+                            <i class="fa-solid fa-tag text-sm"></i>
+                        </div>
+                        <p class="text-sm">Add "Urgent" badge to attract attention</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payment Options -->
+            <div id="payment-options" class="mb-6">
+                <h2 class="text-lg font-semibold mb-3">Payment Options</h2>
+                
+                <!-- Regular Payment Option -->
+                <div id="regular-payment" class="border border-gray-200 rounded-lg p-4 mb-3 bg-white">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center">
+                            <input type="radio" id="pay-money" name="payment-option" class="mr-3 h-5 w-5 text-primary" checked="">
+                            <label for="pay-money" class="font-medium">Pay with Money</label>
+                        </div>
+                        <span class="font-semibold text-primary">₹100</span>
+                    </div>
+                    <p class="text-xs text-gray-500 ml-8">One-time boost for this work request</p>
+                </div>
+                
+                <!-- Credit Points Option -->
+                <div id="credit-points" class="border border-gray-200 rounded-lg p-4 bg-white">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center">
+                            <input type="radio" id="pay-credits" name="payment-option" class="mr-3 h-5 w-5 text-primary">
+                            <label for="pay-credits" class="font-medium">Use Credit Points</label>
+                        </div>
+                        <span class="font-semibold text-primary">100 points</span>
+                    </div>
+                    <div class="flex justify-between ml-8">
+                        <p class="text-xs text-gray-500">Your balance: 75 points</p>
+                        <button class="text-xs text-primary font-medium">Earn more</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Payment Methods Section -->
+            <div id="payment-methods" class="mb-8">
+                <h2 class="text-lg font-semibold mb-3">Payment Method</h2>
+                
+                <div class="space-y-3">
+                    <!-- UPI Option -->
+                    <div class="border border-gray-200 rounded-lg p-3 bg-white flex items-center">
+                        <input type="radio" id="upi" name="payment-method" class="mr-3 h-5 w-5 text-primary" checked="">
+                        <label for="upi" class="flex items-center flex-1">
+                            <div class="bg-green-100 rounded-lg p-1.5 mr-3">
+                                <i class="fa-solid fa-mobile-screen text-green-600"></i>
+                            </div>
+                            <span class="font-medium">UPI</span>
+                        </label>
+                        <i class="fa-solid fa-chevron-right text-gray-400"></i>
+                    </div>
+                    
+                    <!-- Card Option -->
+                    <div class="border border-gray-200 rounded-lg p-3 bg-white flex items-center">
+                        <input type="radio" id="card" name="payment-method" class="mr-3 h-5 w-5 text-primary">
+                        <label for="card" class="flex items-center flex-1">
+                            <div class="bg-blue-100 rounded-lg p-1.5 mr-3">
+                                <i class="fa-solid fa-credit-card text-blue-600"></i>
+                            </div>
+                            <span class="font-medium">Credit/Debit Card</span>
+                        </label>
+                        <i class="fa-solid fa-chevron-right text-gray-400"></i>
+                    </div>
+                    
+                    <!-- Wallet Option -->
+                    <div class="border border-gray-200 rounded-lg p-3 bg-white flex items-center">
+                        <input type="radio" id="wallet" name="payment-method" class="mr-3 h-5 w-5 text-primary">
+                        <label for="wallet" class="flex items-center flex-1">
+                            <div class="bg-purple-100 rounded-lg p-1.5 mr-3">
+                                <i class="fa-solid fa-wallet text-purple-600"></i>
+                            </div>
+                            <span class="font-medium">Wallet</span>
+                        </label>
+                        <i class="fa-solid fa-chevron-right text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Need More Points Message -->
+            <div id="need-more-points" class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
+                <div class="flex items-start">
+                    <div class="text-yellow-500 mt-0.5 mr-3">
+                        <i class="fa-solid fa-lightbulb"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-yellow-700">Need more credit points?</p>
+                        <p class="text-xs text-yellow-600">Earn 50 points by referring a service provider</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Total Amount -->
+            <div id="payment-summary" class="flex justify-between items-center mb-6 px-2">
+                <div>
+                    <p class="text-sm text-gray-600">Total Amount</p>
+                    <p class="text-xl font-semibold">₹100</p>
+                </div>
+                <div>
+                    <button id="apply-coupon" class="text-primary text-sm font-medium">
+                        <i class="fa-solid fa-tag mr-1"></i> Apply Coupon
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Payment Button -->
+            <button id="pay-button" class="w-full bg-primary text-white text-base font-semibold py-3.5 rounded-lg flex items-center justify-center">
+                <i class="fa-solid fa-bolt mr-2"></i> Pay &amp; Boost Request
+            </button>
+        </div>
+        
+        <!-- Bottom Navigation -->
+        <div id="bottom-nav" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around py-2 px-4">
+            <button class="flex flex-col items-center text-gray-500">
+                <i class="fa-solid fa-plus-circle text-lg"></i>
+                <span class="text-xs mt-1">Create</span>
+            </button>
+            <button class="flex flex-col items-center text-primary">
+                <i class="fa-solid fa-list-ul text-lg"></i>
+                <span class="text-xs mt-1">My Requests</span>
+            </button>
+            <button class="flex flex-col items-center text-gray-500">
+                <i class="fa-solid fa-user text-lg"></i>
+                <span class="text-xs mt-1">Profile</span>
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        // Toggle payment options
+        document.getElementById('pay-money').addEventListener('change', function() {
+            document.getElementById('payment-summary').querySelector('.text-xl').textContent = '₹100';
+            document.getElementById('payment-methods').style.display = 'block';
+            document.getElementById('need-more-points').style.display = 'none';
+            document.getElementById('pay-button').textContent = 'Pay & Boost Request';
+            document.getElementById('pay-button').innerHTML = '<i class="fa-solid fa-bolt mr-2"></i> Pay & Boost Request';
+        });
+        
+        document.getElementById('pay-credits').addEventListener('change', function() {
+            document.getElementById('payment-summary').querySelector('.text-xl').textContent = '100 points';
+            document.getElementById('payment-methods').style.display = 'none';
+            document.getElementById('need-more-points').style.display = 'block';
+            document.getElementById('pay-button').textContent = 'Use Points & Boost';
+            document.getElementById('pay-button').innerHTML = '<i class="fa-solid fa-bolt mr-2"></i> Use Points & Boost';
+        });
+        
+        // Back button functionality
+        document.getElementById('back-btn').addEventListener('click', function() {
+            // Navigate back
+            console.log('Navigate back');
+        });
+    </script>
+
+</body></html>

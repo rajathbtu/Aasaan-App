@@ -1,0 +1,242 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>::-webkit-scrollbar { display: none;}</style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2563eb",
+        "secondary": "#10b981",
+        "accent": "#f97316",
+        "light": "#f3f4f6",
+        "dark": "#1f2937"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="font-sans bg-gray-50 text-dark">
+    <div id="app-wrapper" class="max-w-md mx-auto bg-white min-h-[100vh] relative">
+        <!-- Status Bar -->
+        <div id="status-bar" class="bg-white h-6 flex items-center justify-between px-4">
+            <div class="text-xs font-medium">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+        
+        <!-- App Header -->
+        <div id="header" class="bg-white px-4 py-3 flex items-center justify-between border-b border-gray-200">
+            <div class="flex items-center space-x-3">
+                <button id="back-btn" class="text-gray-600">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <div class="text-lg font-bold text-primary">
+                    <span class="text-primary">Aasaan</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Language Selection Content -->
+        <div id="language-selection" class="px-3 py-6">
+            <div id="language-header" class="mb-8 text-center">
+                <h1 class="text-2xl font-bold mb-2">Choose your language</h1>
+                <h2 class="text-lg font-medium mb-4 text-gray-600">अपनी भाषा चुनें</h2>
+                <p class="text-sm text-gray-500">Select the language you're most comfortable with</p>
+            </div>
+            
+            <div id="languages-list" class="space-y-3 mb-8">
+                <!-- Hindi -->
+                <div id="hindi-option" class="language-option bg-white border-2 border-gray-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-white text-xl font-bold">हि</span>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800 text-lg">हिंदी</span>
+                            <p class="text-xs text-gray-500">Hindi</p>
+                        </div>
+                    </div>
+                    <div class="h-6 w-6 rounded-full border-2 border-primary flex items-center justify-center">
+                        <div class="h-3 w-3 rounded-full bg-primary"></div>
+                    </div>
+                </div>
+                
+                <!-- English -->
+                <div id="english-option" class="language-option bg-white border-2 border-gray-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mr-3">
+                            <i class="fa-solid fa-language text-white text-lg"></i>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800 text-lg">English</span>
+                            <p class="text-xs text-gray-500">इंग्लिश</p>
+                        </div>
+                    </div>
+                    <div class="h-6 w-6 rounded-full border-2 border-gray-300"></div>
+                </div>
+                
+                <!-- Gujarati -->
+                <div id="gujarati-option" class="language-option bg-white border-2 border-gray-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-white text-xl font-bold">ગુ</span>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800 text-lg">ગુજરાતી</span>
+                            <p class="text-xs text-gray-500">Gujarati</p>
+                        </div>
+                    </div>
+                    <div class="h-6 w-6 rounded-full border-2 border-gray-300"></div>
+                </div>
+                
+                <!-- Marathi -->
+                <div id="marathi-option" class="language-option bg-white border-2 border-gray-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-white text-xl font-bold">म</span>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800 text-lg">मराठी</span>
+                            <p class="text-xs text-gray-500">Marathi</p>
+                        </div>
+                    </div>
+                    <div class="h-6 w-6 rounded-full border-2 border-gray-300"></div>
+                </div>
+                
+                <!-- Tamil -->
+                <div id="tamil-option" class="language-option bg-white border-2 border-gray-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gradient-to-br from-pink-400 to-pink-600 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-white text-xl font-bold">த</span>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800 text-lg">தமிழ்</span>
+                            <p class="text-xs text-gray-500">Tamil</p>
+                        </div>
+                    </div>
+                    <div class="h-6 w-6 rounded-full border-2 border-gray-300"></div>
+                </div>
+                
+                <!-- Telugu -->
+                <div id="telugu-option" class="language-option bg-white border-2 border-gray-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gradient-to-br from-teal-400 to-teal-600 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-white text-xl font-bold">తె</span>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800 text-lg">తెలుగు</span>
+                            <p class="text-xs text-gray-500">Telugu</p>
+                        </div>
+                    </div>
+                    <div class="h-6 w-6 rounded-full border-2 border-gray-300"></div>
+                </div>
+                
+                <!-- Kannada -->
+                <div id="kannada-option" class="language-option bg-white border-2 border-gray-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-white text-xl font-bold">ಕ</span>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-800 text-lg">ಕನ್ನಡ</span>
+                            <p class="text-xs text-gray-500">Kannada</p>
+                        </div>
+                    </div>
+                    <div class="h-6 w-6 rounded-full border-2 border-gray-300"></div>
+                </div>
+            </div>
+            
+            <!-- Continue Button -->
+            <div id="continue-btn-container" class="px-1 mb-6">
+                <button id="continue-btn" class="w-full bg-primary text-white py-4 rounded-xl font-semibold text-lg flex items-center justify-center shadow-lg">
+                    <span>Continue</span>
+                    <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Language selection functionality
+        const languageOptions = document.querySelectorAll('.language-option');
+        
+        languageOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove selected state from all options
+                languageOptions.forEach(opt => {
+                    opt.classList.remove('bg-blue-50', 'border-primary');
+                    opt.classList.add('bg-white', 'border-gray-200');
+                    
+                    const radioBtn = opt.querySelector('div:last-child');
+                    radioBtn.classList.remove('border-primary');
+                    radioBtn.classList.add('border-gray-300');
+                    
+                    const innerCircle = radioBtn.querySelector('div');
+                    if (innerCircle) {
+                        radioBtn.removeChild(innerCircle);
+                    }
+                });
+                
+                // Add selected state to clicked option
+                this.classList.remove('bg-white', 'border-gray-200');
+                this.classList.add('bg-blue-50', 'border-primary');
+                
+                const radioBtn = this.querySelector('div:last-child');
+                radioBtn.classList.remove('border-gray-300');
+                radioBtn.classList.add('border-primary');
+                
+                const innerCircle = document.createElement('div');
+                innerCircle.classList.add('h-3', 'w-3', 'rounded-full', 'bg-primary');
+                radioBtn.appendChild(innerCircle);
+            });
+        });
+        
+        // Continue button functionality
+        document.getElementById('continue-btn').addEventListener('click', function() {
+            console.log('Continuing to next screen...');
+        });
+    </script>
+
+</body></html>

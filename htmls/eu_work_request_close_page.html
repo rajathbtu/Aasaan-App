@@ -1,0 +1,296 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>::-webkit-scrollbar { display: none;}</style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2563eb",
+        "secondary": "#10b981",
+        "accent": "#f97316",
+        "light": "#f3f4f6",
+        "dark": "#1f2937"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="font-sans bg-gray-50 text-dark">
+    <div id="app-wrapper" class="max-w-md mx-auto bg-white min-h-[100vh] relative pb-24">
+        <!-- Status Bar -->
+        <div id="status-bar" class="bg-white h-6 flex items-center justify-between px-4">
+            <div class="text-xs font-medium">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+        
+        <!-- App Header -->
+        <div id="header" class="bg-white px-4 py-3 flex items-center justify-between border-b border-gray-200">
+            <div class="flex items-center space-x-3">
+                <button id="back-btn" class="text-gray-600">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="text-lg font-bold text-primary">
+                    <span>Rate &amp; Review</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div id="select-provider-view" class="px-4 py-6">
+            <!-- Question Header -->
+            <div id="question-header" class="mb-6 text-center">
+                <h1 class="text-xl font-bold text-gray-800 mb-2">Who helped you on this work request?</h1>
+            </div>
+
+            <!-- Work Request Summary -->
+            <div id="work-request-summary" class="mb-6">
+    <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <div class="flex items-start justify-between mb-3">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mr-3">
+                    <i class="fas fa-tools text-blue-600 text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-900 text-lg">Electrician</h3>
+                    <p class="text-sm text-gray-500">2 hours ago</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <div class="flex items-center text-sm text-gray-600 mb-2">
+                <i class="fas fa-map-marker-alt mr-2"></i>
+                <span>Indiranagar, Bangalore</span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <span class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">Fan repair</span>
+                <span class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">Switch board</span>
+                <span class="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full">Urgent</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+            <!-- Provider Cards -->
+            <div id="provider-cards" class="space-y-3 mb-6">
+                <!-- Provider Card 1 - SELECTED STATE -->
+                <div id="provider-1" class="bg-blue-50 border-2 border-primary rounded-lg p-4 shadow-md cursor-pointer">
+                    <div class="flex items-center">
+                        <div class="h-14 w-14 rounded-full bg-gray-200 overflow-hidden mr-3">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-3.jpg" alt="Provider" class="h-full w-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-gray-800">Rajesh Kumar</h3>
+                            <p class="text-gray-600 text-sm">Electrician</p>
+                            <div class="flex items-center mt-1 text-xs text-gray-500">
+                                <i class="fa-solid fa-clock mr-1"></i>
+                                <span>Accepted 2 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="text-primary">
+                            <i class="fa-solid fa-check-circle text-2xl"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Expanded Rating Section -->
+                    <div class="mt-4 pt-4 border-t border-blue-200">
+                        <h4 class="font-medium mb-3 text-center text-gray-800">Rate your experience with Rajesh:</h4>
+                        <div class="flex justify-center space-x-2 mb-4">
+                            <button class="star-btn h-12 w-12 rounded-full bg-yellow-400 text-white flex items-center justify-center transition-colors" data-rating="1">
+                                <i class="fa-solid fa-star text-lg"></i>
+                            </button>
+                            <button class="star-btn h-12 w-12 rounded-full bg-yellow-400 text-white flex items-center justify-center transition-colors" data-rating="2">
+                                <i class="fa-solid fa-star text-lg"></i>
+                            </button>
+                            <button class="star-btn h-12 w-12 rounded-full bg-yellow-400 text-white flex items-center justify-center transition-colors" data-rating="3">
+                                <i class="fa-solid fa-star text-lg"></i>
+                            </button>
+                            <button class="star-btn h-12 w-12 rounded-full bg-yellow-400 text-white flex items-center justify-center transition-colors" data-rating="4">
+                                <i class="fa-solid fa-star text-lg"></i>
+                            </button>
+                            <button class="star-btn h-12 w-12 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center hover:bg-yellow-400 hover:text-white transition-colors" data-rating="5">
+                                <i class="fa-solid fa-star text-lg"></i>
+                            </button>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500 px-4">
+                            <span>Poor</span>
+                            <span>Excellent</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Provider Card 2 - UNSELECTED -->
+                <div id="provider-2" class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center">
+                        <div class="h-14 w-14 rounded-full bg-gray-200 overflow-hidden mr-3">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="Provider" class="h-full w-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-800">Sunil Sharma</h3>
+                            <p class="text-gray-600 text-sm">Electrician</p>
+                            <div class="flex items-center mt-1 text-xs text-gray-500">
+                                <i class="fa-solid fa-clock mr-1"></i>
+                                <span>Accepted 5 hours ago</span>
+                            </div>
+                        </div>
+                        <div class="text-gray-300">
+                            <i class="fa-regular fa-circle text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Provider Card 3 - UNSELECTED -->
+                <div id="provider-3" class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center">
+                        <div class="h-14 w-14 rounded-full bg-gray-200 overflow-hidden mr-3">
+                            <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-4.jpg" alt="Provider" class="h-full w-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-800">Vikram Singh</h3>
+                            <p class="text-gray-600 text-sm">Electrician</p>
+                            <div class="flex items-center mt-1 text-xs text-gray-500">
+                                <i class="fa-solid fa-clock mr-1"></i>
+                                <span>Accepted yesterday</span>
+                            </div>
+                        </div>
+                        <div class="text-gray-300">
+                            <i class="fa-regular fa-circle text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- None of these option - UNSELECTED -->
+                <div id="no-provider" class="bg-gray-100 border border-gray-300 rounded-lg p-4 cursor-pointer hover:bg-gray-200 transition-colors">
+                    <div class="flex items-center">
+                        <div class="h-14 w-14 rounded-full bg-gray-300 flex items-center justify-center mr-3">
+                            <i class="fa-solid fa-question text-gray-500 text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-700">None of these helped me</h3>
+                            <p class="text-gray-500 text-sm">Someone else or no one helped</p>
+                        </div>
+                        <div class="text-gray-400">
+                            <i class="fa-regular fa-circle text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Action Buttons -->
+        <div id="bottom-actions" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 p-4">
+            <div class="flex space-x-3">
+                <button id="skip-btn" class="flex-1 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">
+                    Skip for now
+                </button>
+                <button id="confirm-btn" class="flex-1 py-3 bg-primary text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                    Confirm &amp; Close Request
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedRating = 4;
+        let selectedProvider = 'provider-1';
+        
+        // Star rating functionality
+        document.querySelectorAll('.star-btn').forEach(star => {
+            star.addEventListener('click', function() {
+                const rating = parseInt(this.getAttribute('data-rating'));
+                selectedRating = rating;
+                
+                document.querySelectorAll('.star-btn').forEach((s, index) => {
+                    if (index < rating) {
+                        s.classList.remove('bg-gray-200', 'text-gray-400');
+                        s.classList.add('bg-yellow-400', 'text-white');
+                    } else {
+                        s.classList.remove('bg-yellow-400', 'text-white');
+                        s.classList.add('bg-gray-200', 'text-gray-400');
+                    }
+                });
+            });
+        });
+
+        // Provider selection functionality
+        document.querySelectorAll('[id^="provider-"], #no-provider').forEach(card => {
+            card.addEventListener('click', function() {
+                if (this.id === selectedProvider) return;
+                
+                // Reset all cards
+                document.querySelectorAll('[id^="provider-"], #no-provider').forEach(c => {
+                    c.classList.remove('bg-blue-50', 'border-2', 'border-primary', 'shadow-md');
+                    c.classList.add('bg-white', 'border', 'border-gray-200', 'shadow-sm', 'opacity-60');
+                    // Remove rating section if exists
+                    const ratingSection = c.querySelector('.border-t');
+                    if (ratingSection) {
+                        ratingSection.remove();
+                    }
+                });
+                
+                // Highlight selected card
+                this.classList.remove('bg-white', 'border', 'border-gray-200', 'shadow-sm', 'opacity-60');
+                this.classList.add('bg-blue-50', 'border-2', 'border-primary', 'shadow-md');
+                
+                selectedProvider = this.id;
+                
+                // Add rating section if provider selected (not "none")
+                if (this.id !== 'no-provider') {
+                    const ratingHTML = `
+                        <div class="mt-4 pt-4 border-t border-blue-200">
+                            <h4 class="font-medium mb-3 text-center text-gray-800">Rate your experience:</h4>
+                            <div class="flex justify-center space-x-2 mb-4">
+                                <button class="star-btn h-12 w-12 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center hover:bg-yellow-400 hover:text-white transition-colors" data-rating="1">
+                                    <i class="fa-solid fa-star text-lg"></i>
+                                </button>
+                                <button class="star-btn h-12 w-12 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center hover:bg-yellow-400 hover:text-white transition-colors" data-rating="2">
+                                    <i class="fa-solid fa-star text-lg"></i>
+                                </button>
+                                <button class="star-btn h-12 w-12 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center hover:bg-yellow-400 hover:text-white transition-colors" data-rating="3">
+                                    <i class="fa-solid fa-star text-lg"></i>
+                                </button>
+                                <button class="star-btn h-12 w-12 rounded-full bg-gray-200 text
+</script></body></html>

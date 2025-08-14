@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -23,25 +23,29 @@ const LanguageSelectionScreen: React.FC = () => {
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const { setLanguage, user } = useAuth();
-  const preferred: string | undefined = route.params?.preferred;
-  const onDone: undefined | ((code: string) => void | Promise<void>) = route.params?.onDone;
-  const isOnboarding = !user && !onDone; // only block back and jump to MobileInput during onboarding
-  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(preferred || user?.language || null);
+  const onDone = (route.params && route.params.onDone) || undefined;
+  const preferred = (route.params && route.params.preferred) || undefined;
+  const hasOnDone = typeof onDone === 'function';
+  const allowLeave = useRef(false);
 
-  // Block back navigation only during onboarding
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(
+    preferred || user?.language || null
+  );
+
+  // Block back navigation only during onboarding; allow when opened with onDone
   useEffect(() => {
-    if (!isOnboarding) return;
-    const onBackPress = () => true; // returning true prevents default back
+    if (hasOnDone) return; // Do not block in in-app flow
+    const onBackPress = () => (allowLeave.current ? false : true);
     const backSub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     const navSub = navigation.addListener('beforeRemove', (e: any) => {
-      // prevent leaving this screen
+      if (allowLeave.current) return; // allow leave after Continue
       e.preventDefault();
     });
     return () => {
       backSub.remove();
       navSub();
     };
-  }, [navigation, isOnboarding]);
+  }, [navigation, hasOnDone]);
 
   const t = useMemo(() => {
     const lang = (selectedLanguage || 'en') as SupportedLocale;
@@ -54,19 +58,24 @@ const LanguageSelectionScreen: React.FC = () => {
 
   const handleContinue = async () => {
     if (!selectedLanguage) return;
+    // persist globally
     await setLanguage(selectedLanguage);
 
-    if (onDone) {
-      try { await onDone(selectedLanguage); } catch {}
-      navigation.goBack();
+    // allow this screen to be popped/navigated away
+    allowLeave.current = true;
+
+    // If caller provided a callback (from Profile/MobileInput), use it and go back
+    if (hasOnDone) {
+      try {
+        await onDone(selectedLanguage);
+      } finally {
+        navigation.goBack();
+      }
       return;
     }
 
-    if (isOnboarding) {
-      navigation.navigate('MobileInput', { language: selectedLanguage });
-    } else {
-      navigation.goBack();
-    }
+    // Default onboarding flow
+    navigation.navigate('MobileInput', { language: selectedLanguage });
   };
 
   return (

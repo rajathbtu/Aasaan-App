@@ -1,0 +1,353 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>::-webkit-scrollbar { display: none;}</style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2563eb",
+        "secondary": "#10b981",
+        "accent": "#f97316",
+        "light": "#f3f4f6",
+        "dark": "#1f2937"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="font-sans bg-gray-50 text-dark">
+    <div id="app-wrapper" class="max-w-md mx-auto bg-white min-h-[100vh] relative pb-20">
+        <!-- Status Bar -->
+        <div id="status-bar" class="bg-white h-6 flex items-center justify-between px-4">
+            <div class="text-xs font-medium">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+        
+        <!-- App Header -->
+        <div id="header" class="bg-white px-4 py-3 flex items-center justify-between border-b border-gray-200">
+            <div class="flex items-center space-x-3">
+                <button id="back-btn" class="text-gray-600">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="text-lg font-bold text-primary">
+                    <span>Profile</span>
+                </div>
+            </div>
+            <div>
+                <button id="save-btn" class="bg-primary text-white text-sm font-medium py-1.5 px-4 rounded-lg">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Content Area - Profile -->
+        <div id="profile-content" class="px-4 py-4">
+            <!-- Profile Photo Section -->
+            <div id="profile-photo-section" class="flex flex-col items-center mb-6">
+                <div class="relative mb-2">
+                    <div class="h-24 w-24 rounded-full bg-gray-200 overflow-hidden border-4 border-white shadow-md">
+                        <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-2.jpg" alt="Profile Photo" class="h-full w-full object-cover">
+                    </div>
+                    <button class="absolute bottom-0 right-0 bg-primary text-white rounded-full p-2 shadow-md">
+                        <i class="fa-solid fa-camera text-sm"></i>
+                    </button>
+                </div>
+                <p class="text-sm text-gray-500">Tap to change profile photo</p>
+            </div>
+            
+            <!-- Personal Information Form -->
+            <div id="personal-info-section" class="mb-6">
+                <h2 class="text-lg font-semibold mb-3">Personal Information</h2>
+                
+                <!-- Full Name Field -->
+                <div id="fullname-field" class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <div class="relative">
+                        <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5">
+                            <span class="text-gray-800">Rahul Singh</span>
+                            <button class="text-gray-400 hover:text-primary">
+                                <i class="fa-solid fa-pencil text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mobile Number Field -->
+                <div id="mobile-field" class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                    <div class="relative">
+                        <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5">
+                            <span class="text-gray-800">+91 9876543210</span>
+                            <button class="text-gray-400 hover:text-primary">
+                                <i class="fa-solid fa-pencil text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Language Preference -->
+                <div id="language-field" class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                    <div class="relative">
+                        <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5">
+                            <span class="text-gray-800">English</span>
+                            <button class="text-gray-400 hover:text-primary">
+                                <i class="fa-solid fa-pencil text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- User Role Section -->
+            <div id="user-role-section" class="mb-6">
+                <h2 class="text-lg font-semibold mb-3">User Role</h2>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <button class="border-2 border-primary bg-blue-50 rounded-lg p-3 flex flex-col items-center justify-center">
+                        <div class="bg-primary rounded-full p-2 mb-2">
+                            <i class="fa-solid fa-search text-white"></i>
+                        </div>
+                        <span class="text-sm font-medium text-primary">Find people to get work done</span>
+                    </button>
+                    
+                    <button class="border-2 border-gray-200 rounded-lg p-3 flex flex-col items-center justify-center">
+                        <div class="bg-gray-200 rounded-full p-2 mb-2">
+                            <i class="fa-solid fa-briefcase text-gray-600"></i>
+                        </div>
+                        <span class="text-sm font-medium text-gray-600">Find work opportunities</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Service Provider Information -->
+            <div id="service-provider-section" class="mb-6">
+                <h2 class="text-lg font-semibold mb-3">Service Provider Information</h2>
+                
+                <!-- Services Offered (Multiple Selection) -->
+                <div id="services-field" class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Services Offered</label>
+                    <div class="relative">
+                        <div class="border border-gray-200 rounded-lg p-3 min-h-[44px] bg-gray-50">
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <span class="bg-primary text-white text-sm px-3 py-1 rounded-full flex items-center">
+                                    Electrician
+                                    <button class="ml-2 text-white">
+                                        <i class="fa-solid fa-times text-xs"></i>
+                                    </button>
+                                </span>
+                                <span class="bg-secondary text-white text-sm px-3 py-1 rounded-full flex items-center">
+                                    Plumber
+                                    <button class="ml-2 text-white">
+                                        <i class="fa-solid fa-times text-xs"></i>
+                                    </button>
+                                </span>
+                            </div>
+                            <button class="bg-primary text-white text-sm font-medium py-2 px-4 rounded-lg flex items-center justify-center w-full">
+                                <i class="fa-solid fa-plus mr-2"></i>
+                                Add Service
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Location -->
+                <div id="location-field" class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Service Location</label>
+                    <div class="relative">
+                        <div class="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5">
+                            <div class="flex items-center">
+                                <i class="fa-solid fa-location-dot text-gray-400 mr-2"></i>
+                                <span class="text-gray-800">Indiranagar, Bangalore</span>
+                            </div>
+                            <button class="text-gray-400 hover:text-primary">
+                                <i class="fa-solid fa-pencil text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Service Radius -->
+                <div id="radius-field" class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Service Radius</label>
+                    <div class="relative">
+                        <div class="grid grid-cols-4 gap-2">
+                            <button class="border-2 border-primary bg-blue-50 rounded-lg py-2 text-sm font-medium text-primary">5 km</button>
+                            <button class="border-2 border-gray-200 rounded-lg py-2 text-sm font-medium text-gray-600">10 km</button>
+                            <button class="border-2 border-gray-200 rounded-lg py-2 text-sm font-medium text-gray-600">15 km</button>
+                            <button class="border-2 border-gray-200 rounded-lg py-2 text-sm font-medium text-gray-600">20 km</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Additional Settings -->
+            <div id="additional-settings-section" class="mb-6">
+                <h2 class="text-lg font-semibold mb-3">Additional Settings</h2>
+                
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fa-solid fa-moon text-gray-500 mr-3"></i>
+                            <span class="text-sm">Dark Mode</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Professional Plans Promotion -->
+            <div id="professional-plans-section" class="mb-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 border border-blue-200">
+                <div class="flex items-center mb-3">
+                    <div class="bg-primary rounded-full p-2 mr-3">
+                        <i class="fa-solid fa-crown text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800">Upgrade to Professional</h3>
+                        <p class="text-sm text-gray-600">Get more work opportunities</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-2 mb-4">
+                    <div class="flex items-center text-sm text-gray-700">
+                        <i class="fa-solid fa-check text-secondary mr-2"></i>
+                        <span>Early notifications for new work requests</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-700">
+                        <i class="fa-solid fa-check text-secondary mr-2"></i>
+                        <span>Multiple service locations (up to 5)</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-700">
+                        <i class="fa-solid fa-check text-secondary mr-2"></i>
+                        <span>Increased service radius</span>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-700">
+                        <i class="fa-solid fa-check text-secondary mr-2"></i>
+                        <span>Priority listing for end users</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <div class="text-sm">
+                        <span class="text-gray-600">Starting from</span>
+                        <span class="text-lg font-bold text-primary ml-1">₹100/month</span>
+                    </div>
+                    <button class="bg-primary text-white text-sm font-medium py-2 px-4 rounded-lg">
+                        View Plans
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Account Actions -->
+            <div id="account-actions-section" class="mb-4">
+                <div class="space-y-3">
+                    <button class="flex items-center text-red-500 py-2">
+                        <i class="fa-solid fa-right-from-bracket mr-2"></i>
+                        <span>Logout</span>
+                    </button>
+                    
+                    <button class="flex items-center text-red-500 py-2">
+                        <i class="fa-solid fa-user-slash mr-2"></i>
+                        <span>Deactivate Account</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- App Version -->
+            <div id="app-version" class="text-center text-xs text-gray-400 mt-8 mb-4">
+                Version 1.2.0
+            </div>
+        </div>
+        
+        <!-- Bottom Navigation -->
+        <div id="footer" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 flex justify-around py-2 px-4">
+            <!-- Service Provider Navigation -->
+            <div id="sp-nav" class="flex justify-around w-full">
+                <button class="flex flex-col items-center text-gray-500">
+                    <i class="fa-solid fa-briefcase text-lg"></i>
+                    <span class="text-xs mt-1">Available</span>
+                </button>
+                <button class="flex flex-col items-center text-gray-500">
+                    <i class="fa-solid fa-check-circle text-lg"></i>
+                    <span class="text-xs mt-1">Accepted</span>
+                </button>
+                <button class="flex flex-col items-center text-primary">
+                    <i class="fa-solid fa-user text-lg"></i>
+                    <span class="text-xs mt-1">Profile</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Form validation and submission logic would go here
+        document.getElementById('save-btn').addEventListener('click', function() {
+            // Show saving indicator
+            this.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Saving';
+            
+            // Simulate API call
+            setTimeout(() => {
+                // Show success message
+                this.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Saved';
+                
+                // Reset button after delay
+                setTimeout(() => {
+                    this.innerHTML = 'Save';
+                }, 2000);
+            }, 1500);
+        });
+        
+        // Back button functionality
+        document.getElementById('back-btn').addEventListener('click', function() {
+            // In a real app, this would navigate back
+            alert('Navigate back to previous screen');
+        });
+    </script>
+
+</body></html>

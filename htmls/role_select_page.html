@@ -1,0 +1,199 @@
+<html><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>::-webkit-scrollbar { display: none;}</style>
+    
+    <script>tailwind.config = {
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#2563eb",
+        "secondary": "#10b981",
+        "accent": "#f97316",
+        "light": "#f3f4f6",
+        "dark": "#1f2937"
+      },
+      "fontFamily": {
+        "sans": [
+          "Inter",
+          "sans-serif"
+        ]
+      }
+    }
+  }
+};</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;500;600;700;800;900&amp;display=swap"><style>
+      body {
+        font-family: 'Inter', sans-serif !important;
+      }
+      
+      /* Preserve Font Awesome icons */
+      .fa, .fas, .far, .fal, .fab {
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+      }
+    </style><style>
+  .highlighted-section {
+    outline: 2px solid #3F20FB;
+    background-color: rgba(63, 32, 251, 0.1);
+  }
+
+  .edit-button {
+    position: absolute;
+    z-index: 1000;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  html, body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  </style></head>
+<body class="font-sans bg-gray-50 text-dark">
+    <div id="app-wrapper" class="max-w-md mx-auto bg-white min-h-[100vh] relative pb-20">
+        <!-- Status Bar -->
+        <div id="status-bar" class="bg-white h-6 flex items-center justify-between px-4">
+            <div class="text-xs font-medium">9:41</div>
+            <div class="flex items-center space-x-1">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-xs"></i>
+            </div>
+        </div>
+        
+        <!-- App Header -->
+        <div id="header" class="bg-white px-4 py-3 flex items-center justify-between border-b border-gray-200">
+            <div class="flex items-center space-x-3">
+                <div class="text-lg font-bold text-primary">
+                    <span class="text-primary">Aasaan</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="language-btn" class="bg-gray-100 text-gray-700 text-xs font-medium py-2 px-3 rounded-lg flex items-center">
+                    <i class="fa-solid fa-globe mr-1 text-xs"></i>
+                    English <i class="fa-solid fa-chevron-down ml-1 text-xs"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Content Area - Role Selection -->
+        <div id="role-selection-view" class="px-4 py-6 h-[580px]">
+    <div id="role-selection-header" class="mb-8 text-center">
+        <h1 class="text-2xl font-bold mb-2">How do you want to use this app?</h1>
+        <p class="text-gray-600 text-sm">Choose your preferred role to get started</p>
+    </div>
+    
+    <div id="role-options" class="space-y-4">
+        <!-- End User Role Option -->
+        <div id="end-user-role" class="bg-white border-2 border-gray-200 rounded-xl p-5 shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]" data-role="end-user">
+            <div class="flex items-center">
+                <div class="bg-blue-100 rounded-full p-3 mr-4 shadow-sm">
+                    <i class="fa-solid fa-search text-primary text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-bold mb-1">Find people to get work done</h3>
+                    <p class="text-gray-600 text-sm">Need help with tasks? Find skilled professionals near you.</p>
+                </div>
+                <div class="ml-3 flex items-center">
+                    <div id="end-user-checkbox" class="w-6 h-6 border-2 border-gray-300 rounded-md flex items-center justify-center bg-white transition-all duration-200">
+                        <i id="end-user-check" class="fa-solid fa-check text-white text-sm hidden"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Service Provider Role Option -->
+        <div id="service-provider-role" class="bg-white border-2 border-gray-200 rounded-xl p-5 shadow-lg cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]" data-role="service-provider">
+            <div class="flex items-center">
+                <div class="bg-green-100 rounded-full p-3 mr-4 shadow-sm">
+                    <i class="fa-solid fa-briefcase text-secondary text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-bold mb-1">Find work opportunities</h3>
+                    <p class="text-gray-600 text-sm">Offer your skills and get work requests in your area.</p>
+                </div>
+                <div class="ml-3 flex items-center">
+                    <div id="service-provider-checkbox" class="w-6 h-6 border-2 border-gray-300 rounded-md flex items-center justify-center bg-white transition-all duration-200">
+                        <i id="service-provider-check" class="fa-solid fa-check text-white text-sm hidden"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Motivational Element -->
+    <div id="motivation-element" class="mt-6">
+        <div class="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 flex items-center border border-gray-100">
+            <div class="bg-blue-100 rounded-full p-2 mr-3">
+                <i class="fa-solid fa-users text-primary"></i>
+            </div>
+            <p class="text-sm text-gray-700">Join over <span class="font-bold text-primary">10,000+</span> users who are already using Aasaan!</p>
+        </div>
+    </div>
+</div>
+        
+        <!-- Bottom Section with Confirm Button -->
+        <div id="bottom-section" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 p-4">
+            <button id="confirm-btn" class="w-full bg-gray-300 text-gray-500 text-lg font-medium py-4 rounded-lg mb-2 cursor-not-allowed" disabled="">
+                Confirm Selection
+            </button>
+            <p class="text-xs text-center text-gray-500">You can change your role anytime from the profile page</p>
+        </div>
+    </div>
+    
+    <script>
+        let selectedRole = null;
+        
+        // Role selection functionality
+        document.getElementById('end-user-role').addEventListener('click', function() {
+            selectRole('end-user');
+        });
+        
+        document.getElementById('service-provider-role').addEventListener('click', function() {
+            selectRole('service-provider');
+        });
+        
+        function selectRole(role) {
+            selectedRole = role;
+            
+            // Reset all options
+            document.getElementById('end-user-role').classList.remove('border-primary', 'bg-blue-50');
+            document.getElementById('end-user-role').classList.add('border-gray-200');
+            document.getElementById('service-provider-role').classList.remove('border-secondary', 'bg-green-50');
+            document.getElementById('service-provider-role').classList.add('border-gray-200');
+            document.getElementById('end-user-check').classList.add('hidden');
+            document.getElementById('service-provider-check').classList.add('hidden');
+            
+            // Highlight selected option
+            if (role === 'end-user') {
+                document.getElementById('end-user-role').classList.add('border-primary', 'bg-blue-50');
+                document.getElementById('end-user-role').classList.remove('border-gray-200');
+                document.getElementById('end-user-check').classList.remove('hidden');
+            } else {
+                document.getElementById('service-provider-role').classList.add('border-secondary', 'bg-green-50');
+                document.getElementById('service-provider-role').classList.remove('border-gray-200');
+                document.getElementById('service-provider-check').classList.remove('hidden');
+            }
+            
+            // Enable confirm button
+            const confirmBtn = document.getElementById('confirm-btn');
+            confirmBtn.disabled = false;
+            confirmBtn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+            confirmBtn.classList.add('bg-primary', 'text-white', 'cursor-pointer');
+        }
+        
+        // Confirm button functionality
+        document.getElementById('confirm-btn').addEventListener('click', function() {
+            if (selectedRole) {
+                console.log('Selected role:', selectedRole);
+                // Navigate to next page based on selection
+            }
+        });
+    </script>
+
+</body></html>
