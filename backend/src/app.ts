@@ -5,6 +5,7 @@ import userRoutes from './routes/userRoutes';
 import requestRoutes from './routes/requestRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import paymentRoutes from './routes/paymentRoutes';
+import serviceRoutes from './routes/serviceRoutes';
 import { errorHandler } from './middleware/errorHandler';
 
 // Create and configure the Express application.  All middleware and routes are
@@ -21,6 +22,7 @@ app.use('/users', userRoutes);
 app.use('/work-requests', requestRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/payments', paymentRoutes);
+app.use('/services', serviceRoutes);
 
 // Catch‑all for unknown routes
 app.use((req, res, next) => {

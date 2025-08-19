@@ -92,6 +92,13 @@ model Notification {
   data      Json?
 }
 
+model Service {
+  id       String   @id
+  name     String
+  category String
+  tags     String[]
+}
+
 enum Role {
   endUser
   serviceProvider

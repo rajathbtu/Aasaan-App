@@ -1,9 +1,17 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { services } from '../data/services';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getServices } from '../api';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+type Service = { id: string; name: string; category: string; tags?: string[] };
+const CACHE_KEY = 'services_cache_v1';
 
 const SPSelectServicesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -15,16 +23,48 @@ const SPSelectServicesScreen: React.FC = () => {
   const onDone: undefined | ((sel: string[]) => void) = route.params?.onDone;
 
   const [selected, setSelected] = useState<string[]>(initialSelected);
+  const [services, setServices] = useState<Service[] | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setSelected(initialSelected);
   }, [initialSelected.join(',')]);
 
-  const grouped = useMemo(() => {
-    const map: Record<string, typeof services> = {};
-    services.forEach(s => { if (!map[s.category]) map[s.category] = []; map[s.category].push(s); });
-    return map;
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(CACHE_KEY);
+        if (raw) setServices(JSON.parse(raw));
+      } catch {}
+      refreshInBackground();
+    })();
   }, []);
+
+  const refreshInBackground = async () => {
+    try {
+      setLoading(true);
+      const data = await getServices();
+      const incoming = data.services as Service[];
+      const cur = JSON.stringify(services || []);
+      const inc = JSON.stringify(incoming);
+      if (cur !== inc) {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setServices(incoming);
+        await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(incoming));
+      }
+    } catch (e) {
+      // ignore and keep cache
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const grouped = useMemo(() => {
+    const list = services || [];
+    const map: Record<string, Service[]> = {};
+    list.forEach(s => { if (!map[s.category]) map[s.category] = []; map[s.category].push(s); });
+    return map;
+  }, [services]);
 
   const toggleService = (id: string) => {
     setSelected(prev => {
@@ -59,10 +99,20 @@ const SPSelectServicesScreen: React.FC = () => {
     }
   };
 
+  const hasData = services && services.length > 0;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
       <Text style={styles.title}>{t('sp.selectServices.title')}</Text>
-      {Object.keys(grouped).map(category => (
+
+      {!hasData && (
+        <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+          <ActivityIndicator />
+          <Text style={{ marginTop: 8, color: '#6b7280' }}>{t('common.loading') || 'Loading…'}</Text>
+        </View>
+      )}
+
+      {hasData && Object.keys(grouped).map(category => (
         <View key={category} style={styles.categorySection}>
           <Text style={styles.categoryTitle}>{category}</Text>
           <View style={styles.servicesRow}>

@@ -174,3 +174,11 @@ export async function markAllNotificationsRead(token: string) {
   );
   return res.data;
 }
+
+/**
+ * Fetch available services.
+ */
+export async function getServices() {
+  const res = await api.get('/services');
+  return res.data as { services: Array<{ id: string; name: string; category: string; tags: string[] }>; updatedAt: string };
+}

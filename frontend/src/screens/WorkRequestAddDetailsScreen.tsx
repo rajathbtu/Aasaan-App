@@ -6,7 +6,6 @@ import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
-import { services } from '../data/services';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import LocationSearch from '../components/LocationSearch';
@@ -24,14 +23,14 @@ const API = USE_MOCK_API ? mockApi : realApi;
 const WorkRequestAddDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { serviceId } = (route.params as any) || {};
-  const service = services.find(s => s.id === serviceId);
+  const { serviceId, serviceName, serviceTags } = (route.params as any) || {};
+  const service = { id: serviceId, name: serviceName, tags: (serviceTags || []) as string[] };
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const { token } = useAuth();
   const { t } = useI18n();
 
-  if (!service) {
+  if (!serviceId || !serviceName) {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>{t('createRequest.addDetails.unknownService')}</Text>
