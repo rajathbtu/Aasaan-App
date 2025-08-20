@@ -17,6 +17,7 @@ import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
+import Header from '../components/Header';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -86,15 +87,8 @@ const SubscriptionScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.light }}>
+      <Header title={t('subscription.headerTitle')} showBackButton={true} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl + 80 }} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={20} color={colors.dark} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('subscription.headerTitle')}</Text>
-        </View>
-
         {/* Upgrade copy */}
         <Text style={styles.pageTitle}>{t('subscription.pageTitle')}</Text>
         <Text style={styles.subtitle}>{t('subscription.subtitle')}</Text>

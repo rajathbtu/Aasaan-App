@@ -10,9 +10,10 @@ type HeaderProps = {
   showBackButton?: boolean;
   showNotification?: boolean;
   notificationCount?: number;
+  customRightComponent?: React.ReactNode; // New prop for custom UI
 };
 
-const Header: React.FC<HeaderProps> = ({ title, showBackButton = true, showNotification = true, notificationCount = 0 }) => {
+const Header: React.FC<HeaderProps> = ({ title, showBackButton = true, showNotification = true, notificationCount = 0, customRightComponent,}) => {
   const navigation = useNavigation<any>();
 
   return (
@@ -24,7 +25,10 @@ const Header: React.FC<HeaderProps> = ({ title, showBackButton = true, showNotif
           </TouchableOpacity>
         )}
         <Text style={styles.headerTitle}>{title}</Text>
-        {showNotification && (
+        {customRightComponent ? (
+          customRightComponent // Render custom UI if provided
+        ) : (
+        showNotification && (
           <TouchableOpacity 
             style={styles.notificationButton} 
             onPress={() => navigation.navigate('Notifications')}>
@@ -35,6 +39,7 @@ const Header: React.FC<HeaderProps> = ({ title, showBackButton = true, showNotif
               </View>
             )}
           </TouchableOpacity>
+        )
         )}
       </View>
     </SafeAreaView>

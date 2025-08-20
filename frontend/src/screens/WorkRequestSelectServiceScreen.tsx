@@ -151,9 +151,9 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const hasData = services && services.length > 0;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.lg }}>
-      {/* Header */}
-      <Header title="Aasaan" showNotification={true} notificationCount={2} showBackButton={false} />
+    <View style={{ flex: 1, backgroundColor: colors.light }}>
+      <Header title="Aasaan"  showNotification={true} notificationCount={2} showBackButton={false} />
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.lg }}>
 
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
         <Text style={styles.pageTitle}>{t('createRequest.selectService.title')}</Text>
@@ -218,6 +218,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
         </View>
       )}
     </ScrollView>
+    </View>
   );
 };
 

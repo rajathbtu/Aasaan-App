@@ -175,12 +175,13 @@ const NotificationsScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
-      <Header title={t('notifications.title')} showBackButton={true} showNotification={false} />
-      <View style={styles.headerRow}>
-        <TouchableOpacity onPress={markAllRead}>
-          <Text style={styles.markAllText}>{t('notifications.markAllRead')}</Text>
-        </TouchableOpacity>
-      </View>
+      <Header title={t('notifications.title')} showBackButton={true} showNotification={false} 
+        customRightComponent={
+          <TouchableOpacity onPress={markAllRead}>
+            <Text style={styles.markAllText}>{t('notifications.markAllRead')}</Text>
+          </TouchableOpacity>
+        }
+      />
       <FlatList
         data={notifications}
         keyExtractor={(item) => item.id}
@@ -203,16 +204,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.light,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.greyLight,
-    backgroundColor: '#fff',
   },
   markAllText: {
     fontSize: 14,

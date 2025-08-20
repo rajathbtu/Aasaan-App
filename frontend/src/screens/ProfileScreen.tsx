@@ -100,13 +100,14 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.light }}>
-      <Header title={t('profile.header')} showBackButton={false} showNotification={false} />
+      <Header title={t('profile.header')} showBackButton={false} showNotification={false} 
+        customRightComponent={
+            <TouchableOpacity onPress={onSave} disabled={!canSave} style={[styles.saveBtn, !canSave && { opacity: 0.5 }]}>
+              <Text style={styles.saveBtnText}>{t('common.saveChanges')}</Text>
+            </TouchableOpacity>
+        }
+      />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl + 80 }}>
-        <View style={styles.headerActionRow}>
-          <TouchableOpacity onPress={onSave} disabled={!canSave} style={[styles.saveBtn, !canSave && { opacity: 0.5 }]}>
-            <Text style={styles.saveBtnText}>{t('common.saveChanges')}</Text>
-          </TouchableOpacity>
-        </View>
         {/* Profile photo */}
         <View style={styles.photoSection}>
           <View style={{ position: 'relative', marginBottom: spacing.xs }}>
