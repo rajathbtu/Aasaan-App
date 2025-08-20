@@ -99,7 +99,7 @@ const ProfileScreen: React.FC = () => {
   const canGoBack = navigation.canGoBack?.() ?? false;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.light }}>
+    <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header title={t('profile.header')} showBackButton={false} showNotification={false} 
         customRightComponent={
             <TouchableOpacity onPress={onSave} disabled={!canSave} style={[styles.saveBtn, !canSave && { opacity: 0.5 }]}>
@@ -107,7 +107,7 @@ const ProfileScreen: React.FC = () => {
             </TouchableOpacity>
         }
       />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl + 80 }}>
+      <ScrollView style={{ flex: 1 }}>
         {/* Profile photo */}
         <View style={styles.photoSection}>
           <View style={{ position: 'relative', marginBottom: spacing.xs }}>
@@ -142,7 +142,7 @@ const ProfileScreen: React.FC = () => {
           {/* Full Name */}
           <View style={{ marginBottom: spacing.md }}>
             <Text style={styles.fieldLabel}>{t('profile.yourName')}</Text>
-            <View style={styles.infoCell}>
+            <TouchableOpacity onPress={() => setEditing(true)} style={styles.infoCell} activeOpacity={1}>
               {editing ? (
                 <TextInput
                   style={styles.inputInCell}
@@ -154,38 +154,34 @@ const ProfileScreen: React.FC = () => {
               ) : (
                 <Text style={styles.infoValue}>{user.name}</Text>
               )}
-              <TouchableOpacity onPress={() => setEditing(!editing)}>
-                <Ionicons name="pencil" size={14} color={editing ? colors.primary : '#9ca3af'} />
-              </TouchableOpacity>
-            </View>
+              <Ionicons name="pencil" size={14} color={editing ? colors.primary : '#9ca3af'} />
+            </TouchableOpacity>
           </View>
 
           {/* Mobile Number */}
           <View style={{ marginBottom: spacing.md }}>
             <Text style={styles.fieldLabel}>{t('profile.mobileNumber')}</Text>
-            <View style={styles.infoCell}>
+            <TouchableOpacity onPress={() => Alert.alert(t('common.notEditable'), t('profile.phoneNotEditable'))} style={styles.infoCell} activeOpacity={1}>
               <Text style={styles.infoValue}>{user?.phoneNumber || user?.phone || ''}</Text>
-              <TouchableOpacity onPress={() => Alert.alert(t('common.notEditable'), t('profile.phoneNotEditable'))}>
-                <Ionicons name="pencil" size={14} color={'#9ca3af'} />
-              </TouchableOpacity>
-            </View>
+              <Ionicons name="pencil" size={14} color={'#9ca3af'} />
+            </TouchableOpacity>
           </View>
 
           {/* Language */}
           <View style={{ marginBottom: spacing.sm }}>
             <Text style={styles.fieldLabel}>{t('profile.languageLabel')}</Text>
-            <View style={styles.infoCell}>
-              <Text style={styles.infoValue}>{getLanguageDisplay(user?.language || lang || 'en')}</Text>
               <TouchableOpacity
                 onPress={() =>
                   navigation.navigate('LanguageSelection', {
                     preferred: user?.language || lang,
                   })
                 }
-              >
-                <Ionicons name="pencil" size={14} color={colors.primary} />
-              </TouchableOpacity>
-            </View>
+              style={styles.infoCell}
+              activeOpacity={1}
+            >
+              <Text style={styles.infoValue}>{getLanguageDisplay(user?.language || lang || 'en')}</Text>
+              <Ionicons name="pencil" size={14} color={colors.primary} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -353,7 +349,7 @@ const ProfileScreen: React.FC = () => {
 
         <Text style={styles.versionText}>Version 1.2.0</Text>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
