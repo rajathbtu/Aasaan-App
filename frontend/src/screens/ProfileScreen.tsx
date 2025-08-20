@@ -7,6 +7,7 @@ import { colors, spacing, radius } from '../theme';
 import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
+import Header from '../components/Header';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users
@@ -99,22 +100,13 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.light }}>
+      <Header title={t('profile.header')} showBackButton={false} showNotification={false} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl + 80 }}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            {canGoBack && (
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                <Ionicons name="arrow-back" size={18} color={'#6b7280'} />
-              </TouchableOpacity>
-            )}
-            <Text style={styles.headerTitle}>{t('profile.header')}</Text>
-          </View>
+        <View style={styles.headerActionRow}>
           <TouchableOpacity onPress={onSave} disabled={!canSave} style={[styles.saveBtn, !canSave && { opacity: 0.5 }]}>
             <Text style={styles.saveBtnText}>{t('common.saveChanges')}</Text>
           </TouchableOpacity>
         </View>
-
         {/* Profile photo */}
         <View style={styles.photoSection}>
           <View style={{ position: 'relative', marginBottom: spacing.xs }}>
@@ -639,6 +631,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#9ca3af',
     marginVertical: spacing.lg,
+  },
+  headerActionRow: {
+    backgroundColor: '#fff',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
   },
 });
 

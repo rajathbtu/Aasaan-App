@@ -200,13 +200,21 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
       {/* All Services */}
       {hasData && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('createRequest.selectService.allServices')}</Text>
+            {query.trim() === '' && (
+            <Text style={styles.sectionTitle}>{t('createRequest.selectService.allServices')}</Text>
+            )}
           {Object.keys(filtered).map((category) => (
             <View key={category} style={styles.categorySection}>
               <Text style={styles.categoryTitle}>{category}</Text>
               <View style={styles.gridRow}>{filtered[category].map((svc) => renderServiceCard(svc))}</View>
             </View>
           ))}
+        </View>
+      )}
+
+      {hasData && Object.keys(filtered).length === 0 && (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.lg }}>
+          <Text style={{ color: colors.grey, fontSize: 16 }}>{t('No matching service found')}</Text>
         </View>
       )}
     </ScrollView>

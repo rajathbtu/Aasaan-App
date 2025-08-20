@@ -17,6 +17,7 @@ import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
+import Header from '../components/Header';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -174,11 +175,8 @@ const NotificationsScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
+      <Header title={t('notifications.title')} showBackButton={true} showNotification={false} />
       <View style={styles.headerRow}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={20} color={colors.dark} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('notifications.title')}</Text>
         <TouchableOpacity onPress={markAllRead}>
           <Text style={styles.markAllText}>{t('notifications.markAllRead')}</Text>
         </TouchableOpacity>
@@ -215,14 +213,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.greyLight,
     backgroundColor: '#fff',
-  },
-  backButton: {
-    padding: spacing.sm,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.dark,
   },
   markAllText: {
     fontSize: 14,

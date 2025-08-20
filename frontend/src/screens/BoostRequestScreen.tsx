@@ -8,6 +8,7 @@ import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
+import Header from '../components/Header';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -99,16 +100,8 @@ const BoostRequestScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.light }}>
+      <Header title={t('boostRequest.title')} showBackButton={true} showNotification={false} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xl + 40 }}>
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={20} color={colors.dark} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('boostRequest.title')}</Text>
-          <View style={{ width: 24 }} />
-        </View>
-
         {/* Request Summary */}
         {renderRequestSummary()}
 
@@ -210,20 +203,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: colors.dark,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-  },
-  backButton: {
-    padding: spacing.sm,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
     color: colors.dark,
   },
   summaryCard: {

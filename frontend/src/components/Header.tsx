@@ -44,11 +44,16 @@ const Header: React.FC<HeaderProps> = ({ title, showBackButton = true, showNotif
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: colors.light,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3, // For Android shadow
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start', // Ensure left alignment of content
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.lg,
   },
@@ -59,6 +64,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: colors.dark,
+    textAlign: 'left',
+    flex: 1, // Take up remaining space to ensure alignment
   },
   notificationButton: {
     position: 'relative',

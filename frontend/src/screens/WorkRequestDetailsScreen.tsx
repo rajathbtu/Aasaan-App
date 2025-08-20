@@ -17,6 +17,7 @@ import { colors, spacing, radius } from '../theme';
 import { getWorkRequest, closeWorkRequest } from '../api/index';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
+import Header from '../components/Header';
 
 // Helper: relative time (localized)
 function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
@@ -100,22 +101,8 @@ const WorkRequestDetailsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.light }}>
+      <Header title={request.service} showBackButton={true} showNotification={false} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={20} color={colors.dark} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{request.service}</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('BoostRequest', { request })}>
-            {request.boosted ? (
-              <Ionicons name="flash" size={20} color={colors.secondary} />
-            ) : (
-              <Ionicons name="flash-outline" size={20} color={colors.dark} />
-            )}
-          </TouchableOpacity>
-        </View>
-
         {/* Summary card */}
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
@@ -336,29 +323,6 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.dark,
     fontSize: 16,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.greyLight,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.dark,
   },
   summaryCard: {
     marginHorizontal: spacing.lg,

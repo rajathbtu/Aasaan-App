@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, LayoutAnimation, Platform, UIManager, SafeAreaView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
+import Header from '../components/Header';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -102,35 +103,37 @@ const SPSelectServicesScreen: React.FC = () => {
   const hasData = services && services.length > 0;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
-      <Text style={styles.title}>{t('sp.selectServices.title')}</Text>
-
-      {!hasData && (
-        <View style={{ paddingVertical: 16, alignItems: 'center' }}>
-          <ActivityIndicator />
-          <Text style={{ marginTop: 8, color: '#6b7280' }}>{t('common.loading') || 'Loading…'}</Text>
-        </View>
-      )}
-
-      {hasData && Object.keys(grouped).map(category => (
-        <View key={category} style={styles.categorySection}>
-          <Text style={styles.categoryTitle}>{category}</Text>
-          <View style={styles.servicesRow}>
-            {grouped[category].map(service => {
-              const isSelected = selected.includes(service.id);
-              return (
-                <TouchableOpacity key={service.id} style={[styles.serviceCard, isSelected && styles.serviceCardSelected]} onPress={() => toggleService(service.id)}>
-                  <Text style={[styles.serviceName, isSelected && styles.serviceNameSelected]}>{service.name}</Text>
-                </TouchableOpacity>
-              );
-            })}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f9fafb' }}>
+      <Header title={t('sp.selectServices.title')} showBackButton={false} showNotification={false} />
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }}>
+        
+        {!hasData && (
+          <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+            <ActivityIndicator />
+            <Text style={{ marginTop: 8, color: '#6b7280' }}>{t('common.loading') || 'Loading…'}</Text>
           </View>
-        </View>
-      ))}
-      <TouchableOpacity style={[styles.button, selected.length === 0 && { opacity: 0.6 }]} onPress={handleContinue} disabled={selected.length === 0}>
-        <Text style={styles.buttonText}>{mode === 'edit' ? t('sp.selectServices.done') : t('common.continue')}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        )}
+
+        {hasData && Object.keys(grouped).map(category => (
+          <View key={category} style={styles.categorySection}>
+            <Text style={styles.categoryTitle}>{category}</Text>
+            <View style={styles.servicesRow}>
+              {grouped[category].map(service => {
+                const isSelected = selected.includes(service.id);
+                return (
+                  <TouchableOpacity key={service.id} style={[styles.serviceCard, isSelected && styles.serviceCardSelected]} onPress={() => toggleService(service.id)}>
+                    <Text style={[styles.serviceName, isSelected && styles.serviceNameSelected]}>{service.name}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+        <TouchableOpacity style={[styles.button, selected.length === 0 && { opacity: 0.6 }]} onPress={handleContinue} disabled={selected.length === 0}>
+          <Text style={styles.buttonText}>{mode === 'edit' ? t('sp.selectServices.done') : t('common.continue')}</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
