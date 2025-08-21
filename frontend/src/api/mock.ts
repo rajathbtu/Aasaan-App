@@ -197,3 +197,11 @@ export async function markAllNotificationsRead(token: string) {
   });
   return timeout({ count: 0 });
 }
+
+/**
+ * Mock implementation to check if a user is already registered based on their phone number.
+ */
+export async function checkUserRegistration(phone: string) {
+  const existing = users.find(u => u.phone === phone);
+  return timeout({ isRegistered: !!existing });
+}

@@ -92,3 +92,22 @@ export async function register(req: Request, res: Response): Promise<void> {
   pendingOtps.delete(phone);
   res.json({ token: user.id, user });
 }
+
+/**
+ * Check if a user is already registered based on their phone number.
+ */
+export async function checkUserRegistration(req: Request, res: Response): Promise<void> {
+  const { phone } = req.body as { phone: string };
+  if (!phone || !isValidPhoneNumber(phone)) {
+    res.status(400).json({ message: 'Invalid phone number' });
+    return;
+  }
+
+  try {
+    const user = await findUserByPhone(phone);
+    res.json({ isRegistered: !!user });
+  } catch (error) {
+    console.error('Error checking user registration:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+}

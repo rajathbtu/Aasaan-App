@@ -182,3 +182,11 @@ export async function getServices() {
   const res = await api.get('/services');
   return res.data as { services: Array<{ id: string; name: string; category: string; tags: string[] }>; updatedAt: string };
 }
+
+/**
+ * Checks if a user is already registered based on their phone number.
+ */
+export async function checkUserRegistration(phone: string) {
+  const res = await api.post('/auth/check-registration', { phone });
+  return res.data;
+}

@@ -16,7 +16,7 @@ const LaunchScreen: React.FC = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       navigation.navigate('LanguageSelection');
-    }, 15000);
+    }, 1000);
     return () => clearTimeout(timer);
   }, [navigation]);
   return (

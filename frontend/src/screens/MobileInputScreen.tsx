@@ -63,10 +63,18 @@ const MobileInputScreen: React.FC = () => {
     }
     try {
       setLoading(true);
-      await API.sendOtp(trimmed);
-      navigation.navigate('OTPVerification', { phone: trimmed, language });
+      const result = await API.checkUserRegistration(trimmed); // Check if user is registered
+
+      if (result.isRegistered) {
+        // Navigate to OTPVerificationScreen if user is registered
+        await API.sendOtp(trimmed);
+        navigation.navigate('OTPVerification', { phone: trimmed, language });
+      } else {
+        // Navigate to NameOTPValidationScreen if user is not registered
+        navigation.navigate('NameOTPValidation', { phone: trimmed, language });
+      }
     } catch (err: any) {
-      Alert.alert(t('common.error'), err.message || 'Failed to send OTP');
+      Alert.alert(t('common.error'), err.message || 'Failed to process request');
     } finally {
       setLoading(false);
     }
