@@ -11,6 +11,7 @@ import {
   Platform,
   StatusBar,
   ScrollView,
+  Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -76,18 +77,25 @@ const NameOTPValidationScreen: React.FC = () => {
   };
 
   const handleContinue = async () => {
-    const trimmed = name.trim();
-    if (!trimmed) {
+    const name_trimmed = name.trim();
+    if (!name_trimmed) {
       Alert.alert(t('nameReg.nameRequired'), t('nameReg.nameRequiredDesc'));
       return;
     }
+
+    if (otpValue.length < 4) {
+      Alert.alert(t('common.invalidOtp'), t('common.invalidOtpDesc'));
+      return;
+    }
+
     try {
       setLoading(true);
       const result: any = await API.registerUser(
         phone,
-        trimmed,
+        name_trimmed,
         language || 'en',
-        'endUser'
+        'endUser',
+        otpValue // Pass OTP to the API
       );
       await login(result.token, result.user);
       navigation.navigate('RoleSelect');
@@ -137,16 +145,16 @@ const NameOTPValidationScreen: React.FC = () => {
               <Icon name="phone" size={12} color="#2563eb" /> {t('nameReg.mobileNumber')}
             </Text>
             <View style={styles.phoneRow}>
-              <View style={styles.ccBox}>
+                {/* Country code (non-editable) */}
+                <View style={styles.ccBox}>
                 <View style={styles.flag}>
-                  <View style={[styles.flagStripe, { backgroundColor: '#f97316' }]} />
-                  <View style={[styles.flagStripe, { backgroundColor: '#ffffff' }]} />
-                  <View style={[styles.flagStripe, { backgroundColor: '#16a34a' }]} />
+                  <Image source={require('../../assets/indian-flag.png')}
+                  style={{ width: 18, height: 12 }} resizeMode="contain"/>
                 </View>
                 <Text style={styles.ccText}>+91</Text>
-              </View>
+                </View>
               <View style={styles.phoneBox}>
-                <Text style={styles.phoneText}>{phone || '9876543210'}</Text>
+                <Text style={styles.phoneText}>{phone}</Text>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
                   <Text style={styles.changeLink}>{t('common.change')}</Text>
                 </TouchableOpacity>

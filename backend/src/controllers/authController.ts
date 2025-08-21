@@ -62,35 +62,51 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
  * initial role.  The newly created user is returned along with a token.
  */
 export async function register(req: Request, res: Response): Promise<void> {
-  const { phone, name, language, role } = req.body as {
+  const { phone, name, language, role, otp } = req.body as {
     phone: string;
     name: string;
     language: string;
     role?: 'endUser' | 'serviceProvider';
+    otp: number; // Added OTP parameter
   };
-  if (!phone || !isValidPhoneNumber(phone) || !pendingOtps.has(phone)) {
-    res.status(400).json({ message: 'Phone verification required' });
+
+  if (!phone || !isValidPhoneNumber(phone)) {
+    res.status(400).json({ message: 'Invalid phone number' });
     return;
   }
+
+  const expectedOtp = pendingOtps.get(phone);
+  if (!expectedOtp || expectedOtp !== otp) {
+    res.status(401).json({ message: 'Incorrect OTP' });
+    return;
+  }
+
   if (!name || !isValidName(name)) {
     res.status(400).json({ message: 'Invalid name' });
     return;
   }
+
   const existing = await findUserByPhone(phone);
   if (existing) {
-    res.status(409).json({ message: 'User already exists' });
+    res.status(400).json({ message: 'User already exists' });
     return;
   }
-  const user = await createUser({
-    name: name.trim(),
-    phoneNumber: phone,
-    language: language || 'en',
-    role: role || 'endUser',
-    creditPoints: 0,
-    plan: 'free',
-  } as any);
-  pendingOtps.delete(phone);
-  res.json({ token: user.id, user });
+
+  try {
+    const user = await createUser({
+      phoneNumber: phone,
+      name,
+      language,
+      role: role || 'endUser',
+      creditPoints: 0, // Default value
+      plan: 'free', // Default value
+    });
+    pendingOtps.delete(phone); // Consume OTP after successful registration
+    res.json({ token: user.id, user });
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 }
 
 /**
