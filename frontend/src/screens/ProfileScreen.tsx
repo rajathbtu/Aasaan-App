@@ -99,7 +99,7 @@ const ProfileScreen: React.FC = () => {
   const canGoBack = navigation.canGoBack?.() ?? false;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.light }}>
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       <Header title={t('profile.header')} showBackButton={false} showNotification={false} 
         customRightComponent={
             <TouchableOpacity onPress={onSave} disabled={!canSave} style={[styles.saveBtn, !canSave && { opacity: 0.5 }]}>
@@ -249,14 +249,10 @@ const ProfileScreen: React.FC = () => {
             {/* Service Location */}
             <View style={{ marginBottom: spacing.md }}>
               <Text style={styles.fieldLabel}>{t('profile.serviceLocation')}</Text>
-              <View style={[styles.infoCell, { paddingVertical: 0 }]}> 
-                <View style={{ flex: 1 }}>
-                  <LocationSearch
+              <LocationSearch
                     onSelect={(loc) => setPendingLocation({ name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng })}
                     initialValue={pendingLocation?.name || ''}
                   />
-                </View>
-              </View>
             </View>
 
             {/* Service Radius */}

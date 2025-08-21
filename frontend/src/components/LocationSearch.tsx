@@ -34,8 +34,18 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
     }
   };
 
+  const removeStateAndCountry = (place: { terms: { value: string }[]; description: string }) => {
+    const terms = place.terms || [];
+    if (terms.length > 2) {
+      // Exclude the last two terms (state and country)
+      return terms.slice(0, -2).map((term: { value: string }) => term.value).join(', ');
+    }
+    return place.description; // Fallback to the full description if terms are insufficient
+  }; 
+
   const handleSelect = async (place: any) => {
-    setQuery(place.description);
+    const cleanedPlaceName = removeStateAndCountry(place);
+    setQuery(cleanedPlaceName); // @todo: cleanedPlaceName is still getting overriden by onChangeText call
     setSuggestions([]);
 
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&key=${GOOGLE_PLACES_API_KEY}`;

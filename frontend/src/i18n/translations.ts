@@ -29,8 +29,8 @@ export const translations = {
       },
     },
     language: {
-      title: 'Choose your language',
-      subtitle: 'Select your language',
+      title: 'Choose language',
+      subtitle: 'अपनी भाषा चुनें',
       description: "Select the language you're most comfortable with",
       continue: 'Continue',
     },

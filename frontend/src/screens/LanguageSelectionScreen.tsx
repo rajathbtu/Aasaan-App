@@ -14,6 +14,7 @@ import { languages, getLanguageDisplay } from '../data/languages';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useAuth } from '../contexts/AuthContext';
 import { translations, SupportedLocale } from '../i18n/translations';
+import Header from '../components/Header';
 
 const STICKY_HEIGHT = 72; // approx height of the bottom CTA area (padding + button)
 
@@ -63,35 +64,10 @@ const LanguageSelectionScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView
-      style={[
-        styles.safeArea,
-        // extra top pad on Android for translucent status bar safety
-        Platform.OS === 'android' && { paddingTop: (StatusBar.currentHeight || 0) },
-        { paddingBottom: insets.bottom }, // ensure safe bottom base
-      ]}
-      edges={['top', 'bottom']} // explicitly apply top & bottom insets
-    >
-      <StatusBar barStyle="dark-content" backgroundColor="#f9fafb" />
-
+    <View style={{ flex: 1}}>
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
-          {user ? (
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.headerBack}
-              accessibilityRole="button"
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Icon name="arrow-left" size={18} color="#4b5563" />
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.headerBack} />
-          )}
-          <Text style={styles.headerTitle}>Aasaan</Text>
-          <View style={styles.headerBack} />
-        </View>
+        <Header title={t.language.title} showBackButton={false} showNotification={false} keepTitleCenterAligned={true} />
 
         {/* Language Selection Content */}
         <ScrollView
@@ -102,7 +78,6 @@ const LanguageSelectionScreen: React.FC = () => {
           ]}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.title}>{t.language.title}</Text>
           <Text style={styles.subtitle}>{t.language.subtitle}</Text>
           <Text style={styles.description}>{t.language.description}</Text>
 
@@ -122,17 +97,15 @@ const LanguageSelectionScreen: React.FC = () => {
                   <Text style={styles.languageIconText}>{lang.icon}</Text>
                 </View>
                 <View>
-                  <Text style={styles.languageLabel}>{getLanguageDisplay(lang.code)}</Text>
-                  <Text style={styles.languageSubLabel}>{lang.subLabel}</Text>
+                  <Text style={styles.languageLabel}>{lang.nativeLabel}</Text>
+                  <Text style={styles.languageSubLabel}>{lang.label}</Text>
                 </View>
               </View>
-              <View
-                style={
-                  selectedLanguage === lang.code
-                    ? styles.radioSelected
-                    : styles.radioUnselected
-                }
-              />
+              <View style={selectedLanguage === lang.code ? styles.radioSelected : styles.radioUnselected}>
+                {selectedLanguage === lang.code && (
+                  <Icon name="check" size={16} color="#2563eb" />
+                )}
+              </View>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -155,7 +128,7 @@ const LanguageSelectionScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

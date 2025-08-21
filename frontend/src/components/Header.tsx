@@ -11,9 +11,17 @@ type HeaderProps = {
   showNotification?: boolean;
   notificationCount?: number;
   customRightComponent?: React.ReactNode; // New prop for custom UI
+  keepTitleCenterAligned?: boolean; // New optional prop
 };
 
-const Header: React.FC<HeaderProps> = ({ title, showBackButton = true, showNotification = true, notificationCount = 0, customRightComponent,}) => {
+const Header: React.FC<HeaderProps> = ({
+  title,
+  showBackButton = true,
+  showNotification = true,
+  notificationCount = 0,
+  customRightComponent,
+  keepTitleCenterAligned = false, // Default to false
+}) => {
   const navigation = useNavigation<any>();
 
   return (
@@ -24,7 +32,10 @@ const Header: React.FC<HeaderProps> = ({ title, showBackButton = true, showNotif
             <Ionicons name="arrow-back" size={20} color={colors.dark} />
           </TouchableOpacity>
         )}
-        <Text style={styles.headerTitle}>{title}</Text>
+        <Text style={[styles.headerTitle,
+            keepTitleCenterAligned && styles.centerAlignedTitle, // Apply center alignment to title if the prop is true
+          ]}
+        >{title}</Text>
         {customRightComponent ? (
           customRightComponent // Render custom UI if provided
         ) : (
@@ -71,6 +82,9 @@ const styles = StyleSheet.create({
     color: colors.dark,
     textAlign: 'left',
     flex: 1, // Take up remaining space to ensure alignment
+  },
+  centerAlignedTitle: {
+    textAlign: 'center', // Center align title text
   },
   notificationButton: {
     position: 'relative',
