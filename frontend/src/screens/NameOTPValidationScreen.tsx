@@ -21,6 +21,7 @@ import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
+import Header from '../components/Header';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -98,26 +99,13 @@ const NameOTPValidationScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <View >
+        <Header title={t('nameReg.header')} showBackButton={true} showNotification={false}/>
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Icon name="arrow-left" size={18} color="#4b5563" />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>{t('nameReg.header')}</Text>
-            </View>
-          </View>
+
 
           <View style={styles.separator} />
 
@@ -242,8 +230,7 @@ const NameOTPValidationScreen: React.FC = () => {
           <Icon name="shield" size={12} color="#6b7280" style={{ marginRight: 6 }} />
           <Text style={styles.securityText}>{t('nameReg.help')}</Text>
         </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  SafeAreaView,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -16,6 +17,7 @@ import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
+import Header from '../components/Header';
 
 // Determine which API implementation to use (real or mock)
 const API = USE_MOCK_API ? mockApi : realApi;
@@ -279,20 +281,13 @@ const SPWorkRequestsScreen: React.FC = () => {
   const acceptedCount = requests.filter(r => isAcceptedByUser(r)).length;
 
   return (
+    <SafeAreaView style={{ flex: 1 }}>
+      <Header 
+        title="Aasaan" 
+        showBackButton={false} 
+        showNotification={true} 
+      />
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.headerRow}>
-        <Text style={styles.logo}>Aasaan</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={{ position: 'relative' }}>
-          <Ionicons name="notifications-outline" size={24} color={colors.primary} />
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-      {/* Title */}
       <Text style={styles.pageTitle}>{t('spRequests.title')}</Text>
       {/* Segmented control */}
       <View style={styles.segmentContainer}>
@@ -363,6 +358,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         </View>
       </TouchableOpacity>
     </View>
+    </SafeAreaView>
   );
 };
 
@@ -409,11 +405,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   pageTitle: {
-    marginTop: spacing.md,
+    margin: spacing.md,
     fontSize: 20,
     fontWeight: '700',
     color: colors.dark,
-    marginBottom: spacing.md,
   },
   segmentContainer: {
     flexDirection: 'row',

@@ -6,10 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
+  ActivityIndicator,  
   Platform,
-  StatusBar,
   ScrollView,
   Modal,
 } from 'react-native';
@@ -24,6 +22,7 @@ import * as mockApi from '../api/mock';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
 import { useAuth } from '../contexts/AuthContext';
+import Header from '../components/Header';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -107,38 +106,25 @@ const MobileInputScreen: React.FC = () => {
     phone.length > 0 && phone.replace(/\D/g, '').length !== 10;
 
   return (
-    <SafeAreaView
-      style={styles.safeArea}
-      edges={['top', 'bottom']}
-    >
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Icon name="arrow-left" size={18} color="#4b5563" />
-              </TouchableOpacity>
-              <Text style={styles.headerTitle}>{t('mobile.header')}</Text>
-            </View>
-
+    <View style={{ flex: 1}}>
+        {/* Header */}
+        <Header 
+          title={t('mobile.header')} 
+          showBackButton={true} 
+          showNotification={false} 
+          customRightComponent={
             <TouchableOpacity style={styles.langChip} activeOpacity={0.8} onPress={openLanguagePicker}>
               <Icon name="globe" size={12} color="#374151" />
               <Text style={styles.langChipText}>{getLanguageDisplay(language || 'en')}</Text>
               <Icon name="chevron-down" size={10} color="#6b7280" />
             </TouchableOpacity>
-          </View>
+          }
+        />
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
 
-          {/* Divider */}
-          <View style={styles.divider} />
 
           {/* Illustration */}
           <View style={styles.illustrationWrap}>
@@ -222,7 +208,6 @@ const MobileInputScreen: React.FC = () => {
             </Text>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
 
       {/* In-app WebView Modal */}
       <Modal visible={webOpen} animationType="slide" onRequestClose={() => setWebOpen(false)}>
@@ -248,7 +233,7 @@ const MobileInputScreen: React.FC = () => {
           </SafeAreaView>
         </SafeAreaProvider>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 

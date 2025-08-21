@@ -21,6 +21,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { languages } from '../data/languages';
 import { useI18n } from '../i18n';
 import { WebView } from 'react-native-webview';
+import Header from '../components/Header';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -134,32 +135,9 @@ const OTPVerificationScreen: React.FC = () => {
   const timerText = seconds > 0 ? `00:${String(seconds).padStart(2, '0')}` : '';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }} >
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Icon name="arrow-left" size={18} color="#4b5563" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>{t('otp.header')}</Text>
-          </View>
-          {/* Language picker */}
-          <View>
-            <TouchableOpacity onPress={() => setPickerOpen(o => !o)}>
-              <Icon name="globe" size={18} color="#4b5563" />
-            </TouchableOpacity>
-            {pickerOpen && (
-              <View style={styles.menu}>
-                {languages.map(l => (
-                  <TouchableOpacity key={l.code} style={styles.menuItem} onPress={async () => { await setLanguage(l.code); }}>
-                    <Text style={styles.menuItemText}>{l.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-        </View>
+        <Header title={t('otp.header')} showBackButton={true} showNotification={false}/>
 
         {/* Separator */}
         <View style={styles.separator} />
@@ -269,8 +247,7 @@ const OTPVerificationScreen: React.FC = () => {
             </SafeAreaView>
           </SafeAreaProvider>
         </Modal>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 
