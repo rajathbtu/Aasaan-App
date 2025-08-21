@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useI18n } from '../i18n';
 
@@ -16,13 +16,26 @@ const LaunchScreen: React.FC = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       navigation.navigate('LanguageSelection');
-    }, 1000);
+    }, 15000);
     return () => clearTimeout(timer);
   }, [navigation]);
   return (
     <View style={styles.container}>
+      <Image
+        source={require('../../assets/icon.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
       <Text style={styles.title}>Aasaan</Text>
       <Text style={styles.subtitle}>{t('launch.subtitle')}</Text>
+      <View style={styles.footer}>
+        <Image
+          source={require('../../assets/indian-flag.png')}
+          style={styles.flag}
+          resizeMode="contain"
+        />
+        <Text style={styles.madeInIndia}>Made in India</Text>
+      </View>
     </View>
   );
 };
@@ -32,17 +45,38 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#2563eb',
+    backgroundColor: '#F7FAFF',
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    marginBottom: 24,
   },
   title: {
     fontSize: 40,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#1D4ED8',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#e0e7ff',
+    color: '#4B5563',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 150,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  flag: {
+    width: 36,
+    height: 24,
+    marginRight: 8,
+  },
+  madeInIndia: {
+    fontSize: 16,
+    color: '#4B5563',
+    fontWeight: '600',
   },
 });
 

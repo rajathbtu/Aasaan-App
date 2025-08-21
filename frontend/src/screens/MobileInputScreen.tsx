@@ -15,6 +15,7 @@ import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/nativ
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { WebView } from 'react-native-webview';
+import { Image } from 'react-native';
 
 import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
@@ -149,9 +150,8 @@ const MobileInputScreen: React.FC = () => {
               {/* Country code (non-editable) */}
               <View style={styles.ccBox}>
                 <View style={styles.flag}>
-                  <View style={[styles.flagStripe, { backgroundColor: '#f97316' }]} />
-                  <View style={[styles.flagStripe, { backgroundColor: '#ffffff' }]} />
-                  <View style={[styles.flagStripe, { backgroundColor: '#16a34a' }]} />
+                  <Image source={require('../../assets/indian-flag.png')}
+                    style={{ width: 18, height: 12 }} resizeMode="contain"/>
                 </View>
                 <Text style={styles.ccText}>+91</Text>
               </View>
@@ -328,7 +328,6 @@ const styles = StyleSheet.create({
     borderRightColor: '#e5e7eb',
   },
   flag: { width: 18, height: 12, marginRight: 8 },
-  flagStripe: { flex: 1 },
   ccText: { color: '#374151', fontWeight: '600' },
 
   input: {
