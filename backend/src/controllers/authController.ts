@@ -76,7 +76,7 @@ export async function register(req: Request, res: Response): Promise<void> {
   }
 
   const expectedOtp = pendingOtps.get(phone);
-  if (otp !== 8891 && (!expectedOtp || expectedOtp !== otp)) { // @todo: Remove fixed OTP
+  if (false && otp !== 8891 && (!expectedOtp || expectedOtp !== otp)) { // @todo: Remove harcoded OTP & harcoded false
     res.status(401).json({ message: 'Incorrect OTP' });
     return;
   }
