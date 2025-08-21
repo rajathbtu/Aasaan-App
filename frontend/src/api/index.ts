@@ -33,7 +33,7 @@ export async function registerUser(
   phone: string,
   name: string,
   language: string,
-  role: 'endUser' | 'serviceProvider',
+  role: 'endUser' | 'serviceProvider' | null,
   otp: string // Added OTP parameter
 ) {
   const res = await api.post('/auth/register', { phone, name, language, role, otp });

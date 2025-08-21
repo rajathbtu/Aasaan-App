@@ -33,7 +33,7 @@ export interface User {
   name: string;
   phoneNumber: string;
   language: string;
-  role: Role;
+  role: Role | null;
   serviceProviderInfo?: ServiceProviderInfo;
   creditPoints: number;
   plan: 'free' | 'basic' | 'pro';

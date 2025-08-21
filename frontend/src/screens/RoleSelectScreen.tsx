@@ -17,6 +17,7 @@ const RoleSelectScreen: React.FC = () => {
 
   const handleSelectRole = async (role: 'endUser' | 'serviceProvider') => {
     try {
+      console.log(`Role selected on screen: ${role}`);
       await updateUser({ role });
       if (role === 'serviceProvider') {
         navigation.navigate('SPSelectServices');

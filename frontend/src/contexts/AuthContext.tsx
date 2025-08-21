@@ -3,6 +3,8 @@ import * as SecureStore from 'expo-secure-store';
 import { getProfile, updateProfile } from '../api';
 import { USE_MOCK_API } from '../config';
 import * as mock from '../api/mock';
+import { useNavigation } from '@react-navigation/native';
+import { AuthStackNavigationProp } from '../../App';
 
 interface User {
   id: string;
@@ -41,6 +43,7 @@ interface AuthContextProps {
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // const navigation = useNavigation<AuthStackNavigationProp>();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,11 +64,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     })();
   }, []);
 
-  const login = async (tok: string, usr: User) => {
+  const login = async (tok: string, usr: User, navigation?: AuthStackNavigationProp) => {
     setToken(tok);
     setUser(usr);
     await SecureStore.setItemAsync('aasaan_token', tok);
     await SecureStore.setItemAsync('aasaan_user', JSON.stringify(usr));
+
+    // Redirect to role selection page if role is null
+    if (!usr.role && navigation) {
+      navigation.navigate('RoleSelect');
+    }
   };
 
   const logout = async () => {

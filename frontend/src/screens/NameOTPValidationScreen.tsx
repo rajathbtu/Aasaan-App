@@ -94,7 +94,7 @@ const NameOTPValidationScreen: React.FC = () => {
         phone,
         name_trimmed,
         language || 'en',
-        'endUser',
+        null, // Pass null for role
         otpValue // Pass OTP to the API
       );
       await login(result.token, result.user);

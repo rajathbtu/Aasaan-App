@@ -18,7 +18,7 @@ model User {
   name                String
   phoneNumber         String   @unique
   language            String
-  role                Role
+  role                Role? // Made nullable
   serviceProviderInfo ServiceProviderInfo? @relation("User_ServiceProvider")
   creditPoints        Int      @default(0)
   plan                Plan     @default(free)

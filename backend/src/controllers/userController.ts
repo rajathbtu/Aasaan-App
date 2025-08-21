@@ -9,7 +9,7 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
     const user = await prisma.user.findUnique({ where: { id: authUser.id } });
     if (!user) { res.status(404).json({ message: 'Not found' }); return; }
     const sp = await prisma.serviceProviderInfo.findUnique({ where: { userId: user.id }, include: { location: true } }).catch(() => null);
-    res.json({ ...user, serviceProviderInfo: sp || null });
+    res.json({ ...user, role: user.role ?? null, serviceProviderInfo: sp || null });
   } catch {
     res.status(500).json({ message: 'Profile fetch failed' });
   }

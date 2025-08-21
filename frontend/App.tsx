@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 // Import screens
 import LaunchScreen from './src/screens/LaunchScreen';
@@ -125,6 +126,35 @@ function MainTabs() {
     </Tab.Navigator>
   );
 }
+
+// Navigation stack type definitions
+type AuthStackParamList = {
+  Launch: undefined;
+  LanguageSelection: undefined;
+  MobileInput: undefined;
+  OTPVerification: undefined;
+  NameOTPValidation: undefined;
+  RoleSelect: undefined;
+  SPSelectServices: undefined;
+  SPSelectLocation: undefined;
+};
+
+type RootStackParamList = {
+  Main: undefined;
+  WorkRequestAddDetails: undefined;
+  WorkRequestCreated: undefined;
+  BoostRequest: undefined;
+  WorkRequestDetails: undefined;
+  Notifications: undefined;
+  Subscription: undefined;
+  SPSelectServices: undefined;
+  SPSelectLocation: undefined;
+  LanguageSelection: undefined;
+  Auth: undefined;
+};
+
+export type AuthStackNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
+export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function App() {
   return (

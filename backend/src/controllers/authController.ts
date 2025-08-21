@@ -97,7 +97,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       phoneNumber: phone,
       name,
       language,
-      role: role || 'endUser',
+      role: role || null, // Allow role to be null
       creditPoints: 0, // Default value
       plan: 'free', // Default value
     });

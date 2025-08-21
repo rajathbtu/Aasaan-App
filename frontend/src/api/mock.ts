@@ -13,7 +13,7 @@ interface User {
   name: string;
   phone: string;
   language: string;
-  role: 'endUser' | 'serviceProvider';
+  role: 'endUser' | 'serviceProvider' | null;
   serviceProviderInfo?: {
     services: string[];
     location?: { name: string; lat: number; lng: number };
@@ -76,7 +76,7 @@ export async function registerUser(
   phone: string,
   name: string,
   language: string,
-  role: 'endUser' | 'serviceProvider'
+  role: 'endUser' | 'serviceProvider' | null
 ) {
   const user: User = {
     id: uuidv4(),
@@ -98,7 +98,7 @@ export async function registerUser(
 export async function getProfile(token: string) {
   const user = users.find(u => u.id === token);
   if (!user) throw new Error('Unauthenticated');
-  return timeout(user);
+  return timeout({ ...user, role: user.role ?? null });
 }
 
 export async function updateProfile(token: string, updates: Partial<User>) {
