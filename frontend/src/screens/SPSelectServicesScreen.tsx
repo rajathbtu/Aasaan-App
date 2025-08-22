@@ -1,12 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, LayoutAnimation, Platform, UIManager, TextInput } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
 import Header from '../components/Header';
-import { colors, spacing } from '../theme';
+import { colors, spacing, radius } from '../theme';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -14,12 +16,56 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 type Service = { id: string; name: string; category: string; tags?: string[] };
 const CACHE_KEY = 'services_cache_v1';
+const CACHE_UPDATED_AT_KEY = 'services_cache_updatedAt_v1';
+
+// Reuse the same icon mapping approach used in WorkRequestSelectServiceScreen for visual consistency
+const serviceIconMap: Record<
+  string,
+  { icon: keyof typeof Ionicons.glyphMap; color: string; cardBg: string }
+> = {
+  maid: { icon: 'construct', color: '#e9d5ff', cardBg: '#f5f3ff' },
+  cook: { icon: 'restaurant', color: '#dcfce7', cardBg: '#f0fdf4' },
+  babysitter: { icon: 'person', color: '#fde68a', cardBg: '#fffbeb' },
+  cleaner: { icon: 'sparkles', color: '#bae6fd', cardBg: '#e0f2fe' },
+  servant: { icon: 'people', color: '#ddd6fe', cardBg: '#ede9fe' },
+  carCleaner: { icon: 'car', color: '#fecaca', cardBg: '#fee2e2' },
+  electrician: { icon: 'flash', color: '#dbeafe', cardBg: '#eff6ff' },
+  plumber: { icon: 'water', color: '#bae6fd', cardBg: '#e0f2fe' },
+  carpenter: { icon: 'hammer', color: '#fde68a', cardBg: '#fffbeb' },
+  painter: { icon: 'color-palette', color: '#fecaca', cardBg: '#fee2e2' },
+  acRepair: { icon: 'snow', color: '#bae6fd', cardBg: '#e0f2fe' },
+  pestControl: { icon: 'bug', color: '#fed7aa', cardBg: '#ffedd5' },
+  photographer: { icon: 'camera', color: '#ddd6fe', cardBg: '#f3e8ff' },
+  yogaTrainer: { icon: 'heart', color: '#bbf7d0', cardBg: '#ecfdf5' },
+  tutor: { icon: 'book', color: '#e0e7ff', cardBg: '#eef2ff' },
+  dietician: { icon: 'leaf', color: '#d9f99d', cardBg: '#ecfccb' },
+  makeupArtist: { icon: 'brush', color: '#f5d0fe', cardBg: '#fae8ff' },
+  eventPlanner: { icon: 'calendar', color: '#fde68a', cardBg: '#fef9c3' },
+  gardener: { icon: 'flower', color: '#bbf7d0', cardBg: '#ecfdf5' },
+  caterer: { icon: 'fast-food', color: '#feeaa3', cardBg: '#fef3c7' },
+  interiorDesigner: { icon: 'home', color: '#e0e7ff', cardBg: '#eef2ff' },
+  geyserRepair: { icon: 'flame', color: '#fde68a', cardBg: '#fffbeb' },
+  washingMachineRepair: { icon: 'refresh-circle', color: '#bae6fd', cardBg: '#e0f2fe' },
+  refrigeratorRepair: { icon: 'snow', color: '#dbeafe', cardBg: '#eff6ff' },
+  microwaveRepair: { icon: 'flash', color: '#fee2e2', cardBg: '#fef2f2' },
+  waterPurifier: { icon: 'water', color: '#bae6fd', cardBg: '#e0f2fe' },
+  cctv: { icon: 'videocam', color: '#e9d5ff', cardBg: '#f5f3ff' },
+  chimneyCleaning: { icon: 'flame', color: '#fed7aa', cardBg: '#ffedd5' },
+  laptopRepair: { icon: 'laptop', color: '#e0e7ff', cardBg: '#eef2ff' },
+  mobileRepair: { icon: 'phone-portrait', color: '#e0e7ff', cardBg: '#eef2ff' },
+  sofaCleaning: { icon: 'construct', color: '#e9d5ff', cardBg: '#f5f3ff' },
+  carpetCleaning: { icon: 'sparkles', color: '#d1fae5', cardBg: '#ecfdf5' },
+  packersMovers: { icon: 'cube', color: '#e0e7ff', cardBg: '#eef2ff' },
+  salonAtHome: { icon: 'cut', color: '#fbcfe8', cardBg: '#fce7f3' },
+};
 
 const SPSelectServicesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { updateUser } = useAuth();
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
+
   const mode: 'edit' | 'onboarding' = (route.params?.mode as any) === 'edit' ? 'edit' : 'onboarding';
   const initialSelected: string[] = Array.isArray(route.params?.initialSelected) ? route.params?.initialSelected : [];
   const onDone: undefined | ((sel: string[]) => void) = route.params?.onDone;
@@ -27,6 +73,8 @@ const SPSelectServicesScreen: React.FC = () => {
   const [selected, setSelected] = useState<string[]>(initialSelected);
   const [services, setServices] = useState<Service[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState('');
+  const [showToast, setShowToast] = useState(true);
 
   useEffect(() => {
     setSelected(initialSelected);
@@ -53,6 +101,9 @@ const SPSelectServicesScreen: React.FC = () => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setServices(incoming);
         await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(incoming));
+        if (data.updatedAt) await AsyncStorage.setItem(CACHE_UPDATED_AT_KEY, data.updatedAt);
+      } else {
+        if (data.updatedAt) await AsyncStorage.setItem(CACHE_UPDATED_AT_KEY, data.updatedAt);
       }
     } catch (e) {
       // ignore and keep cache
@@ -67,6 +118,18 @@ const SPSelectServicesScreen: React.FC = () => {
     list.forEach(s => { if (!map[s.category]) map[s.category] = []; map[s.category].push(s); });
     return map;
   }, [services]);
+
+  const filtered = useMemo(() => {
+    const list: Record<string, Service[]> = grouped;
+    if (!query.trim()) return list;
+    const lower = query.trim().toLowerCase();
+    const map: Record<string, Service[]> = {};
+    Object.keys(list).forEach(cat => {
+      const arr = list[cat].filter(s => s.name.toLowerCase().includes(lower));
+      if (arr.length) map[cat] = arr;
+    });
+    return map;
+  }, [grouped, query]);
 
   const toggleService = (id: string) => {
     setSelected(prev => {
@@ -103,38 +166,157 @@ const SPSelectServicesScreen: React.FC = () => {
 
   const hasData = services && services.length > 0;
 
+  // Auto hide motivational toast after 5 seconds
+  useEffect(() => {
+    if (!showToast) return;
+    const timer = setTimeout(() => setShowToast(false), 5000);
+    return () => clearTimeout(timer);
+  }, [showToast]);
+
+  const selectedServices = useMemo(() => {
+    const list = services || [];
+    const map: Record<string, Service> = {};
+    list.forEach(s => { map[s.id] = s; });
+    return selected.map(id => map[id]).filter(Boolean) as Service[];
+  }, [selected, services]);
+
+  // Height of bottom CTA for padding bottom
+  const bottomCtaPadding = 120 + insets.bottom; // approx height including chips; adjust as needed
+
   return (
-    <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
-      <Header title={t('sp.selectServices.title')} showBackButton={false} showNotification={false} />
+    <View style={{ flex: 1, backgroundColor: colors.light }}>
+      <Header title={mode === 'onboarding' ? t('sp.selectServices.stepLabel') || 'Step 1 of 2' : t('sp.selectServices.title')} showBackButton={true} showNotification={false} />
       <View style={{ height: spacing.sm }} />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }}>
-        
+
+      {/* Motivational toast */}
+      {showToast && (
+        <View style={styles.toastWrapper}>
+          <View style={styles.toastCard}>
+            <View style={styles.toastIconCircle}>
+              <Ionicons name="bulb" size={14} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.toastTitle}>{t('sp.selectServices.toastTitle') || 'Join 25+ pros in your area'}</Text>
+              <Text style={styles.toastSubtitle}>{t('sp.selectServices.toastSubtitle') || 'Pros get 15+ work requests weekly'}</Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowToast(false)}>
+              <Ionicons name="close" size={16} color={colors.grey} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: bottomCtaPadding }}
+        stickyHeaderIndices={[1]}
+      >
+        {/* Main heading */}
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm, backgroundColor: '#fff' }}>
+          {mode === 'onboarding' && (
+            <Text style={styles.stepText}>{t('sp.selectServices.stepLabel') || 'Step 1 of 2'}</Text>
+          )}
+          <Text style={styles.pageTitle}>{t('sp.selectServices.heading') || 'Select services you offer'}</Text>
+          <Text style={styles.subtitle}>{t('sp.selectServices.subheading') || 'You can select multiple services (up to 3)'}</Text>
+        </View>
+
+        {/* Sticky search bar */}
+        <View style={styles.stickySearchContainer}>
+          <View style={styles.searchWrapper}>
+            <Ionicons name="search" size={18} color={colors.grey} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('sp.selectServices.searchPlaceholder') || 'Search services...'}
+              placeholderTextColor={colors.grey}
+              value={query}
+              onChangeText={setQuery}
+            />
+            {query.trim() !== '' && (
+              <TouchableOpacity style={styles.resetButton} onPress={() => setQuery('')}>
+                <Ionicons name="close-circle" size={18} color={colors.grey} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Loading */}
         {!hasData && (
-          <View style={{ paddingVertical: 16, alignItems: 'center' }}>
+          <View style={{ padding: spacing.lg, alignItems: 'center' }}>
             <ActivityIndicator />
-            <Text style={{ marginTop: 8, color: '#6b7280' }}>{t('common.loading') || 'Loading…'}</Text>
+            <Text style={{ color: colors.grey, marginTop: 8 }}>{t('common.loading') || 'Loading…'}</Text>
           </View>
         )}
 
-        {hasData && Object.keys(grouped).map(category => (
-          <View key={category} style={styles.categorySection}>
-            <Text style={styles.categoryTitle}>{category}</Text>
-            <View style={styles.servicesRow}>
-              {grouped[category].map(service => {
-                const isSelected = selected.includes(service.id);
-                return (
-                  <TouchableOpacity key={service.id} style={[styles.serviceCard, isSelected && styles.serviceCardSelected]} onPress={() => toggleService(service.id)}>
-                    <Text style={[styles.serviceName, isSelected && styles.serviceNameSelected]}>{service.name}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+        {/* Categories and services grid */}
+        {hasData && (
+          <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+            {Object.keys(filtered).map(category => (
+              <View key={category} style={styles.categorySection}>
+                <Text style={styles.categoryTitle}>{category}</Text>
+                <View style={styles.gridRow}>
+                  {filtered[category].map(service => {
+                    const isSelected = selected.includes(service.id);
+                    const iconConfig = serviceIconMap[service.id] || { icon: 'construct', color: '#e5e7eb', cardBg: '#ffffff' } as any;
+                    return (
+                      <TouchableOpacity
+                        key={service.id}
+                        style={[
+                          styles.serviceCard,
+                          isSelected && styles.serviceCardSelected,
+                          isSelected && { borderColor: colors.primary },
+                        ]}
+                        onPress={() => toggleService(service.id)}
+                        activeOpacity={0.85}
+                      >
+                        {isSelected && (
+                          <View style={styles.checkBadge}>
+                            <Ionicons name="checkmark" size={12} color="#fff" />
+                          </View>
+                        )}
+                        <View style={[styles.iconCircle, { backgroundColor: iconConfig.color }]}>
+                          <Ionicons name={iconConfig.icon} size={22} color={colors.primary} />
+                        </View>
+                        <Text style={[styles.serviceName, isSelected && styles.serviceNameSelected]}>{service.name}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
+
+            {Object.keys(filtered).length === 0 && (
+              <View style={{ paddingVertical: spacing.xl, alignItems: 'center' }}>
+                <Text style={{ color: colors.grey }}>{t('sp.selectServices.noResults') || 'No matching services'}</Text>
+              </View>
+            )}
           </View>
-        ))}
-        <TouchableOpacity style={[styles.button, selected.length === 0 && { opacity: 0.6 }]} onPress={handleContinue} disabled={selected.length === 0}>
-          <Text style={styles.buttonText}>{mode === 'edit' ? t('sp.selectServices.done') : t('common.continue')}</Text>
-        </TouchableOpacity>
+        )}
       </ScrollView>
+
+      {/* Bottom CTA sticky */}
+      <View style={[styles.bottomCta, { paddingBottom: insets.bottom + spacing.sm }] }>
+        <View style={{ marginBottom: spacing.sm }}>
+          <View style={styles.selectedChipsRow}>
+            {selectedServices.map(svc => (
+              <View key={svc.id} style={styles.chip}>
+                <Text style={styles.chipText}>{svc.name}</Text>
+                <TouchableOpacity onPress={() => toggleService(svc.id)}>
+                  <Ionicons name="close" size={14} color="#fff" style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+          <Text style={styles.selectionMeta}>{`${selected.length} of 3 services selected`}</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.continueButton, selected.length === 0 && { opacity: 0.6 }]}
+          onPress={handleContinue}
+          disabled={selected.length === 0}
+        >
+          <Text style={styles.continueText}>{mode === 'edit' ? (t('sp.selectServices.done') || 'Done') : (t('common.continue') || 'Continue')}</Text>
+          <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -157,44 +339,211 @@ const styles = StyleSheet.create({
   },
   categoryTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 8,
     color: '#1f2937',
   },
-  servicesRow: {
+  gridRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   serviceCard: {
-    backgroundColor: '#ffffff',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 8,
+    width: '31%',
+    marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: '#d1d5db',
-    marginRight: 8,
-    marginBottom: 8,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   serviceCardSelected: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
+    borderWidth: 2,
+    shadowOpacity: 0.12,
+    elevation: 2,
+  },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
   serviceName: {
     fontSize: 14,
     color: '#1f2937',
+    textAlign: 'center',
   },
   serviceNameSelected: {
-    color: '#ffffff',
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  checkBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: colors.primary,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  // Search
+  stickySearchContainer: {
+    backgroundColor: '#fff',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    zIndex: 5,
+  },
+  searchWrapper: {
+    position: 'relative',
+    borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: '#fff',
+    borderRadius: radius.md,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: spacing.md,
+    top: 14,
+  },
+  searchInput: {
+    paddingHorizontal: spacing.md,
+    paddingLeft: spacing.xl * 1.5,
+    paddingVertical: spacing.md,
+    fontSize: 16,
+    color: colors.dark,
+  },
+  resetButton: {
+    position: 'absolute',
+    right: spacing.md,
+    top: 10,
+    padding: 4,
+  },
+
+  // Toast
+  toastWrapper: {
+    paddingHorizontal: spacing.lg,
+  },
+  toastCard: {
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    marginBottom: spacing.sm,
+  },
+  toastIconCircle: {
+    backgroundColor: '#10b981',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  toastTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  toastSubtitle: {
+    fontSize: 12,
+    color: colors.grey,
+  },
+
+  // Page titles
+  stepText: {
+    color: colors.primary,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  pageTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.dark,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: colors.grey,
+  },
+
+  // Bottom CTA
+  bottomCta: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  selectedChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8 as any,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  chipText: {
+    color: '#fff',
+    fontSize: 12,
     fontWeight: '600',
   },
-  button: {
-    marginTop: 16,
-    backgroundColor: '#2563eb',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
+  selectionMeta: {
+    fontSize: 12,
+    color: colors.grey,
   },
-  buttonText: {
+  continueButton: {
+    marginTop: spacing.sm,
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  continueText: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',

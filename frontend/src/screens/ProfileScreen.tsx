@@ -8,6 +8,8 @@ import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
 import Header from '../components/Header';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getServices } from '../api';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users
@@ -19,6 +21,34 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user, updateUser, logout, setLanguage: setGlobalLanguage } = useAuth();
   const { t, lang } = useI18n();
+
+  // Shared services list to map ids -> display names
+  type Service = { id: string; name: string; category: string; tags?: string[] };
+  const SERVICES_CACHE_KEY = 'services_cache_v1';
+  const [allServices, setAllServices] = useState<Service[] | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(SERVICES_CACHE_KEY);
+        if (raw) setAllServices(JSON.parse(raw));
+      } catch {}
+      try {
+        const data = await getServices();
+        const incoming = data.services as Service[];
+        setAllServices(incoming);
+        await AsyncStorage.setItem(SERVICES_CACHE_KEY, JSON.stringify(incoming));
+      } catch {
+        // keep cache on failure
+      }
+    })();
+  }, []);
+
+  const serviceNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    (allServices || []).forEach(s => { map[s.id] = s.name; });
+    return map;
+  }, [allServices]);
 
   // Derive initial values from user
   const initialName = user?.name || '';
@@ -224,7 +254,7 @@ const ProfileScreen: React.FC = () => {
                   {pendingServices && pendingServices.length > 0 ? (
                     pendingServices.map((svc: string) => (
                       <View key={svc} style={styles.serviceChipPrimary}>
-                        <Text style={styles.serviceChipTextWhite}>{svc}</Text>
+                        <Text style={styles.serviceChipTextWhite}>{serviceNameMap[svc] || svc}</Text>
                       </View>
                     ))
                   ) : (
