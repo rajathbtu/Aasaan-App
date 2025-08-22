@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useI18n } from '../i18n';
+import { colors, spacing } from '../theme';
 
 /**
  * A simple splash screen shown on startup.  It displays the app name
@@ -43,9 +44,8 @@ const LaunchScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F7FAFF',
+    backgroundColor: colors.paper,
+    padding: spacing.xl,
   },
   logo: {
     width: 100,
@@ -53,14 +53,19 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#1D4ED8',
-    marginBottom: 8,
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: spacing.md,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#4B5563',
+    fontSize: 14,
+    color: colors.grey,
+    marginBottom: spacing.lg,
+  },
+  hint: {
+    fontSize: 12,
+    color: colors.grey,
   },
   footer: {
     position: 'absolute',
@@ -75,7 +80,7 @@ const styles = StyleSheet.create({
   },
   madeInIndia: {
     fontSize: 16,
-    color: '#4B5563',
+    color: colors.grey,
     fontWeight: '600',
   },
 });

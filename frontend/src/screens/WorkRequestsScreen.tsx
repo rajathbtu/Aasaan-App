@@ -99,9 +99,7 @@ const WorkRequestsScreen: React.FC = () => {
         </View>
       </View>
       <View style={styles.cardBody}>
-        <Text style={styles.cardLocation} numberOfLines={2} ellipsizeMode="tail">
-          <Ionicons name="location" size={14} color="#6b7280" /> {getLocationName(item, t)}
-        </Text>
+        <Text style={styles.locationText}><Ionicons name="location" size={14} color={colors.grey} /> {getLocationName(item, t)}</Text>
         <View style={styles.tagContainer}>
           {(item.tags || []).map((tag: string) => (
             <Text key={tag} style={styles.tag}>{tag}</Text>
@@ -280,11 +278,9 @@ const styles = StyleSheet.create({
   cardBody: {
     marginBottom: 8,
   },
-  cardLocation: {
-    fontSize: 14,
-    color: '#4b5563',
-    marginBottom: 4,
-    lineHeight: 20,
+  locationText: {
+    fontSize: 12,
+    color: colors.grey,
   },
   tagContainer: {
     flexDirection: 'row',

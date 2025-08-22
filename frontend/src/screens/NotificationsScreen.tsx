@@ -80,23 +80,20 @@ const NotificationsScreen: React.FC = () => {
     }
   };
 
-  // Map backend NotificationType -> accent colour
-  const getColorForType = (type: string): string => {
+  const getAccentByType = (type: string) => {
     switch (type) {
-      case 'newRequest':
-        return '#2563eb'; // blue
-      case 'requestAccepted':
-        return '#10b981'; // green
-      case 'ratingPrompt':
-        return '#f59e0b'; // amber
-      case 'boostPromotion':
-        return '#fb923c'; // orange
-      case 'autoClosed':
-        return '#6b7280'; // gray
-      case 'planPromotion':
-        return '#8b5cf6'; // violet
-      default:
+      case 'payment':
         return colors.primary;
+      case 'success':
+        return colors.success;
+      case 'warning':
+        return colors.warning;
+      case 'promo':
+        return colors.accent;
+      case 'info':
+        return colors.grey;
+      default:
+        return colors.violet; // fallback accent
     }
   };
 
@@ -120,7 +117,7 @@ const NotificationsScreen: React.FC = () => {
   };
 
   const renderItem = ({ item }: { item: any }) => {
-    const accent = getColorForType(item.type || '');
+    const accent = getAccentByType(item.type || '');
     const iconName = getIconForType(item.type || '');
     const requestId = item?.data?.requestId || item?.request?.id;
     return (

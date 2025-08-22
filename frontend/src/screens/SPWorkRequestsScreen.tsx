@@ -14,7 +14,7 @@ import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, spacing, radius } from '../theme';
+import { colors, spacing, radius, tints } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 
@@ -199,10 +199,10 @@ const SPWorkRequestsScreen: React.FC = () => {
     const serviceIconMap: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
       electrician: { icon: 'flash', color: colors.primarySoft },
       plumber: { icon: 'water', color: colors.successLight },
-      cook: { icon: 'restaurant', color: '#dcfce7' },
-      carpenter: { icon: 'hammer', color: '#fef2f2' },
-      painter: { icon: 'color-palette', color: '#fffbeb' },
-      maid: { icon: 'brush', color: '#fce7f3' },
+      cook: { icon: 'restaurant', color: tints.emeraldSoft },
+      carpenter: { icon: 'hammer', color: tints.redSoft },
+      painter: { icon: 'color-palette', color: tints.amberSoft },
+      maid: { icon: 'brush', color: tints.purpleSoft },
       cleaner: { icon: 'sparkles', color: colors.infoLight },
     };
     const serviceKey = (item.service || '').toLowerCase().replace(/\s+/g, '');
@@ -347,7 +347,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           onPress={() => navigation.navigate('Subscription')}
         >
           <View style={styles.proIconWrapper}>
-            <Ionicons name="trophy" size={20} color="#a855f7" />
+            <Ionicons name="trophy" size={20} color={colors.violetStrong} />
           </View>
           <View style={{ flex: 1, marginLeft: spacing.sm }}>
             <Text style={styles.proTitle}>{t('spRequests.goPro')}</Text>
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   proPriceWrapper: {
-    backgroundColor: '#a855f7',
+    backgroundColor: colors.violetStrong,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radius.md,
@@ -583,6 +583,9 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: '700',
+  },
+  proBadge: {
+    backgroundColor: colors.violetStrong,
   },
 });
 

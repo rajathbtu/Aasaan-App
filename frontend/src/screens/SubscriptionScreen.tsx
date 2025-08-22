@@ -14,7 +14,7 @@ import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
 import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, spacing, radius } from '../theme';
+import { colors, spacing, radius, tints } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 
@@ -159,7 +159,7 @@ const SubscriptionScreen: React.FC = () => {
                 disabled={loading}
                 activeOpacity={0.8}
               >
-                {loading ? <ActivityIndicator color="#fff" /> : (
+                {loading ? <ActivityIndicator color={colors.white} /> : (
                   <Text style={styles.payBtnText}>{t('subscription.payMoney', { price: PLAN_PRICING[selectedPlan].priceInr })}</Text>
                 )}
               </TouchableOpacity>
@@ -171,7 +171,7 @@ const SubscriptionScreen: React.FC = () => {
                 disabled={loading || credits < PLAN_PRICING[selectedPlan].points}
                 activeOpacity={0.8}
               >
-                {loading ? <ActivityIndicator color="#fff" /> : (
+                {loading ? <ActivityIndicator color={colors.white} /> : (
                   <Text style={styles.payBtnText}>
                     {credits >= PLAN_PRICING[selectedPlan].points
                       ? t('subscription.useCredits', { points: PLAN_PRICING[selectedPlan].points })
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.greyLight,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   backBtn: {
     padding: spacing.sm,
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   currentPlanCard: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.primarySoft,
     borderRadius: radius.md,
     padding: spacing.md,
     marginHorizontal: spacing.lg,
@@ -246,15 +246,15 @@ const styles = StyleSheet.create({
   },
   activeBadgeText: {
     fontSize: 12,
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
   },
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.primaryLight,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: colors.primaryBorder,
     borderRadius: radius.md,
     padding: spacing.sm,
     marginHorizontal: spacing.lg,
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   planCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.greyLight,
@@ -282,10 +282,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   popularBadge: {
-    backgroundColor: '#fde68a',
+    backgroundColor: tints.amber,
   },
   bestValueBadge: {
-    backgroundColor: '#a5f3fc',
+    backgroundColor: tints.cyanSoft,
   },
   planBadgeText: {
     fontSize: 10,
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   selectButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   payBtnText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '700',
   },

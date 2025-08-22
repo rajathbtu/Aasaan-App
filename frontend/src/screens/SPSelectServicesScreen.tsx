@@ -6,7 +6,7 @@ import { useI18n } from '../i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
 import Header from '../components/Header';
-import { colors, spacing, radius } from '../theme';
+import { colors, spacing, radius, tints } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,44 +19,41 @@ const CACHE_KEY = 'services_cache_v1';
 const CACHE_UPDATED_AT_KEY = 'services_cache_updatedAt_v1';
 
 // Reuse the same icon mapping approach used in WorkRequestSelectServiceScreen for visual consistency
-const serviceIconMap: Record<
-  string,
-  { icon: keyof typeof Ionicons.glyphMap; color: string; cardBg: string }
-> = {
-  maid: { icon: 'construct', color: '#e9d5ff', cardBg: '#f5f3ff' },
-  cook: { icon: 'restaurant', color: '#dcfce7', cardBg: '#f0fdf4' },
-  babysitter: { icon: 'person', color: '#fde68a', cardBg: '#fffbeb' },
-  cleaner: { icon: 'sparkles', color: '#bae6fd', cardBg: '#e0f2fe' },
-  servant: { icon: 'people', color: '#ddd6fe', cardBg: '#ede9fe' },
-  carCleaner: { icon: 'car', color: '#fecaca', cardBg: '#fee2e2' },
-  electrician: { icon: 'flash', color: '#dbeafe', cardBg: '#eff6ff' },
-  plumber: { icon: 'water', color: '#bae6fd', cardBg: '#e0f2fe' },
-  carpenter: { icon: 'hammer', color: '#fde68a', cardBg: '#fffbeb' },
-  painter: { icon: 'color-palette', color: '#fecaca', cardBg: '#fee2e2' },
-  acRepair: { icon: 'snow', color: '#bae6fd', cardBg: '#e0f2fe' },
-  pestControl: { icon: 'bug', color: '#fed7aa', cardBg: '#ffedd5' },
-  photographer: { icon: 'camera', color: '#ddd6fe', cardBg: '#f3e8ff' },
-  yogaTrainer: { icon: 'heart', color: '#bbf7d0', cardBg: '#ecfdf5' },
-  tutor: { icon: 'book', color: '#e0e7ff', cardBg: '#eef2ff' },
-  dietician: { icon: 'leaf', color: '#d9f99d', cardBg: '#ecfccb' },
-  makeupArtist: { icon: 'brush', color: '#f5d0fe', cardBg: '#fae8ff' },
-  eventPlanner: { icon: 'calendar', color: '#fde68a', cardBg: '#fef9c3' },
-  gardener: { icon: 'flower', color: '#bbf7d0', cardBg: '#ecfdf5' },
-  caterer: { icon: 'fast-food', color: '#feeaa3', cardBg: '#fef3c7' },
-  interiorDesigner: { icon: 'home', color: '#e0e7ff', cardBg: '#eef2ff' },
-  geyserRepair: { icon: 'flame', color: '#fde68a', cardBg: '#fffbeb' },
-  washingMachineRepair: { icon: 'refresh-circle', color: '#bae6fd', cardBg: '#e0f2fe' },
-  refrigeratorRepair: { icon: 'snow', color: '#dbeafe', cardBg: '#eff6ff' },
-  microwaveRepair: { icon: 'flash', color: '#fee2e2', cardBg: '#fef2f2' },
-  waterPurifier: { icon: 'water', color: '#bae6fd', cardBg: '#e0f2fe' },
-  cctv: { icon: 'videocam', color: '#e9d5ff', cardBg: '#f5f3ff' },
-  chimneyCleaning: { icon: 'flame', color: '#fed7aa', cardBg: '#ffedd5' },
-  laptopRepair: { icon: 'laptop', color: '#e0e7ff', cardBg: '#eef2ff' },
-  mobileRepair: { icon: 'phone-portrait', color: '#e0e7ff', cardBg: '#eef2ff' },
-  sofaCleaning: { icon: 'construct', color: '#e9d5ff', cardBg: '#f5f3ff' },
-  carpetCleaning: { icon: 'sparkles', color: '#d1fae5', cardBg: '#ecfdf5' },
-  packersMovers: { icon: 'cube', color: '#e0e7ff', cardBg: '#eef2ff' },
-  salonAtHome: { icon: 'cut', color: '#fbcfe8', cardBg: '#fce7f3' },
+const serviceIconMap: Record<string, { icon: any; color: string; cardBg: string }> = {
+  maid: { icon: 'construct', color: tints.purple, cardBg: tints.purpleSoft },
+  cook: { icon: 'restaurant', color: tints.emeraldSoft, cardBg: tints.greenSoft },
+  babysitter: { icon: 'person', color: tints.amber, cardBg: tints.amberSoft },
+  cleaner: { icon: 'sparkles', color: tints.sky, cardBg: tints.skySoft },
+  servant: { icon: 'people', color: tints.purple, cardBg: tints.indigoSoft },
+  carCleaner: { icon: 'car', color: tints.rose, cardBg: tints.roseSoft },
+  electrician: { icon: 'flash', color: tints.blue, cardBg: tints.blueSoft },
+  plumber: { icon: 'water', color: tints.sky, cardBg: tints.skySoft },
+  carpenter: { icon: 'hammer', color: tints.amber, cardBg: tints.amberSoft },
+  painter: { icon: 'color-palette', color: tints.rose, cardBg: tints.roseSoft },
+  acRepair: { icon: 'snow', color: tints.sky, cardBg: tints.skySoft },
+  pestControl: { icon: 'bug', color: tints.orange, cardBg: tints.orangeSoft },
+  photographer: { icon: 'camera', color: tints.purple, cardBg: tints.purpleSoft },
+  yogaTrainer: { icon: 'heart', color: tints.green, cardBg: tints.greenSoft },
+  tutor: { icon: 'book', color: tints.indigo, cardBg: tints.indigoSoft },
+  dietician: { icon: 'leaf', color: tints.lime, cardBg: tints.limeSoft },
+  makeupArtist: { icon: 'brush', color: tints.purple, cardBg: tints.purpleSoft },
+  eventPlanner: { icon: 'calendar', color: tints.amber, cardBg: tints.amberPale },
+  gardener: { icon: 'flower', color: tints.green, cardBg: tints.greenSoft },
+  caterer: { icon: 'fast-food', color: tints.amber, cardBg: tints.amberSoft },
+  interiorDesigner: { icon: 'home', color: tints.indigo, cardBg: tints.indigoSoft },
+  geyserRepair: { icon: 'flame', color: tints.amber, cardBg: tints.amberSoft },
+  washingMachineRepair: { icon: 'refresh-circle', color: tints.sky, cardBg: tints.skySoft },
+  refrigeratorRepair: { icon: 'snow', color: tints.blue, cardBg: tints.blueSoft },
+  microwaveRepair: { icon: 'flash', color: tints.roseSoft, cardBg: tints.redSoft },
+  waterPurifier: { icon: 'water', color: tints.sky, cardBg: tints.skySoft },
+  cctv: { icon: 'videocam', color: tints.purple, cardBg: tints.purpleSoft },
+  chimneyCleaning: { icon: 'flame', color: tints.orange, cardBg: tints.orangeSoft },
+  laptopRepair: { icon: 'laptop', color: tints.indigo, cardBg: tints.indigoSoft },
+  mobileRepair: { icon: 'phone-portrait', color: tints.indigo, cardBg: tints.indigoSoft },
+  sofaCleaning: { icon: 'construct', color: tints.purple, cardBg: tints.purpleSoft },
+  carpetCleaning: { icon: 'sparkles', color: tints.greenSoft, cardBg: tints.greenSoft },
+  packersMovers: { icon: 'cube', color: tints.indigo, cardBg: tints.indigoSoft },
+  salonAtHome: { icon: 'cut', color: tints.pink, cardBg: tints.pinkSoft },
 };
 
 const SPSelectServicesScreen: React.FC = () => {

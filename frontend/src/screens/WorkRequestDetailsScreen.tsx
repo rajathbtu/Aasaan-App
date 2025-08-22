@@ -240,7 +240,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
               <View style={{ marginTop: spacing.sm }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                   <Ionicons name="location" size={14} color={colors.grey} style={{ marginRight: 6 }} />
-                  <Text style={{ fontSize: 12, color: '#4b5563' }} numberOfLines={2}>
+                  <Text style={{ fontSize: 12, color: colors.grey }} numberOfLines={2}>
                     {request.location?.name || t('userRequests.locationFallback')}
                   </Text>
                 </View>
@@ -268,7 +268,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
                     >
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <View style={styles.modalAvatar}>
-                          <Text style={{ fontWeight: '700', color: '#1e3a8a' }}>{String(name).charAt(0).toUpperCase()}</Text>
+                          <Text style={{ fontWeight: '700', color: colors.primary }}>{String(name).charAt(0).toUpperCase()}</Text>
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={{ fontWeight: '600', color: colors.dark }}>{name}</Text>
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
   },
   providerAvatarText: {
     fontWeight: '700',
-    color: '#1e3a8a',
+    color: colors.primary,
   },
   avatarImageWrapper: {
     width: 48,
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   starBtnActive: {
-    backgroundColor: '#f59e0b',
+    backgroundColor: colors.accent,
   },
   starBtnInactive: {
     backgroundColor: colors.greyLight,
