@@ -27,6 +27,20 @@ function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
     const time = d?.getTime?.() || 0;
     const diff = Date.now() - time;
     if (!Number.isFinite(diff) || diff < 0) return t('common.relative.justNow');
+
+    // If older than a week, show absolute date with time
+    const weekMs = 7 * 24 * 60 * 60 * 1000;
+    if (diff >= weekMs) {
+      const options: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+      };
+      return new Date(time).toLocaleString(undefined, options);
+    }
+
     const m = Math.floor(diff / 60000);
     if (m < 1) return t('common.relative.justNow');
     if (m < 60) return t('common.relative.minAgo', { count: m });
@@ -98,6 +112,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
 
   const status = (request.status || 'active').toString().toLowerCase();
   const isActive = status === 'active';
+  const isCompleted = status === 'completed' || status === 'closed';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.light }}>
@@ -133,17 +148,19 @@ const WorkRequestDetailsScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Action buttons */}
-        <View style={styles.actionButtonsRow}>
-          <TouchableOpacity style={styles.boostButton} onPress={handleBoost}>
-            <Ionicons name="flash" size={16} color={'#fff'} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.boostButtonText}>{t('requestDetails.boost')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <Ionicons name="close-circle" size={16} color={colors.dark} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.closeButtonText}>{t('requestDetails.close')}</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Action buttons (hidden for completed/closed requests) */}
+        {!isCompleted && (
+          <View style={styles.actionButtonsRow}>
+            <TouchableOpacity style={styles.boostButton} onPress={handleBoost}>
+              <Ionicons name="flash" size={16} color={'#fff'} style={{ marginRight: spacing.sm }} />
+              <Text style={styles.boostButtonText}>{t('requestDetails.boost')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+              <Ionicons name="close-circle" size={16} color={colors.dark} style={{ marginRight: spacing.sm }} />
+              <Text style={styles.closeButtonText}>{t('requestDetails.close')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Accepted providers */}
         {request.acceptedProviders && request.acceptedProviders.length > 0 && (
