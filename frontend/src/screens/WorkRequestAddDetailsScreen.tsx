@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { USE_MOCK_API } from '../config';
@@ -10,6 +10,7 @@ import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
+import * as Location from 'expo-location';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -29,6 +30,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const { token } = useAuth();
   const { t } = useI18n();
+  const [locating, setLocating] = useState(false);
 
   if (!serviceId || !serviceName) {
     return (
@@ -37,6 +39,26 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
       </View>
     );
   }
+
+  const detectLocation = async () => {
+    try {
+      setLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') { setLocating(false); return; }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      let displayName = '';
+      try {
+        const results = await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        if (results && results.length) {
+          const r = results[0] as any;
+          const parts = [r.name || r.street, r.subregion || r.city || r.district].filter(Boolean);
+          displayName = parts.join(', ') || r.formattedAddress || '';
+        }
+      } catch {}
+      const locObj = { name: displayName || 'Current location', lat: pos.coords.latitude, lng: pos.coords.longitude };
+      setSelectedLocation(locObj);
+    } catch {} finally { setLocating(false); }
+  };
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => (prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]));
@@ -52,18 +74,20 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
       return;
     }
     try {
+      const locName = selectedLocation.name || selectedLocation.description;
+      const placeId = selectedLocation.place_id || selectedLocation.placeId;
       const wr: any = await API.createWorkRequest(token, {
         service: service.name,
         location: {
-          name: selectedLocation.description,
-          placeId: selectedLocation.place_id,
+          name: locName,
+          placeId,
           lat: selectedLocation.lat,
           lng: selectedLocation.lng,
         },
         tags: selectedTags,
         force: true,
       });
-      navigation.navigate('WorkRequestCreated', { request: wr, locationName: selectedLocation.description });
+      navigation.navigate('WorkRequestCreated', { request: wr, locationName: locName });
     } catch (err: any) {
       const message = err?.response?.data?.message || err.message || t('createRequest.addDetails.createFailed');
       Alert.alert(t('common.error'), message);
@@ -101,7 +125,19 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
             <Text style={styles.sectionTitle}>{t('createRequest.addDetails.locationTitle')}</Text>
           </View>
           <View style={styles.locationCard}>
-            <LocationSearch onSelect={(location) => setSelectedLocation(location)} />
+            {locating && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
+                <ActivityIndicator size="small" />
+                <Text style={{ marginLeft: spacing.sm, color: colors.grey }}>{t('common.loading') || 'Detecting current location…'}</Text>
+              </View>
+            )}
+            <LocationSearch
+              onSelect={(location) => setSelectedLocation(location)}
+              initialValue={selectedLocation?.name || selectedLocation?.description || ''}
+              rightActionIcon="locate-outline"
+              onPressRightAction={detectLocation}
+              rightActionLoading={locating}
+            />
             <Text style={styles.locationNote}>
               <Ionicons name="information-circle" size={14} color={colors.grey} />
               {'  '}{t('createRequest.addDetails.locationNote')}

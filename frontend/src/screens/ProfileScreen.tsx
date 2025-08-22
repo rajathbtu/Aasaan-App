@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView, Image, Switch } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView, Image, Switch, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +10,7 @@ import { getLanguageDisplay } from '../data/languages';
 import Header from '../components/Header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
+import * as Location from 'expo-location';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users
@@ -67,6 +68,7 @@ const ProfileScreen: React.FC = () => {
   const [pendingLocation, setPendingLocation] = useState<any>(initialLocation);
   const [pendingRadius, setPendingRadius] = useState<number>(initialRadius);
   const [darkMode, setDarkMode] = useState(false);
+  const [locating, setLocating] = useState(false);
 
   useEffect(() => {
     // If user object updates (after save), sync pending state
@@ -78,6 +80,26 @@ const ProfileScreen: React.FC = () => {
     setPendingLocation(user?.serviceProviderInfo?.location || null);
     setPendingRadius((user?.serviceProviderInfo?.radius as number | undefined) ?? 5);
   }, [user?.id, user?.name, user?.role]);
+
+  const detectLocation = async () => {
+    try {
+      setLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') { setLocating(false); return; }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      let displayName = '';
+      try {
+        const results = await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        if (results && results.length) {
+          const r: any = results[0];
+          const parts = [r.name || r.street, r.subregion || r.city || r.district].filter(Boolean);
+          displayName = parts.join(', ') || r.formattedAddress || '';
+        }
+      } catch {}
+      setPendingLocation({ name: displayName || 'Current location', lat: pos.coords.latitude, lng: pos.coords.longitude });
+    } catch {}
+    finally { setLocating(false); }
+  };
 
   if (!user) {
     return (
@@ -280,10 +302,19 @@ const ProfileScreen: React.FC = () => {
             {/* Service Location */}
             <View style={{ marginBottom: spacing.md }}>
               <Text style={styles.fieldLabel}>{t('profile.serviceLocation')}</Text>
-              <LocationSearch
-                    onSelect={(loc) => setPendingLocation({ name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng })}
-                    initialValue={pendingLocation?.name || ''}
-                  />
+              {locating && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
+                  <ActivityIndicator size="small" />
+                  <Text style={{ marginLeft: spacing.sm, color: colors.grey }}>{t('common.loading') || 'Detecting current location…'}</Text>
+                </View>
+              )}
+               <LocationSearch
+                     onSelect={(loc) => setPendingLocation({ name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng })}
+                     initialValue={pendingLocation?.name || pendingLocation?.description || ''}
+                     rightActionIcon="locate-outline"
+                     onPressRightAction={detectLocation}
+                     rightActionLoading={locating}
+                   />
             </View>
 
             {/* Service Radius */}
