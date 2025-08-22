@@ -74,7 +74,6 @@ const SPSelectServicesScreen: React.FC = () => {
   const [services, setServices] = useState<Service[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
-  const [showToast, setShowToast] = useState(true);
 
   useEffect(() => {
     setSelected(initialSelected);
@@ -166,13 +165,6 @@ const SPSelectServicesScreen: React.FC = () => {
 
   const hasData = services && services.length > 0;
 
-  // Auto hide motivational toast after 5 seconds
-  useEffect(() => {
-    if (!showToast) return;
-    const timer = setTimeout(() => setShowToast(false), 5000);
-    return () => clearTimeout(timer);
-  }, [showToast]);
-
   const selectedServices = useMemo(() => {
     const list = services || [];
     const map: Record<string, Service> = {};
@@ -187,24 +179,6 @@ const SPSelectServicesScreen: React.FC = () => {
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header title={mode === 'onboarding' ? t('sp.selectServices.stepLabel') || 'Step 1 of 2' : t('sp.selectServices.title')} showBackButton={true} showNotification={false} />
       <View style={{ height: spacing.sm }} />
-
-      {/* Motivational toast */}
-      {showToast && (
-        <View style={styles.toastWrapper}>
-          <View style={styles.toastCard}>
-            <View style={styles.toastIconCircle}>
-              <Ionicons name="bulb" size={14} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.toastTitle}>{t('sp.selectServices.toastTitle') || 'Join 25+ pros in your area'}</Text>
-              <Text style={styles.toastSubtitle}>{t('sp.selectServices.toastSubtitle') || 'Pros get 15+ work requests weekly'}</Text>
-            </View>
-            <TouchableOpacity onPress={() => setShowToast(false)}>
-              <Ionicons name="close" size={16} color={colors.grey} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
 
       <ScrollView
         style={{ flex: 1 }}
@@ -442,43 +416,6 @@ const styles = StyleSheet.create({
     right: spacing.md,
     top: 10,
     padding: 4,
-  },
-
-  // Toast
-  toastWrapper: {
-    paddingHorizontal: spacing.lg,
-  },
-  toastCard: {
-    backgroundColor: '#ecfdf5',
-    borderWidth: 1,
-    borderColor: '#bbf7d0',
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    marginBottom: spacing.sm,
-  },
-  toastIconCircle: {
-    backgroundColor: '#10b981',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm,
-  },
-  toastTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-  },
-  toastSubtitle: {
-    fontSize: 12,
-    color: colors.grey,
   },
 
   // Page titles

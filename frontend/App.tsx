@@ -45,25 +45,38 @@ function RootNavigator() {
       </View>
     );
   }
+  const needsRole = !!user && !user.role;
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {user ? (
-        <>
-          {/* Main tab navigator */}
-          <Stack.Screen name="Main" component={MainTabs} />
-          {/* Screens accessible post-auth */}
-          <Stack.Screen name="WorkRequestAddDetails" component={WorkRequestAddDetailsScreen} />
-          <Stack.Screen name="WorkRequestCreated" component={WorkRequestCreatedScreen} />
-          <Stack.Screen name="BoostRequest" component={BoostRequestScreen} />
-          <Stack.Screen name="WorkRequestDetails" component={WorkRequestDetailsScreen} />
-          <Stack.Screen name="Notifications" component={NotificationsScreen} />
-          <Stack.Screen name="Subscription" component={SubscriptionScreen} />
-          {/* Provider edit/onboarding tools available from Profile */}
-          <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
-          <Stack.Screen name="SPSelectLocation" component={SPSelectLocationScreen} />
-          {/* Allow language change from Profile after login */}
-          <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
-        </>
+        needsRole ? (
+          // Force role selection before accessing the app
+          <>
+            <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
+            {/* Allow SP onboarding steps directly after role selection */}
+            <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
+            <Stack.Screen name="SPSelectLocation" component={SPSelectLocationScreen} />
+            {/* Language change if needed */}
+            <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
+          </>
+        ) : (
+          <>
+            {/* Main tab navigator */}
+            <Stack.Screen name="Main" component={MainTabs} />
+            {/* Screens accessible post-auth */}
+            <Stack.Screen name="WorkRequestAddDetails" component={WorkRequestAddDetailsScreen} />
+            <Stack.Screen name="WorkRequestCreated" component={WorkRequestCreatedScreen} />
+            <Stack.Screen name="BoostRequest" component={BoostRequestScreen} />
+            <Stack.Screen name="WorkRequestDetails" component={WorkRequestDetailsScreen} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+            {/* Provider tools */}
+            <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
+            <Stack.Screen name="SPSelectLocation" component={SPSelectLocationScreen} />
+            {/* Language change from Profile */}
+            <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
+          </>
+        )
       ) : (
         <>
           <Stack.Screen name="Auth" component={AuthStack} />
