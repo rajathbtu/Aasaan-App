@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  ScrollView,
-  SafeAreaView,
+  // ScrollView,
+  // SafeAreaView, // remove to avoid double safe-area padding with Header
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -173,15 +173,20 @@ const NotificationsScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
-      <Header title={t('notifications.title')} showBackButton={true} showNotification={false} 
+      <Header
+        title={t('notifications.title')}
+        showBackButton={true}
+        showNotification={false}
         customRightComponent={
-          <TouchableOpacity onPress={markAllRead}>
+          <TouchableOpacity onPress={markAllRead} style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
             <Text style={styles.markAllText}>{t('notifications.markAllRead')}</Text>
           </TouchableOpacity>
         }
       />
+      {/* Small spacer to prevent overlap and keep consistent spacing below header */}
+      <View style={{ height: spacing.sm }} />
       <FlatList
         data={notifications}
         keyExtractor={(item) => item.id}
@@ -190,7 +195,7 @@ const NotificationsScreen: React.FC = () => {
         contentContainerStyle={{ paddingBottom: spacing.xl + 80 }}
         showsVerticalScrollIndicator={false}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 

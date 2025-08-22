@@ -23,6 +23,7 @@ import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import { spacing } from '../theme';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -109,6 +110,7 @@ const NameOTPValidationScreen: React.FC = () => {
   return (
     <View >
         <Header title={t('nameReg.header')} showBackButton={true} showNotification={false}/>
+        <View style={{ height: spacing.sm }} />
         <ScrollView
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"

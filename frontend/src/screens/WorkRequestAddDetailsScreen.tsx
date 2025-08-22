@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { USE_MOCK_API } from '../config';
@@ -71,9 +71,11 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header title={t('createRequest.addDetails.headerTitle')} showNotification={true} notificationCount={3} showBackButton={true} />
-      <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
+      {/* Spacer to prevent overlap and add small bottom margin below header */}
+      <View style={{ height: spacing.sm }} />
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="briefcase" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
@@ -141,7 +143,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

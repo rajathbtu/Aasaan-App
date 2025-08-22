@@ -7,7 +7,6 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -86,8 +85,9 @@ const SubscriptionScreen: React.FC = () => {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.light }}>
+    <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header title={t('subscription.headerTitle')} showBackButton={true} />
+      <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl + 80 }} showsVerticalScrollIndicator={false}>
         {/* Upgrade copy */}
         <Text style={styles.pageTitle}>{t('subscription.pageTitle')}</Text>
@@ -183,7 +183,7 @@ const SubscriptionScreen: React.FC = () => {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

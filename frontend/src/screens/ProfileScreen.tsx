@@ -107,6 +107,7 @@ const ProfileScreen: React.FC = () => {
             </TouchableOpacity>
         }
       />
+      <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }}>
         {/* Profile photo */}
         <View style={styles.photoSection}>

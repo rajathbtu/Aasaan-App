@@ -153,6 +153,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header title="Aasaan"  showNotification={true} notificationCount={2} showBackButton={false} />
+      <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.lg }}>
 
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>

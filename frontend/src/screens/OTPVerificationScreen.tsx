@@ -22,6 +22,7 @@ import { languages } from '../data/languages';
 import { useI18n } from '../i18n';
 import { WebView } from 'react-native-webview';
 import Header from '../components/Header';
+import { spacing } from '../theme';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -138,6 +139,7 @@ const OTPVerificationScreen: React.FC = () => {
     <View style={{ flex: 1, backgroundColor: '#ffffff' }} >
         {/* Header */}
         <Header title={t('otp.header')} showBackButton={true} showNotification={false}/>
+        <View style={{ height: spacing.sm }} />
 
         {/* Separator */}
         <View style={styles.separator} />

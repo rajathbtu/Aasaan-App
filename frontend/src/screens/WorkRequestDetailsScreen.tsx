@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-  SafeAreaView,
+  // SafeAreaView, // removed to avoid double safe-area with shared Header
   Linking,
   Image,
   Modal,
@@ -115,8 +115,10 @@ const WorkRequestDetailsScreen: React.FC = () => {
   const isCompleted = status === 'completed' || status === 'closed';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.light }}>
+    <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header title={request.service} showBackButton={true} showNotification={false} />
+      {/* Small spacer to avoid any overlap and keep consistent spacing */}
+      <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
         {/* Summary card */}
         <View style={styles.summaryCard}>
@@ -326,7 +328,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 

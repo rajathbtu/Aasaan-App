@@ -9,12 +9,13 @@ import {
   StatusBar,
 } from 'react-native';
 import { useNavigation, useRoute, usePreventRemove } from '@react-navigation/native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { languages, getLanguageDisplay } from '../data/languages';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useAuth } from '../contexts/AuthContext';
 import { translations, SupportedLocale } from '../i18n/translations';
 import Header from '../components/Header';
+import { spacing } from '../theme';
 
 const STICKY_HEIGHT = 72; // approx height of the bottom CTA area (padding + button)
 
@@ -68,6 +69,7 @@ const LanguageSelectionScreen: React.FC = () => {
       <View style={styles.container}>
         {/* Header */}
         <Header title={t.language.title} showBackButton={false} showNotification={false} keepTitleCenterAligned={true} />
+        <View style={{ height: spacing.sm }} />
 
         {/* Language Selection Content */}
         <ScrollView

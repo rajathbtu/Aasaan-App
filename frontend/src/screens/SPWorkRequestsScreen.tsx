@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  SafeAreaView,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -281,84 +280,85 @@ const SPWorkRequestsScreen: React.FC = () => {
   const acceptedCount = requests.filter(r => isAcceptedByUser(r)).length;
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <View style={{ flex: 1 }}>
       <Header 
         title="Aasaan" 
         showBackButton={false} 
         showNotification={true} 
       />
-    <View style={styles.container}>
-      <Text style={styles.pageTitle}>{t('spRequests.title')}</Text>
-      {/* Segmented control */}
-      <View style={styles.segmentContainer}>
+      <View style={{ height: spacing.sm }} />
+      <View style={styles.container}>
+        <Text style={styles.pageTitle}>{t('spRequests.title')}</Text>
+        {/* Segmented control */}
+        <View style={styles.segmentContainer}>
+          <TouchableOpacity
+            style={[styles.segmentButton, tab === 'all' && styles.segmentButtonActive]}
+            onPress={() => setTab('all')}
+          >
+            <Text style={[styles.segmentLabel, tab === 'all' && styles.segmentLabelActive]}>
+              {t('spRequests.allTab', { count: totalCount })}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.segmentButton, tab === 'accepted' && styles.segmentButtonActive]}
+            onPress={() => setTab('accepted')}
+          >
+            <Text style={[styles.segmentLabel, tab === 'accepted' && styles.segmentLabelActive]}>
+              {t('spRequests.acceptedTab', { count: acceptedCount })}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {/* Filter chips */}
+        <View style={styles.filterRow}>
+          {(['all', 'today', 'within3'] as const).map(f => {
+            const active = filter === f;
+            const labelKey = f === 'all' ? 'spRequests.filterAll' : f === 'today' ? 'spRequests.filterToday' : 'spRequests.filterWithin3';
+            return (
+              <TouchableOpacity
+                key={f}
+                onPress={() => setFilter(f)}
+                style={[
+                  styles.filterChip,
+                  active && { backgroundColor: colors.primary },
+                ]}
+              >
+                <Text style={[styles.filterLabel, active && { color: 'white' }]}>{t(labelKey)}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        {/* List */}
+        {filteredRequests.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>{t('spRequests.empty')}</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredRequests}
+            keyExtractor={(item: any) => item.id}
+            renderItem={renderRequest}
+            contentContainerStyle={{ paddingBottom: spacing.xl * 3 }}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+        {/* Pro banner */}
         <TouchableOpacity
-          style={[styles.segmentButton, tab === 'all' && styles.segmentButtonActive]}
-          onPress={() => setTab('all')}
+          style={styles.proBanner}
+          onPress={() => navigation.navigate('Subscription')}
         >
-          <Text style={[styles.segmentLabel, tab === 'all' && styles.segmentLabelActive]}>
-            {t('spRequests.allTab', { count: totalCount })}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.segmentButton, tab === 'accepted' && styles.segmentButtonActive]}
-          onPress={() => setTab('accepted')}
-        >
-          <Text style={[styles.segmentLabel, tab === 'accepted' && styles.segmentLabelActive]}>
-            {t('spRequests.acceptedTab', { count: acceptedCount })}
-          </Text>
+          <View style={styles.proIconWrapper}>
+            <Ionicons name="trophy" size={20} color="#a855f7" />
+          </View>
+          <View style={{ flex: 1, marginLeft: spacing.sm }}>
+            <Text style={styles.proTitle}>{t('spRequests.goPro')}</Text>
+            <Text style={styles.proSubtitle}>{t('spRequests.goProSubtitle')}</Text>
+          </View>
+          <View style={styles.proPriceWrapper}>
+            <Text style={styles.proPrice}>{t('spRequests.perMonth', { price: '₹100' })}</Text>
+          </View>
         </TouchableOpacity>
       </View>
-      {/* Filter chips */}
-      <View style={styles.filterRow}>
-        {(['all', 'today', 'within3'] as const).map(f => {
-          const active = filter === f;
-          const labelKey = f === 'all' ? 'spRequests.filterAll' : f === 'today' ? 'spRequests.filterToday' : 'spRequests.filterWithin3';
-          return (
-            <TouchableOpacity
-              key={f}
-              onPress={() => setFilter(f)}
-              style={[
-                styles.filterChip,
-                active && { backgroundColor: colors.primary },
-              ]}
-            >
-              <Text style={[styles.filterLabel, active && { color: 'white' }]}>{t(labelKey)}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-      {/* List */}
-      {filteredRequests.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>{t('spRequests.empty')}</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={filteredRequests}
-          keyExtractor={(item: any) => item.id}
-          renderItem={renderRequest}
-          contentContainerStyle={{ paddingBottom: spacing.xl * 3 }}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-      {/* Pro banner */}
-      <TouchableOpacity
-        style={styles.proBanner}
-        onPress={() => navigation.navigate('Subscription')}
-      >
-        <View style={styles.proIconWrapper}>
-          <Ionicons name="trophy" size={20} color="#a855f7" />
-        </View>
-        <View style={{ flex: 1, marginLeft: spacing.sm }}>
-          <Text style={styles.proTitle}>{t('spRequests.goPro')}</Text>
-          <Text style={styles.proSubtitle}>{t('spRequests.goProSubtitle')}</Text>
-        </View>
-        <View style={styles.proPriceWrapper}>
-          <Text style={styles.proPrice}>{t('spRequests.perMonth', { price: '₹100' })}</Text>
-        </View>
-      </TouchableOpacity>
     </View>
-    </SafeAreaView>
   );
 };
 

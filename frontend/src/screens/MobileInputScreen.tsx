@@ -24,6 +24,7 @@ import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
+import { spacing } from '../theme';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -129,6 +130,7 @@ const MobileInputScreen: React.FC = () => {
             </TouchableOpacity>
           }
         />
+        <View style={{ height: spacing.sm }} />
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"

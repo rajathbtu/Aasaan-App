@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, LayoutAnimation, Platform, UIManager, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
 import Header from '../components/Header';
+import { colors, spacing } from '../theme';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -103,8 +104,9 @@ const SPSelectServicesScreen: React.FC = () => {
   const hasData = services && services.length > 0;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f9fafb' }}>
+    <View style={{ flex: 1, backgroundColor: '#f9fafb' }}>
       <Header title={t('sp.selectServices.title')} showBackButton={false} showNotification={false} />
+      <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }}>
         
         {!hasData && (
@@ -133,7 +135,7 @@ const SPSelectServicesScreen: React.FC = () => {
           <Text style={styles.buttonText}>{mode === 'edit' ? t('sp.selectServices.done') : t('common.continue')}</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

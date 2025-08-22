@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { USE_MOCK_API } from '../config';
@@ -99,8 +99,9 @@ const BoostRequestScreen: React.FC = () => {
   const alreadyBoosted = !!request.boosted;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.light }}>
+    <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header title={t('boostRequest.title')} showBackButton={true} showNotification={false} />
+      <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xl + 40 }}>
         {/* Request Summary */}
         {renderRequestSummary()}
@@ -190,7 +191,7 @@ const BoostRequestScreen: React.FC = () => {
           )}
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
