@@ -22,7 +22,7 @@ import { languages } from '../data/languages';
 import { useI18n } from '../i18n';
 import { WebView } from 'react-native-webview';
 import Header from '../components/Header';
-import { spacing } from '../theme';
+import { spacing, colors, radius } from '../theme';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -136,7 +136,7 @@ const OTPVerificationScreen: React.FC = () => {
   const timerText = seconds > 0 ? `00:${String(seconds).padStart(2, '0')}` : '';
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#ffffff' }} >
+    <View style={{ flex: 1, backgroundColor: colors.white }} >
         {/* Header */}
         <Header title={t('otp.header')} showBackButton={true} showNotification={false}/>
         <View style={{ height: spacing.sm }} />
@@ -178,7 +178,7 @@ const OTPVerificationScreen: React.FC = () => {
           {/* Auto-read indicator */}
           {showAutoRead && (
             <View style={styles.autoReadRow}>
-              <Icon name="mobile" size={14} color="#2563eb" style={{ marginRight: 6 }} />
+              <Icon name="mobile" size={14} color={colors.primary} style={{ marginRight: 6 }} />
               <Text style={styles.autoReadText}>{t('otp.autoRead')}</Text>
             </View>
           )}
@@ -198,10 +198,10 @@ const OTPVerificationScreen: React.FC = () => {
           {/* Verify button */}
           <TouchableOpacity style={[styles.verifyBtn, loading && { opacity: 0.85 }]} onPress={handleVerify} disabled={loading}>
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.white} />
             ) : (
               <View style={styles.verifyInner}>
-                <Icon name="check-circle" size={16} color="#fff" style={{ marginRight: 8 }} />
+                <Icon name="check-circle" size={16} color={colors.white} style={{ marginRight: 8 }} />
                 <Text style={styles.verifyText}>{t('otp.verifyAndContinue')}</Text>
               </View>
             )}
@@ -228,20 +228,20 @@ const OTPVerificationScreen: React.FC = () => {
           statusBarTranslucent={true}
         >
           <SafeAreaProvider>
-            <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top', 'bottom']}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e7eb' }}>
+            <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }} edges={['top', 'bottom']}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.greyLight }}>
                 <TouchableOpacity onPress={() => setWebOpen(false)} style={{ padding: 8 }}>
-                  <Icon name="close" size={18} color="#111827" />
+                  <Icon name="close" size={18} color={colors.dark} />
                 </TouchableOpacity>
-                <Text style={{ fontSize: 16, fontWeight: '600', marginLeft: 6, color: '#111827' }}>{webTitle}</Text>
+                <Text style={{ fontSize: 16, fontWeight: '600', marginLeft: 6, color: colors.dark }}>{webTitle}</Text>
               </View>
               <WebView
-                style={{ flex: 1, backgroundColor: '#fff' }}
+                style={{ flex: 1, backgroundColor: colors.white }}
                 source={{ uri: webUrl }}
                 startInLoadingState={true}
                 contentInsetAdjustmentBehavior="never"
                 renderLoading={() => (
-                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}>
                     <ActivityIndicator size="large" />
                   </View>
                 )}
@@ -256,10 +256,10 @@ const OTPVerificationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    backgroundColor: '#f9fafb', // gray-50
+    backgroundColor: colors.light, // gray-50
   },
   header: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.white,
     paddingHorizontal: 16,
     paddingVertical: 12,
     flexDirection: 'row',
@@ -274,147 +274,147 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontSize: 18,
     fontWeight: '700',
-    color: '#2563eb',
+    color: colors.primary,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.greyLight,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 24,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
   },
   topBlock: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
-    marginBottom: 6,
+    color: colors.dark,
+    marginBottom: spacing.xs + 2,
     textAlign: 'center',
   },
   subtle: {
     fontSize: 13,
-    color: '#6b7280',
+    color: colors.grey,
   },
   phoneRow: {
-    marginTop: 8,
+    marginTop: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
   },
   phoneText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.dark,
   },
   changeLink: {
-    marginLeft: 8,
+    marginLeft: spacing.sm,
     fontSize: 13,
-    color: '#2563eb',
+    color: colors.primary,
     textDecorationLine: 'underline',
     fontWeight: '600',
   },
   otpRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-    marginBottom: 16,
+     flexDirection: 'row',
+     justifyContent: 'center',
+    marginTop: spacing.xl + spacing.sm,
+    marginBottom: spacing.lg,
   },
   otpBox: {
-    width: 56,
-    height: 56,
-    marginHorizontal: 6,
-    textAlign: 'center',
-    fontSize: 20,
-    fontWeight: '700',
-    backgroundColor: '#ffffff',
-    borderWidth: 2,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
+     width: 56,
+     height: 56,
+    marginHorizontal: spacing.xs + 2,
+     textAlign: 'center',
+     fontSize: 20,
+     fontWeight: '700',
+    backgroundColor: colors.white,
+     borderWidth: 2,
+    borderColor: colors.greyBorder,
+    borderRadius: radius.lg,
   },
   autoReadRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
+     flexDirection: 'row',
+     justifyContent: 'center',
+     alignItems: 'center',
+    marginBottom: spacing.sm,
   },
   autoReadText: {
-    fontSize: 13,
-    color: '#2563eb',
-    fontWeight: '500',
+     fontSize: 13,
+    color: colors.primary,
+     fontWeight: '500',
   },
   resendBlock: {
-    alignItems: 'center',
-    marginBottom: 20,
+     alignItems: 'center',
+    marginBottom: spacing.xl,
   },
   resendHint: {
-    fontSize: 13,
-    color: '#6b7280',
+     fontSize: 13,
+    color: colors.grey,
   },
   resendTimer: {
-    fontWeight: '600',
-    color: '#111827',
+     fontWeight: '600',
+    color: colors.dark,
   },
   resendLink: {
-    marginTop: 4,
-    fontSize: 14,
-    color: '#2563eb',
-    fontWeight: '600',
+    marginTop: spacing.xs,
+     fontSize: 14,
+    color: colors.primary,
+     fontWeight: '600',
   },
   verifyBtn: {
-    backgroundColor: '#2563eb',
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+     alignItems: 'center',
+     justifyContent: 'center',
   },
   verifyInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
+     flexDirection: 'row',
+     alignItems: 'center',
   },
   verifyText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: colors.white,
+     fontSize: 16,
+     fontWeight: '600',
   },
   helpText: {
-    textAlign: 'center',
-    marginTop: 14,
-    fontSize: 12,
-    color: '#6b7280',
+     textAlign: 'center',
+    marginTop: spacing.md + 2,
+     fontSize: 12,
+    color: colors.grey,
   },
   helpLink: {
-    color: '#2563eb',
-    fontWeight: '600',
+    color: colors.primary,
+     fontWeight: '600',
   },
   menu: {
-    position: 'absolute',
-    top: '100%',
-    right: 0,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    overflow: 'hidden',
-    elevation: 2,
-    zIndex: 100,
+     position: 'absolute',
+     top: '100%',
+     right: 0,
+    backgroundColor: colors.white,
+     borderRadius: 8,
+     overflow: 'hidden',
+     elevation: 2,
+     zIndex: 100,
   },
   menuItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.lg,
   },
   menuItemText: {
     fontSize: 16,
-    color: '#111827',
+    color: colors.dark,
   },
   terms: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 8,
+     textAlign: 'center',
+     fontSize: 12,
+    color: colors.grey,
+    marginTop: spacing.sm,
   },
-  link: { color: '#2563eb', fontWeight: '600' },
+  link: { color: colors.primary, fontWeight: '600' },
 });
 
 export default OTPVerificationScreen;

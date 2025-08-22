@@ -23,7 +23,7 @@ import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
-import { spacing } from '../theme';
+import { spacing, colors, radius } from '../theme';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -130,21 +130,21 @@ const NameOTPValidationScreen: React.FC = () => {
           {/* Full name */}
           <View style={styles.block}>
             <Text style={styles.label}>
-              <Icon name="user" size={12} color="#2563eb" /> {t('nameReg.fullName')}
+              <Icon name="user" size={12} color={colors.primary} /> {t('nameReg.fullName')}
             </Text>
             <TextInput
               placeholder={t('nameReg.fullNamePlaceholder')}
               style={styles.input}
               value={name}
               onChangeText={setName}
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor={colors.greyMuted}
             />
           </View>
 
           {/* Phone (read-only display) */}
           <View style={styles.block}>
             <Text style={styles.label}>
-              <Icon name="phone" size={12} color="#2563eb" /> {t('nameReg.mobileNumber')}
+              <Icon name="phone" size={12} color={colors.primary} /> {t('nameReg.mobileNumber')}
             </Text>
             <View style={styles.phoneRow}>
                 {/* Country code (non-editable) */}
@@ -167,7 +167,7 @@ const NameOTPValidationScreen: React.FC = () => {
           {/* OTP visual section (UI only, ignored by logic) */}
           <View style={[styles.block, { marginBottom: 24 }]}>
             <Text style={styles.label}>
-              <Icon name="shield" size={12} color="#2563eb" /> {t('nameReg.verificationCode')}
+              <Icon name="shield" size={12} color={colors.primary} /> {t('nameReg.verificationCode')}
             </Text>
             <Text style={styles.otpHelp}>
               {t('nameReg.sentHint')}
@@ -192,7 +192,7 @@ const NameOTPValidationScreen: React.FC = () => {
             </View>
 
             <View style={styles.autoRead}>
-              <Icon name="mobile" size={14} color="#2563eb" style={{ marginRight: 6 }} />
+              <Icon name="mobile" size={14} color={colors.primary} style={{ marginRight: 6 }} />
               <Text style={styles.autoReadText}>{t('nameReg.autoRead')}</Text>
             </View>
 
@@ -215,10 +215,10 @@ const NameOTPValidationScreen: React.FC = () => {
             activeOpacity={0.9}
           >
             {loading ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color={colors.white} />
             ) : (
               <>
-                <Icon name="shield" size={14} color="#ffffff" style={{ marginRight: 8 }} />
+                <Icon name="shield" size={14} color={colors.white} style={{ marginRight: 8 }} />
                 <Text style={styles.ctaText}>{t('nameReg.verifyAndContinue')}</Text>
               </>
             )}
@@ -237,7 +237,7 @@ const NameOTPValidationScreen: React.FC = () => {
 
         {/* Security info pinned visually near bottom */}
         <View style={styles.securityInfo}>
-          <Icon name="shield" size={12} color="#6b7280" style={{ marginRight: 6 }} />
+          <Icon name="shield" size={12} color={colors.grey} style={{ marginRight: 6 }} />
           <Text style={styles.securityText}>{t('nameReg.help')}</Text>
         </View>
     </View>
@@ -246,38 +246,38 @@ const NameOTPValidationScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  safeArea: { flex: 1, backgroundColor: '#ffffff' },
-  scroll: { paddingHorizontal: 16, paddingBottom: 16, backgroundColor: '#ffffff' },
+  safeArea: { flex: 1, backgroundColor: colors.white },
+  scroll: { paddingHorizontal: 16, paddingBottom: 16, backgroundColor: colors.white },
 
   header: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { marginLeft: 12, fontSize: 18, fontWeight: '700', color: '#2563eb' },
-  separator: { height: 1, backgroundColor: '#e5e7eb', marginBottom: 16 },
+  headerTitle: { marginLeft: 12, fontSize: 18, fontWeight: '700', color: colors.primary },
+  separator: { height: 1, backgroundColor: colors.greyLight, marginBottom: 16 },
 
   formHeader: { alignItems: 'center', marginBottom: 16 },
-  formTitle: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 6 },
-  formSub: { fontSize: 14, color: '#6b7280', textAlign: 'center' },
+  formTitle: { fontSize: 20, fontWeight: '700', color: colors.dark, marginBottom: 6 },
+  formSub: { fontSize: 14, color: colors.grey, textAlign: 'center' },
 
   block: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 },
+  label: { fontSize: 13, fontWeight: '600', color: colors.dark, marginBottom: 8 },
 
   input: {
     width: '100%',
     borderWidth: 2,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
+    borderColor: colors.greyBorder,
+    borderRadius: radius.lg,
     paddingVertical: 12,
     paddingHorizontal: 14,
     fontSize: 16,
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
+    backgroundColor: colors.white,
+    shadowColor: colors.black,
     shadowOpacity: 0.04,
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 2,
@@ -289,74 +289,74 @@ const styles = StyleSheet.create({
   ccBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.light,
     paddingVertical: 12,
     paddingHorizontal: 10,
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: colors.greyBorder,
     borderRightWidth: 1,
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
+    borderTopLeftRadius: radius.lg,
+    borderBottomLeftRadius: radius.lg,
   },
   flag: { width: 18, height: 12, marginRight: 8 },
   flagStripe: { flex: 1 },
-  ccText: { color: '#374151', fontWeight: '600' },
+  ccText: { color: colors.dark, fontWeight: '600' },
   phoneBox: {
     flex: 1,
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: colors.greyBorder,
     borderLeftWidth: 0,
-    borderTopRightRadius: 12,
-    borderBottomRightRadius: 12,
-    backgroundColor: '#f9fafb',
+    borderTopRightRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
+    backgroundColor: colors.light,
     paddingVertical: 12,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  phoneText: { fontSize: 16, fontWeight: '600', color: '#111827' },
-  changeLink: { color: '#2563eb', fontWeight: '600' },
+  phoneText: { fontSize: 16, fontWeight: '600', color: colors.dark },
+  changeLink: { color: colors.primary, fontWeight: '600' },
 
   // OTP visuals
-  otpHelp: { fontSize: 12, color: '#6b7280', marginBottom: 10 },
+  otpHelp: { fontSize: 12, color: colors.grey, marginBottom: 10 },
   otpRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 12 },
   otpBox: {
     width: 48,
     height: 48,
     borderWidth: 2,
-    borderColor: '#d1d5db',
+    borderColor: colors.greyBorder,
     borderRadius: 10,
     textAlign: 'center',
     fontSize: 18,
     fontWeight: '700',
     marginHorizontal: 6,
-    color: '#111827',
+    color: colors.dark,
   },
   autoRead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  autoReadText: { color: '#2563eb', fontSize: 12 },
+  autoReadText: { color: colors.primary, fontSize: 12 },
 
   resendWrap: { alignItems: 'center' },
-  resendInfo: { color: '#6b7280', fontSize: 12 },
-  resendBtn: { color: '#2563eb', fontSize: 12, marginTop: 4 },
+  resendInfo: { color: colors.grey, fontSize: 12 },
+  resendBtn: { color: colors.primary, fontSize: 12, marginTop: 4 },
 
   // CTA
   cta: {
     width: '100%',
-    backgroundColor: '#2563eb',
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     marginTop: 4,
   },
-  ctaText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
+  ctaText: { color: colors.white, fontSize: 16, fontWeight: '600' },
 
   // Help
   help: { alignItems: 'center', marginTop: 10 },
-  helpText: { fontSize: 12, color: '#6b7280', textAlign: 'center' },
-  link: { color: '#2563eb', fontWeight: '600' },
+  helpText: { fontSize: 12, color: colors.grey, textAlign: 'center' },
+  link: { color: colors.primary, fontWeight: '600' },
 
   // Security note near bottom
   securityInfo: {
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
   },
-  securityText: { color: '#6b7280', fontSize: 12 },
+  securityText: { color: colors.grey, fontSize: 12 },
 });
 
 export default NameOTPValidationScreen;

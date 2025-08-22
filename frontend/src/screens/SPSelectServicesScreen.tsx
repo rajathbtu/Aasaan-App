@@ -186,7 +186,7 @@ const SPSelectServicesScreen: React.FC = () => {
         stickyHeaderIndices={[1]}
       >
         {/* Main heading */}
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm, backgroundColor: '#fff' }}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm, backgroundColor: colors.white }}>
           {mode === 'onboarding' && (
             <Text style={styles.stepText}>{t('sp.selectServices.stepLabel') || 'Step 1 of 2'}</Text>
           )}
@@ -230,7 +230,7 @@ const SPSelectServicesScreen: React.FC = () => {
                 <View style={styles.gridRow}>
                   {filtered[category].map(service => {
                     const isSelected = selected.includes(service.id);
-                    const iconConfig = serviceIconMap[service.id] || { icon: 'construct', color: '#e5e7eb', cardBg: '#ffffff' } as any;
+                    const iconConfig = serviceIconMap[service.id] || { icon: 'construct', color: colors.greyLight, cardBg: colors.white } as any;
                     return (
                       <TouchableOpacity
                         key={service.id}
@@ -244,7 +244,7 @@ const SPSelectServicesScreen: React.FC = () => {
                       >
                         {isSelected && (
                           <View style={styles.checkBadge}>
-                            <Ionicons name="checkmark" size={12} color="#fff" />
+                            <Ionicons name="checkmark" size={12} color={colors.white} />
                           </View>
                         )}
                         <View style={[styles.iconCircle, { backgroundColor: iconConfig.color }]}>
@@ -275,7 +275,7 @@ const SPSelectServicesScreen: React.FC = () => {
               <View key={svc.id} style={styles.chip}>
                 <Text style={styles.chipText}>{svc.name}</Text>
                 <TouchableOpacity onPress={() => toggleService(svc.id)}>
-                  <Ionicons name="close" size={14} color="#fff" style={{ marginLeft: 6 }} />
+                  <Ionicons name="close" size={14} color={colors.white} style={{ marginLeft: 6 }} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -283,12 +283,12 @@ const SPSelectServicesScreen: React.FC = () => {
           <Text style={styles.selectionMeta}>{`${selected.length} of 3 services selected`}</Text>
         </View>
         <TouchableOpacity
-          style={[styles.continueButton, selected.length === 0 && { opacity: 0.6 }]}
+          style={[styles.continueButton, selected.length === 0 && { opacity: 0.6 } ]}
           onPress={handleContinue}
           disabled={selected.length === 0}
         >
           <Text style={styles.continueText}>{mode === 'edit' ? (t('sp.selectServices.done') || 'Done') : (t('common.continue') || 'Continue')}</Text>
-          <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
+          <Ionicons name="arrow-forward" size={18} color={colors.white} style={{ marginLeft: 8 }} />
         </TouchableOpacity>
       </View>
     </View>
@@ -298,14 +298,14 @@ const SPSelectServicesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.light,
     padding: 20,
   },
   title: {
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 16,
-    color: '#111827',
+    color: colors.dark,
     textAlign: 'center',
   },
   categorySection: {
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 8,
-    color: '#1f2937',
+    color: colors.dark,
   },
   gridRow: {
     flexDirection: 'row',
@@ -326,13 +326,13 @@ const styles = StyleSheet.create({
     width: '31%',
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: colors.greyBorder,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.sm,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.white,
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOpacity: 0.05,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
   },
   serviceName: {
     fontSize: 14,
-    color: '#1f2937',
+    color: colors.dark,
     textAlign: 'center',
   },
   serviceNameSelected: {
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOpacity: 0.15,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -379,21 +379,21 @@ const styles = StyleSheet.create({
   },
   // Search
   stickySearchContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.greyLight,
     zIndex: 5,
   },
   searchWrapper: {
     position: 'relative',
     borderWidth: 2,
     borderColor: colors.primary,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: radius.md,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOpacity: 0.05,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
@@ -441,9 +441,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.greyLight,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
   },
@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   chipText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   continueText: {
-    color: '#ffffff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },

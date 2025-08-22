@@ -132,7 +132,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   }, [query, grouped]);
 
   const renderServiceCard = (service: Service) => {
-    const iconConfig = serviceIconMap[service.id] || { icon: 'construct', color: '#e5e7eb', cardBg: '#f3f4f6' } as any;
+    const iconConfig = serviceIconMap[service.id] || { icon: 'construct', color: colors.greyLight, cardBg: colors.surface } as any;
     return (
       <TouchableOpacity
         key={service.id}
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
     borderBottomColor: colors.greyLight,
   },
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   notificationBadgeText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 10,
     fontWeight: '700',
   },
@@ -276,10 +276,10 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderWidth: 2,
     borderColor: colors.primary, // approx primary/30 look
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: radius.md,
     // subtle shadow like shadow-sm
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOpacity: 0.05,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 16, // text-base
     fontWeight: '700',
-    color: '#374151', // text-gray-800
+    color: colors.dark, // text-gray-800
     marginBottom: spacing.sm,
   },
 
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     alignItems: 'center',
     // subtle shadow like hover/border emphasis
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOpacity: 0.05,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },

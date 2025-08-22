@@ -1,3 +1,5 @@
+import { colors } from '../theme';
+
 export interface LanguageOption {
   color: string | undefined;
   icon: string;
@@ -8,12 +10,12 @@ export interface LanguageOption {
 }
 
 export const languages: LanguageOption[] = [
-  { code: 'en', label: 'English', nativeLabel: 'English', color: '#ADD8E6', icon: 'E', subLabel: 'EN' },
+  { code: 'en', label: 'English', nativeLabel: 'English', color: colors.infoLight, icon: 'E', subLabel: 'EN' },
   { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी', color: '#FFCC80', icon: 'ह', subLabel: 'HI' },
   { code: 'gu', label: 'Gujarati', nativeLabel: 'ગુજરાતી', color: '#C8E6C9', icon: 'ગ', subLabel: 'GU' },
   { code: 'mr', label: 'Marathi', nativeLabel: 'मराठी', color: '#D1C4E9', icon: 'म', subLabel: 'MR' },
   { code: 'ta', label: 'Tamil', nativeLabel: 'தமிழ்', color: '#FFCDD2', icon: 'த', subLabel: 'TA' },
-  { code: 'te', label: 'Telugu', nativeLabel: 'తెలుగు', color: '#BBDEFB', icon: 'త', subLabel: 'TE' },
+  { code: 'te', label: 'Telugu', nativeLabel: 'తెలుగు', color: colors.primaryLight, icon: 'త', subLabel: 'TE' },
   { code: 'kn', label: 'Kannada', nativeLabel: 'ಕನ್ನಡ', color: '#FFF9C4', icon: 'ಕ', subLabel: 'KN' },
 ];
 

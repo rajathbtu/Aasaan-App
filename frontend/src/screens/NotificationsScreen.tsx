@@ -139,7 +139,7 @@ const NotificationsScreen: React.FC = () => {
           <View style={styles.cardHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
               <View style={[styles.iconCircle, { backgroundColor: accent }]}> 
-                <Ionicons name={iconName} size={14} color={'#fff'} />
+                <Ionicons name={iconName} size={14} color={colors.white} />
               </View>
               <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
             </View>
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.greyLight,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   colourBar: {
     width: 4,
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 12,
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
   },
   emptyText: {

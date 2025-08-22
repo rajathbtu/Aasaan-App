@@ -126,8 +126,8 @@ const WorkRequestDetailsScreen: React.FC = () => {
             <Ionicons name="flash" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
             <Text style={styles.summaryLabel}>{request.service}</Text>
             {request.status !== undefined && (
-              <View style={[styles.statusBadge, { backgroundColor: isActive ? '#d1fae5' : colors.greyLight }]}> 
-                <Text style={[styles.statusBadgeText, { color: isActive ? '#10b981' : colors.dark }]}>{isActive ? t('requestDetails.statusActive') : (request.status as any)}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: isActive ? colors.successLight : colors.greyLight }]}> 
+                <Text style={[styles.statusBadgeText, { color: isActive ? colors.success : colors.dark }]}>{isActive ? t('requestDetails.statusActive') : (request.status as any)}</Text>
               </View>
             )}
           </View>
@@ -154,7 +154,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
         {!isCompleted && (
           <View style={styles.actionButtonsRow}>
             <TouchableOpacity style={styles.boostButton} onPress={handleBoost}>
-              <Ionicons name="flash" size={16} color={'#fff'} style={{ marginRight: spacing.sm }} />
+              <Ionicons name="flash" size={16} color={colors.white} style={{ marginRight: spacing.sm }} />
               <Text style={styles.boostButtonText}>{t('requestDetails.boost')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
@@ -233,13 +233,13 @@ const WorkRequestDetailsScreen: React.FC = () => {
                   <Ionicons name="construct" size={18} color={colors.primary} />
                 </View>
                 <View>
-                  <Text style={{ fontWeight: '600', color: '#111827' }}>{request.service}</Text>
-                  <Text style={{ fontSize: 12, color: '#6b7280' }}>{timeAgo(request.createdAt)}</Text>
+                  <Text style={{ fontWeight: '600', color: colors.dark }}>{request.service}</Text>
+                  <Text style={{ fontSize: 12, color: colors.grey }}>{timeAgo(request.createdAt)}</Text>
                 </View>
               </View>
               <View style={{ marginTop: spacing.sm }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                  <Ionicons name="location" size={14} color={'#6b7280'} style={{ marginRight: 6 }} />
+                  <Ionicons name="location" size={14} color={colors.grey} style={{ marginRight: 6 }} />
                   <Text style={{ fontSize: 12, color: '#4b5563' }} numberOfLines={2}>
                     {request.location?.name || t('userRequests.locationFallback')}
                   </Text>
@@ -271,18 +271,18 @@ const WorkRequestDetailsScreen: React.FC = () => {
                           <Text style={{ fontWeight: '700', color: '#1e3a8a' }}>{String(name).charAt(0).toUpperCase()}</Text>
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={{ fontWeight: '600', color: '#111827' }}>{name}</Text>
-                          <Text style={{ fontSize: 12, color: '#6b7280' }}>{t('requestDetails.acceptedRecently')}</Text>
+                          <Text style={{ fontWeight: '600', color: colors.dark }}>{name}</Text>
+                          <Text style={{ fontSize: 12, color: colors.grey }}>{t('requestDetails.acceptedRecently')}</Text>
                         </View>
-                        <Ionicons name={isSelected ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={isSelected ? colors.primary : '#d1d5db'} />
+                        <Ionicons name={isSelected ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={isSelected ? colors.primary : colors.greyBorder} />
                       </View>
                       {isSelected && (
                         <View style={styles.ratingSection}>
-                          <Text style={{ textAlign: 'center', color: '#111827', fontWeight: '600', marginBottom: spacing.sm }}>{t('requestDetails.ratePrompt')}</Text>
+                          <Text style={{ textAlign: 'center', color: colors.dark, fontWeight: '600', marginBottom: spacing.sm }}>{t('requestDetails.ratePrompt')}</Text>
                           <View style={{ flexDirection: 'row', alignSelf: 'center' }}>
                             {[1,2,3,4,5].map(n => (
                               <TouchableOpacity key={n} onPress={() => setStars(n)} style={[styles.starBtn, n <= stars ? styles.starBtnActive : styles.starBtnInactive]}>
-                                <Ionicons name="star" size={16} color={n <= stars ? '#fff' : '#9ca3af'} />
+                                <Ionicons name="star" size={16} color={n <= stars ? colors.white : colors.greyMuted} />
                               </TouchableOpacity>
                             ))}
                           </View>
@@ -304,14 +304,14 @@ const WorkRequestDetailsScreen: React.FC = () => {
                 activeOpacity={0.8}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={[styles.modalAvatar, { backgroundColor: '#e5e7eb' }] }>
-                    <Ionicons name="help" size={16} color={'#6b7280'} />
+                  <View style={[styles.modalAvatar, { backgroundColor: colors.greyLight }] }>
+                    <Ionicons name="help" size={16} color={colors.grey} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: '600', color: '#374151' }}>{t('requestDetails.noneHelpedTitle')}</Text>
-                    <Text style={{ fontSize: 12, color: '#6b7280' }}>{t('requestDetails.noneHelpedSubtitle')}</Text>
+                    <Text style={{ fontWeight: '600', color: colors.dark }}>{t('requestDetails.noneHelpedTitle')}</Text>
+                    <Text style={{ fontSize: 12, color: colors.grey }}>{t('requestDetails.noneHelpedSubtitle')}</Text>
                   </View>
-                  <Ionicons name={selectedProviderId === 'none' ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={selectedProviderId === 'none' ? colors.primary : '#d1d5db'} />
+                  <Ionicons name={selectedProviderId === 'none' ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={selectedProviderId === 'none' ? colors.primary : colors.greyBorder} />
                 </View>
               </TouchableOpacity>
             </ScrollView>
@@ -319,10 +319,10 @@ const WorkRequestDetailsScreen: React.FC = () => {
             {/* Bottom actions */}
             <View style={{ flexDirection: 'row', marginTop: spacing.md }}>
               <TouchableOpacity style={[styles.bottomBtn, styles.bottomBtnOutline]} onPress={() => confirmClose(true)}>
-                <Text style={[styles.bottomBtnText, { color: '#374151' }]}>{t('requestDetails.skip')}</Text>
+                <Text style={[styles.bottomBtnText, { color: colors.dark }]}>{t('requestDetails.skip')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.bottomBtn, styles.bottomBtnPrimary]} onPress={() => confirmClose(false)}>
-                <Text style={[styles.bottomBtnText, { color: '#fff' }]}>{t('requestDetails.confirmClose')}</Text>
+                <Text style={[styles.bottomBtnText, { color: colors.white }]}>{t('requestDetails.confirmClose')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -345,10 +345,10 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     marginHorizontal: spacing.lg,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: radius.lg,
     padding: spacing.lg,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOpacity: 0.05,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: 14,
-    color: '#374151',
+    color: colors.dark,
   },
   tagsRow: {
     flexDirection: 'row',
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   },
   tagPillText: {
     fontSize: 12,
-    color: '#374151',
+    color: colors.dark,
   },
   actionButtonsRow: {
     flexDirection: 'row',
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   boostButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
   },
   closeButton: {
@@ -441,11 +441,11 @@ const styles = StyleSheet.create({
   providerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOpacity: 0.04,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#dbeafe',
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     marginRight: spacing.md,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.greyLight,
   },
   avatarImage: {
     width: '100%',
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.grey,
   },
   callButton: {
     flexDirection: 'row',
@@ -518,16 +518,16 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     padding: spacing.lg,
     maxHeight: '90%',
   },
   modalSummary: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: '#f3f4f6',
+    borderColor: colors.surface,
     borderRadius: 12,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -536,14 +536,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#e0f2fe',
+    backgroundColor: colors.infoLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.sm,
   },
   modalTag: {
-    backgroundColor: '#f3f4f6',
-    color: '#374151',
+    backgroundColor: colors.surface,
+    color: colors.dark,
     fontSize: 11,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   providerCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: spacing.md,
     marginBottom: spacing.sm,
@@ -560,17 +560,17 @@ const styles = StyleSheet.create({
   },
   providerCardSelected: {
     borderColor: colors.primary,
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.primaryLight,
   },
   providerCardUnselected: {
-    borderColor: '#e5e7eb',
-    backgroundColor: '#fff',
+    borderColor: colors.greyLight,
+    backgroundColor: colors.white,
   },
   modalAvatar: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#dbeafe',
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
   ratingSection: {
     marginTop: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: '#bfdbfe',
+    borderTopColor: colors.primaryBorder,
     paddingTop: spacing.md,
   },
   starBtn: {
@@ -593,11 +593,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#f59e0b',
   },
   starBtnInactive: {
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.greyLight,
   },
   ratingHint: {
     fontSize: 10,
-    color: '#6b7280',
+    color: colors.grey,
   },
   bottomBtn: {
     flex: 1,
@@ -607,9 +607,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bottomBtnOutline: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.greyLight,
     marginRight: spacing.sm,
   },
   bottomBtnPrimary: {

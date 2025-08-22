@@ -197,22 +197,22 @@ const SPWorkRequestsScreen: React.FC = () => {
     }
     // Determine icon and colour for the service
     const serviceIconMap: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-      electrician: { icon: 'flash', color: '#eef2ff' },
-      plumber: { icon: 'water', color: '#ecfdf5' },
+      electrician: { icon: 'flash', color: colors.primarySoft },
+      plumber: { icon: 'water', color: colors.successLight },
       cook: { icon: 'restaurant', color: '#dcfce7' },
       carpenter: { icon: 'hammer', color: '#fef2f2' },
       painter: { icon: 'color-palette', color: '#fffbeb' },
       maid: { icon: 'brush', color: '#fce7f3' },
-      cleaner: { icon: 'sparkles', color: '#e0f2fe' },
+      cleaner: { icon: 'sparkles', color: colors.infoLight },
     };
     const serviceKey = (item.service || '').toLowerCase().replace(/\s+/g, '');
-    const iconConfig = serviceIconMap[serviceKey] || { icon: 'briefcase', color: '#f3f4f6' };
+    const iconConfig = serviceIconMap[serviceKey] || { icon: 'briefcase', color: colors.surface };
     return (
       <View
         style={[
           styles.card,
           {
-            backgroundColor: accepted ? '#ecfdf5' : colors.light,
+            backgroundColor: accepted ? colors.successLight : colors.light,
             borderColor: accepted ? colors.success : colors.greyLight,
           },
         ]}
@@ -544,12 +544,12 @@ const styles = StyleSheet.create({
     bottom: spacing.xl,
     left: spacing.lg,
     right: spacing.lg,
-    backgroundColor: '#f5f3ff',
+    backgroundColor: colors.primarySoft,
     borderRadius: radius.lg,
     flexDirection: 'row',
     alignItems: 'center',
     padding: spacing.md,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -559,18 +559,18 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#ede9fe',
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   proTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6d28d9',
+    color: colors.primary,
   },
   proSubtitle: {
     fontSize: 12,
-    color: '#6d28d9',
+    color: colors.primary,
     marginTop: 2,
   },
   proPriceWrapper: {

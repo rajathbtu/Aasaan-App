@@ -13,30 +13,60 @@ export const colors = {
   accent: '#f97316',
   /** Neutral very light background colour. */
   light: '#f9fafb',
+  /** Slightly different neutral surface (e.g. cards) */
+  paper: '#f8fafc',
+  /** Surface background for chips, pills, subtle containers. */
+  surface: '#f3f4f6',
+  /** Pure white */
+  white: '#ffffff',
+  /** Pure black */
+  black: '#000000',
   /** Dark text colour for headings. */
   dark: '#1f2937',
   /** Medium grey for secondary text. */
   grey: '#6b7280',
+  /** Muted grey for placeholders and hints. */
+  greyMuted: '#9ca3af',
   /** Light grey for borders and backgrounds. */
   greyLight: '#e5e7eb',
+  /** Subtle border grey */
+  greyBorder: '#d1d5db',
+  /** Lighter primary tints for backgrounds */
+  primaryLight: '#dbeafe',
+  primarySoft: '#eef2ff',
+  /** Primary border/tint */
+  primaryBorder: '#bfdbfe',
+  /** Info/light blue background tint */
+  infoLight: '#e0f2fe',
   /** Error colour for destructive or negative actions. */
   error: '#ef4444',
   /** Warning/alert colour used occasionally. */
   warning: '#facc15',
   /** Success colour for completed tasks. */
   success: '#10b981',
+  /** Success light background tint */
+  successLight: '#d1fae5',
 };
 
 export const spacing = {
   xs: 4,
   sm: 8,
   md: 12,
+  /** Slightly larger than md, commonly used for 14px paddings */
+  mdPlus: 14,
   lg: 16,
   xl: 24,
+  xxl: 32,
 };
 
 export const radius = {
   sm: 6,
   md: 8,
   lg: 12,
+  xl: 16,
+};
+
+export const sizes = {
+  /** Right padding to accommodate input adornments (icons/spinners) */
+  inputRightPadding: 36,
 };

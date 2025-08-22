@@ -87,14 +87,14 @@ const WorkRequestsScreen: React.FC = () => {
     >
       <View style={styles.cardHeader}>
         <View style={styles.iconContainer}>
-          <Ionicons name="construct" size={24} color="#2563eb" />
+          <Ionicons name="construct" size={24} color={colors.primary} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.cardTitle}>{item.service}</Text>
           <Text style={styles.cardSubtitle}>{timeAgo(item.createdAt)}</Text>
         </View>
         <View style={styles.statusBadge}>
-          <Ionicons name={item.status === 'closed' ? 'checkmark-circle' : 'ellipse'} size={10} color={item.status === 'closed' ? '#10b981' : '#10b981'} style={{ marginRight: 4 }} />
+          <Ionicons name={item.status === 'closed' ? 'checkmark-circle' : 'ellipse'} size={10} color={colors.success} style={{ marginRight: 4 }} />
           <Text style={styles.statusText}>{item.status === 'closed' ? t('userRequests.statusCompleted') : t('userRequests.statusActive')}</Text>
         </View>
       </View>
@@ -115,7 +115,7 @@ const WorkRequestsScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -174,7 +174,7 @@ const WorkRequestsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.light,
   },
   loadingContainer: {
     flex: 1,
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
   },
   filterTabs: {
     flexDirection: 'row',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.surface,
     margin: 16,
     borderRadius: 12,
     overflow: 'hidden',
@@ -195,17 +195,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeTab: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.white,
     borderBottomWidth: 2,
-    borderBottomColor: '#2563eb',
+    borderBottomColor: colors.primary,
   },
   filterTabText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.grey,
     marginRight: 8,
   },
   activeTabText: {
-    color: '#2563eb',
+    color: colors.primary,
     fontWeight: '600',
   },
   countBadge: {
@@ -214,28 +214,28 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   countBadgeActive: {
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
   },
   countBadgeInactive: {
-    backgroundColor: '#d1d5db',
+    backgroundColor: colors.greyBorder,
   },
   countBadgeText: {
     fontSize: 12,
-    color: '#374151',
+    color: colors.dark,
   },
   countBadgeTextActive: {
-    color: '#ffffff',
+    color: colors.white,
     fontWeight: '700',
   },
   requestCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.white,
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#f3f4f6',
-    shadowColor: '#000',
+    borderColor: colors.surface,
+    shadowColor: colors.black,
     shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 48,
     height: 48,
-    backgroundColor: '#e0f2fe',
+    backgroundColor: colors.infoLight,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -258,23 +258,23 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.dark,
   },
   cardSubtitle: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.grey,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#d1fae5',
+    backgroundColor: colors.successLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   statusText: {
     fontSize: 12,
-    color: '#10b981',
+    color: colors.success,
     fontWeight: '600',
   },
   cardBody: {
@@ -292,8 +292,8 @@ const styles = StyleSheet.create({
     gap: 6 as any,
   },
   tag: {
-    backgroundColor: '#f3f4f6',
-    color: '#374151',
+    backgroundColor: colors.surface,
+    color: colors.dark,
     fontSize: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -306,13 +306,13 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   actionButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.primary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   actionButtonText: {
-    color: '#ffffff',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.grey,
   },
 });
 

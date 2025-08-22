@@ -107,7 +107,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
           </View>
           <View style={styles.serviceCard}>
             <View style={styles.serviceIconContainer}>
-              <Ionicons name="flash" size={20} color="#fff" />
+              <Ionicons name="flash" size={20} color={colors.white} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.serviceName}>{service.name}</Text>
@@ -159,7 +159,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
                   <TouchableOpacity key={tag} style={[styles.tagChip, selected && styles.tagChipSelected]} onPress={() => toggleTag(tag)}>
                     <Text style={[styles.tagText, selected && styles.tagTextSelected]}>
                       {tag}
-                      {selected && <Ionicons name="checkmark" size={12} color="#fff" />}
+                      {selected && <Ionicons name="checkmark" size={12} color={colors.white} />}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -170,7 +170,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
 
         <View style={styles.actionsSection}>
           <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
-            <Ionicons name="checkmark" size={18} color="#fff" style={{ marginRight: spacing.sm }} />
+            <Ionicons name="checkmark" size={18} color={colors.white} style={{ marginRight: spacing.sm }} />
             <Text style={styles.confirmButtonText}>{t('createRequest.addDetails.confirmButton')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   notificationBadgeText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   serviceCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.primarySoft,
     padding: spacing.md,
     borderRadius: radius.md,
   },
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   locationCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.greyLight,
     borderRadius: radius.md,
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.greyLight,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     marginRight: spacing.sm,
     marginBottom: spacing.sm,
   },
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     color: colors.dark,
   },
   tagTextSelected: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '600',
   },
   actionsSection: {
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   confirmButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },

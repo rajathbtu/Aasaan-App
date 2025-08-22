@@ -60,7 +60,7 @@ const Header: React.FC<HeaderProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: colors.light,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   notificationBadgeText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 12,
     fontWeight: '600',
   },

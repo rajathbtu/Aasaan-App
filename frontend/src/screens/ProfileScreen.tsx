@@ -151,7 +151,7 @@ const ProfileScreen: React.FC = () => {
   const canGoBack = navigation.canGoBack?.() ?? false;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+    <View style={{ flex: 1, backgroundColor: colors.white }}>
       <Header title={t('profile.header')} showBackButton={false} showNotification={false} 
         customRightComponent={
             <TouchableOpacity onPress={onSave} disabled={!canSave} style={[styles.saveBtn, !canSave && { opacity: 0.5 }]}>
@@ -169,7 +169,7 @@ const ProfileScreen: React.FC = () => {
                 <Image source={{ uri: user.avatarUrl }} style={{ width: '100%', height: '100%' }} />
               ) : (
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name="person" size={56} color={'#9ca3af'} />
+                  <Ionicons name="person" size={56} color={colors.greyMuted} />
                 </View>
               )}
             </View>
@@ -182,7 +182,7 @@ const ProfileScreen: React.FC = () => {
                 ], 'plain-text');
               }}
             >
-              <Ionicons name="camera" size={14} color={'#fff'} />
+              <Ionicons name="camera" size={14} color={colors.white} />
             </TouchableOpacity>
           </View>
           <Text style={styles.photoNote}>{t('profile.tapToChangePhoto')}</Text>
@@ -202,12 +202,12 @@ const ProfileScreen: React.FC = () => {
                   value={name}
                   onChangeText={setName}
                   placeholder={t('profile.yourName')}
-                  placeholderTextColor={'#9ca3af'}
+                  placeholderTextColor={colors.greyMuted}
                 />
               ) : (
                 <Text style={styles.infoValue}>{user.name}</Text>
               )}
-              <Ionicons name="pencil" size={14} color={editing ? colors.primary : '#9ca3af'} />
+              <Ionicons name="pencil" size={14} color={editing ? colors.primary : colors.greyMuted} />
             </TouchableOpacity>
           </View>
 
@@ -216,7 +216,7 @@ const ProfileScreen: React.FC = () => {
             <Text style={styles.fieldLabel}>{t('profile.mobileNumber')}</Text>
             <TouchableOpacity onPress={() => Alert.alert(t('common.notEditable'), t('profile.phoneNotEditable'))} style={styles.infoCell} activeOpacity={1}>
               <Text style={styles.infoValue}>{user?.phoneNumber || user?.phone || ''}</Text>
-              <Ionicons name="pencil" size={14} color={'#9ca3af'} />
+              <Ionicons name="pencil" size={14} color={colors.greyMuted} />
             </TouchableOpacity>
           </View>
 
@@ -246,19 +246,19 @@ const ProfileScreen: React.FC = () => {
               style={[styles.roleCard, pendingRole === 'endUser' ? styles.roleCardSelected : styles.roleCardUnselected]}
               onPress={() => setPendingRole('endUser')}
             >
-              <View style={[styles.roleIconCircle, pendingRole === 'endUser' ? { backgroundColor: colors.primary } : { backgroundColor: '#e5e7eb' }]}>
-                <Ionicons name="search" size={18} color={pendingRole === 'endUser' ? '#fff' : '#6b7280'} />
+              <View style={[styles.roleIconCircle, pendingRole === 'endUser' ? { backgroundColor: colors.primary } : { backgroundColor: colors.greyLight }]}>
+                <Ionicons name="search" size={18} color={pendingRole === 'endUser' ? colors.white : colors.grey} />
               </View>
-              <Text style={[styles.roleText, pendingRole === 'endUser' ? { color: colors.primary } : { color: '#6b7280' }]}>{t('profile.roleEndUser')}</Text>
+              <Text style={[styles.roleText, pendingRole === 'endUser' ? { color: colors.primary } : { color: colors.grey }]}>{t('profile.roleEndUser')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.roleCard, pendingRole === 'serviceProvider' ? styles.roleCardSelected : styles.roleCardUnselected]}
               onPress={() => setPendingRole('serviceProvider')}
             >
-              <View style={[styles.roleIconCircle, { backgroundColor: '#e5e7eb' }]}>
-                <Ionicons name="briefcase" size={18} color={'#6b7280'} />
+              <View style={[styles.roleIconCircle, { backgroundColor: colors.greyLight }]}>
+                <Ionicons name="briefcase" size={18} color={colors.grey} />
               </View>
-              <Text style={[styles.roleText, { color: '#6b7280' }]}>{t('profile.roleServiceProvider')}</Text>
+              <Text style={[styles.roleText, { color: colors.grey }]}>{t('profile.roleServiceProvider')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -280,7 +280,7 @@ const ProfileScreen: React.FC = () => {
                       </View>
                     ))
                   ) : (
-                    <Text style={{ fontSize: 12, color: '#6b7280' }}>{t('profile.noServices')}</Text>
+                    <Text style={{ fontSize: 12, color: colors.grey }}>{t('profile.noServices')}</Text>
                   )}
                 </View>
                 <TouchableOpacity
@@ -293,7 +293,7 @@ const ProfileScreen: React.FC = () => {
                   }
                   style={styles.addServiceFullButton}
                 >
-                  <Ionicons name="add" size={16} color={'#fff'} style={{ marginRight: spacing.xs }} />
+                  <Ionicons name="add" size={16} color={colors.white} style={{ marginRight: spacing.xs }} />
                   <Text style={styles.addServiceFullText}>{t('profile.addService')}</Text>
                 </TouchableOpacity>
               </View>
@@ -329,7 +329,7 @@ const ProfileScreen: React.FC = () => {
                       style={[styles.radiusCell, selected ? styles.radiusCellSelected : styles.radiusCellUnselected]}
                       onPress={() => setPendingRadius(r)}
                     >
-                      <Text style={[styles.radiusCellText, selected ? { color: colors.primary, fontWeight: '700' } : { color: '#6b7280' }]}>
+                      <Text style={[styles.radiusCellText, selected ? { color: colors.primary, fontWeight: '700' } : { color: colors.grey }]}>
                         {r} km
                       </Text>
                     </TouchableOpacity>
@@ -345,10 +345,10 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>{t('profile.additionalSettings')}</Text>
           <View style={styles.settingRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="moon" size={16} color={'#6b7280'} style={{ marginRight: spacing.sm }} />
+              <Ionicons name="moon" size={16} color={colors.grey} style={{ marginRight: spacing.sm }} />
               <Text style={{ fontSize: 14, color: colors.dark }}>{t('profile.darkMode')}</Text>
             </View>
-            <Switch value={darkMode} onValueChange={setDarkMode} thumbColor={darkMode ? colors.primary : '#fff'} trackColor={{ true: '#bfdbfe', false: '#e5e7eb' }} />
+            <Switch value={darkMode} onValueChange={setDarkMode} thumbColor={darkMode ? colors.primary : colors.white} trackColor={{ true: colors.primaryBorder, false: colors.greyLight }} />
           </View>
         </View>
 
@@ -357,7 +357,7 @@ const ProfileScreen: React.FC = () => {
           <View style={styles.proCard}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
               <View style={styles.proIconCircle}>
-                <Ionicons name="trophy" size={16} color={'#fff'} />
+                <Ionicons name="trophy" size={16} color={colors.white} />
               </View>
               <View style={{ marginLeft: spacing.sm }}>
                 <Text style={styles.proTitle}>{t('profile.upgradeTitle')}</Text>
@@ -419,11 +419,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.light,
   },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.greyLight,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   saveBtnText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -458,10 +458,10 @@ const styles = StyleSheet.create({
     width: 96,
     borderRadius: 48,
     overflow: 'hidden',
-    backgroundColor: '#e5e7eb',
+    backgroundColor: colors.greyLight,
     borderWidth: 4,
-    borderColor: '#fff',
-    shadowColor: '#000',
+    borderColor: colors.white,
+    shadowColor: colors.black,
     shadowOpacity: 0.1,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
@@ -473,14 +473,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 999,
     padding: 8,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOpacity: 0.15,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
   },
   photoNote: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.grey,
   },
   section: {
     paddingHorizontal: spacing.lg,
@@ -495,16 +495,16 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6b7280',
+    color: colors.grey,
     marginBottom: spacing.xs,
   },
   infoCell: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.light,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.greyLight,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   infoValue: {
-    color: '#111827',
+    color: colors.dark,
     fontSize: 14,
     flex: 1,
     marginRight: spacing.sm,
@@ -537,11 +537,11 @@ const styles = StyleSheet.create({
   },
   roleCardSelected: {
     borderColor: colors.primary,
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.primaryLight,
   },
   roleCardUnselected: {
-    borderColor: '#e5e7eb',
-    backgroundColor: '#fff',
+    borderColor: colors.greyLight,
+    backgroundColor: colors.white,
   },
   roleIconCircle: {
     borderRadius: 999,
@@ -554,9 +554,9 @@ const styles = StyleSheet.create({
   },
   servicesBox: {
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.greyLight,
     borderRadius: radius.md,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.light,
     padding: spacing.md,
   },
   servicesChipsRow: {
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   serviceChipTextWhite: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   addServiceFullText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -606,11 +606,11 @@ const styles = StyleSheet.create({
   },
   radiusCellSelected: {
     borderColor: colors.primary,
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.primaryLight,
   },
   radiusCellUnselected: {
-    borderColor: '#e5e7eb',
-    backgroundColor: '#fff',
+    borderColor: colors.greyLight,
+    backgroundColor: colors.white,
   },
   radiusCellText: {
     fontSize: 12,
@@ -619,17 +619,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.greyLight,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
   proCard: {
     borderWidth: 1,
-    borderColor: '#bfdbfe',
-    backgroundColor: '#eff6ff',
+    borderColor: colors.primaryBorder,
+    backgroundColor: colors.primaryLight,
     borderRadius: radius.md,
     padding: spacing.md,
   },
@@ -641,11 +641,11 @@ const styles = StyleSheet.create({
   proTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.dark,
   },
   proSubtitle: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.grey,
   },
   proFeatRow: {
     flexDirection: 'row',
@@ -654,11 +654,11 @@ const styles = StyleSheet.create({
   },
   proFeatText: {
     fontSize: 12,
-    color: '#374151',
+    color: colors.dark,
   },
   proPrice: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.grey,
   },
   proBtn: {
     backgroundColor: colors.primary,
@@ -667,7 +667,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   proBtnText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -684,15 +684,15 @@ const styles = StyleSheet.create({
   versionText: {
     textAlign: 'center',
     fontSize: 10,
-    color: '#9ca3af',
+    color: colors.greyMuted,
     marginVertical: spacing.lg,
   },
   headerActionRow: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: colors.greyLight,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',

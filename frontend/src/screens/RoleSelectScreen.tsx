@@ -66,7 +66,7 @@ const RoleSelectScreen: React.FC = () => {
         activeOpacity={0.9}
         style={[
           styles.card,
-          { borderColor: selected ? border : colors.greyLight, backgroundColor: selected ? `${tint}22` : '#fff' },
+          { borderColor: selected ? border : colors.greyLight, backgroundColor: selected ? `${tint}22` : colors.white },
         ]}
       >
         <View style={[styles.iconWrap, { backgroundColor: `${tint}22` }]}>
@@ -76,8 +76,8 @@ const RoleSelectScreen: React.FC = () => {
           <Text style={styles.cardTitle}>{title}</Text>
           <Text style={styles.cardDesc}>{desc}</Text>
         </View>
-        <View style={[styles.checkbox, { borderColor: selected ? border : colors.greyLight, backgroundColor: selected ? border : '#fff' }]}>
-          {selected && <Ionicons name="checkmark" size={16} color="#fff" />}
+        <View style={[styles.checkbox, { borderColor: selected ? border : colors.greyLight, backgroundColor: selected ? border : colors.white }]}>
+          {selected && <Ionicons name="checkmark" size={16} color={colors.white} />}
         </View>
       </TouchableOpacity>
     );
@@ -130,7 +130,7 @@ const RoleSelectScreen: React.FC = () => {
 
         {/* Motivation element */}
         <View style={styles.motivationBox}>
-          <View style={[styles.iconWrap, { backgroundColor: '#e8f0ff', marginRight: spacing.md }]}>
+          <View style={[styles.iconWrap, { backgroundColor: colors.primaryLight, marginRight: spacing.md }]}>
             <Ionicons name="people-outline" size={18} color={colors.primary} />
           </View>
           <Text style={styles.motivationText}>{t('roleSelect.motivation', { count: '10,000+' })}</Text>
@@ -144,12 +144,12 @@ const RoleSelectScreen: React.FC = () => {
           onPress={confirmSelection}
           style={[
             styles.confirmBtn,
-            { backgroundColor: !selectedRole || saving ? '#d1d5db' : colors.primary },
+            { backgroundColor: !selectedRole || saving ? colors.greyBorder : colors.primary },
           ]}
           activeOpacity={0.8}
         >
           {saving ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.white} />
           ) : (
             <Text style={styles.confirmText}>{t('roleSelect.confirmButton')}</Text>
           )}
@@ -179,8 +179,8 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: radius.lg,
     borderWidth: 2,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
+    backgroundColor: colors.white,
+    shadowColor: colors.black,
     shadowOpacity: 0.05,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
@@ -215,8 +215,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#eef2ff',
-    backgroundColor: '#f8fafc',
+    borderColor: colors.primarySoft,
+    backgroundColor: colors.paper,
     padding: spacing.md,
     borderRadius: radius.md,
   },
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     padding: spacing.lg,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.greyLight,
   },
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   confirmText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.surface,
     borderRadius: radius.lg,
     gap: 6,
   },

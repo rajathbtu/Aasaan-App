@@ -81,7 +81,7 @@ const SPSelectLocationScreen: React.FC = () => {
       <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}>
         {/* Heading */}
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm, backgroundColor: '#fff' }}>
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm, backgroundColor: colors.white }}>
           <Text style={styles.pageTitle}>{t('sp.selectLocation.heading') || 'Set your service area'}</Text>
           <Text style={styles.subtitle}>{t('sp.selectLocation.subheading') || 'You will receive work requests near this location'}</Text>
         </View>
@@ -160,7 +160,7 @@ const SPSelectLocationScreen: React.FC = () => {
       {/* Sticky save CTA */}
       <View style={[styles.bottomCta, { paddingBottom: insets.bottom + spacing.sm }] }>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Ionicons name="checkmark" size={18} color="#fff" style={{ marginRight: spacing.xs }} />
+          <Ionicons name="checkmark" size={18} color={colors.white} style={{ marginRight: spacing.xs }} />
           <Text style={styles.saveText}>{t('sp.selectLocation.saveButton')}</Text>
         </TouchableOpacity>
       </View>
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.grey,
   },
   sectionTitle: {
     fontSize: 16,
@@ -194,23 +194,23 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   stepDotText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 12,
     fontWeight: '700',
   },
   locationCard: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.greyLight,
     borderRadius: radius.md,
     padding: spacing.md,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOpacity: 0.05,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
   },
   locIconCircle: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: colors.primaryLight,
     borderRadius: 999,
     padding: 8,
     marginRight: spacing.sm,
@@ -219,14 +219,14 @@ const styles = StyleSheet.create({
   locationName: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
+    color: colors.dark,
   },
   locationNote: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.grey,
   },
   changeBtn: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.primaryLight,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.md,
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   },
   radiusQuestion: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.grey,
     marginBottom: spacing.sm,
   },
   radiusGrid: {
@@ -255,8 +255,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   radiusCellInactive: {
-    backgroundColor: '#fff',
-    borderColor: '#d1d5db',
+    backgroundColor: colors.white,
+    borderColor: colors.greyBorder,
   },
   radiusCellActive: {
     backgroundColor: colors.primary,
@@ -264,11 +264,11 @@ const styles = StyleSheet.create({
   },
   radiusCellText: {
     fontSize: 16,
-    color: '#1f2937',
+    color: colors.dark,
     fontWeight: '500',
   },
   radiusCellTextActive: {
-    color: '#fff',
+    color: colors.white,
     fontWeight: '700',
   },
   bottomCta: {
@@ -276,9 +276,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    borderTopColor: colors.greyLight,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
   },
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   saveText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },

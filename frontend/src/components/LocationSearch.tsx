@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
-import { colors } from '../theme';
+import { colors, spacing, radius, sizes } from '../theme';
 
 const GOOGLE_PLACES_API_KEY = 'AIzaSyA38lonSYxTC6Ro6sBQB11Gg7IragTG2XU'; // Replace with your API key
 
@@ -107,7 +107,7 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
 
 const styles = StyleSheet.create({
   container: {
-    margin: 10,
+    margin: spacing.md,
   },
   inputWrap: {
     position: 'relative',
@@ -115,27 +115,29 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: colors.greyLight,
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 10,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
     color: colors.dark,
-    backgroundColor: '#fff',
-    paddingRight: 36,
+    backgroundColor: colors.white,
+    paddingRight: sizes.inputRightPadding,
   },
   rightAdornment: {
     position: 'absolute',
-    right: 10,
-    top: 10,
+    right: spacing.sm,
+    top: spacing.sm,
   },
   suggestionsContainer: {
     borderWidth: 1,
     borderColor: colors.greyLight,
-    borderRadius: 5,
+    borderRadius: radius.md,
     overflow: 'hidden',
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   suggestion: {
-    padding: 10,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.greyLight,
     color: colors.dark,

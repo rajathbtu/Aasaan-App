@@ -24,7 +24,7 @@ import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
-import { spacing } from '../theme';
+import { spacing, colors, radius } from '../theme';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -124,9 +124,9 @@ const MobileInputScreen: React.FC = () => {
           showNotification={false} 
           customRightComponent={
             <TouchableOpacity style={styles.langChip} activeOpacity={0.8} onPress={openLanguagePicker}>
-              <Icon name="globe" size={12} color="#374151" />
+              <Icon name="globe" size={12} color={colors.dark} />
               <Text style={styles.langChipText}>{getLanguageDisplay(language || 'en')}</Text>
-              <Icon name="chevron-down" size={10} color="#6b7280" />
+              <Icon name="chevron-down" size={10} color={colors.grey} />
             </TouchableOpacity>
           }
         />
@@ -140,7 +140,7 @@ const MobileInputScreen: React.FC = () => {
           {/* Illustration */}
           <View style={styles.illustrationWrap}>
             <View style={styles.illustrationBox}>
-              <Icon name="mobile" size={34} color="#2563eb" />
+              <Icon name="mobile" size={34} color={colors.primary} />
             </View>
           </View>
 
@@ -174,7 +174,7 @@ const MobileInputScreen: React.FC = () => {
                 value={phone}
                 maxLength={10}
                 onChangeText={(text) => setPhone(text.replace(/[^0-9]/g, ''))}
-                placeholderTextColor="#9ca3af"
+                placeholderTextColor={colors.greyMuted}
                 onBlur={handleBlur}
                 onFocus={handleFocus}
               />
@@ -182,7 +182,7 @@ const MobileInputScreen: React.FC = () => {
 
             {!isFocused && errorMessage !== '' && (
               <Text style={styles.errorText}>
-                <Icon name="exclamation-circle" size={12} color="#ef4444" /> {errorMessage}
+                <Icon name="exclamation-circle" size={12} color={colors.error} /> {errorMessage}
               </Text>
             )}
           </View>
@@ -201,18 +201,18 @@ const MobileInputScreen: React.FC = () => {
             activeOpacity={0.85}
           >
             {loading ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color={colors.white} />
             ) : (
               <>
                 <Text style={styles.ctaText}>{t('mobile.sendOtp')}</Text>
-                <Icon name="arrow-right" size={14} color="#ffffff" style={{ marginLeft: 8 }} />
+                <Icon name="arrow-right" size={14} color={colors.white} style={{ marginLeft: 8 }} />
               </>
             )}
           </TouchableOpacity>
 
           {/* Motivation */}
           <View style={styles.motivation}>
-            <Icon name="users" size={14} color="#2563eb" style={{ marginRight: 8 }} />
+            <Icon name="users" size={14} color={colors.primary} style={{ marginRight: 8 }} />
             <Text style={styles.motivationText}>
               {t('mobile.joinHint')}
             </Text>
@@ -222,20 +222,20 @@ const MobileInputScreen: React.FC = () => {
       {/* In-app WebView Modal */}
       <Modal visible={webOpen} animationType="slide" onRequestClose={() => setWebOpen(false)}>
         <SafeAreaProvider>
-          <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e7eb' }}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.greyLight }}>
               <TouchableOpacity onPress={() => setWebOpen(false)} style={{ padding: 8 }}>
-                <Icon name="close" size={18} color="#111827" />
+                <Icon name="close" size={18} color={colors.dark} />
               </TouchableOpacity>
-              <Text style={{ fontSize: 16, fontWeight: '600', marginLeft: 6, color: '#111827' }}>{webTitle}</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', marginLeft: 6, color: colors.dark }}>{webTitle}</Text>
             </View>
             <WebView 
-              style={{ flex: 1, backgroundColor: '#fff' }}
+              style={{ flex: 1, backgroundColor: colors.white }}
               source={{ uri: webUrl }}
               startInLoadingState={true}
               contentInsetAdjustmentBehavior="never"
               renderLoading={() => (
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' }}>
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}>
                   <ActivityIndicator size="large" />
                 </View>
               )} 
@@ -251,79 +251,79 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   safeArea: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.white,
   },
   scrollContent: {
-    paddingBottom: 24,
-    paddingHorizontal: 16,
-    backgroundColor: '#ffffff',
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.white,
   },
 
   // Header
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#ffffff',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
   headerTitle: {
-    marginLeft: 12,
+    marginLeft: spacing.md,
     fontSize: 18,
     fontWeight: '700',
-    color: '#2563eb',
+    color: colors.primary,
   },
   langChip: {
-    backgroundColor: '#f3f4f6',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
     flexDirection: 'row',
     alignItems: 'center',
   },
   langChipText: {
-    marginHorizontal: 6,
+    marginHorizontal: spacing.xs + 2,
     fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.dark,
   },
   divider: {
-    height: 1,
-    backgroundColor: '#e5e7eb',
-    marginBottom: 16,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.greyLight,
+    marginBottom: spacing.lg,
   },
 
   // Illustration
-  illustrationWrap: { alignItems: 'center', marginTop: 8, marginBottom: 24 },
+  illustrationWrap: { alignItems: 'center', marginTop: spacing.sm, marginBottom: spacing.xl },
   illustrationBox: {
     width: 96,
     height: 96,
-    backgroundColor: '#eff6ff',
-    borderRadius: 16,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   // Instructions
-  instructions: { alignItems: 'center', marginBottom: 16 },
-  welcome: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 4 },
-  instructionSub: { fontSize: 14, color: '#6b7280', textAlign: 'center' },
+  instructions: { alignItems: 'center', marginBottom: spacing.lg },
+  welcome: { fontSize: 20, fontWeight: '700', color: colors.dark, marginBottom: spacing.xs },
+  instructionSub: { fontSize: 14, color: colors.grey, textAlign: 'center' },
 
   // Input block
-  inputBlock: { marginTop: 8, marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 },
+  inputBlock: { marginTop: spacing.sm, marginBottom: spacing.lg },
+  label: { fontSize: 13, fontWeight: '600', color: colors.dark, marginBottom: spacing.sm },
   inputGroup: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#d1d5db',
-    borderRadius: 12,
+    borderColor: colors.greyBorder,
+    borderRadius: radius.lg,
     overflow: 'hidden',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.white,
     elevation: 1,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOpacity: 0.04,
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 2,
@@ -331,64 +331,64 @@ const styles = StyleSheet.create({
   ccBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
+    backgroundColor: colors.light,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
     borderRightWidth: 1,
-    borderRightColor: '#e5e7eb',
+    borderRightColor: colors.greyLight,
   },
-  flag: { width: 18, height: 12, marginRight: 8 },
-  ccText: { color: '#374151', fontWeight: '600' },
+  flag: { width: 18, height: 12, marginRight: spacing.sm },
+  ccText: { color: colors.dark, fontWeight: '600' },
 
   input: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
     fontSize: 16,
-    color: '#111827',
+    color: colors.dark,
   },
 
   errorText: {
-    color: '#ef4444',
+    color: colors.error,
     fontSize: 12,
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
 
   // Terms
   terms: {
     textAlign: 'center',
     fontSize: 12,
-    color: '#6b7280',
-    marginTop: 8,
-    marginBottom: 16,
+    color: colors.grey,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
   },
-  link: { color: '#2563eb', fontWeight: '600' },
+  link: { color: colors.primary, fontWeight: '600' },
 
   // CTA
   cta: {
     width: '100%',
-    backgroundColor: '#2563eb',
-    borderRadius: 12,
-    paddingVertical: 14,
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.mdPlus,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
-  ctaText: { color: '#ffffff', fontSize: 16, fontWeight: '600' },
+  ctaText: { color: colors.white, fontSize: 16, fontWeight: '600' },
 
   // Motivation
   motivation: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#eff6ff',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+    backgroundColor: colors.primarySoft,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
     alignSelf: 'stretch',
     justifyContent: 'center',
   },
-  motivationText: { color: '#374151', fontSize: 13 },
+  motivationText: { color: colors.dark, fontSize: 13 },
 });
 
 export default MobileInputScreen;

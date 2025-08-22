@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   primaryButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   summaryCard: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.primarySoft,
     padding: spacing.md,
     borderRadius: radius.md,
     marginHorizontal: spacing.lg,
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tagPill: {
-    backgroundColor: '#dbeafe',
+    backgroundColor: colors.primaryLight,
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
     borderRadius: radius.lg,
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   stepBadgeText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     color: colors.grey,
   },
   boostCard: {
-    backgroundColor: '#f0f9ff',
+    backgroundColor: colors.infoLight,
     padding: spacing.md,
     borderRadius: radius.md,
     marginHorizontal: spacing.lg,
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   boostButtonText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 14,
     fontWeight: '600',
   },

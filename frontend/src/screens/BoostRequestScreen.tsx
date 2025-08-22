@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     color: colors.dark,
   },
   summaryCard: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.primarySoft,
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.lg,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tagPill: {
-    backgroundColor: '#e0e7ff',
+    backgroundColor: colors.primaryLight,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radius.lg,
@@ -276,11 +276,11 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.sm,
-    backgroundColor: '#fff',
+    backgroundColor: colors.white,
   },
   optionCardSelected: {
     borderColor: colors.primary,
-    backgroundColor: '#eef2ff',
+    backgroundColor: colors.primarySoft,
   },
   optionRow: {
     flexDirection: 'row',
@@ -319,9 +319,9 @@ const styles = StyleSheet.create({
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.primarySoft,
     borderWidth: 1,
-    borderColor: '#bfdbfe',
+    borderColor: colors.primaryBorder,
     borderRadius: radius.md,
     padding: spacing.sm,
     marginBottom: spacing.lg,
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   ctaText: {
-    color: '#fff',
+    color: colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
