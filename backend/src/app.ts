@@ -13,7 +13,10 @@ import { errorHandler } from './middleware/errorHandler';
 const app = express();
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'development' ? 'http://192.168.29.8:19006' : '*',
+  credentials: true,
+}));
 app.use(express.json());
 
 // Routes
