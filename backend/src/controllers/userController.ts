@@ -2,21 +2,24 @@ import { Request, Response } from 'express';
 import { isValidName, isValidRadius } from '../utils/validation';
 import prisma from '../utils/prisma';
 import { Role } from '../models/User';
+import { getReqLang, t } from '../utils/i18n';
 
 export async function getProfile(req: Request, res: Response): Promise<void> {
   const authUser = (req as any).user as { id: string };
+  const lang = getReqLang(req);
   try {
     const user = await prisma.user.findUnique({ where: { id: authUser.id } });
-    if (!user) { res.status(404).json({ message: 'Not found' }); return; }
+    if (!user) { res.status(404).json({ message: t(lang, 'user.notFound') }); return; }
     const sp = await prisma.serviceProviderInfo.findUnique({ where: { userId: user.id }, include: { location: true } }).catch(() => null);
     res.json({ ...user, role: user.role ?? null, serviceProviderInfo: sp || null });
   } catch {
-    res.status(500).json({ message: 'Profile fetch failed' });
+    res.status(500).json({ message: t(lang, 'user.profileFetchFailed') });
   }
 }
 
 export async function updateProfile(req: Request, res: Response): Promise<void> {
   const authUser = (req as any).user as { id: string };
+  const lang = getReqLang(req);
   const { name, language, role, services, location, radius, plan, avatarUrl } = req.body as {
     name?: string;
     language?: string;
@@ -30,30 +33,30 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
 
   const data: any = {};
   if (name !== undefined) {
-    if (!isValidName(name)) { res.status(400).json({ message: 'Invalid name' }); return; }
+    if (!isValidName(name)) { res.status(400).json({ message: t(lang, 'auth.invalidName') }); return; }
     data.name = name.trim();
   }
   if (language !== undefined) data.language = language;
   if (plan !== undefined) data.plan = plan;
   if (role !== undefined) data.role = role;
   if (avatarUrl !== undefined) {
-    if (avatarUrl !== null && typeof avatarUrl !== 'string') { res.status(400).json({ message: 'Invalid avatarUrl' }); return; }
+    if (avatarUrl !== null && typeof avatarUrl !== 'string') { res.status(400).json({ message: t(lang, 'user.invalidAvatarUrl') }); return; }
     data.avatarUrl = avatarUrl;
   }
 
   // Validate services if provided
   if (services !== undefined) {
     if (!Array.isArray(services) || services.length === 0 || services.some(s => typeof s !== 'string' || !s.trim())) {
-      res.status(400).json({ message: 'Services must be a non-empty string array' }); return; }
+      res.status(400).json({ message: t(lang, 'user.invalidServicesArray') }); return; }
   }
   // Validate radius if provided
   if (radius !== undefined) {
-    if (typeof radius !== 'number' || !isValidRadius(radius)) { res.status(400).json({ message: 'Invalid radius value' }); return; }
+    if (typeof radius !== 'number' || !isValidRadius(radius)) { res.status(400).json({ message: t(lang, 'user.invalidRadius') }); return; }
   }
   // Validate location shape if provided and not null
   if (location !== undefined && location !== null) {
     if (typeof location.name !== 'string' || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
-      res.status(400).json({ message: 'Invalid location' }); return; }
+      res.status(400).json({ message: t(lang, 'user.invalidLocation') }); return; }
   }
 
   let spUpdate: any | undefined;
@@ -91,6 +94,6 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     const sp = await (prisma as any).serviceProviderInfo.findUnique({ where: { userId: updated.id }, include: { location: true } }).catch(() => null);
     res.json({ ...updated, serviceProviderInfo: sp || null });
   } catch (e) {
-    res.status(500).json({ message: 'Update failed' });
+    res.status(500).json({ message: t(lang, 'user.updateFailed') });
   }
 }

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
+import { getReqLang, t } from '../utils/i18n';
 
 // Default services to seed when DB is empty
 const defaultServices: Array<{ id: string; name: string; category: string; tags: string[] }> = [
@@ -57,6 +58,7 @@ export async function listServices(req: Request, res: Response) {
     const items = await pAny.service.findMany({ orderBy: [{ category: 'asc' }, { name: 'asc' }] });
     res.json({ services: items, updatedAt: new Date().toISOString() });
   } catch (err: any) {
-    res.status(500).json({ message: 'Failed to fetch services', error: err.message });
+    const lang = getReqLang(req);
+    res.status(500).json({ message: t(lang, 'services.fetchFailed'), error: err.message });
   }
 }

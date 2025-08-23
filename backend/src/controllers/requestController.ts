@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { areValidTags } from '../utils/validation';
 import { pushNotification } from '../models/dataStore';
+import { getReqLang, t, notifyUser } from '../utils/i18n';
 
 const pAny: any = prisma;
 
@@ -72,15 +73,16 @@ async function buildFullWorkRequest(id: string): Promise<FullWorkRequest | null>
  */
 export async function create(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
-  if (user.role !== 'endUser') { res.status(403).json({ message: 'Only end users can create work requests' }); return; }
+  const lang = getReqLang(req);
+  if (user.role !== 'endUser') { res.status(403).json({ message: t(lang, 'request.onlyEndUsersCreate') }); return; }
   const { service, location, tags } = req.body as any;
-  if (!service || typeof service !== 'string') { res.status(400).json({ message: 'Service is required' }); return; }
-  if (!location || typeof location.name !== 'string' || typeof location.lat !== 'number' || typeof location.lng !== 'number') { res.status(400).json({ message: 'Invalid location' }); return; }
-  if (tags && !areValidTags(tags)) { res.status(400).json({ message: 'Invalid tags' }); return; }
+  if (!service || typeof service !== 'string') { res.status(400).json({ message: t(lang, 'request.serviceRequired') }); return; }
+  if (!location || typeof location.name !== 'string' || typeof location.lat !== 'number' || typeof location.lng !== 'number') { res.status(400).json({ message: t(lang, 'user.invalidLocation') }); return; }
+  if (tags && !areValidTags(tags)) { res.status(400).json({ message: t(lang, 'request.invalidTags') }); return; }
   try {
     const since = new Date(Date.now() - 24*60*60*1000);
     const recent = await prisma.workRequest.count({ where: { userId: user.id, createdAt: { gt: since } } });
-    if (recent >= 3 && !req.body.force) { res.status(429).json({ message: 'Work request limit reached', code: 'LIMIT_EXCEEDED' }); return; }
+    if (recent >= 3 && !req.body.force) { res.status(429).json({ message: t(lang, 'request.limitReached'), code: 'LIMIT_EXCEEDED' }); return; }
     const loc = await pAny.location.create?.({ data: { name: location.name, lat: location.lat, lng: location.lng } });
     const wr = await pAny.workRequest.create({ data: { userId: user.id, service, locationId: loc?.id, tags: tags || [] } });
     // Notify eligible providers (service match + radius parity)
@@ -92,17 +94,18 @@ export async function create(req: Request, res: Response): Promise<void> {
         notify = d <= p.radius;
       }
       if (notify) {
-        await pushNotification({
-            userId: p.userId,
-            type: 'newRequest',
-            title: 'New Work Opportunity Nearby!',
-            message: `${user.name} is looking for your service. Don't miss out!`,
-            data: { requestId: wr.id }
+        await notifyUser({
+          userId: p.userId,
+          type: 'newRequest',
+          titleKey: 'notifications.newRequest.title',
+          messageKey: 'notifications.newRequest.message',
+          params: { name: user.name, service },
+          data: { requestId: wr.id }
         });
       }
     }
     res.status(201).json(wr);
-  } catch { res.status(500).json({ message: 'Create failed' }); }
+  } catch { res.status(500).json({ message: t(lang, 'request.createFailed') }); }
 }
 
 /**
@@ -159,19 +162,21 @@ export async function list(req: Request, res: Response): Promise<void> {
 export async function getById(req: Request, res: Response): Promise<void> {
   try {
     const user = (req as any).user;
+    const lang = getReqLang(req);
     const { id } = req.params;
     const wr = await pAny.workRequest.findUnique({ where: { id } });
-    if (!wr) { res.status(404).json({ message: 'Work request not found' }); return; }
-    if (user.role === 'endUser' && (wr as any).userId !== user.id) { res.status(403).json({ message: 'Not authorised' }); return; }
+    if (!wr) { res.status(404).json({ message: t(lang, 'request.notFound') }); return; }
+    if (user.role === 'endUser' && (wr as any).userId !== user.id) { res.status(403).json({ message: t(lang, 'request.notAuthorised') }); return; }
     if (user.role === 'serviceProvider') {
       const accepted = await pAny.acceptedProvider?.findFirst?.({ where: { workRequestId: id, providerId: user.id } });
-      if (!accepted) { res.status(403).json({ message: 'Not authorised' }); return; }
+      if (!accepted) { res.status(403).json({ message: t(lang, 'request.notAuthorised') }); return; }
     }
     const full = await buildFullWorkRequest(id);
     res.json(full);
   } catch (e) {
     console.error('getById error', e);
-    res.status(500).json({ message: 'Failed to fetch work request' });
+    const lang = getReqLang(req);
+    res.status(500).json({ message: t(lang, 'request.fetchFailed') });
   }
 }
 
@@ -182,27 +187,29 @@ export async function getById(req: Request, res: Response): Promise<void> {
  */
 export async function accept(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
-  if (user.role !== 'serviceProvider') { res.status(403).json({ message: 'Only service providers can accept requests' }); return; }
+  const lang = getReqLang(req);
+  if (user.role !== 'serviceProvider') { res.status(403).json({ message: t(lang, 'request.accept.onlyProviders') }); return; }
   const { id } = req.params;
   try {
     const providerInfo = await pAny.serviceProviderInfo?.findUnique?.({ where: { userId: user.id } });
-    if (!providerInfo) { res.status(400).json({ message: 'Provider profile incomplete' }); return; }
+    if (!providerInfo) { res.status(400).json({ message: t(lang, 'request.accept.providerProfileIncomplete') }); return; }
     const wr = await pAny.workRequest.findUnique({ where: { id } });
-    if (!wr) { res.status(404).json({ message: 'Work request not found' }); return; }
-    if (!providerInfo.services.includes((wr as any).service)) { res.status(403).json({ message: 'Not eligible for this request' }); return; }
+    if (!wr) { res.status(404).json({ message: t(lang, 'request.notFound') }); return; }
+    if (!providerInfo.services.includes((wr as any).service)) { res.status(403).json({ message: t(lang, 'request.accept.notEligible') }); return; }
     const already = await pAny.acceptedProvider?.findFirst?.({ where: { workRequestId: id, providerId: user.id } });
-    if (already) { res.status(409).json({ message: 'Already accepted' }); return; }
+    if (already) { res.status(409).json({ message: t(lang, 'request.accept.alreadyAccepted') }); return; }
     await pAny.acceptedProvider?.create?.({ data: { workRequestId: id, providerId: user.id } });
-    await pushNotification({
+    await notifyUser({
       userId: (wr as any).userId,
       type: 'requestAccepted',
-      title: 'Provider Accepted Your Request',
-      message: `${user.name} (${(wr as any).service}) has accepted your work request. You can now contact them directly.`,
+      titleKey: 'notifications.providerAccepted.title',
+      messageKey: 'notifications.providerAccepted.message',
+      params: { name: user.name, service: (wr as any).service },
       data: { requestId: (wr as any).id, providerId: user.id }
     });
     const full = await buildFullWorkRequest(id);
     res.json(full);
-  } catch { res.status(500).json({ message: 'Accept failed' }); }
+  } catch { res.status(500).json({ message: t(lang, 'request.accept.failed') }); }
 }
 
 /**
@@ -213,21 +220,22 @@ export async function accept(req: Request, res: Response): Promise<void> {
 export async function close(req: Request, res: Response): Promise<void> {
   try {
     const user = (req as any).user;
-    if (user.role !== 'endUser') { res.status(403).json({ message: 'Only end users can close requests' }); return; }
+    const lang = getReqLang(req);
+    if (user.role !== 'endUser') { res.status(403).json({ message: t(lang, 'request.close.onlyEndUsers') }); return; }
     const { id } = req.params;
     const { providerId, stars, review } = req.body as any;
     const wr = await pAny.workRequest.findFirst({ where: { id, userId: user.id } });
-    if (!wr) { res.status(404).json({ message: 'Work request not found' }); return; }
-    if ((wr as any).status === 'closed') { res.status(409).json({ message: 'Already closed' }); return; }
+    if (!wr) { res.status(404).json({ message: t(lang, 'request.notFound') }); return; }
+    if ((wr as any).status === 'closed') { res.status(409).json({ message: t(lang, 'request.close.alreadyClosed') }); return; }
 
     await pAny.workRequest.update({ where: { id }, data: { status: 'closed', closedAt: new Date() } });
 
     if (providerId && stars !== undefined) {
       const s = Number(stars);
-      if (!Number.isInteger(s) || s < 1 || s > 5) { res.status(400).json({ message: 'Invalid star rating (1-5)' }); return; }
+      if (!Number.isInteger(s) || s < 1 || s > 5) { res.status(400).json({ message: t(lang, 'request.close.invalidStarRating') }); return; }
       // Optional: ensure providerId actually accepted this request
       const accepted = await pAny.acceptedProvider.findFirst({ where: { workRequestId: id, providerId } });
-      if (!accepted) { res.status(400).json({ message: 'Selected provider did not accept this request' }); return; }
+      if (!accepted) { res.status(400).json({ message: t(lang, 'request.close.providerDidNotAccept') }); return; }
       try {
         await pAny.rating?.create?.({ data: { workRequestId: id, providerId, stars: s, review } });
       } catch (err) {
@@ -239,6 +247,7 @@ export async function close(req: Request, res: Response): Promise<void> {
     res.json(full);
   } catch (e) {
     console.error('close error', e);
-    res.status(500).json({ message: 'Close failed' });
+    const lang = getReqLang(req);
+    res.status(500).json({ message: t(lang, 'request.close.failed') });
   }
 }

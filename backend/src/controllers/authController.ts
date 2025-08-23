@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { isValidPhoneNumber, isValidName } from '../utils/validation';
 import { findUserByPhone, createUser } from '../models/dataStore';
 import { generateOTP } from '../models/dataStore';
+import { getReqLang, t } from '../utils/i18n';
 
 // In‑memory store for OTPs.  Keys are phone numbers, values are the
 // generated numeric codes.  In production you should send the OTP via
@@ -14,9 +15,10 @@ const pendingOtps: Map<string, number> = new Map();
  * displays a generic message and should not reveal the OTP to the end user.
  */
 export function sendOtp(req: Request, res: Response): void {
+  const lang = getReqLang(req);
   const { phone } = req.body as { phone: string };
   if (!phone || !isValidPhoneNumber(phone)) {
-    res.status(400).json({ message: 'Invalid phone number' });
+    res.status(400).json({ message: t(lang, 'auth.invalidPhone') });
     return;
   }
   // const otp = generateOTP();
@@ -24,7 +26,7 @@ export function sendOtp(req: Request, res: Response): void {
   pendingOtps.set(phone, otp);
   // In a real app you would send the OTP via SMS here
   console.log(`Generated OTP ${otp} for phone ${phone}`);
-  res.json({ message: 'OTP sent' });
+  res.json({ message: t(lang, 'auth.otpSent') });
 }
 
 /**
@@ -35,14 +37,15 @@ export function sendOtp(req: Request, res: Response): void {
  * after a successful verification.
  */
 export async function verifyOtp(req: Request, res: Response): Promise<void> {
+  const lang = getReqLang(req);
   const { phone, otp } = req.body as { phone: string; otp: number };
   if (!phone || !isValidPhoneNumber(phone)) {
-    res.status(400).json({ message: 'Invalid phone number' });
+    res.status(400).json({ message: t(lang, 'auth.invalidPhone') });
     return;
   }
   const expected = pendingOtps.get(phone);
   if (!expected || expected !== otp) {
-    res.status(401).json({ message: 'Incorrect OTP' });
+    res.status(401).json({ message: t(lang, 'auth.incorrectOtp') });
     return;
   }
   const existing = await findUserByPhone(phone);
@@ -62,6 +65,7 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
  * initial role.  The newly created user is returned along with a token.
  */
 export async function register(req: Request, res: Response): Promise<void> {
+  const lang = getReqLang(req);
   const { phone, name, language, role, otp } = req.body as {
     phone: string;
     name: string;
@@ -71,24 +75,24 @@ export async function register(req: Request, res: Response): Promise<void> {
   };
 
   if (!phone || !isValidPhoneNumber(phone)) {
-    res.status(400).json({ message: 'Invalid phone number' });
+    res.status(400).json({ message: t(lang, 'auth.invalidPhone') });
     return;
   }
 
   const expectedOtp = pendingOtps.get(phone);
   if (false && otp !== 8891 && (!expectedOtp || expectedOtp !== otp)) { // @todo: Remove harcoded OTP & harcoded false
-    res.status(401).json({ message: 'Incorrect OTP' });
+    res.status(401).json({ message: t(lang, 'auth.incorrectOtp') });
     return;
   }
 
   if (!name || !isValidName(name)) {
-    res.status(400).json({ message: 'Invalid name' });
+    res.status(400).json({ message: t(lang, 'auth.invalidName') });
     return;
   }
 
   const existing = await findUserByPhone(phone);
   if (existing) {
-    res.status(400).json({ message: 'User already exists' });
+    res.status(400).json({ message: t(lang, 'auth.userExists') });
     return;
   }
 
@@ -105,7 +109,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     res.json({ token: user.id, user });
   } catch (error) {
     console.error('Error registering user:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: t(lang, 'common.internalError') });
   }
 }
 
@@ -113,9 +117,10 @@ export async function register(req: Request, res: Response): Promise<void> {
  * Check if a user is already registered based on their phone number.
  */
 export async function checkUserRegistration(req: Request, res: Response): Promise<void> {
+  const lang = getReqLang(req);
   const { phone } = req.body as { phone: string };
   if (!phone || !isValidPhoneNumber(phone)) {
-    res.status(400).json({ message: 'Invalid phone number' });
+    res.status(400).json({ message: t(lang, 'auth.invalidPhone') });
     return;
   }
 
@@ -124,6 +129,6 @@ export async function checkUserRegistration(req: Request, res: Response): Promis
     res.json({ isRegistered: !!user });
   } catch (error) {
     console.error('Error checking user registration:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: t(lang, 'common.internalError') });
   }
 }

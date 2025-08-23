@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
+import { getReqLang, t } from '../utils/i18n';
 
 /**
  * Return all notifications for the authenticated user.  Clients may
@@ -16,7 +17,8 @@ export async function list(req: Request, res: Response): Promise<void> {
     });
     res.json(notifications);
   } catch {
-    res.status(500).json({ message: 'Failed to fetch notifications' });
+    const lang = getReqLang(req);
+    res.status(500).json({ message: t(lang, 'services.fetchFailed') });
   }
 }
 
@@ -30,6 +32,7 @@ export async function markAllRead(req: Request, res: Response): Promise<void> {
     const result = await prisma.notification.updateMany({ where: { userId: user.id, read: false }, data: { read: true } });
     res.json({ count: result.count });
   } catch {
-    res.status(500).json({ message: 'Failed to mark notifications read' });
+    const lang = getReqLang(req);
+    res.status(500).json({ message: t(lang, 'common.internalError') });
   }
 }
