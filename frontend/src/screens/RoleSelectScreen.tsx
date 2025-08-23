@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator, BackHandler } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
+import BottomCTA from '../components/BottomCTA';
 import { colors, spacing, radius } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
@@ -66,7 +67,7 @@ const RoleSelectScreen: React.FC = () => {
         activeOpacity={0.9}
         style={[
           styles.card,
-          { borderColor: selected ? border : colors.greyLight, backgroundColor: selected ? `${tint}22` : colors.white },
+          { borderColor: selected ? border : colors.greyLight },
         ]}
       >
         <View style={[styles.iconWrap, { backgroundColor: `${tint}22` }]}>
@@ -83,11 +84,28 @@ const RoleSelectScreen: React.FC = () => {
     );
   };
 
+  React.useEffect(() => {
+    const backHandler = () => {
+      return true; // Prevent app exit on back button press
+    };
+
+    const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
+      e.preventDefault(); // Disable going back
+    });
+
+    const backHandlerListener = BackHandler.addEventListener('hardwareBackPress', backHandler);
+
+    return () => {
+      unsubscribe();
+      backHandlerListener.remove();
+    };
+  }, [navigation]);
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header
-        title={'Aasaan'}
-        showBackButton={true}
+        title={'Choose your Role'}
+        showBackButton={false}
         showNotification={false}
         customRightComponent={
           <TouchableOpacity
@@ -130,32 +148,23 @@ const RoleSelectScreen: React.FC = () => {
 
         {/* Motivation element */}
         <View style={styles.motivationBox}>
-          <View style={[styles.iconWrap, { backgroundColor: colors.primaryLight, marginRight: spacing.md }]}>
-            <Ionicons name="people-outline" size={18} color={colors.primary} />
+          <View style={[styles.iconWrap, { backgroundColor: colors.primaryLight }]}>
+            <Ionicons name="people-outline" size={16} color={colors.primary} />
           </View>
           <Text style={styles.motivationText}>{t('roleSelect.motivation', { count: '10,000+' })}</Text>
         </View>
       </ScrollView>
 
       {/* Sticky bottom confirm CTA */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          disabled={!selectedRole || saving}
-          onPress={confirmSelection}
-          style={[
-            styles.confirmBtn,
-            { backgroundColor: !selectedRole || saving ? colors.greyBorder : colors.primary },
-          ]}
-          activeOpacity={0.8}
-        >
-          {saving ? (
-            <ActivityIndicator color={colors.white} />
-          ) : (
-            <Text style={styles.confirmText}>{t('roleSelect.confirmButton')}</Text>
-          )}
-        </TouchableOpacity>
-        <Text style={styles.noteText}>{t('roleSelect.changeRoleNote')}</Text>
-      </View>
+      <BottomCTA
+        isSticky={true}
+        noteText={t('roleSelect.changeRoleNote')}
+        buttonText={t('roleSelect.confirmButton')}
+        onPress={confirmSelection}
+        isLoading={saving}
+        isDisabled={!selectedRole || saving}
+        showArrow={!!selectedRole}
+      />
     </View>
   );
 };
@@ -248,6 +257,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   noteText: {
+    marginBottom: spacing.md,
     textAlign: 'center',
     fontSize: 12,
     color: colors.grey,

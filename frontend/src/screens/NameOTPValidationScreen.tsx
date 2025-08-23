@@ -119,14 +119,6 @@ const NameOTPValidationScreen: React.FC = () => {
 
           <View style={styles.separator} />
 
-          {/* Form header */}
-          <View style={styles.formHeader}>
-            <Text style={styles.formTitle}>{t('nameReg.title')}</Text>
-            <Text style={styles.formSub}>
-              {t('nameReg.subtitle')}
-            </Text>
-          </View>
-
           {/* Full name */}
           <View style={styles.block}>
             <Text style={styles.label}>
