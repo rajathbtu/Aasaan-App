@@ -132,26 +132,31 @@ export async function list(req: Request, res: Response): Promise<void> {
     return;
   }
   const providerInfo = await pAny.serviceProviderInfo?.findUnique?.({ where: { userId: user.id } });
-  if (!providerInfo) { res.json([]); return; }
+  console.log('SP Profile: ', user.id,  providerInfo);
+  if (!providerInfo) { res.status(400).json({ message: 'Provider profile not found.' }); return; }
   const services: string[] = providerInfo.services || [];
-  const active = await pAny.workRequest.findMany({ where: { status: 'active', service: { in: services } } });
+
   if (providerInfo.locationId && providerInfo.radius > 0) {
     const providerLoc = await pAny.location?.findUnique?.({ where: { id: providerInfo.locationId } });
     if (providerLoc) {
-      const locationIds = Array.from(new Set(active.map((r: any) => r.locationId).filter(Boolean)));
-      const locations = await pAny.location?.findMany?.({ where: { id: { in: locationIds } } }) || [];
-      const locMap = new Map(locations.map((l: any) => [l.id, l]));
-      const filtered = active.filter((r: any) => {
-        const loc: any = locMap.get(r.locationId);
-        if (!loc || typeof loc.lat !== 'number' || typeof loc.lng !== 'number') return false;
-        const d = distanceKm(providerLoc.lat, providerLoc.lng, loc.lat, loc.lng);
-        return d <= providerInfo.radius;
-      });
-      res.json(filtered);
+      const radiusInMeters = providerInfo.radius * 1000; // Convert km to meters
+      const filteredRequests = await prisma.$queryRaw`
+        SELECT wr.*
+        FROM "WorkRequest" wr
+        JOIN "Location" loc ON wr."locationId" = loc."id"
+        WHERE wr."status" = 'active'
+          AND wr."service" = ANY(${services})
+          AND ST_DistanceSphere(
+            ST_MakePoint(${providerLoc.lng}, ${providerLoc.lat}),
+            ST_MakePoint(loc."lng", loc."lat")
+          ) <= ${radiusInMeters};
+      `;
+      res.json(filteredRequests);
       return;
     }
   }
-  res.json(active);
+
+  res.status(400).json({ message: 'Location or radius not defined for the provider.' });
 }
 
 /**
