@@ -1,10 +1,10 @@
+import dotenv from 'dotenv';
+// Load environment variables from .env as early as possible
+dotenv.config();
+
 import http from 'http';
 import app from './app';
-import dotenv from 'dotenv';
 import { getLanIPv4Addresses, getLanAccessUrls } from './utils/network';
-
-// Load environment variables from .env if present
-dotenv.config();
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
