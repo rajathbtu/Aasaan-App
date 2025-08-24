@@ -77,15 +77,9 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
       const locName = selectedLocation.name || selectedLocation.description;
       const placeId = selectedLocation.place_id || selectedLocation.placeId;
       const wr: any = await API.createWorkRequest(token, {
-        service: service.name,
-        location: {
-          name: locName,
-          placeId,
-          lat: selectedLocation.lat,
-          lng: selectedLocation.lng,
-        },
+        service: service.id,
+        location: { name: locName, lat: selectedLocation.lat, lng: selectedLocation.lng, placeId },
         tags: selectedTags,
-        force: true,
       });
       navigation.navigate('WorkRequestCreated', { request: wr, locationName: locName });
     } catch (err: any) {

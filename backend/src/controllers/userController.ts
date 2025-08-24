@@ -44,21 +44,30 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     data.avatarUrl = avatarUrl;
   }
 
-  // Validate services if provided
+  // Ensure services, radius, and location are properly validated and handled
   if (services !== undefined) {
-    if (!Array.isArray(services) || services.length === 0 || services.some(s => typeof s !== 'string' || !s.trim())) {
-      res.status(400).json({ message: t(lang, 'user.invalidServicesArray') }); return; }
+    if (!Array.isArray(services) || services.some(s => typeof s !== 'string' || !s.trim())) {
+      res.status(400).json({ message: t(lang, 'user.invalidServicesArray') });
+      return;
+    }
   }
-  // Validate radius if provided
+
   if (radius !== undefined) {
     if (typeof radius !== 'number' || !isValidRadius(radius)) { res.status(400).json({ message: t(lang, 'user.invalidRadius') }); return; }
   }
-  // Validate location shape if provided and not null
-  if (location !== undefined && location !== null) {
-    if (typeof location.name !== 'string' || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
-      res.status(400).json({ message: t(lang, 'user.invalidLocation') }); return; }
+
+  if (location !== undefined) {
+    if (location === null) {
+      // Allow null to disconnect location
+    } else if (
+      typeof location.name !== 'string' || typeof location.lat !== 'number' || typeof location.lng !== 'number'
+    ) {
+      res.status(400).json({ message: t(lang, 'user.invalidLocation') });
+      return;
+    }
   }
 
+  // Ensure services, location, and radius are handled in ServiceProviderInfo via spUpdate
   let spUpdate: any | undefined;
   if (role === 'serviceProvider' || services !== undefined || location !== undefined || radius !== undefined) {
     spUpdate = {
@@ -71,16 +80,17 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
         update: {
           services: services !== undefined ? services : undefined,
           radius: radius !== undefined ? radius : undefined,
-          ...(location !== undefined
-            ? location === null
-              ? { location: { disconnect: true } }
-              : { location: {
-                    upsert: {
-                      create: { name: location.name, lat: location.lat, lng: location.lng },
-                      update: { name: location.name, lat: location.lat, lng: location.lng }
-                    }
-                  } }
-            : {}),
+          location:
+            location === null
+              ? { disconnect: true }
+              : location
+              ? {
+                  upsert: {
+                    create: { name: location.name, lat: location.lat, lng: location.lng },
+                    update: { name: location.name, lat: location.lat, lng: location.lng }
+                  }
+                }
+              : undefined,
         },
       },
     };
@@ -94,6 +104,7 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     const sp = await (prisma as any).serviceProviderInfo.findUnique({ where: { userId: updated.id }, include: { location: true } }).catch(() => null);
     res.json({ ...updated, serviceProviderInfo: sp || null });
   } catch (e) {
+    console.error('Error updating profile:', e);
     res.status(500).json({ message: t(lang, 'user.updateFailed') });
   }
 }

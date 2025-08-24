@@ -20,7 +20,7 @@ import * as Location from 'expo-location';
  */
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { user, updateUser, logout, setLanguage: setGlobalLanguage } = useAuth();
+  const { user, updateUser, logout, setLanguage: setGlobalLanguage, refreshUser } = useAuth();
   const { t, lang } = useI18n();
 
   // Shared services list to map ids -> display names
@@ -80,6 +80,13 @@ const ProfileScreen: React.FC = () => {
     setPendingLocation(user?.serviceProviderInfo?.location || null);
     setPendingRadius((user?.serviceProviderInfo?.radius as number | undefined) ?? 5);
   }, [user?.id, user?.name, user?.role]);
+
+  useEffect(() => {
+    (async () => {
+      await refreshUser();
+      console.log('User refreshed', user);
+    })();
+  }, []);
 
   const detectLocation = async () => {
     try {
