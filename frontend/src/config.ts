@@ -6,6 +6,17 @@
  * remotely you should update this value accordingly.
  */
 export const USE_MOCK_API = false;
-export const BASE_URL = process.env.NODE_ENV === 'development' ? 
-                    'http://192.168.29.8:3000' : 
-                    'https://aasaan-backend.onrender.com';
+
+import { resolveDevBaseUrl, logDevNetworkDebug } from './utils/network';
+
+const DEV_FALLBACK = 'http://192.168.1.13:3001'; // optional last-known IP; safe to change or remove
+const DEV_PORT = 3001;
+
+const resolvedBaseUrl = __DEV__
+  ? resolveDevBaseUrl(DEV_PORT, DEV_FALLBACK)
+  : 'https://aasaan-backend.onrender.com';
+
+// Log helpful info in development
+logDevNetworkDebug({ port: DEV_PORT, fallback: DEV_FALLBACK, resolved: resolvedBaseUrl });
+
+export const BASE_URL = resolvedBaseUrl;
