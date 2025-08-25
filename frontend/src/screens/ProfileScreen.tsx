@@ -360,45 +360,47 @@ const ProfileScreen: React.FC = () => {
         </View>
 
         {/* Professional Plans Promotion */}
-        <View style={styles.section}>
-          <View style={styles.proCard}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-              <View style={styles.proIconCircle}>
-                <Ionicons name="trophy" size={16} color={colors.white} />
+        {user.role === 'serviceProvider' && (
+          <View style={styles.section}>
+            <View style={styles.proCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
+                <View style={styles.proIconCircle}>
+                  <Ionicons name="trophy" size={16} color={colors.white} />
+                </View>
+                <View style={{ marginLeft: spacing.sm }}>
+                  <Text style={styles.proTitle}>{t('profile.upgradeTitle')}</Text>
+                  <Text style={styles.proSubtitle}>{t('profile.upgradeSubtitle')}</Text>
+                </View>
               </View>
-              <View style={{ marginLeft: spacing.sm }}>
-                <Text style={styles.proTitle}>{t('profile.upgradeTitle')}</Text>
-                <Text style={styles.proSubtitle}>{t('profile.upgradeSubtitle')}</Text>
-              </View>
-            </View>
 
-            <View style={{ marginBottom: spacing.sm }}>
-              <View style={styles.proFeatRow}>
-                <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
-                <Text style={styles.proFeatText}>{t('profile.featEarly')}</Text>
+              <View style={{ marginBottom: spacing.sm }}>
+                <View style={styles.proFeatRow}>
+                  <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
+                  <Text style={styles.proFeatText}>{t('profile.featEarly')}</Text>
+                </View>
+                <View style={styles.proFeatRow}>
+                  <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
+                  <Text style={styles.proFeatText}>{t('profile.featMultiLoc')}</Text>
+                </View>
+                <View style={styles.proFeatRow}>
+                  <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
+                  <Text style={styles.proFeatText}>{t('profile.featRadius')}</Text>
+                </View>
+                <View style={styles.proFeatRow}>
+                  <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
+                  <Text style={styles.proFeatText}>{t('profile.featPriority')}</Text>
+                </View>
               </View>
-              <View style={styles.proFeatRow}>
-                <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
-                <Text style={styles.proFeatText}>{t('profile.featMultiLoc')}</Text>
-              </View>
-              <View style={styles.proFeatRow}>
-                <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
-                <Text style={styles.proFeatText}>{t('profile.featRadius')}</Text>
-              </View>
-              <View style={styles.proFeatRow}>
-                <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
-                <Text style={styles.proFeatText}>{t('profile.featPriority')}</Text>
-              </View>
-            </View>
 
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={styles.proPrice}>{t('profile.startingFrom', { price: '₹100' })}</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Subscription')} style={styles.proBtn}>
-                <Text style={styles.proBtnText}>{t('profile.viewPlans')}</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={styles.proPrice}>{t('profile.startingFrom', { price: '₹100' })}</Text>
+                <TouchableOpacity onPress={() => navigation.navigate('Subscription')} style={styles.proBtn}>
+                  <Text style={styles.proBtnText}>{t('profile.viewPlans')}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Account Actions */}
         <View style={styles.section}>

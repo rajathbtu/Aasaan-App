@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -45,11 +45,23 @@ const SubscriptionScreen: React.FC = () => {
   const [paymentOptions, setPaymentOptions] = useState<RazorpayWebPaymentOptions | null>(null);
   const [currentPlanType, setCurrentPlanType] = useState<'basic' | 'pro'>('basic');
 
+  // Restrict screen to service providers only
+  useEffect(() => {
+    if (user && user.role !== 'serviceProvider') {
+      Alert.alert(t('common.notAllowed'), t('subscription.onlyProviders'));
+      if (navigation.canGoBack()) navigation.goBack();
+    }
+  }, [user?.role]);
+
   const credits = user?.creditPoints ?? 0;
   const currentPlan = (user?.plan as 'free' | 'basic' | 'pro' | undefined) || 'free';
 
   const subscribe = async (plan: 'basic' | 'pro', useCredits: boolean) => {
     if (!token) return;
+    if (!user || user.role !== 'serviceProvider') {
+      Alert.alert(t('common.notAllowed'), t('subscription.onlyProviders'));
+      return;
+    }
     
     setLoading(true);
     
@@ -212,113 +224,118 @@ const SubscriptionScreen: React.FC = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
-      <Header title={t('subscription.headerTitle')} showBackButton={true} />
-      <View style={{ height: spacing.sm }} />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl + 80 }} showsVerticalScrollIndicator={false}>
-        {/* Upgrade copy */}
-        <Text style={styles.pageTitle}>{t('subscription.pageTitle')}</Text>
-        <Text style={styles.subtitle}>{t('subscription.subtitle')}</Text>
+      {/* If not a provider, render nothing to avoid flicker */}
+      {user && user.role !== 'serviceProvider' ? null : (
+        <>
+          <Header title={t('subscription.headerTitle')} showBackButton={true} />
+          <View style={{ height: spacing.sm }} />
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl + 80 }} showsVerticalScrollIndicator={false}>
+            {/* Upgrade copy */}
+            <Text style={styles.pageTitle}>{t('subscription.pageTitle')}</Text>
+            <Text style={styles.subtitle}>{t('subscription.subtitle')}</Text>
 
-        {/* Current Plan */}
-        <View style={styles.currentPlanCard}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View>
-              <Text style={styles.currentPlanLabel}>{t('subscription.currentPlan')}</Text>
-              <Text style={styles.currentPlanName}>
-                {currentPlan === 'basic' ? t('subscription.plan.basic') : currentPlan === 'pro' ? t('subscription.plan.pro') : t('subscription.plan.free')}
-              </Text>
+            {/* Current Plan */}
+            <View style={styles.currentPlanCard}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <Text style={styles.currentPlanLabel}>{t('subscription.currentPlan')}</Text>
+                  <Text style={styles.currentPlanName}>
+                    {currentPlan === 'basic' ? t('subscription.plan.basic') : currentPlan === 'pro' ? t('subscription.plan.pro') : t('subscription.plan.free')}
+                  </Text>
+                </View>
+                <View style={styles.activeBadge}>
+                  <Text style={styles.activeBadgeText}>{t('subscription.active')}</Text>
+                </View>
+              </View>
             </View>
-            <View style={styles.activeBadge}>
-              <Text style={styles.activeBadgeText}>{t('subscription.active')}</Text>
-            </View>
-          </View>
-        </View>
 
-        {/* Info banner when already on paid plan */}
-        {currentPlan !== 'free' && (
-          <View style={styles.infoBanner}>
-            <Ionicons name="information-circle" size={16} color={colors.primary} style={{ marginRight: 6 }} />
-            <Text style={styles.infoBannerText}>{t('subscription.currentPlanInfo', { plan: t(`subscription.plan.${currentPlan}`) })}</Text>
-          </View>
-        )}
+            {/* Info banner when already on paid plan */}
+            {currentPlan !== 'free' && (
+              <View style={styles.infoBanner}>
+                <Ionicons name="information-circle" size={16} color={colors.primary} style={{ marginRight: 6 }} />
+                <Text style={styles.infoBannerText}>{t('subscription.currentPlanInfo', { plan: t(`subscription.plan.${currentPlan}`) })}</Text>
+              </View>
+            )}
 
-        {/* Plan options */}
-        {plans.map(plan => (
-          <View key={plan.key} style={[styles.planCard, selectedPlan === plan.key && { borderColor: colors.primary }] }>
-            {/* Badge */}
-            <View style={[styles.planBadge, plan.key === 'basic' ? styles.popularBadge : styles.bestValueBadge]}>
-              <Text style={styles.planBadgeText}>{plan.badge}</Text>
-            </View>
-            <Text style={styles.planTitle}>{plan.title}</Text>
-            <Text style={styles.planPrice}>₹{plan.price} <Text style={{ fontSize: 12 }}> /month</Text></Text>
-            {plan.features.map((feat, idx) => (
-              <View key={idx} style={styles.featureRow}>
-                <Ionicons
-                  name={idx < (plan.key === 'basic' ? 3 : 4) ? 'checkmark-circle' : 'checkmark-circle-outline'}
-                  size={16}
-                  color={idx < (plan.key === 'basic' ? 3 : 4) ? colors.secondary : colors.greyLight}
-                  style={{ marginRight: spacing.sm }}
-                />
-                <Text
-                  style={[styles.featureText, idx < (plan.key === 'basic' ? 3 : 4) ? {} : { color: colors.grey }]}
+            {/* Plan options */}
+            {plans.map(plan => (
+              <View key={plan.key} style={[styles.planCard, selectedPlan === plan.key && { borderColor: colors.primary }] }>
+                {/* Badge */}
+                <View style={[styles.planBadge, plan.key === 'basic' ? styles.popularBadge : styles.bestValueBadge]}>
+                  <Text style={styles.planBadgeText}>{plan.badge}</Text>
+                </View>
+                <Text style={styles.planTitle}>{plan.title}</Text>
+                <Text style={styles.planPrice}>₹{plan.price} <Text style={{ fontSize: 12 }}> /month</Text></Text>
+                {plan.features.map((feat, idx) => (
+                  <View key={idx} style={styles.featureRow}>
+                    <Ionicons
+                      name={idx < (plan.key === 'basic' ? 3 : 4) ? 'checkmark-circle' : 'checkmark-circle-outline'}
+                      size={16}
+                      color={idx < (plan.key === 'basic' ? 3 : 4) ? colors.secondary : colors.greyLight}
+                      style={{ marginRight: spacing.sm }}
+                    />
+                    <Text
+                      style={[styles.featureText, idx < (plan.key === 'basic' ? 3 : 4) ? {} : { color: colors.grey }]}
+                    >
+                      {feat}
+                    </Text>
+                  </View>
+                ))}
+                <TouchableOpacity
+                  style={styles.selectButton}
+                  onPress={() => setSelectedPlan(plan.key)}
                 >
-                  {feat}
-                </Text>
+                  <Text style={styles.selectButtonText}>{t('subscription.selectPlan')}</Text>
+                </TouchableOpacity>
               </View>
             ))}
-            <TouchableOpacity
-              style={styles.selectButton}
-              onPress={() => setSelectedPlan(plan.key)}
-            >
-              <Text style={styles.selectButtonText}>{t('subscription.selectPlan')}</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
 
-        {/* Payment actions for selected plan */}
-        {selectedPlan && (
-          <View style={styles.actionsBar}>
-            <View style={{ flex: 1, marginRight: spacing.sm }}>
-              <TouchableOpacity
-                style={[styles.payBtn, { backgroundColor: colors.primary }]}
-                onPress={() => subscribe(selectedPlan, false)}
-                disabled={loading}
-                activeOpacity={0.8}
-              >
-                {loading ? <ActivityIndicator color={colors.white} /> : (
-                  <Text style={styles.payBtnText}>{t('subscription.payMoney', { price: PLAN_PRICING[selectedPlan].priceInr })}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-            <View style={{ flex: 1, marginLeft: spacing.sm }}>
-              <TouchableOpacity
-                style={[styles.payBtn, { backgroundColor: credits >= PLAN_PRICING[selectedPlan].points ? colors.secondary : colors.greyLight }]}
-                onPress={() => subscribe(selectedPlan, true)}
-                disabled={loading || credits < PLAN_PRICING[selectedPlan].points}
-                activeOpacity={0.8}
-              >
-                {loading ? <ActivityIndicator color={colors.white} /> : (
-                  <Text style={styles.payBtnText}>
-                    {credits >= PLAN_PRICING[selectedPlan].points
-                      ? t('subscription.useCredits', { points: PLAN_PRICING[selectedPlan].points })
-                      : t('subscription.needMore', { diff: PLAN_PRICING[selectedPlan].points - credits })}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-      </ScrollView>
+            {/* Payment actions for selected plan */}
+            {selectedPlan && (
+              <View style={styles.actionsBar}>
+                <View style={{ flex: 1, marginRight: spacing.sm }}>
+                  <TouchableOpacity
+                    style={[styles.payBtn, { backgroundColor: colors.primary }]}
+                    onPress={() => subscribe(selectedPlan, false)}
+                    disabled={loading}
+                    activeOpacity={0.8}
+                  >
+                    {loading ? <ActivityIndicator color={colors.white} /> : (
+                      <Text style={styles.payBtnText}>{t('subscription.payMoney', { price: PLAN_PRICING[selectedPlan].priceInr })}</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flex: 1, marginLeft: spacing.sm }}>
+                  <TouchableOpacity
+                    style={[styles.payBtn, { backgroundColor: credits >= PLAN_PRICING[selectedPlan].points ? colors.secondary : colors.greyLight }]}
+                    onPress={() => subscribe(selectedPlan, true)}
+                    disabled={loading || credits < PLAN_PRICING[selectedPlan].points}
+                    activeOpacity={0.8}
+                  >
+                    {loading ? <ActivityIndicator color={colors.white} /> : (
+                      <Text style={styles.payBtnText}>
+                        {credits >= PLAN_PRICING[selectedPlan].points
+                          ? t('subscription.useCredits', { points: PLAN_PRICING[selectedPlan].points })
+                          : t('subscription.needMore', { diff: PLAN_PRICING[selectedPlan].points - credits })}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </ScrollView>
 
-      {/* Razorpay WebView for payments */}
-      {paymentOptions && (
-        <RazorpayWebView
-          visible={showPaymentWebView}
-          options={paymentOptions}
-          onSuccess={handlePaymentSuccess}
-          onError={handlePaymentError}
-          onCancel={handlePaymentCancel}
-        />
+          {/* Razorpay WebView for payments */}
+          {paymentOptions && (
+            <RazorpayWebView
+              visible={showPaymentWebView}
+              options={paymentOptions}
+              onSuccess={handlePaymentSuccess}
+              onError={handlePaymentError}
+              onCancel={handlePaymentCancel}
+            />
+          )}
+        </>
       )}
     </View>
   );
