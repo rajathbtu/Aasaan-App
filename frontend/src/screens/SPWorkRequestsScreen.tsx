@@ -110,12 +110,7 @@ const SPWorkRequestsScreen: React.FC = () => {
    * Determine whether the current user has already accepted a given request.
    */
   const isAcceptedByUser = (item: any) => {
-    if (!user) return false;
-    if (!item.acceptedProviders) return false;
-    // In the real API acceptedProviders holds provider IDs directly. In the
-    // mock API acceptedProviders is an array of IDs as well.  We check
-    // string equality here.
-    return item.acceptedProviders.some((p: any) => p === user.id || p.providerId === user.id);
+    return item.acceptedByProvider;
   };
 
   /**

@@ -131,16 +131,20 @@ export async function list(req: Request, res: Response): Promise<void> {
     res.json(my);
     return;
   }
+
   const providerInfo = await pAny.serviceProviderInfo?.findUnique?.({ where: { userId: user.id } });
-  console.log('SP Profile: ', user.id,  providerInfo);
-  if (!providerInfo) { res.status(400).json({ message: 'Provider profile not found.' }); return; }
+  if (!providerInfo) {
+    res.status(400).json({ message: 'Provider profile not found.' });
+    return;
+  }
+
   const services: string[] = providerInfo.services || [];
 
   if (providerInfo.locationId && providerInfo.radius > 0) {
     const providerLoc = await pAny.location?.findUnique?.({ where: { id: providerInfo.locationId } });
     if (providerLoc) {
       const radiusInMeters = providerInfo.radius * 1000; // Convert km to meters
-      const filteredRequests = await prisma.$queryRaw`
+      const relevantRequests = (await prisma.$queryRaw`
         SELECT wr.*
         FROM "WorkRequest" wr
         JOIN "Location" loc ON wr."locationId" = loc."id"
@@ -150,8 +154,19 @@ export async function list(req: Request, res: Response): Promise<void> {
             ST_MakePoint(${providerLoc.lng}, ${providerLoc.lat}),
             ST_MakePoint(loc."lng", loc."lat")
           ) <= ${radiusInMeters};
-      `;
-      res.json(filteredRequests);
+      `) as any[];
+
+      // Check if each request is accepted by the current provider
+      const enrichedRequests = await Promise.all(
+        relevantRequests.map(async (request: any) => {
+          const accepted = await pAny.acceptedProvider?.findFirst({
+            where: { workRequestId: request.id, providerId: user.id },
+          });
+          return { ...request, acceptedByProvider: !!accepted };
+        })
+      );
+      console.log('enrichedRequests', enrichedRequests);
+      res.json(enrichedRequests);
       return;
     }
   }
