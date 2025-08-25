@@ -75,6 +75,33 @@ export const RazorpayWebView: React.FC<RazorpayWebViewProps> = ({
 
   const html = RazorpayWeb.generatePaymentHTML(options);
 
+  // Prevent popup windows and handle target=_blank by redirecting inside the same WebView.
+  // Also avoid trying to open about:srcdoc externally (causes warnings in RN Linking).
+  const injectedJS = `
+    (function() {
+      try {
+        const origOpen = window.open;
+        window.open = function(url) {
+          if (!url || url.startsWith('about:')) {
+            return null;
+          }
+          window.location.href = url;
+          return null;
+        };
+        document.addEventListener('click', function(e) {
+          const a = e.target && e.target.closest ? e.target.closest('a[target="_blank"]') : null;
+          if (a && a.href) {
+            e.preventDefault();
+            if (!a.href.startsWith('about:')) {
+              window.location.href = a.href;
+            }
+          }
+        }, true);
+      } catch (e) {}
+    })();
+    true; // note: required for injectedJavaScript
+  `;
+
   return (
     <Modal
       visible={visible}
@@ -96,7 +123,7 @@ export const RazorpayWebView: React.FC<RazorpayWebViewProps> = ({
 
         {/* WebView */}
         <WebView
-          source={{ html }}
+          source={{ html, baseUrl: 'https://checkout.razorpay.com' }}
           style={styles.webview}
           onMessage={handleMessage}
           javaScriptEnabled={true}
@@ -113,6 +140,19 @@ export const RazorpayWebView: React.FC<RazorpayWebViewProps> = ({
             const { nativeEvent } = syntheticEvent;
             console.error('WebView HTTP error:', nativeEvent);
             onError({ description: 'Payment service unavailable' });
+          }}
+          originWhitelist={["*"]}
+          injectedJavaScript={injectedJS}
+          javaScriptCanOpenWindowsAutomatically={true}
+          // Android: open target=_blank in same WebView instead of new window
+          setSupportMultipleWindows={false}
+          // iOS/Android: prevent external attempts to open about:srcdoc
+          onShouldStartLoadWithRequest={(request) => {
+            const url = request.url || '';
+            if (url.startsWith('about:srcdoc') || url === 'about:blank') {
+              return false; // block external handling
+            }
+            return true; // allow navigation inside WebView
           }}
           mixedContentMode="compatibility"
           allowsInlineMediaPlayback={true}
