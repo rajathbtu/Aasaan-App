@@ -90,10 +90,15 @@ const translations: Record<Locale, Record<string, any>> = {
       alreadyBoosted: 'Work request is already boosted',
       insufficientCredits: 'Insufficient credit points',
       boostFailed: 'Boost failed',
+      orderCreationFailed: 'Failed to create payment order',
+      invalidSignature: 'Invalid payment signature',
+      paymentNotSuccessful: 'Payment was not successful',
+      verificationFailed: 'Payment verification failed',
     },
     subscription: {
       onlyProviders: 'Only service providers can subscribe',
       failed: 'Subscription failed',
+      invalidPlan: 'Invalid subscription plan',
     }
   },
   hi: {

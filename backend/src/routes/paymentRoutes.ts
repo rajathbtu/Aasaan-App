@@ -1,14 +1,26 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/authMiddleware';
-import { boostWorkRequest, subscribePlan } from '../controllers/paymentController';
+import { 
+  boostWorkRequest, 
+  subscribePlan,
+  createBoostOrder,
+  verifyBoostPayment,
+  createSubscriptionOrder,
+  verifySubscriptionPayment
+} from '../controllers/paymentController';
 
 const router = Router();
 
 router.use(authenticate);
 
-// Boost a work request
+// Legacy endpoints (for credit-based payments)
 router.post('/boost', boostWorkRequest);
-// Subscribe to a professional plan
 router.post('/subscribe', subscribePlan);
+
+// Razorpay integration endpoints
+router.post('/create-boost-order', createBoostOrder);
+router.post('/verify-boost-payment', verifyBoostPayment);
+router.post('/create-subscription-order', createSubscriptionOrder);
+router.post('/verify-subscription-payment', verifySubscriptionPayment);
 
 export default router;

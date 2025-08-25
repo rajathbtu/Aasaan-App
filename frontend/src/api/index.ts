@@ -4,7 +4,7 @@ import { BASE_URL } from '../config';
 // Create an Axios instance with a base URL.  The instance will be used
 // throughout the app to make HTTP requests.  Authorization headers are
 // injected by each method as appropriate.
-const api = axios.create({
+export const api = axios.create({
   baseURL: BASE_URL,
 });
 

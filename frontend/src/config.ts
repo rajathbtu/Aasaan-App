@@ -9,8 +9,8 @@ export const USE_MOCK_API = false;
 
 import { resolveDevBaseUrl, logDevNetworkDebug } from './utils/network';
 
-const DEV_FALLBACK = 'http://192.168.1.13:3001'; // optional last-known IP; safe to change or remove
-const DEV_PORT = 3001;
+const DEV_FALLBACK = 'http://192.168.1.13:3000'; // optional last-known IP; safe to change or remove
+const DEV_PORT = 3000;
 
 const resolvedBaseUrl = __DEV__
   ? resolveDevBaseUrl(DEV_PORT, DEV_FALLBACK)

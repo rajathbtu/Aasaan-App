@@ -13,6 +13,9 @@ import { useNavigation } from '@react-navigation/native';
 import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
 import * as mockApi from '../api/mock';
+import { createSubscriptionPaymentOptions, verifySubscriptionPayment } from '../api/razorpay';
+import { RazorpayWebPaymentOptions, RazorpayWebResponse } from '../api/razorpayWeb';
+import RazorpayWebView from '../components/RazorpayWebView';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius, tints } from '../theme';
 import { useI18n } from '../i18n';
@@ -38,23 +41,146 @@ const SubscriptionScreen: React.FC = () => {
   const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'basic' | 'pro' | null>(null);
+  const [showPaymentWebView, setShowPaymentWebView] = useState(false);
+  const [paymentOptions, setPaymentOptions] = useState<RazorpayWebPaymentOptions | null>(null);
+  const [currentPlanType, setCurrentPlanType] = useState<'basic' | 'pro'>('basic');
 
   const credits = user?.creditPoints ?? 0;
   const currentPlan = (user?.plan as 'free' | 'basic' | 'pro' | undefined) || 'free';
 
   const subscribe = async (plan: 'basic' | 'pro', useCredits: boolean) => {
     if (!token) return;
+    
+    setLoading(true);
+    
     try {
-      setLoading(true);
-      await API.subscribePlan(token, plan, useCredits);
-      await refreshUser();
-      Alert.alert(t('subscription.subscribedTitle'), t('subscription.subscribedDesc', { plan: t(`subscription.plan.${plan}`) }));
-      setSelectedPlan(null);
+      if (useCredits) {
+        // Use existing credit-based flow
+        await API.subscribePlan(token, plan, useCredits);
+        await refreshUser();
+        Alert.alert(t('subscription.subscribedTitle'), t('subscription.subscribedDesc', { plan: t(`subscription.plan.${plan}`) }));
+        setSelectedPlan(null);
+      } else {
+        // Use Razorpay payment flow with WebView
+        const userDetails = {
+          email: '', // Email not available in current User model
+          contact: user?.phone || user?.phoneNumber || '',
+          name: user?.name || '',
+        };
+
+        try {
+          const { orderData, paymentOptions: options } = await createSubscriptionPaymentOptions(
+            token, 
+            plan, 
+            userDetails
+          );
+          
+          setPaymentOptions(options);
+          setCurrentPlanType(plan);
+          setShowPaymentWebView(true);
+        } catch (err: any) {
+          console.error('Error creating payment options:', err);
+          Alert.alert(t('common.error'), err.message || 'Subscription failed');
+        }
+      }
     } catch (err: any) {
-      Alert.alert(t('common.error'), err.message || t('subscription.subscribeFailed'));
+      console.error('Subscription payment error:', err);
+      
+      // Handle Razorpay specific errors
+      if (err.code) {
+        switch (err.code) {
+          case 'BAD_REQUEST_ERROR':
+            Alert.alert(t('common.error'), t('payment.badRequest'));
+            break;
+          case 'GATEWAY_ERROR':
+            Alert.alert(t('common.error'), t('payment.gatewayError'));
+            break;
+          case 'NETWORK_ERROR':
+            Alert.alert(t('common.error'), t('payment.networkError'));
+            break;
+          case 'SERVER_ERROR':
+            Alert.alert(t('common.error'), t('payment.serverError'));
+            break;
+          default:
+            Alert.alert(t('common.error'), err.description || t('subscription.subscribeFailed'));
+        }
+      } else {
+        Alert.alert(t('common.error'), err.message || t('subscription.subscribeFailed'));
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePaymentSuccess = async (response: RazorpayWebResponse) => {
+    if (!token) return;
+    
+    setShowPaymentWebView(false);
+    setLoading(true);
+    
+    try {
+      const verificationData = {
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature,
+        plan: currentPlanType,
+      };
+
+      const verificationResult = await verifySubscriptionPayment(token, verificationData);
+      
+      if (verificationResult.success) {
+        await refreshUser();
+        Alert.alert(
+          t('subscription.subscribedTitle'), 
+          t('subscription.paymentSuccessDesc', { plan: t(`subscription.plan.${currentPlanType}`) }),
+          [
+            {
+              text: 'OK',
+              onPress: () => setSelectedPlan(null)
+            }
+          ]
+        );
+      } else {
+        Alert.alert(t('common.error'), t('subscription.paymentFailedDesc') || 'Payment failed');
+      }
+    } catch (err: any) {
+      console.error('Payment verification error:', err);
+      Alert.alert(t('common.error'), err.message || t('subscription.paymentFailedDesc'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentError = (error: any) => {
+    setShowPaymentWebView(false);
+    console.error('Razorpay payment error:', error);
+    
+    // Handle Razorpay specific errors
+    if (error.code) {
+      switch (error.code) {
+        case 'BAD_REQUEST_ERROR':
+          Alert.alert(t('common.error'), t('payment.badRequest'));
+          break;
+        case 'GATEWAY_ERROR':
+          Alert.alert(t('common.error'), t('payment.gatewayError'));
+          break;
+        case 'NETWORK_ERROR':
+          Alert.alert(t('common.error'), t('payment.networkError'));
+          break;
+        case 'SERVER_ERROR':
+          Alert.alert(t('common.error'), t('payment.serverError'));
+          break;
+        default:
+          Alert.alert(t('common.error'), error.description || 'Subscription failed');
+      }
+    } else {
+      Alert.alert(t('common.error'), error.description || error.message || 'Subscription failed');
+    }
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPaymentWebView(false);
+    // User cancelled payment, no need to show error
   };
 
   const plans = [
@@ -183,6 +309,17 @@ const SubscriptionScreen: React.FC = () => {
           </View>
         )}
       </ScrollView>
+
+      {/* Razorpay WebView for payments */}
+      {paymentOptions && (
+        <RazorpayWebView
+          visible={showPaymentWebView}
+          options={paymentOptions}
+          onSuccess={handlePaymentSuccess}
+          onError={handlePaymentError}
+          onCancel={handlePaymentCancel}
+        />
+      )}
     </View>
   );
 };

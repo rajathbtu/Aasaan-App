@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { pushNotification } from '../models/dataStore';
 import { getReqLang, t, notifyUser } from '../utils/i18n';
+import { createOrder, verifyPaymentSignature, getPaymentDetails } from '../utils/razorpay';
 
 export async function boostWorkRequest(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
@@ -33,6 +34,131 @@ export async function boostWorkRequest(req: Request, res: Response): Promise<voi
   }
 }
 
+// Create Razorpay order for boosting work request
+export async function createBoostOrder(req: Request, res: Response): Promise<void> {
+  const user = (req as any).user;
+  const lang = getReqLang(req);
+  
+  if (user.role !== 'endUser') { 
+    res.status(403).json({ message: t(lang, 'payment.onlyEndUsers') }); 
+    return; 
+  }
+  
+  const { requestId } = req.body as { requestId: string };
+  
+  try {
+    const wr = await prisma.workRequest.findFirst({ where: { id: requestId, userId: user.id } });
+    if (!wr) { 
+      res.status(404).json({ message: t(lang, 'request.notFound') }); 
+      return; 
+    }
+    
+    if (wr.boosted) { 
+      res.status(409).json({ message: t(lang, 'payment.alreadyBoosted') }); 
+      return; 
+    }
+
+    const amount = 10000; // ₹100 in paise
+    const receipt = `boost_${requestId}_${Date.now()}`;
+    
+    const order = await createOrder({
+      amount,
+      currency: 'INR',
+      receipt,
+      notes: {
+        type: 'boost',
+        requestId,
+        userId: user.id,
+      },
+    });
+
+    res.json({
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      receipt: order.receipt,
+    });
+  } catch (error) {
+    console.error('Error creating boost order:', error);
+    res.status(500).json({ message: t(lang, 'payment.orderCreationFailed') });
+  }
+}
+
+// Verify payment and boost work request
+export async function verifyBoostPayment(req: Request, res: Response): Promise<void> {
+  const user = (req as any).user;
+  const lang = getReqLang(req);
+  
+  const { 
+    razorpay_order_id, 
+    razorpay_payment_id, 
+    razorpay_signature,
+    requestId 
+  } = req.body;
+
+  try {
+    // Verify payment signature
+    const isValidSignature = verifyPaymentSignature({
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    });
+
+    if (!isValidSignature) {
+      res.status(400).json({ message: t(lang, 'payment.invalidSignature') });
+      return;
+    }
+
+    // Get payment details to verify status
+    const paymentDetails = await getPaymentDetails(razorpay_payment_id);
+    
+    if (paymentDetails.status !== 'captured' && paymentDetails.status !== 'authorized') {
+      res.status(400).json({ message: t(lang, 'payment.paymentNotSuccessful') });
+      return;
+    }
+
+    // Verify the work request belongs to the user
+    const wr = await prisma.workRequest.findFirst({ 
+      where: { id: requestId, userId: user.id } 
+    });
+    
+    if (!wr) { 
+      res.status(404).json({ message: t(lang, 'request.notFound') }); 
+      return; 
+    }
+
+    if (wr.boosted) { 
+      res.status(409).json({ message: t(lang, 'payment.alreadyBoosted') }); 
+      return; 
+    }
+
+    // Update work request to boosted
+    const updatedWr = await prisma.workRequest.update({ 
+      where: { id: wr.id }, 
+      data: { boosted: true } 
+    });
+
+    // Store payment record (you might want to create a Payment model in Prisma)
+    // For now, we'll add a note about successful payment
+    await notifyUser({
+      userId: user.id,
+      type: 'boostPromotion',
+      titleKey: 'notifications.boosted.title',
+      messageKey: 'notifications.boosted.message',
+      data: { requestId: wr.id, paymentId: razorpay_payment_id },
+    });
+
+    res.json({ 
+      success: true, 
+      workRequest: updatedWr,
+      paymentId: razorpay_payment_id 
+    });
+  } catch (error) {
+    console.error('Error verifying boost payment:', error);
+    res.status(500).json({ message: t(lang, 'payment.verificationFailed') });
+  }
+}
+
 export async function subscribePlan(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
   const lang = getReqLang(req);
@@ -60,5 +186,121 @@ export async function subscribePlan(req: Request, res: Response): Promise<void> 
     res.json(refreshed);
   } catch {
     res.status(500).json({ message: t(lang, 'subscription.failed') });
+  }
+}
+
+// Create Razorpay order for subscription
+export async function createSubscriptionOrder(req: Request, res: Response): Promise<void> {
+  const user = (req as any).user;
+  const lang = getReqLang(req);
+  
+  if (user.role !== 'serviceProvider') { 
+    res.status(403).json({ message: t(lang, 'subscription.onlyProviders') }); 
+    return; 
+  }
+  
+  const { plan } = req.body as { plan: 'basic' | 'pro' };
+  
+  if (!plan || !['basic', 'pro'].includes(plan)) {
+    res.status(400).json({ message: t(lang, 'subscription.invalidPlan') });
+    return;
+  }
+
+  try {
+    const planPricing = {
+      basic: 10000, // ₹100 in paise
+      pro: 20000,   // ₹200 in paise
+    };
+
+    const amount = planPricing[plan];
+    const receipt = `sub_${plan}_${user.id}_${Date.now()}`;
+    
+    const order = await createOrder({
+      amount,
+      currency: 'INR',
+      receipt,
+      notes: {
+        type: 'subscription',
+        plan,
+        userId: user.id,
+      },
+    });
+
+    res.json({
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      receipt: order.receipt,
+      plan,
+    });
+  } catch (error) {
+    console.error('Error creating subscription order:', error);
+    res.status(500).json({ message: t(lang, 'payment.orderCreationFailed') });
+  }
+}
+
+// Verify payment and update subscription
+export async function verifySubscriptionPayment(req: Request, res: Response): Promise<void> {
+  const user = (req as any).user;
+  const lang = getReqLang(req);
+  
+  const { 
+    razorpay_order_id, 
+    razorpay_payment_id, 
+    razorpay_signature,
+    plan 
+  } = req.body;
+
+  try {
+    // Verify payment signature
+    const isValidSignature = verifyPaymentSignature({
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    });
+
+    if (!isValidSignature) {
+      res.status(400).json({ message: t(lang, 'payment.invalidSignature') });
+      return;
+    }
+
+    // Get payment details to verify status
+    const paymentDetails = await getPaymentDetails(razorpay_payment_id);
+    
+    if (paymentDetails.status !== 'captured' && paymentDetails.status !== 'authorized') {
+      res.status(400).json({ message: t(lang, 'payment.paymentNotSuccessful') });
+      return;
+    }
+
+    // Verify plan validity
+    if (!plan || !['basic', 'pro'].includes(plan)) {
+      res.status(400).json({ message: t(lang, 'subscription.invalidPlan') });
+      return;
+    }
+
+    // Update user subscription
+    const updatedUser = await prisma.user.update({ 
+      where: { id: user.id }, 
+      data: { plan } 
+    });
+
+    // Send notification
+    await notifyUser({
+      userId: user.id,
+      type: 'planPromotion',
+      titleKey: 'notifications.subscriptionSuccess.title',
+      messageKey: 'notifications.subscriptionSuccess.message',
+      params: { plan },
+      data: { plan, paymentId: razorpay_payment_id }
+    });
+
+    res.json({ 
+      success: true, 
+      user: updatedUser,
+      paymentId: razorpay_payment_id 
+    });
+  } catch (error) {
+    console.error('Error verifying subscription payment:', error);
+    res.status(500).json({ message: t(lang, 'payment.verificationFailed') });
   }
 }
