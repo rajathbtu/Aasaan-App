@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -184,8 +185,8 @@ const SPWorkRequestsScreen: React.FC = () => {
         if (!user?.serviceProviderInfo?.location) return false;
         const lat1 = user.serviceProviderInfo.location.lat;
         const lon1 = user.serviceProviderInfo.location.lng;
-        const lat2 = item.location?.lat;
-        const lon2 = item.location?.lng;
+        const lat2 = item.locationLat;
+        const lon2 = item.locationLng;
         if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return false;
         const d = getDistanceKm(lat1, lon1, lat2, lon2);
         return d <= 3;
@@ -223,12 +224,12 @@ const SPWorkRequestsScreen: React.FC = () => {
     }
     // Compute distance if provider location is available
     let distance: string | null = null;
-    if (user?.serviceProviderInfo?.location && item.location) {
+    if (user?.serviceProviderInfo?.location) {
       const d = getDistanceKm(
         user.serviceProviderInfo.location.lat,
         user.serviceProviderInfo.location.lng,
-        item.location.lat,
-        item.location.lng
+        item.locationLat,
+        item.locationLng
       );
       distance = d.toFixed(1);
     }
@@ -260,7 +261,7 @@ const SPWorkRequestsScreen: React.FC = () => {
             <Ionicons name={iconConfig.icon} size={16} color={colors.primary} />
           </View>
           <View style={{ flex: 1, marginLeft: spacing.sm }}>
-            <Text style={styles.serviceName}>{item.service}</Text>
+            <Text style={styles.serviceName}>{item.serviceName}</Text>
             <Text style={styles.timeText}>{timeLabel}</Text>
           </View>
           {distance && (
@@ -268,7 +269,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           )}
         </View>
         {/* Location and requester */}
-        <Text style={styles.locationText}>{item.location?.name}</Text>
+        <Text style={styles.locationText}>{item.locationName}</Text>
         {item.requesterName && (
           <Text style={styles.requesterText}>{item.requesterName}</Text>
         )}
@@ -294,7 +295,13 @@ const SPWorkRequestsScreen: React.FC = () => {
           )}
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: accepted ? colors.primary : colors.secondary }]}
-            onPress={() => Alert.alert('Calling', 'Contacting the requester...')}
+            onPress={() => {
+              if (item.requesterPhone) {
+                Linking.openURL(`tel:${item.requesterPhone}`);
+              } else {
+                Alert.alert('Error', 'Requester phone number is not available.');
+              }
+            }}
           >
             <Ionicons name="call" size={16} color="white" style={{ marginRight: 4 }} />
             <Text style={styles.actionButtonText}>{accepted ? t('spRequests.callNow') : t('spRequests.call')}</Text>

@@ -156,15 +156,32 @@ export async function list(req: Request, res: Response): Promise<void> {
           ) <= ${radiusInMeters};
       `) as any[];
 
-      // Check if each request is accepted by the current provider
+      // Fetch additional details for each request
       const enrichedRequests = await Promise.all(
         relevantRequests.map(async (request: any) => {
-          const accepted = await pAny.acceptedProvider?.findFirst({
-            where: { workRequestId: request.id, providerId: user.id },
-          });
-          return { ...request, acceptedByProvider: !!accepted };
+          const [accepted, service, location, requestUser] = await Promise.all([
+            pAny.acceptedProvider?.findFirst({
+              where: { workRequestId: request.id, providerId: user.id },
+            }),
+            pAny.service?.findUnique({ where: { id: request.service } }),
+            pAny.location?.findUnique({ where: { id: request.locationId } }),
+            pAny.user?.findUnique({ where: { id: request.userId } }),
+          ]);
+
+          return {
+            ...request,
+            acceptedByProvider: !!accepted,
+            serviceName: service?.name || null,
+            serviceIcon: service?.icon || null,
+            locationName: location?.name || null,
+            locationLat: location?.lat || null,
+            locationLng: location?.lng || null,
+            requesterName: requestUser?.name || null,
+            requesterPhone: requestUser?.phoneNumber || null,
+          };
         })
       );
+
       console.log('enrichedRequests', enrichedRequests);
       res.json(enrichedRequests);
       return;
