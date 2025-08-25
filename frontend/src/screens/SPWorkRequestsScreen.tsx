@@ -151,15 +151,8 @@ const SPWorkRequestsScreen: React.FC = () => {
       }
       return true;
     });
-    // Sort: show non-accepted first when on the all tab
-    if (tab === 'all') {
-      list.sort((a, b) => {
-        const aAccepted = isAcceptedByUser(a);
-        const bAccepted = isAcceptedByUser(b);
-        if (aAccepted === bAccepted) return 0;
-        return aAccepted ? 1 : -1;
-      });
-    }
+    // Sort: show most recent requests first
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return list;
   }, [requests, tab, filter, user]);
 
