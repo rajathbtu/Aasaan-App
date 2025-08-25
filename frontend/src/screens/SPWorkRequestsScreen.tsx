@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -37,6 +38,8 @@ const SPWorkRequestsScreen: React.FC = () => {
   const [tab, setTab] = useState<'all' | 'accepted'>('all');
   const [filter, setFilter] = useState<'all' | 'today' | 'within3'>('all');
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showProBanner, setShowProBanner] = useState(true);
 
   // Fetch work requests from the API
   const fetchRequests = async () => {
@@ -267,6 +270,25 @@ const SPWorkRequestsScreen: React.FC = () => {
     );
   };
 
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    if (!token) return;
+    try {
+      setRefreshing(true);
+      const latestRequests = await API.listWorkRequests(token);
+      setRequests(prevRequests => {
+        const newRequests = latestRequests.filter(
+          (newReq: any) => !prevRequests.some((prevReq: any) => prevReq.id === newReq.id)
+        );
+        return [...newRequests, ...prevRequests];
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -339,24 +361,42 @@ const SPWorkRequestsScreen: React.FC = () => {
             renderItem={renderRequest}
             contentContainerStyle={{ paddingBottom: spacing.xl * 3 }}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+                title={refreshing ? t('spRequests.fetchingLatest') : ''}
+                titleColor={colors.primary}
+              />
+            }
           />
         )}
         {/* Pro banner */}
-        <TouchableOpacity
-          style={styles.proBanner}
-          onPress={() => navigation.navigate('Subscription')}
-        >
-          <View style={styles.proIconWrapper}>
-            <Ionicons name="trophy" size={20} color={colors.violetStrong} />
-          </View>
-          <View style={{ flex: 1, marginLeft: spacing.sm }}>
-            <Text style={styles.proTitle}>{t('spRequests.goPro')}</Text>
-            <Text style={styles.proSubtitle}>{t('spRequests.goProSubtitle')}</Text>
-          </View>
-          <View style={styles.proPriceWrapper}>
-            <Text style={styles.proPrice}>{t('spRequests.perMonth', { price: '₹100' })}</Text>
-          </View>
-        </TouchableOpacity>
+        {showProBanner && (
+          <TouchableOpacity
+            style={styles.proBanner}
+            onPress={() => navigation.navigate('Subscription')}
+          >
+            <View style={styles.proIconWrapper}>
+              <Ionicons name="trophy" size={20} color={colors.violetStrong} />
+            </View>
+            <View style={{ flex: 1, marginLeft: spacing.sm }}>
+              <Text style={styles.proTitle}>{t('spRequests.goPro')}</Text>
+              <Text style={styles.proSubtitle}>{t('spRequests.goProSubtitle')}</Text>
+            </View>
+            <View style={styles.proPriceWrapper}>
+              <Text style={styles.proPrice}>{t('spRequests.perMonth', { price: '₹100' })}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowProBanner(false)}
+            >
+              <Ionicons name="close" size={16} color={colors.dark} />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -586,6 +626,12 @@ const styles = StyleSheet.create({
   },
   proBadge: {
     backgroundColor: colors.violetStrong,
+  },
+  closeButton: {
+    marginLeft: spacing.md,
+    padding: 4,
+    borderRadius: 12,
+    backgroundColor: colors.greyLight,
   },
 });
 
