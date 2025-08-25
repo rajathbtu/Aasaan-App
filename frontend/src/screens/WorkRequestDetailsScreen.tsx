@@ -10,6 +10,7 @@ import {
   Linking,
   Image,
   Modal,
+  ActivityIndicator, // Import loader component
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -61,15 +62,26 @@ const WorkRequestDetailsScreen: React.FC = () => {
   const [closeVisible, setCloseVisible] = useState(false);
   const [selectedProviderId, setSelectedProviderId] = useState<string | 'none' | null>(null);
   const [stars, setStars] = useState<number>(4);
+  const [isLoading, setIsLoading] = useState(false); // New state for loader
 
   useEffect(() => {
     const id = route.params?.id || route.params?.request?.id;
     if (id && token) {
+      setIsLoading(true); // Show loader when fetching starts
       getWorkRequest(token, id)
         .then(setRequest)
-        .catch(console.error);
+        .catch(console.error)
+        .finally(() => setIsLoading(false)); // Hide loader when fetching ends
     }
   }, [route.params?.id, route.params?.request?.id, token]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.emptyContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   if (!request) {
     return (

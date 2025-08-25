@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import * as Location from 'expo-location';
 import { colors, spacing, radius, sizes } from '../theme';
 
 const GOOGLE_PLACES_API_KEY = 'AIzaSyA38lonSYxTC6Ro6sBQB11Gg7IragTG2XU'; // Replace with your API key
@@ -10,15 +11,12 @@ type Props = {
   onSelect: (location: any) => void;
   initialValue?: string;
   placeholder?: string;
-  rightActionIcon?: keyof typeof Ionicons.glyphMap;
-  onPressRightAction?: () => void;
-  rightActionDisabled?: boolean;
-  rightActionLoading?: boolean;
 };
 
-const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placeholder = 'Search for a location', rightActionIcon, onPressRightAction, rightActionDisabled, rightActionLoading }) => {
+const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placeholder = 'Search for a location' }) => {
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<Array<{ place_id: string; description: string }>>([]);
+  const [locating, setLocating] = useState(false);
 
   useEffect(() => {
     setQuery(initialValue || '');
@@ -64,10 +62,43 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
     }
   };
 
+  const detectLocation = async () => {
+    try {
+      setLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocating(false);
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      let displayName = '';
+      try {
+        const results = await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        if (results && results.length) {
+          const r: any = results[0];
+          const parts = [r.name || r.street, r.subregion || r.city || r.district].filter(Boolean);
+          displayName = parts.join(', ') || r.formattedAddress || '';
+        }
+      } catch {}
+      setQuery(displayName);
+      onSelect({ lat: pos.coords.latitude, lng: pos.coords.longitude, description: displayName });
+    } catch (error) {
+      console.error('Error detecting location:', error);
+    } finally {
+      setLocating(false);
+    }
+  };
+
   const shown = suggestions.slice(0, 5);
 
   return (
     <View style={styles.container}>
+      {locating && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
+          <ActivityIndicator size="small" />
+          <Text style={{ marginLeft: spacing.sm, color: colors.grey }}>Fetching current location...</Text>
+        </View>
+      )}
       <View style={styles.inputWrap}>
         <TextInput
           style={styles.input}
@@ -79,18 +110,13 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
             fetchSuggestions(text);
           }}
         />
-        {rightActionLoading ? (
-          <ActivityIndicator size="small" color={colors.grey} style={styles.rightAdornment} />
-        ) : rightActionIcon && onPressRightAction ? (
-          <TouchableOpacity
-            onPress={onPressRightAction}
-            disabled={rightActionDisabled}
-            style={[styles.rightAdornment, rightActionDisabled && { opacity: 0.5 }]}
-            accessibilityLabel="Detect current location"
-          >
-            <Ionicons name={rightActionIcon} size={18} color={colors.dark} />
-          </TouchableOpacity>
-        ) : null}
+        <TouchableOpacity
+          onPress={detectLocation}
+          style={styles.rightAdornment}
+          accessibilityLabel="Detect current location"
+        >
+          <Ionicons name="locate-outline" size={18} color={colors.dark} />
+        </TouchableOpacity>
       </View>
       {shown.length > 0 && (
         <View style={styles.suggestionsContainer}>

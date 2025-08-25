@@ -214,7 +214,7 @@ const SPSelectServicesScreen: React.FC = () => {
         {!hasData && (
           <View style={{ padding: spacing.lg, alignItems: 'center' }}>
             <ActivityIndicator />
-            <Text style={{ color: colors.grey, marginTop: 8 }}>{t('common.loading') || 'Loading…'}</Text>
+            <Text style={{ color: colors.grey, marginTop: 8 }}>{t('common.fetchingCurrentLocation') || 'Loading…'}</Text>
           </View>
         )}
 

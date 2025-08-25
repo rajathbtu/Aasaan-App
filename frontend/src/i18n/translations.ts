@@ -318,7 +318,7 @@ export const translations = {
       resendOtp: 'ओटीपी पुनः भेजें',
       helpLine: 'समस्या हो रही है? सहायता के लिए संपर्क करें',
       notEditable: 'बदला नहीं जा सकता',
-      loading: 'वर्तमान स्थान प्राप्त किया जा रहा है',
+      fetchingCurrentLocation: 'वर्तमान स्थान प्राप्त किया जा रहा है',
       // Relative time helpers
       relative: {
         justNow: 'अभी',

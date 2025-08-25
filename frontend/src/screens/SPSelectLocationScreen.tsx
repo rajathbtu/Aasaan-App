@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import LocationSearch from '../components/LocationSearch';
@@ -8,7 +8,6 @@ import Header from '../components/Header';
 import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Location from 'expo-location';
 
 const SPSelectLocationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -23,27 +22,6 @@ const SPSelectLocationScreen: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<any>(initialLoc);
   const [radius, setRadius] = useState<number>(initialRadius);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [locating, setLocating] = useState(false);
-
-  const detectLocation = async () => {
-    try {
-      setLocating(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') { setLocating(false); return; }
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      let displayName = '';
-      try {
-        const results = await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
-        if (results && results.length) {
-          const r: any = results[0];
-          const parts = [r.name || r.street, r.subregion || r.city || r.district].filter(Boolean);
-          displayName = parts.join(', ') || r.formattedAddress || '';
-        }
-      } catch {}
-      setSelectedLocation({ name: displayName || 'Current location', lat: pos.coords.latitude, lng: pos.coords.longitude });
-    } catch {}
-    finally { setLocating(false); }
-  };
 
   const handleSave = async () => {
     if (!selectedLocation) {
@@ -95,12 +73,6 @@ const SPSelectLocationScreen: React.FC = () => {
 
           {/* Current Location Card */}
           <View style={styles.locationCard}>
-            {locating && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-                <ActivityIndicator size="small" />
-                <Text style={{ marginLeft: spacing.sm, color: colors.grey }}>{t('common.loading') || 'Detecting current location…'}</Text>
-              </View>
-            )}
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1 }}>
                 <View style={styles.locIconCircle}>
@@ -127,9 +99,6 @@ const SPSelectLocationScreen: React.FC = () => {
                     setSearchOpen(false);
                   }}
                   initialValue={selectedLocation?.name || selectedLocation?.description || ''}
-                  rightActionIcon="locate-outline"
-                  onPressRightAction={detectLocation}
-                  rightActionLoading={locating}
                 />
               </View>
             )}
