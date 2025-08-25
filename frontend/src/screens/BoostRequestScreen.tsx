@@ -5,6 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
 import * as mockApi from '../api/mock';
+import { createBoostPaymentOptions, verifyBoostPayment } from '../api/razorpay';
+import { RazorpayWebPaymentOptions, RazorpayWebResponse } from '../api/razorpayWeb';
+import RazorpayWebView from '../components/RazorpayWebView';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
@@ -40,23 +43,146 @@ const BoostRequestScreen: React.FC = () => {
   const timeAgo = buildTimeAgo(t);
   const [loading, setLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState<'money' | 'credits'>('money');
+  const [showPaymentWebView, setShowPaymentWebView] = useState(false);
+  const [paymentOptions, setPaymentOptions] = useState<RazorpayWebPaymentOptions | null>(null);
+  const [currentRequestId, setCurrentRequestId] = useState<string>('');
 
   const credits = user?.creditPoints ?? 0;
   const hasEnoughCredits = credits >= CREDIT_COST;
 
   const handleBoost = async (useCredits: boolean) => {
     if (!token || !request) return;
+    
+    setLoading(true);
+    
     try {
-      setLoading(true);
-      await API.boostWorkRequest(token, request.id, useCredits);
-      await refreshUser();
-      Alert.alert(t('common.success'), t('boostRequest.successDesc'));
-      navigation.navigate('Main', { screen: 'MyRequests' });
+      if (useCredits) {
+        // Use existing credit-based flow
+        await API.boostWorkRequest(token, request.id, useCredits);
+        await refreshUser();
+        Alert.alert(t('common.success'), t('boostRequest.successDesc'));
+        navigation.navigate('Main', { screen: 'MyRequests' });
+      } else {
+        // Use Razorpay payment flow with WebView
+        const userDetails = {
+          email: '', // Email not available in current User model
+          contact: user?.phone || user?.phoneNumber || '',
+          name: user?.name || '',
+        };
+
+        try {
+          const { orderData, paymentOptions: options } = await createBoostPaymentOptions(
+            token, 
+            request.id, 
+            userDetails
+          );
+          
+          setPaymentOptions(options);
+          setCurrentRequestId(request.id);
+          setShowPaymentWebView(true);
+        } catch (err: any) {
+          console.error('Error creating payment options:', err);
+          Alert.alert(t('common.error'), err.message || t('boostRequest.errorBoostFailed'));
+        }
+      }
     } catch (err: any) {
-      Alert.alert(t('common.error'), err.message || t('boostRequest.errorBoostFailed'));
+      console.error('Boost payment error:', err);
+      
+      // Handle Razorpay specific errors
+      if (err.code) {
+        switch (err.code) {
+          case 'BAD_REQUEST_ERROR':
+            Alert.alert(t('common.error'), t('payment.badRequest'));
+            break;
+          case 'GATEWAY_ERROR':
+            Alert.alert(t('common.error'), t('payment.gatewayError'));
+            break;
+          case 'NETWORK_ERROR':
+            Alert.alert(t('common.error'), t('payment.networkError'));
+            break;
+          case 'SERVER_ERROR':
+            Alert.alert(t('common.error'), t('payment.serverError'));
+            break;
+          default:
+            Alert.alert(t('common.error'), err.description || t('boostRequest.errorBoostFailed'));
+        }
+      } else {
+        Alert.alert(t('common.error'), err.message || t('boostRequest.errorBoostFailed'));
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePaymentSuccess = async (response: RazorpayWebResponse) => {
+    if (!token) return;
+    
+    setShowPaymentWebView(false);
+    setLoading(true);
+    
+    try {
+      const verificationData = {
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature,
+        requestId: currentRequestId,
+      };
+
+      const verificationResult = await verifyBoostPayment(token, verificationData);
+      
+      if (verificationResult.success) {
+        await refreshUser();
+        Alert.alert(
+          t('common.success'), 
+          t('boostRequest.paymentSuccessDesc'),
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('Main', { screen: 'MyRequests' })
+            }
+          ]
+        );
+      } else {
+        Alert.alert(t('common.error'), t('boostRequest.paymentFailedDesc'));
+      }
+    } catch (err: any) {
+      console.error('Payment verification error:', err);
+      Alert.alert(t('common.error'), err.message || t('boostRequest.paymentFailedDesc'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentError = (error: any) => {
+    setShowPaymentWebView(false);
+    console.error('Razorpay payment error:', error);
+    
+    // Handle Razorpay specific errors
+    if (error.code) {
+      switch (error.code) {
+        case 'BAD_REQUEST_ERROR':
+          Alert.alert(t('common.error'), t('payment.badRequest'));
+          break;
+        case 'GATEWAY_ERROR':
+          Alert.alert(t('common.error'), t('payment.gatewayError'));
+          break;
+        case 'NETWORK_ERROR':
+          Alert.alert(t('common.error'), t('payment.networkError'));
+          break;
+        case 'SERVER_ERROR':
+          Alert.alert(t('common.error'), t('payment.serverError'));
+          break;
+        default:
+          Alert.alert(t('common.error'), error.description || t('boostRequest.errorBoostFailed'));
+      }
+    } else {
+      Alert.alert(t('common.error'), error.description || error.message || t('boostRequest.errorBoostFailed'));
+    }
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPaymentWebView(false);
+    // User cancelled payment, no need to show error
   };
 
   if (!request) {
@@ -191,6 +317,17 @@ const BoostRequestScreen: React.FC = () => {
           )}
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Razorpay WebView for payments */}
+      {paymentOptions && (
+        <RazorpayWebView
+          visible={showPaymentWebView}
+          options={paymentOptions}
+          onSuccess={handlePaymentSuccess}
+          onError={handlePaymentError}
+          onCancel={handlePaymentCancel}
+        />
+      )}
     </View>
   );
 };

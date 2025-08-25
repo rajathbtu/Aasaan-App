@@ -37,6 +37,9 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "aasaan"
+    "scheme": "aasaan",
+    "plugins": [
+      "expo-dev-client"
+    ]
   }
 }

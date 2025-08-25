@@ -22,6 +22,18 @@ import Header from '../components/Header';
 // Determine which API implementation to use (real or mock)
 const API = USE_MOCK_API ? mockApi : realApi;
 
+/** Helper: ensure provider has completed profile before using this screen */
+function validateProviderProfile(user: any): { ok: boolean; next: 'services' | 'location' | null } {
+  if (!user || user.role !== 'serviceProvider') return { ok: true, next: null };
+  const sp = user.serviceProviderInfo || {};
+  const hasServices = Array.isArray(sp.services) && sp.services.length > 0;
+  const hasLocation = !!sp.location && typeof sp.location.lat === 'number' && typeof sp.location.lng === 'number';
+  const validRadius = typeof sp.radius === 'number' && [5, 10, 15, 20].includes(sp.radius);
+  if (!hasServices) return { ok: false, next: 'services' };
+  if (!hasLocation || !validRadius) return { ok: false, next: 'location' };
+  return { ok: true, next: null };
+}
+
 /**
  * Service provider work requests screen.  Displays available and accepted
  * requests, allows filtering by date or distance, and lets providers
@@ -48,7 +60,31 @@ const SPWorkRequestsScreen: React.FC = () => {
       setLoading(true);
       const list = await API.listWorkRequests(token);
       setRequests(list);
-    } catch (err) {
+    } catch (err: any) {
+      // If backend indicates incomplete profile, route to the appropriate step
+      const status = err?.response?.status;
+      const message = err?.response?.data?.message || '';
+      if (status === 400) {
+        const v = validateProviderProfile(user);
+        if (!v.ok) {
+          if (v.next === 'services') {
+            navigation.navigate('SPSelectServices', { mode: 'onboarding', initialSelected: user?.serviceProviderInfo?.services || [] });
+          } else if (v.next === 'location') {
+            navigation.navigate('SPSelectLocation');
+          }
+          return;
+        }
+        // If provider profile not found, start services step
+        if (/provider profile not found/i.test(message)) {
+          navigation.navigate('SPSelectServices', { mode: 'onboarding' });
+          return;
+        }
+        // If location/radius not defined
+        if (/location or radius not defined/i.test(message)) {
+          navigation.navigate('SPSelectLocation');
+          return;
+        }
+      }
       console.error(err);
     } finally {
       setLoading(false);
@@ -69,9 +105,19 @@ const SPWorkRequestsScreen: React.FC = () => {
 
   useFocusEffect(
     useCallback(() => {
+      // Guard: ensure provider profile completeness before loading data
+      const v = validateProviderProfile(user);
+      if (!v.ok) {
+        if (v.next === 'services') {
+          navigation.navigate('SPSelectServices', { mode: 'onboarding', initialSelected: user?.serviceProviderInfo?.services || [] });
+        } else if (v.next === 'location') {
+          navigation.navigate('SPSelectLocation');
+        }
+        return;
+      }
       fetchRequests();
       fetchNotifications();
-    }, [token])
+    }, [token, user])
   );
 
   /**

@@ -25,6 +25,7 @@ model User {
   createdAt           DateTime @default(now())
   workRequests        WorkRequest[] @relation("UserWorkRequests")
   notifications       Notification[]
+  payments            Payment[] @relation("UserPayments")
   avatarUrl           String?
 }
 
@@ -99,6 +100,26 @@ model Service {
   tags     String[]
 }
 
+model Payment {
+  id          String   @id @default(uuid())
+  user        User     @relation("UserPayments", fields: [userId], references: [id])
+  userId      String
+  orderId     String   @unique
+  paymentId   String?  @unique
+  amount      Int      // Amount in paise
+  currency    String   @default("INR")
+  status      PaymentStatus @default(created)
+  type        PaymentType
+  description String?
+  notes       Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+}
+
 enum Role {
   endUser
   serviceProvider
@@ -122,4 +143,19 @@ enum NotificationType {
   boostPromotion
   autoClosed
   planPromotion
+}
+
+enum PaymentStatus {
+  created
+  authorized
+  captured
+  failed
+  cancelled
+  refunded
+}
+
+enum PaymentType {
+  boost
+  subscription
+  credit_purchase
 }
