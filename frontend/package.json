@@ -2,12 +2,12 @@
   "name": "aasaan-frontend",
   "version": "1.0.0",
   "private": true,
-  "main": "node_modules/expo/AppEntry.js",
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --dev-client",
     "android": "expo run:android",
-    "ios": "expo run:ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:android": "eas build --platform android",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
@@ -17,26 +17,27 @@
     "@react-navigation/native": "^7.1.16",
     "@react-navigation/native-stack": "^7.3.23",
     "axios": "^1.11.0",
-    "expo": "^53.0.20",
+    "expo": "53.0.22",
+    "expo-dev-client": "~5.2.4",
+    "expo-build-properties": "^0.14.8",
     "expo-location": "^18.1.6",
-    "expo-random": "^14.0.1",
     "expo-secure-store": "^14.2.3",
     "expo-splash-screen": "^0.30.10",
     "expo-status-bar": "^2.2.3",
     "i18n-js": "^4.5.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "react-native": "0.79.5",
+    "react-native": "0.79.6",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-get-random-values": "^1.11.0",
-    "react-native-razorpay": "^2.3.0",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
     "react-native-vector-icons": "^10.3.0",
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5",
     "uuid": "^8.3.2",
-    "expo-dev-client": "~5.2.4"
+    "@react-native-firebase/app": "^21.7.0",
+    "@react-native-firebase/messaging": "^21.7.0"
   },
   "devDependencies": {
     "@babel/preset-react": "^7.27.1",
@@ -46,6 +47,7 @@
     "@types/react-native-vector-icons": "^6.4.18",
     "@types/uuid": "^10.0.0",
     "metro-react-native-babel-preset": "^0.77.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "@babel/core": "^7.20.0"
   }
 }

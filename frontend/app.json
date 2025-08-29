@@ -18,28 +18,55 @@
       "**/*"
     ],
     "ios": {
-      "bundleIdentifier": "com.rajathbtu.aasaan",
+      "bundleIdentifier": "in.aasaanapp.aasaan",
+      "useFrameworks": "static",
       "buildNumber": "1",
       "supportsTablet": true,
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Aasaan uses your location to show nearby services."
+        "NSLocationWhenInUseUsageDescription": "Aasaan uses your location to show nearby services.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.rajathbtu.aasaan",
+      "package": "in.aasaanapp.aasaan",
       "versionCode": 1,
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "scheme": "aasaan",
     "plugins": [
-      "expo-dev-client"
-    ]
+      "expo-dev-client",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static",
+            "extraPods": [
+              { "name": "GoogleUtilities", "modular_headers": true }
+            ]
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "30a58cf2-a668-45d2-81a8-130261a7a756"
+      }
+    }
   }
 }

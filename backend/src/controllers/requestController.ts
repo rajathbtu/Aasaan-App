@@ -3,6 +3,7 @@ import prisma from '../utils/prisma';
 import { areValidTags } from '../utils/validation';
 import { pushNotification } from '../models/dataStore';
 import { getReqLang, t, notifyUser } from '../utils/i18n';
+import { notifyNearbyProviders, sendNotificationToUser } from '../utils/notificationService';
 
 const pAny: any = prisma;
 
@@ -85,25 +86,63 @@ export async function create(req: Request, res: Response): Promise<void> {
     if (recent >= 3 && !req.body.force) { res.status(429).json({ message: t(lang, 'request.limitReached'), code: 'LIMIT_EXCEEDED' }); return; }
     const loc = await pAny.location.create?.({ data: { name: location.name, lat: location.lat, lng: location.lng } });
     const wr = await pAny.workRequest.create({ data: { userId: user.id, service, locationId: loc?.id, tags: tags || [] } });
-    // Notify eligible providers (service match + radius parity)
-    const providers = await pAny.serviceProviderInfo?.findMany?.({ where: { services: { has: service } }, include: { location: true } }) || [];
-    for (const p of providers) {
-      let notify = true;
-      if (p.location && p.radius > 0 && loc) {
-        const d = distanceKm(loc.lat, loc.lng, p.location.lat, p.location.lng);
-        notify = d <= p.radius;
-      }
-      if (notify) {
-        await notifyUser({
-          userId: p.userId,
-          type: 'newRequest',
-          titleKey: 'notifications.newRequest.title',
-          messageKey: 'notifications.newRequest.message',
-          params: { name: user.name, service },
-          data: { requestId: wr.id }
+
+    // Scalable: compute eligible providers in SQL using distance in meters and get their FCM tokens
+    const radiusMeters = prisma.$queryRaw`SELECT 1`; // placeholder to force tagged template type
+    const eligible = (await prisma.$queryRaw<any[]>`
+      SELECT DISTINCT spi."userId", u."name"
+      FROM "ServiceProviderInfo" spi
+      JOIN "Location" ploc ON ploc."id" = spi."locationId"
+      JOIN "User" u ON u."id" = spi."userId"
+      WHERE ${service} = ANY(spi."services")
+        AND spi."radius" > 0
+        AND ST_DistanceSphere(
+          ST_MakePoint(ploc."lng", ploc."lat"),
+          ST_MakePoint(${location.lng}, ${location.lat})
+        ) <= (spi."radius" * 1000)
+    `) as any[];
+
+    // Get FCM tokens for eligible providers
+    const providerIds = eligible.map(row => row.userId);
+    const devices = await (prisma as any).device.findMany({
+      where: {
+        userId: { in: providerIds },
+        provider: 'fcm',
+        enabled: true,
+      },
+    });
+    
+    const fcmTokens = devices.map((device: any) => device.token).filter(Boolean);
+
+    // Send push notifications to nearby providers
+    if (fcmTokens.length > 0) {
+      try {
+        await notifyNearbyProviders(fcmTokens, {
+          id: wr.id,
+          title: service,
+          description: `New work request in ${location.name}`,
+          location: location.name,
+          urgency: req.body.urgency || 'NORMAL',
         });
+        console.log(`Sent push notifications to ${fcmTokens.length} nearby providers`);
+      } catch (error) {
+        console.error('Error sending push notifications:', error);
+        // Don't fail the request creation if notifications fail
       }
     }
+
+    // Also send in-app notifications (existing functionality)
+    for (const row of eligible) {
+      notifyUser({
+        userId: row.userId,
+        type: 'newRequest',
+        titleKey: 'notifications.newRequest.title',
+        messageKey: 'notifications.newRequest.message',
+        params: { name: user.name, service },
+        data: { requestId: wr.id }
+      }).catch(() => {});
+    }
+
     res.status(201).json(wr);
   } catch { res.status(500).json({ message: t(lang, 'request.createFailed') }); }
 }
@@ -236,6 +275,25 @@ export async function accept(req: Request, res: Response): Promise<void> {
     const already = await pAny.acceptedProvider?.findFirst?.({ where: { workRequestId: id, providerId: user.id } });
     if (already) { res.status(409).json({ message: t(lang, 'request.accept.alreadyAccepted') }); return; }
     await pAny.acceptedProvider?.create?.({ data: { workRequestId: id, providerId: user.id } });
+    
+    // Send push notification to the end user
+    try {
+      await sendNotificationToUser((wr as any).userId, {
+        title: '✅ Request Accepted',
+        body: `${user.name} accepted your request: ${(wr as any).service}`,
+        data: {
+          type: 'status_update',
+          workRequestId: id,
+          status: 'ACCEPTED',
+          providerId: user.id,
+          action: 'view_details',
+        },
+      });
+    } catch (error) {
+      console.error('Error sending push notification for request acceptance:', error);
+    }
+    
+    // Also send in-app notification (existing functionality)
     await notifyUser({
       userId: (wr as any).userId,
       type: 'requestAccepted',
