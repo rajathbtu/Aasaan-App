@@ -96,16 +96,14 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
             <Ionicons name="location" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
             <Text style={styles.sectionTitle}>{t('createRequest.addDetails.locationTitle')}</Text>
           </View>
-          <View style={styles.locationCard}>
-            <LocationSearch
-              onSelect={(location) => setSelectedLocation(location)}
-              initialValue={selectedLocation?.name || selectedLocation?.description || ''}
-            />
-            <Text style={styles.locationNote}>
-              <Ionicons name="information-circle" size={14} color={colors.grey} />
-              {'  '}{t('createRequest.addDetails.locationNote')}
-            </Text>
-          </View>
+          <LocationSearch
+            onSelect={(location) => setSelectedLocation(location)}
+            initialValue={selectedLocation?.name || selectedLocation?.description || ''}
+          />
+          <Text style={styles.locationNote}>
+            <Ionicons name="information-circle" size={14} color={colors.grey} />
+            {'  '}{t('createRequest.addDetails.locationNote')}
+          </Text>
         </View>
 
         {service.tags && service.tags.length > 0 && (

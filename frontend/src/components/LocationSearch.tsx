@@ -13,7 +13,7 @@ type Props = {
   placeholder?: string;
 };
 
-const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placeholder = 'Search for a location' }) => {
+const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placeholder = 'Select location' }) => {
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<Array<{ place_id: string; description: string }>>([]);
   const [locating, setLocating] = useState(false);
@@ -31,7 +31,12 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
     const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&components=country:in&key=${GOOGLE_PLACES_API_KEY}`;
     try {
       const response = await axios.get(url);
-      setSuggestions(response.data.predictions as Array<{ place_id: string; description: string }>);
+      const filteredSuggestions = response.data.predictions.filter((prediction: any) => {
+        const types = prediction.types || [];
+        // Exclude suggestions that are cities, states, or countries
+        return !types.includes('locality') && !types.includes('administrative_area_level_1') && !types.includes('country');
+      });
+      setSuggestions(filteredSuggestions as Array<{ place_id: string; description: string }>);
     } catch (error) {
       console.error('Error fetching suggestions:', error);
     }
@@ -73,13 +78,17 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       let displayName = '';
       try {
-        const results = await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
-        if (results && results.length) {
-          const r: any = results[0];
-          const parts = [r.name || r.street, r.subregion || r.city || r.district].filter(Boolean);
-          displayName = parts.join(', ') || r.formattedAddress || '';
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${pos.coords.latitude},${pos.coords.longitude}&key=${GOOGLE_PLACES_API_KEY}`;
+        const response = await axios.get(geocodeUrl);
+        if (response.data.results && response.data.results.length > 0) {
+          const comps = response.data.results[0].address_components;
+          displayName = comps.length >= 3
+            ? comps[0].long_name + ', ' + comps[1].long_name + ', ' + comps[2].long_name
+            : response.data.results[0].formatted_address || '';
         }
-      } catch {}
+      } catch (error) {
+        console.error('Error fetching location name from Google Maps API:', error);
+      }
       setQuery(displayName);
       onSelect({ lat: pos.coords.latitude, lng: pos.coords.longitude, description: displayName });
     } catch (error) {
@@ -92,13 +101,8 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
   const shown = suggestions.slice(0, 5);
 
   return (
-    <View style={styles.container}>
-      {locating && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-          <ActivityIndicator size="small" />
-          <Text style={{ marginLeft: spacing.sm, color: colors.grey }}>Fetching current location...</Text>
-        </View>
-      )}
+    <View>
+      
       <View style={styles.inputWrap}>
         <TextInput
           style={styles.input}
@@ -115,7 +119,7 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
           style={styles.rightAdornment}
           accessibilityLabel="Detect current location"
         >
-          <Ionicons name="locate-outline" size={18} color={colors.dark} />
+          <Ionicons name="locate-outline" size={21} color={colors.dark} />
         </TouchableOpacity>
       </View>
       {shown.length > 0 && (
@@ -127,14 +131,17 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
           ))}
         </View>
       )}
+      {locating && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
+          <ActivityIndicator size="small" />
+          <Text style={{ marginLeft: spacing.sm, color: colors.grey }}>Fetching current location...</Text>
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    margin: spacing.md,
-  },
   inputWrap: {
     position: 'relative',
   },
