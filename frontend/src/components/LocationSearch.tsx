@@ -3,9 +3,18 @@ import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator 
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing, radius, sizes } from '../theme';
 
 const GOOGLE_PLACES_API_KEY = 'AIzaSyA38lonSYxTC6Ro6sBQB11Gg7IragTG2XU'; // Replace with your API key
+const MAX_SAVED_LOCATIONS = 3;
+
+type Location = {
+  place_id: string;
+  description: string;
+  lat?: number;
+  lng?: number;
+};
 
 type Props = {
   onSelect: (location: any) => void;
@@ -16,10 +25,15 @@ type Props = {
 const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placeholder = 'Select location' }) => {
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<Array<{ place_id: string; description: string }>>([]);
+  const [savedLocations, setSavedLocations] = useState<Array<{ place_id: string; description: string }>>([]);
   const [locating, setLocating] = useState(false);
 
   useEffect(() => {
     setQuery(initialValue || '');
+    (async () => {
+      const locations = await getSavedLocations();
+      setSavedLocations(locations);
+    })();
   }, [initialValue]);
 
   const fetchSuggestions = async (text: string) => {
@@ -60,7 +74,10 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
     try {
       const response = await axios.get(detailsUrl);
       const { lat, lng } = response.data.result.geometry.location;
-      onSelect({ ...place, lat, lng });
+      const selectedLocation = { ...place, lat, lng };
+      onSelect(selectedLocation);
+      await saveLocation(selectedLocation);
+      setSavedLocations(await getSavedLocations());
     } catch (error) {
       console.error('Error fetching place details:', error);
       onSelect(place); // Fallback to place without lat/lng
@@ -98,7 +115,35 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
     }
   };
 
+  const saveLocation = async (location: Location) => {
+    try {
+      const savedLocations: Location[] = JSON.parse((await AsyncStorage.getItem('savedLocations')) || '[]');
+      const updatedLocations = [location, ...savedLocations.filter((loc) => loc.place_id !== location.place_id)].slice(0, MAX_SAVED_LOCATIONS);
+      await AsyncStorage.setItem('savedLocations', JSON.stringify(updatedLocations));
+    } catch (error) {
+      console.error('Error saving location:', error);
+    }
+  };
+
+  const getSavedLocations = async (): Promise<Location[]> => {
+    try {
+      return JSON.parse((await AsyncStorage.getItem('savedLocations')) || '[]');
+    } catch (error) {
+      console.error('Error retrieving saved locations:', error);
+      return [];
+    }
+  };
+
   const shown = suggestions.slice(0, 5);
+
+  const renderLocationOption = (item: { place_id: string; description: string }, isCurrentLocation = false) => (
+    <TouchableOpacity
+      key={item.place_id}
+      onPress={() => (isCurrentLocation ? detectLocation() : handleSelect(item))}
+    >
+      <Text style={styles.suggestion}>{item.description}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <View>
@@ -122,13 +167,17 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
           <Ionicons name="locate-outline" size={21} color={colors.dark} />
         </TouchableOpacity>
       </View>
-      {shown.length > 0 && (
+      {query.trim() === '' && savedLocations.length > 0 && (
         <View style={styles.suggestionsContainer}>
-          {shown.map((item) => (
-            <TouchableOpacity key={item.place_id} onPress={() => handleSelect(item)}>
-              <Text style={styles.suggestion}>{item.description}</Text>
-            </TouchableOpacity>
-          ))}
+          {renderLocationOption({ place_id: 'current_location', description: 'Use my current location' }, true)}
+          <Text style={{ padding: spacing.md, color: colors.grey }}>Recent Locations</Text>
+          {savedLocations.map((item) => renderLocationOption(item))}
+        </View>
+      )}
+      {query.trim() !== '' && suggestions.length > 0 && (
+        <View style={styles.suggestionsContainer}>
+          {renderLocationOption({ place_id: 'current_location', description: 'Use my current location' }, true)}
+          {suggestions.map((item) => renderLocationOption(item))}
         </View>
       )}
       {locating && (
