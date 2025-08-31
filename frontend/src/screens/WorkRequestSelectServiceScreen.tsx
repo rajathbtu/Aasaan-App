@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, LayoutAnimation, Platform, UIManager, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, radius, tints } from '../theme';
@@ -37,7 +37,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           const cached: Service[] = JSON.parse(raw);
           setServices(cached);
         }
-      } catch {}
+      } catch { }
       // Always refresh in background
       refreshInBackground();
     })();
@@ -167,72 +167,80 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
-      <Header title="Aasaan"  showNotification={true} notificationCount={2} showBackButton={false} />
+      <Header title="Aasaan" showNotification={true} notificationCount={2} showBackButton={false} />
+      {/* Spacer to ensure shadow visibility below header */}
+      <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.lg }}>
+        <ImageBackground
+          source={require('../../assets/bckgnd_tile.png')}
+          resizeMode="repeat"  // this makes it tile like WhatsApp
+          style={{ flex: 1 }}>
 
-      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
-        <Text style={styles.pageTitle}>{t('createRequest.selectService.title')}</Text>
-        {/* <Text style={styles.subtitle}>{t('createRequest.selectService.subtitle')}</Text> */}
+          <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+            <Text style={styles.pageTitle}>{t('createRequest.selectService.title')}</Text>
+            {/* <Text style={styles.subtitle}>{t('createRequest.selectService.subtitle')}</Text> */}
 
-        {/* Search bar (icon inside input) */}
-        <View style={styles.searchWrapper}>
-          <Ionicons name="search" size={18} color={colors.grey} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={placeholderTexts[placeholderIndex]}
-            placeholderTextColor={colors.grey}
-            value={query}
-            onChangeText={setQuery}
-          />
-          {query.trim() !== '' && (
-            <TouchableOpacity style={styles.resetButton} onPress={() => setQuery('')}>
-              <Ionicons name="close-circle" size={18} color={colors.grey} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {!hasData && (
-        <View style={{ padding: spacing.lg, alignItems: 'center' }}>
-          <ActivityIndicator />
-          <Text style={{ color: colors.grey, marginTop: 8 }}>Loading services…</Text>
-        </View>
-      )}
-
-      {/* Recently Used */}
-      {hasData && query.trim() === '' && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('createRequest.selectService.recentlyUsed')}</Text>
-          <View style={styles.gridRow}>
-            {recentIds.map((id) => {
-              const svc = (services || []).find((s) => s.id === id);
-              return svc ? renderServiceCard(svc) : null;
-            })}
-          </View>
-        </View>
-      )}
-
-      {/* All Services */}
-      {hasData && (
-        <View style={styles.section}>
-            {query.trim() === '' && (
-            <Text style={styles.sectionTitle}>{t('createRequest.selectService.allServices')}</Text>
-            )}
-          {Object.keys(filtered).map((category) => (
-            <View key={category} style={styles.categorySection}>
-              <Text style={styles.categoryTitle}>{category}</Text>
-              <View style={styles.gridRow}>{filtered[category].map((svc) => renderServiceCard(svc))}</View>
+            {/* Search bar (icon inside input) */}
+            <View style={styles.searchWrapper}>
+              <Ionicons name="search" size={18} color={colors.grey} style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder={placeholderTexts[placeholderIndex]}
+                placeholderTextColor={colors.grey}
+                value={query}
+                onChangeText={setQuery}
+              />
+              {query.trim() !== '' && (
+                <TouchableOpacity style={styles.resetButton} onPress={() => setQuery('')}>
+                  <Ionicons name="close-circle" size={18} color={colors.grey} />
+                </TouchableOpacity>
+              )}
             </View>
-          ))}
-        </View>
-      )}
+          </View>
 
-      {hasData && Object.keys(filtered).length === 0 && (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.lg }}>
-          <Text style={{ color: colors.grey, fontSize: 16 }}>{t('No matching service found')}</Text>
-        </View>
-      )}
-    </ScrollView>
+          {!hasData && (
+            <View style={{ padding: spacing.lg, alignItems: 'center' }}>
+              <ActivityIndicator />
+              <Text style={{ color: colors.grey, marginTop: 8 }}>Loading services…</Text>
+            </View>
+          )}
+
+          {/* Recently Used */}
+          {hasData && query.trim() === '' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t('createRequest.selectService.recentlyUsed')}</Text>
+              <View style={styles.gridRow}>
+                {recentIds.map((id) => {
+                  const svc = (services || []).find((s) => s.id === id);
+                  return svc ? renderServiceCard(svc) : null;
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* All Services */}
+          {hasData && (
+            <View style={styles.section}>
+              {query.trim() === '' && (
+                <Text style={styles.sectionTitle}>{t('createRequest.selectService.allServices')}</Text>
+              )}
+              {Object.keys(filtered).map((category) => (
+                <View key={category} style={styles.categorySection}>
+                  <Text style={styles.categoryTitle}>{category}</Text>
+                  <View style={styles.gridRow}>{filtered[category].map((svc) => renderServiceCard(svc))}</View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {hasData && Object.keys(filtered).length === 0 && (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.lg }}>
+              <Text style={{ color: colors.grey, fontSize: 16 }}>{t('No matching service found')}</Text>
+            </View>
+          )}
+
+        </ImageBackground>
+      </ScrollView>
     </View>
   );
 };
@@ -350,7 +358,7 @@ const styles = StyleSheet.create({
   serviceCard: {
     width: '31%',
     marginBottom: spacing.md,
-    borderWidth: 0.25,
+    borderWidth: 0.2,
     borderColor: colors.dark,
     borderRadius: radius.md,
     paddingVertical: spacing.sm,
