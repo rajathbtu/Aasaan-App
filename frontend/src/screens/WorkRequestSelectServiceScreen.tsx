@@ -136,12 +136,12 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     return (
       <TouchableOpacity
         key={service.id}
-        style={[styles.serviceCard, { backgroundColor: iconConfig.cardBg }]}
+        style={[styles.serviceCard, styles.shadow]}
         onPress={() => navigation.navigate('WorkRequestAddDetails', { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [] })}
         activeOpacity={0.8}
       >
         <View style={[styles.iconCircle, { backgroundColor: iconConfig.color }]}>
-          <Ionicons name={iconConfig.icon} size={22} color={colors.primary} />
+          <Ionicons name={iconConfig.icon} size={22} color={iconConfig.cardBg} />
         </View>
         <Text style={styles.serviceLabel}>{service.name}</Text>
       </TouchableOpacity>
@@ -150,10 +150,24 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   const hasData = services && services.length > 0;
 
+  const placeholderTexts = [
+    t('createRequest.selectService.searchPlaceholder'),
+    t('createRequest.selectService.searchPlaceholder1'),
+    t('createRequest.selectService.searchPlaceholder2')
+  ];
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prevIndex) => (prevIndex + 1) % placeholderTexts.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header title="Aasaan"  showNotification={true} notificationCount={2} showBackButton={false} />
-      <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.lg }}>
 
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
@@ -165,7 +179,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           <Ionicons name="search" size={18} color={colors.grey} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder={t('createRequest.selectService.searchPlaceholder')}
+            placeholder={placeholderTexts[placeholderIndex]}
             placeholderTextColor={colors.grey}
             value={query}
             onChangeText={setQuery}
@@ -336,26 +350,28 @@ const styles = StyleSheet.create({
   serviceCard: {
     width: '31%',
     marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
+    borderWidth: 0.25,
+    borderColor: colors.dark,
     borderRadius: radius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.sm,
     alignItems: 'center',
-    // subtle shadow like hover/border emphasis
+    backgroundColor: colors.white,
+  },
+  shadow: {
     shadowColor: colors.black,
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    elevation: 2,
   },
   iconCircle: {
-    width: 48,
-    height: 48,
+    width: 32,
+    height: 32,
     borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   serviceLabel: {
     fontSize: 14, // text-base-ish

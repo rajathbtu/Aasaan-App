@@ -198,6 +198,8 @@ export const translations = {
         title: 'Get your work done!',
         subtitle: 'Select type of work',
         searchPlaceholder: 'Search for services...',
+        searchPlaceholder1: 'Start typing.. "Maid"',
+        searchPlaceholder2: 'Try "Electrician"',
         recentlyUsed: 'Recently Used',
         allServices: 'All Services',
       },
