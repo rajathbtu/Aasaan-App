@@ -7,6 +7,7 @@ import Header from '../components/Header';
 import { useI18n } from '../i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
+import { useAuth } from '../contexts/AuthContext'; // Corrected import
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -16,6 +17,8 @@ type Service = { id: string; name: string; category: string; tags?: string[] };
 
 const CACHE_KEY = 'services_cache_v1';
 const CACHE_UPDATED_AT_KEY = 'services_cache_updatedAt_v1';
+const RECENT_SERVICES_KEY = (userId: string) => `recent_services_${userId}`;
+const MAX_RECENT_SERVICES = 3;
 
 const WorkRequestSelectServiceScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -24,9 +27,8 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   const [services, setServices] = useState<Service[] | null>(null);
   const [loading, setLoading] = useState(false);
-
-  // Predefine a few recently used services.
-  const recentIds = ['electrician', 'plumber', 'cook'];
+  const userId = useAuth()?.user?.id || 'guest'; // Fetch user ID from Auth or fallback to 'guest'
+  const [recentServices, setRecentServices] = useState<Service[]>([]);
 
   useEffect(() => {
     // Load cached services immediately
@@ -42,6 +44,21 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
       refreshInBackground();
     })();
   }, []);
+
+  useEffect(() => {
+    // Load recently used services for the user
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(RECENT_SERVICES_KEY(userId));
+        if (raw) {
+          const recent: Service[] = JSON.parse(raw);
+          setRecentServices(recent);
+        }
+      } catch {
+        // Handle error silently
+      }
+    })();
+  }, [userId]);
 
   const refreshInBackground = async () => {
     try {
@@ -65,6 +82,16 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
       // Keep showing cache on error
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateRecentServices = async (service: Service) => {
+    try {
+      const updatedRecent = [service, ...recentServices.filter((s) => s.id !== service.id)].slice(0, MAX_RECENT_SERVICES);
+      setRecentServices(updatedRecent);
+      await AsyncStorage.setItem(RECENT_SERVICES_KEY(userId), JSON.stringify(updatedRecent));
+    } catch {
+      // Handle error silently
     }
   };
 
@@ -137,11 +164,14 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
       <TouchableOpacity
         key={service.id}
         style={[styles.serviceCard, styles.shadow]}
-        onPress={() => navigation.navigate('WorkRequestAddDetails', { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [] })}
+        onPress={() => {
+          updateRecentServices(service);
+          navigation.navigate('WorkRequestAddDetails', { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [] });
+        }}
         activeOpacity={0.8}
       >
         <View style={[styles.iconCircle, { backgroundColor: iconConfig.color }]}>
-          <Ionicons name={iconConfig.icon} size={22} color={iconConfig.cardBg} />
+          <Ionicons name={iconConfig.icon} size={22} color={colors.white} />
         </View>
         <Text style={styles.serviceLabel}>{service.name}</Text>
       </TouchableOpacity>
@@ -206,14 +236,11 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           )}
 
           {/* Recently Used */}
-          {hasData && query.trim() === '' && (
+          {hasData && query.trim() === '' && recentServices.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{t('createRequest.selectService.recentlyUsed')}</Text>
               <View style={styles.gridRow}>
-                {recentIds.map((id) => {
-                  const svc = (services || []).find((s) => s.id === id);
-                  return svc ? renderServiceCard(svc) : null;
-                })}
+                {recentServices.map((svc) => renderServiceCard(svc))}
               </View>
             </View>
           )}
@@ -283,7 +310,7 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     fontSize: 24, // text-2xl
-    fontWeight: '800',
+    fontWeight: '700',
     color: colors.dark,
     marginBottom: 4,
   },
@@ -332,10 +359,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 18, // text-lg
-    fontWeight: '700',
-    color: colors.dark,
+    fontSize: 14, // text-lg
+    fontWeight: '500',
+    color: colors.grey,
     marginBottom: spacing.md,
+    textTransform: 'uppercase',
   },
   categorySection: {
     marginBottom: spacing.lg,
@@ -345,6 +373,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.dark, // text-gray-800
     marginBottom: spacing.sm,
+    textTransform: 'uppercase',
   },
 
   // 3-column grid with tidy gaps
