@@ -158,7 +158,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
         <Text style={styles.pageTitle}>{t('createRequest.selectService.title')}</Text>
-        <Text style={styles.subtitle}>{t('createRequest.selectService.subtitle')}</Text>
+        {/* <Text style={styles.subtitle}>{t('createRequest.selectService.subtitle')}</Text> */}
 
         {/* Search bar (icon inside input) */}
         <View style={styles.searchWrapper}>

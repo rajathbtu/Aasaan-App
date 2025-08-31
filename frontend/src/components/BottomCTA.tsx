@@ -53,7 +53,7 @@ const BottomCTA: React.FC<BottomCTAProps> = ({
   });
 
   return (
-    <View style={[styles.container, isSticky && styles.sticky, { paddingBottom: insets.bottom*2 || spacing.lg }]}>
+    <View style={[styles.container, isSticky && styles.sticky, { paddingBottom: insets.bottom || spacing.lg }]}>
       {noteText && <Text style={styles.noteText}>{noteText}</Text>}
       <TouchableOpacity
         disabled={isDisabled || isLoading}

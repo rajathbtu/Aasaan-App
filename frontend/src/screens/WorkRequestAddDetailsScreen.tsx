@@ -10,6 +10,7 @@ import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
+import BottomCTA from '../components/BottomCTA';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -29,6 +30,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const { token } = useAuth();
   const { t } = useI18n();
+  const [requestInProgress, setRequestInProgress] = useState(false);
 
   if (!serviceId || !serviceName) {
     return (
@@ -51,6 +53,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
       Alert.alert(t('createRequest.addDetails.authRequiredTitle'), t('createRequest.addDetails.authRequiredDesc'));
       return;
     }
+    setRequestInProgress(true);
     try {
       const locName = selectedLocation.name || selectedLocation.description;
       const placeId = selectedLocation.place_id || selectedLocation.placeId;
@@ -63,6 +66,8 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
     } catch (err: any) {
       const message = err?.response?.data?.message || err.message || t('createRequest.addDetails.createFailed');
       Alert.alert(t('common.error'), message);
+    } finally {
+      setRequestInProgress(false);
     }
   };
 
@@ -125,18 +130,23 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
             </View>
           </View>
         )}
-
-        <View style={styles.actionsSection}>
-          <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
-            <Ionicons name="checkmark" size={18} color={colors.white} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.confirmButtonText}>{t('createRequest.addDetails.confirmButton')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
+        
+      {/* @todo Show cancel button to go back */}
+          {/* <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}>
             <Ionicons name="close" size={18} color={colors.grey} style={{ marginRight: spacing.sm }} />
             <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+          </TouchableOpacity> */}
+
+      </ScrollView> 
+      <View style={styles.actionsSection}>
+          <BottomCTA
+            buttonText={t('createRequest.addDetails.confirmButton')}
+            onPress={handleConfirm}
+            isSticky={true}
+            isLoading={requestInProgress}
+            isDisabled={requestInProgress}
+          />
+      </View>
     </View>
   );
 };

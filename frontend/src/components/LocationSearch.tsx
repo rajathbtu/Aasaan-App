@@ -27,6 +27,7 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
   const [suggestions, setSuggestions] = useState<Array<{ place_id: string; description: string }>>([]);
   const [savedLocations, setSavedLocations] = useState<Array<{ place_id: string; description: string }>>([]);
   const [locating, setLocating] = useState(false);
+  const [cachedLocation, setCachedLocation] = useState<any>(null); // Cache for current location
 
   useEffect(() => {
     setQuery(initialValue || '');
@@ -34,6 +35,8 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
       const locations = await getSavedLocations();
       setSavedLocations(locations);
     })();
+
+    if (cachedLocation==null) detectLocation(); // Call detectLocation on component load to cache current location
   }, [initialValue]);
 
   const fetchSuggestions = async (text: string) => {
@@ -91,6 +94,12 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
   };
 
   const detectLocation = async () => {
+    if (cachedLocation) {
+      onSelect(cachedLocation);
+      setQuery(cachedLocation.description);
+      return;
+    }
+
     try {
       setLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -112,8 +121,10 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
       } catch (error) {
         console.error('Error fetching location name from Google Maps API:', error);
       }
+      const detectedLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude, description: displayName };
+      setCachedLocation(detectedLocation); // Cache the detected location
       setQuery(displayName);
-      onSelect({ lat: pos.coords.latitude, lng: pos.coords.longitude, description: displayName });
+      onSelect(detectedLocation);
     } catch (error) {
       console.error('Error detecting location:', error);
     } finally {
@@ -164,7 +175,7 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
       <View style={styles.inputWrap}>
         <TextInput
           style={[styles.input, { maxHeight: 60 }]} // Adjust maxHeight to fit 2 lines
-          placeholder={placeholder}
+          placeholder={locating ? 'Fetching current location...' : placeholder} // Show fetching message
           placeholderTextColor={colors.grey}
           value={query}
           multiline={true} // Enable multiline to allow wrapping
@@ -174,7 +185,7 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
             fetchSuggestions(text);
           }}
         />
-        {query.length == 0 && (
+        {query.length == 0 && !locating && (
           <TouchableOpacity
           onPress={detectLocation}
           style={styles.rightAdornment}
@@ -191,23 +202,20 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
             <Ionicons name="close-circle" size={21} color={colors.grey} />
           </TouchableOpacity>
         )}
+        {locating && (
+          <ActivityIndicator style={styles.rightAdornment} size="small" />
+        )}
       </View>
       {query.trim() === '' && savedLocations.length > 0 && (
         <View style={styles.suggestionsContainer}>
-          {renderLocationOption({ place_id: 'current_location', description: 'Use current location' }, true, 'CURRENT')}
+          {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Use current location' }, true, 'CURRENT')}
           {savedLocations.map((item) => renderLocationOption(item, false, 'RECENT'))}
         </View>
       )}
       {query.trim() !== '' && suggestions.length > 0 && (
         <View style={styles.suggestionsContainer}>
-          {renderLocationOption({ place_id: 'current_location', description: 'Use current location' }, true, 'CURRENT')}
+          {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Use current location' }, true, 'CURRENT')}
           {suggestions.map((item) => renderLocationOption(item, false, 'SEARCHED'))}
-        </View>
-      )}
-      {locating && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-          <ActivityIndicator size="small" />
-          <Text style={{ marginLeft: spacing.sm, color: colors.grey }}>Fetching current location...</Text>
         </View>
       )}
     </View>
