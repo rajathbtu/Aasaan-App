@@ -68,7 +68,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
-      <Header title={t('createRequest.addDetails.headerTitle')} showNotification={true} notificationCount={3} showBackButton={true} />
+      <Header title={t('createRequest.addDetails.headerTitle')} showNotification={false} showBackButton={true} />
       {/* Spacer to prevent overlap and add small bottom margin below header */}
       <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
@@ -100,10 +100,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
             onSelect={(location) => setSelectedLocation(location)}
             initialValue={selectedLocation?.name || selectedLocation?.description || ''}
           />
-          <Text style={styles.locationNote}>
-            <Ionicons name="information-circle" size={14} color={colors.grey} />
-            {'  '}{t('createRequest.addDetails.locationNote')}
-          </Text>
+          <Text style={styles.locationNote}> {t('createRequest.addDetails.locationNote')}</Text>
         </View>
 
         {service.tags && service.tags.length > 0 && (
@@ -251,6 +248,7 @@ const styles = StyleSheet.create({
   locationNote: {
     fontSize: 12,
     color: colors.grey,
+    margin: spacing.xs,
   },
   tagHint: {
     fontSize: 12,

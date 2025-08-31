@@ -50,7 +50,11 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
         // Exclude suggestions that are cities, states, or countries
         return !types.includes('locality') && !types.includes('administrative_area_level_1') && !types.includes('country');
       });
-      setSuggestions(filteredSuggestions as Array<{ place_id: string; description: string }>);
+      const processedSuggestions = filteredSuggestions.map((suggestion: { terms: { value: string }[]; description: string }) => ({
+        ...suggestion,
+        description: removeStateAndCountry(suggestion),
+      }));
+      setSuggestions(processedSuggestions as Array<{ place_id: string; description: string }>);
     } catch (error) {
       console.error('Error fetching suggestions:', error);
     }
@@ -60,20 +64,22 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
     const terms = place.terms || [];
     if (terms.length > 2) {
       // Exclude the last two terms (state and country)
-      return terms.slice(0, -2).map((term: { value: string }) => term.value).join(', ');
+      return capitalizeWords(terms.slice(0, -2).map((term: { value: string }) => term.value).join(', '));
     }
     return place.description; // Fallback to the full description if terms are insufficient
   }; 
 
   const handleSelect = async (place: any) => {
     const cleanedPlaceName = removeStateAndCountry(place);
-    setQuery(cleanedPlaceName); // @todo: cleanedPlaceName is still getting overriden by onChangeText call
+    setQuery(cleanedPlaceName); 
     setSuggestions([]);
 
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&key=${GOOGLE_PLACES_API_KEY}`;
     try {
       const response = await axios.get(detailsUrl);
       const { lat, lng } = response.data.result.geometry.location;
+      // place.name = cleanedPlaceName;
+      place.description = cleanedPlaceName;
       const selectedLocation = { ...place, lat, lng };
       onSelect(selectedLocation);
       await saveLocation(selectedLocation);
@@ -136,12 +142,19 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
 
   const shown = suggestions.slice(0, 5);
 
-  const renderLocationOption = (item: { place_id: string; description: string }, isCurrentLocation = false) => (
+  const capitalizeWords = (text: string) => {
+    return text.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+  };
+
+  const renderLocationOption = (item: { place_id: string; description: string }, isCurrentLocation = false, tag?: string) => (
     <TouchableOpacity
       key={item.place_id}
       onPress={() => (isCurrentLocation ? detectLocation() : handleSelect(item))}
     >
-      <Text style={styles.suggestion}>{item.description}</Text>
+      <View style={styles.suggestionRow}>
+        {tag && <Text style={styles.tag}>{tag}</Text>}
+        <Text style={styles.suggestion}>{item.description}</Text>
+      </View>
     </TouchableOpacity>
   );
 
@@ -150,34 +163,45 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
       
       <View style={styles.inputWrap}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, { maxHeight: 60 }]} // Adjust maxHeight to fit 2 lines
           placeholder={placeholder}
           placeholderTextColor={colors.grey}
           value={query}
+          multiline={true} // Enable multiline to allow wrapping
+          numberOfLines={2} // Limit to 2 lines
           onChangeText={(text) => {
             setQuery(text);
             fetchSuggestions(text);
           }}
         />
-        <TouchableOpacity
+        {query.length == 0 && (
+          <TouchableOpacity
           onPress={detectLocation}
           style={styles.rightAdornment}
           accessibilityLabel="Detect current location"
         >
           <Ionicons name="locate-outline" size={21} color={colors.dark} />
         </TouchableOpacity>
+        )}
+        {query.length > 0 && (
+          <TouchableOpacity
+            onPress={() => setQuery('')} // Clear the input field
+            style={styles.clearButton}
+          >
+            <Ionicons name="close-circle" size={21} color={colors.grey} />
+          </TouchableOpacity>
+        )}
       </View>
       {query.trim() === '' && savedLocations.length > 0 && (
         <View style={styles.suggestionsContainer}>
-          {renderLocationOption({ place_id: 'current_location', description: 'Use my current location' }, true)}
-          <Text style={{ padding: spacing.md, color: colors.grey }}>Recent Locations</Text>
-          {savedLocations.map((item) => renderLocationOption(item))}
+          {renderLocationOption({ place_id: 'current_location', description: 'Use current location' }, true, 'CURRENT')}
+          {savedLocations.map((item) => renderLocationOption(item, false, 'RECENT'))}
         </View>
       )}
       {query.trim() !== '' && suggestions.length > 0 && (
         <View style={styles.suggestionsContainer}>
-          {renderLocationOption({ place_id: 'current_location', description: 'Use my current location' }, true)}
-          {suggestions.map((item) => renderLocationOption(item))}
+          {renderLocationOption({ place_id: 'current_location', description: 'Use current location' }, true, 'CURRENT')}
+          {suggestions.map((item) => renderLocationOption(item, false, 'SEARCHED'))}
         </View>
       )}
       {locating && (
@@ -200,7 +224,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    marginBottom: spacing.sm,
     color: colors.dark,
     backgroundColor: colors.white,
     paddingRight: sizes.inputRightPadding,
@@ -210,6 +233,11 @@ const styles = StyleSheet.create({
     right: spacing.sm,
     top: spacing.sm,
   },
+  clearButton: {
+    position: 'absolute',
+    right: spacing.md,
+    top: spacing.sm,
+  },
   suggestionsContainer: {
     borderWidth: 1,
     borderColor: colors.greyLight,
@@ -217,12 +245,23 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: colors.white,
   },
+  tag: {
+    color: colors.grey,
+    fontSize: 9,
+    marginRight: spacing.sm, // Add spacing between tag and text
+  },
   suggestion: {
+    flex: 1, // Ensure text takes up remaining space
+    color: colors.dark,
+    // fontSize: 14
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.greyLight,
-    color: colors.dark,
   },
 });
 
