@@ -1,5 +1,7 @@
 import React from 'react';
 import 'react-native-get-random-values'; 
+// Initialize RNFirebase app module before any other firebase packages
+import '@react-native-firebase/app';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -9,6 +11,22 @@ import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+// Try to require messaging dynamically to avoid crashing on web
+let messaging: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  messaging = require('@react-native-firebase/messaging').default;
+} catch {}
+
+// Register background handler (Android) with guard
+try {
+  if (messaging) {
+    messaging().setBackgroundMessageHandler(async (_remoteMessage: any) => {
+      // no-op: notifications with a `notification` payload are shown by the OS
+    });
+  }
+} catch {}
 
 // Import screens
 import LaunchScreen from './src/screens/LaunchScreen';

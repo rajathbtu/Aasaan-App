@@ -191,3 +191,30 @@ export async function checkUserRegistration(phone: string) {
   const res = await api.post('/auth/check-registration', { phone });
   return res.data;
 }
+
+// FCM token management for push notifications
+export async function registerDevice(
+  token: string,
+  payload: { token: string; platform?: string }
+) {
+  const res = await api.post('/notifications/fcm-token', payload, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
+
+export async function unregisterDevice(token: string, deviceToken: string) {
+  const res = await api.delete('/notifications/fcm-token', {
+    data: { token: deviceToken },
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
+
+// Send test notification
+export async function sendTestNotification(token: string) {
+  const res = await api.post('/notifications/test', {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}

@@ -19,6 +19,7 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.4.0",
     "express": "^4.21.2",
+    "firebase-admin": "^13.4.0",
     "razorpay": "^2.9.6",
     "uuid": "^9.0.1"
   },

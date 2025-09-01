@@ -1,10 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { getProfile, updateProfile } from '../api';
+import { getProfile, updateProfile, registerDevice, unregisterDevice } from '../api';
 import { USE_MOCK_API } from '../config';
 import * as mock from '../api/mock';
-import { useNavigation } from '@react-navigation/native';
 import { AuthStackNavigationProp } from '../../App';
+import { Platform } from 'react-native';
+import { 
+  requestNotificationPermission, 
+  getFCMToken, 
+  setupForegroundMessageHandler,
+  setupNotificationOpenedHandler 
+} from '../services/notificationService';
 
 interface User {
   id: string;
@@ -47,6 +53,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deviceToken, setDeviceToken] = useState<string | null>(null);
+
+  async function setupPushNotifications(authToken: string) {
+    if (Platform.OS === 'web') return;
+
+    try {
+      // Request permission
+      const hasPermission = await requestNotificationPermission();
+      if (!hasPermission) {
+        console.log('Push notification permission denied');
+        return;
+      }
+
+      // Get FCM token
+      const fcmToken = await getFCMToken();
+      if (fcmToken) {
+        setDeviceToken(fcmToken);
+        await registerDevice(authToken, {
+          token: fcmToken,
+          platform: Platform.OS,
+        });
+        console.log('FCM token registered successfully');
+      }
+
+      // Set up message handlers
+      const unsubscribeForeground = setupForegroundMessageHandler((message) => {
+        console.log('Foreground message received:', message);
+        // Handle in-app notification display here
+      });
+
+      const unsubscribeOpened = setupNotificationOpenedHandler((notification) => {
+        console.log('Notification opened app:', notification);
+        // Handle navigation based on notification data here
+      });
+
+      return () => {
+        unsubscribeForeground?.();
+        unsubscribeOpened?.();
+      };
+    } catch (error) {
+      console.warn('Push notification setup failed:', error);
+    }
+  }
 
   // Attempt to load token/user from secure storage on mount
   useEffect(() => {
@@ -57,11 +106,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (storedToken && storedUser) {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
+          // Setup push notifications in background
+          setupPushNotifications(storedToken);
         }
       } finally {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const login = async (tok: string, usr: User, navigation?: AuthStackNavigationProp) => {
@@ -70,6 +122,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await SecureStore.setItemAsync('aasaan_token', tok);
     await SecureStore.setItemAsync('aasaan_user', JSON.stringify(usr));
 
+    // Setup push notifications
+    setupPushNotifications(tok);
+
     // Redirect to role selection page if role is null
     if (!usr.role && navigation) {
       navigation.navigate('RoleSelect');
@@ -77,8 +132,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    // Unregister device token on server
+    try {
+      if (token && deviceToken) {
+        await unregisterDevice(token, deviceToken);
+        console.log('Device token unregistered successfully');
+      }
+    } catch (error) {
+      console.warn('Failed to unregister device token:', error);
+    }
+
     setToken(null);
     setUser(null);
+    setDeviceToken(null);
     await SecureStore.deleteItemAsync('aasaan_token');
     await SecureStore.deleteItemAsync('aasaan_user');
   };
