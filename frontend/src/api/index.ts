@@ -191,3 +191,15 @@ export async function checkUserRegistration(phone: string) {
   const res = await api.post('/auth/check-registration', { phone });
   return res.data;
 }
+
+export async function registerPushToken(token: string, expoPushToken: string, platform: 'ios' | 'android', deviceId?: string) {
+  await api.post('/push-tokens/register', { token: expoPushToken, platform, deviceId }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function unregisterPushToken(token: string, expoPushToken: string) {
+  await api.post('/push-tokens/unregister', { token: expoPushToken }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}

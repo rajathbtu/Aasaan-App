@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { getReqLang, t } from '../utils/i18n';
+import { sendExpoPushToUser } from '../utils/expoPush';
 
 /**
  * Return all notifications for the authenticated user.  Clients may
@@ -34,5 +35,17 @@ export async function markAllRead(req: Request, res: Response): Promise<void> {
   } catch {
     const lang = getReqLang(req);
     res.status(500).json({ message: t(lang, 'common.internalError') });
+  }
+}
+
+// Simple test endpoint to send a push with sample data
+export async function sendTest(req: Request, res: Response): Promise<void> {
+  const user = (req as any).user;
+  try {
+    const result = await sendExpoPushToUser(user.id, 'Test Notification', 'Hello from Aasaan!', { test: true });
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    console.error('send test push error', e);
+    res.status(500).json({ ok: false });
   }
 }

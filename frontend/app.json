@@ -18,20 +18,33 @@
       "**/*"
     ],
     "ios": {
-      "bundleIdentifier": "com.rajathbtu.aasaan",
+      "bundleIdentifier": "in.aasaanapp.aasaan",
       "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Aasaan uses your location to show nearby services."
+        "NSLocationWhenInUseUsageDescription": "Aasaan uses your location to show nearby services.",
+        "NSUserTrackingUsageDescription": "We use notifications to alert you about updates to your requests.",
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
-      "package": "com.rajathbtu.aasaan",
+      "package": "in.aasaanapp.aasaan",
       "versionCode": 1,
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "notification": {
+        "icon": "./assets/icon.png",
+        "color": "#4F46E5",
+        "channel": "default"
       }
     },
     "web": {
@@ -39,7 +52,15 @@
     },
     "scheme": "aasaan",
     "plugins": [
-      "expo-dev-client"
+      "expo-dev-client",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#4F46E5"
+        }
+      ],
+      "expo-secure-store"
     ]
   }
 }
