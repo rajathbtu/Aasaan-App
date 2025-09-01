@@ -92,6 +92,7 @@ model Service {
   name     String
   category String
   tags     String[]
+  color    String
 }
 
 model Payment {
