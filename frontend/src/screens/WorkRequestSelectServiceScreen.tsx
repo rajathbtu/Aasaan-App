@@ -13,7 +13,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-type Service = { id: string; name: string; category: string; tags?: string[] };
+type Service = { id: string; name: string; category: string; tags?: string[]; icon?: string; color?: string };
 
 const CACHE_KEY = 'services_cache_v1';
 const CACHE_UPDATED_AT_KEY = 'services_cache_updatedAt_v1';
@@ -95,48 +95,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     }
   };
 
-  // UI-only: add cardBg to match mock’s tinted tiles
-  const serviceIconMap: Record<
-    string,
-    { icon: keyof typeof Ionicons.glyphMap; color: string; cardBg: string }
-  > = {
-    maid: { icon: 'construct', color: tints.purple, cardBg: tints.purpleSoft },
-    cook: { icon: 'restaurant', color: tints.emeraldSoft, cardBg: tints.greenSoft },
-    babysitter: { icon: 'person', color: tints.amber, cardBg: tints.amberSoft },
-    cleaner: { icon: 'sparkles', color: tints.sky, cardBg: tints.skySoft },
-    servant: { icon: 'people', color: tints.purple, cardBg: tints.indigoSoft },
-    carCleaner: { icon: 'car', color: tints.rose, cardBg: tints.roseSoft },
-    electrician: { icon: 'flash', color: tints.blue, cardBg: tints.blueSoft },
-    plumber: { icon: 'water', color: tints.sky, cardBg: tints.skySoft }, // blue-ish per mock
-    carpenter: { icon: 'hammer', color: tints.amber, cardBg: tints.amberSoft },
-    painter: { icon: 'color-palette', color: tints.rose, cardBg: tints.roseSoft },
-    acRepair: { icon: 'snow', color: tints.sky, cardBg: tints.skySoft },
-    pestControl: { icon: 'bug', color: tints.orange, cardBg: tints.orangeSoft },
-    photographer: { icon: 'camera', color: tints.purple, cardBg: tints.purpleSoft },
-    yogaTrainer: { icon: 'heart', color: tints.green, cardBg: tints.greenSoft },
-    tutor: { icon: 'book', color: tints.indigo, cardBg: tints.indigoSoft },
-    dietician: { icon: 'leaf', color: tints.lime, cardBg: tints.limeSoft },
-    makeupArtist: { icon: 'brush', color: tints.purple, cardBg: tints.purpleSoft },
-    eventPlanner: { icon: 'calendar', color: tints.amber, cardBg: tints.amberPale },
-    gardener: { icon: 'flower', color: tints.green, cardBg: tints.greenSoft },
-    caterer: { icon: 'fast-food', color: tints.amber, cardBg: tints.amberSoft },
-    interiorDesigner: { icon: 'home', color: tints.indigo, cardBg: tints.indigoSoft },
-    // extras
-    geyserRepair: { icon: 'flame', color: tints.amber, cardBg: tints.amberSoft },
-    washingMachineRepair: { icon: 'refresh-circle', color: tints.sky, cardBg: tints.skySoft },
-    refrigeratorRepair: { icon: 'snow', color: tints.blue, cardBg: tints.blueSoft },
-    microwaveRepair: { icon: 'flash', color: tints.roseSoft, cardBg: tints.redSoft },
-    waterPurifier: { icon: 'water', color: tints.sky, cardBg: tints.skySoft },
-    cctv: { icon: 'videocam', color: tints.purple, cardBg: tints.purpleSoft },
-    chimneyCleaning: { icon: 'flame', color: tints.orange, cardBg: tints.orangeSoft },
-    laptopRepair: { icon: 'laptop', color: tints.indigo, cardBg: tints.indigoSoft },
-    mobileRepair: { icon: 'phone-portrait', color: tints.indigo, cardBg: tints.indigoSoft },
-    sofaCleaning: { icon: 'construct', color: tints.purple, cardBg: tints.purpleSoft },
-    carpetCleaning: { icon: 'sparkles', color: tints.greenSoft, cardBg: tints.greenSoft },
-    packersMovers: { icon: 'cube', color: tints.indigo, cardBg: tints.indigoSoft },
-    salonAtHome: { icon: 'cut', color: tints.pink, cardBg: tints.pinkSoft },
-  };
-
   const grouped = useMemo(() => {
     const list = services || [];
     const map: Record<string, Service[]> = {};
@@ -146,7 +104,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     });
     return map;
   }, [services]);
-
+  
   const filtered = useMemo(() => {
     if (!query.trim()) return grouped;
     const lower = query.trim().toLowerCase();
@@ -159,7 +117,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   }, [query, grouped]);
 
   const renderServiceCard = (service: Service) => {
-    const iconConfig = serviceIconMap[service.id] || { icon: 'construct', color: colors.greyLight, cardBg: colors.surface } as any;
     return (
       <TouchableOpacity
         key={service.id}
@@ -170,8 +127,8 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
         }}
         activeOpacity={0.8}
       >
-        <View style={[styles.iconCircle, { backgroundColor: iconConfig.color }]}>
-          <Ionicons name={iconConfig.icon} size={22} color={colors.white} />
+        <View style={[styles.iconCircle, { backgroundColor: service.color || colors.greyLight }]}>
+          <Ionicons name={service.icon as keyof typeof Ionicons.glyphMap || 'construct'} size={22} color={colors.white} />
         </View>
         <Text style={styles.serviceLabel}>{service.name}</Text>
       </TouchableOpacity>
@@ -200,11 +157,12 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
       <Header title="Aasaan" showNotification={true} notificationCount={2} showBackButton={false} />
       {/* Spacer to ensure shadow visibility below header */}
       <View style={{ height: spacing.sm }} />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.lg }}>
-        <ImageBackground
-          source={require('../../assets/bckgnd_tile.png')}
-          resizeMode="repeat"  // this makes it tile like WhatsApp
-          style={{ flex: 1 }}>
+      <ImageBackground
+        source={require('../../assets/bckgnd_tile.png')}
+        resizeMode="repeat"  // this makes it tile like WhatsApp
+        style={{ flex: 1 }}>
+          
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.lg }}>
 
           <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
             <Text style={styles.pageTitle}>{t('createRequest.selectService.title')}</Text>
@@ -266,8 +224,8 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
             </View>
           )}
 
-        </ImageBackground>
-      </ScrollView>
+        </ScrollView>
+      </ImageBackground>
     </View>
   );
 };

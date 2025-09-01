@@ -98,6 +98,8 @@ model Service {
   name     String
   category String
   tags     String[]
+  icon     String   // Icon name for the service
+  color    String   // Color code for the service
 }
 
 model Payment {
