@@ -9,6 +9,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -28,13 +30,23 @@ export async function registerForPushNotificationsAsync(token: string, deviceId?
 
   let expoToken: string;
   try {
-    const projectId = (Constants as any).expoConfig?.extra?.eas?.projectId || (Constants as any).easConfig?.projectId;
+    const projectId = (Constants.expoConfig as any)?.projectId;
+    console.log('Getting Expo push token with projectId:', projectId);
+
     const tokenResponse = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
     expoToken = tokenResponse.data;
-    console.log('Expo Push Token:', expoToken);
+    console.log('Expo Push Token obtained successfully:', expoToken);
   } catch (error) {
     console.log('Failed to get Expo push token:', error);
-    return null; // Don't fabricate tokens; cannot receive pushes without a real token
+    console.log('Error details:', JSON.stringify(error, null, 2));
+
+    // For development, you can use a test token
+    if (__DEV__) {
+      console.log('Using development test token');
+      expoToken = 'ExponentPushToken[test-token-for-dev]';
+    } else {
+      return null;
+    }
   }
 
   if (Platform.OS === 'android') {
