@@ -6,10 +6,12 @@ const expo = new Expo({ accessToken: process.env.EXPO_ACCESS_TOKEN });
 
 export function isValidExpoPushToken(token: string): boolean {
   try {
-    return Expo.isExpoPushToken(token);
+    if (Expo.isExpoPushToken(token)) return true;
   } catch {
-    return /^ExpoPushToken\[.+\]$/.test(token);
+    // ignore
   }
+  // Accept both ExpoPushToken[...] and ExponentPushToken[...] formats
+  return /^(Expo|Exponent)PushToken\[[^\]]+\]$/.test(token);
 }
 
 export async function registerUserPushToken(opts: {

@@ -45,7 +45,8 @@
         "icon": "./assets/icon.png",
         "color": "#4F46E5",
         "channel": "default"
-      }
+      },
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -57,10 +58,12 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#4F46E5"
+          "color": "#4F46E5",
+          "mode": "development"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-firebase/app"
     ]
   }
 }

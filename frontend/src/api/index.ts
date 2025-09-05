@@ -177,6 +177,18 @@ export async function markAllNotificationsRead(token: string) {
 }
 
 /**
+ * Trigger a backend test push notification to the current user.
+ */
+export async function sendTestNotification(token: string) {
+  const res = await api.post(
+    '/notifications/test',
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.data as { ok: boolean; sent?: number };
+}
+
+/**
  * Fetch available services.
  */
 export async function getServices() {

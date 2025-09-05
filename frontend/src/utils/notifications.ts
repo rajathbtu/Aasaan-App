@@ -1,8 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { api } from '../api';
 import * as SecureStore from 'expo-secure-store';
+import { registerPushToken as apiRegisterPushToken, unregisterPushToken as apiUnregisterPushToken } from '../api';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -22,11 +22,20 @@ export async function registerForPushNotificationsAsync(token: string, deviceId?
     status = req.status;
   }
   if (status !== 'granted') {
+    console.log('Push notification permissions not granted');
     return null;
   }
 
-  const projectId = (Constants as any).expoConfig?.extra?.eas?.projectId || (Constants as any).easConfig?.projectId;
-  const expoToken = (await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined)).data;
+  let expoToken: string;
+  try {
+    const projectId = (Constants as any).expoConfig?.extra?.eas?.projectId || (Constants as any).easConfig?.projectId;
+    const tokenResponse = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
+    expoToken = tokenResponse.data;
+    console.log('Expo Push Token:', expoToken);
+  } catch (error) {
+    console.log('Failed to get Expo push token:', error);
+    return null; // Don't fabricate tokens; cannot receive pushes without a real token
+  }
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
@@ -37,13 +46,18 @@ export async function registerForPushNotificationsAsync(token: string, deviceId?
     });
   }
 
-  await api.post('/push-tokens/register', {
-    token: expoToken,
-    platform: Platform.OS,
-    deviceId,
-  }, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  // Only attempt backend registration if token string looks like an Expo push token
+  const looksLikeExpoToken = /^(Expo|Exponent)PushToken\[[A-Za-z0-9._-]+\]$/.test(expoToken);
+  if (!looksLikeExpoToken) {
+    console.log('Skipping backend registration due to invalid-looking push token:', expoToken);
+  } else {
+    try {
+      await apiRegisterPushToken(token, expoToken, Platform.OS as 'ios' | 'android', deviceId);
+      console.log('Push token registered successfully');
+    } catch (apiError) {
+      console.log('Failed to register push token with backend:', apiError);
+    }
+  }
 
   await SecureStore.setItemAsync(SECURE_KEY, expoToken);
   return expoToken;
@@ -57,9 +71,7 @@ export async function unregisterPushToken(token: string, expoPushToken?: string 
   try {
     const t = expoPushToken || await SecureStore.getItemAsync(SECURE_KEY);
     if (t) {
-      await api.post('/push-tokens/unregister', { token: t }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await apiUnregisterPushToken(token, t);
     }
   } catch (e) {
     console.warn('Failed to unregister push token', e);

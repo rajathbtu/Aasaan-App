@@ -1,2 +1,25 @@
 # Ignore node_modules folders
 node_modules/
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Expo/React Native
+.expo/
+android/
+ios/
+
+# Build outputs
+build/
+dist/
+
+# Environment files
+.env.local
+.env.development
+.env.production
