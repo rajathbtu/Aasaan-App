@@ -139,3 +139,18 @@ enum NotificationType {
   autoClosed
   planPromotion
 }
+
+model PushToken {
+  id         String   @id @default(uuid())
+  userId     String
+  token      String   @unique
+  platform   String
+  deviceId   String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isActive])
+}
