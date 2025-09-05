@@ -143,28 +143,41 @@ export async function list(req: Request, res: Response): Promise<void> {
     const providerLoc = await pAny.location?.findUnique?.({ where: { id: providerInfo.locationId } });
     if (providerLoc) {
       const radiusInMeters = providerInfo.radius * 1000; // Convert km to meters
-      const relevantRequests = (await prisma.$queryRaw`
-        SELECT wr.*
-        FROM "WorkRequest" wr
-        JOIN "Location" loc ON wr."locationId" = loc."id"
-        WHERE wr."status" = 'active'
-          AND wr."service" = ANY(${services})
-          AND ST_DistanceSphere(
-            ST_MakePoint(${providerLoc.lng}, ${providerLoc.lat}),
-            ST_MakePoint(loc."lng", loc."lat")
-          ) <= ${radiusInMeters};
-      `) as any[];
 
-      // Fetch additional details for each request
+      // Get all active work requests for the provider's services
+      const allRequests = await prisma.workRequest.findMany({
+        where: {
+          status: 'active',
+          service: { in: services }
+        },
+        include: {
+          location: true,
+          user: true
+        }
+      });
+
+      // Filter requests by distance using Haversine formula
+      const relevantRequests = allRequests.filter(request => {
+        if (!request.location) return false;
+
+        const distance = distanceKm(
+          providerLoc.lat,
+          providerLoc.lng,
+          request.location.lat,
+          request.location.lng
+        ) * 1000; // Convert km to meters
+
+        return distance <= radiusInMeters;
+      });
+
+      // Fetch service details for each request
       const enrichedRequests = await Promise.all(
         relevantRequests.map(async (request: any) => {
-          const [accepted, service, location, requestUser] = await Promise.all([
+          const [accepted, service] = await Promise.all([
             pAny.acceptedProvider?.findFirst({
               where: { workRequestId: request.id, providerId: user.id },
             }),
             pAny.service?.findUnique({ where: { id: request.service } }),
-            pAny.location?.findUnique({ where: { id: request.locationId } }),
-            pAny.user?.findUnique({ where: { id: request.userId } }),
           ]);
 
           return {
@@ -172,11 +185,11 @@ export async function list(req: Request, res: Response): Promise<void> {
             acceptedByProvider: !!accepted,
             serviceName: service?.name || null,
             serviceIcon: service?.icon || null,
-            locationName: location?.name || null,
-            locationLat: location?.lat || null,
-            locationLng: location?.lng || null,
-            requesterName: requestUser?.name || null,
-            requesterPhone: requestUser?.phoneNumber || null,
+            locationName: request.location?.name || null,
+            locationLat: request.location?.lat || null,
+            locationLng: request.location?.lng || null,
+            requesterName: request.user?.name || null,
+            requesterPhone: request.user?.phoneNumber || null,
           };
         })
       );
