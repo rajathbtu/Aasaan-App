@@ -33,17 +33,18 @@ export async function registerForPushNotificationsAsync(token: string, deviceId?
     const projectId = (Constants.expoConfig as any)?.projectId;
     console.log('Getting Expo push token with projectId:', projectId);
 
+    // Try to get the push token
     const tokenResponse = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
     expoToken = tokenResponse.data;
     console.log('Expo Push Token obtained successfully:', expoToken);
-  } catch (error) {
-    console.log('Failed to get Expo push token:', error);
+  } catch (error: any) {
+    console.log('Failed to get Expo push token:', error?.message || error);
     console.log('Error details:', JSON.stringify(error, null, 2));
 
-    // For development, you can use a test token
+    // For development, create a test token
     if (__DEV__) {
       console.log('Using development test token');
-      expoToken = 'ExponentPushToken[test-token-for-dev]';
+      expoToken = `ExponentPushToken[dev-${Date.now()}]`;
     } else {
       return null;
     }
