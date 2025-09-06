@@ -32,10 +32,14 @@
     "android": {
       "package": "in.aasaanapp.aasaan",
       "versionCode": 1,
+      "compileSdkVersion": 33,
+      "targetSdkVersion": 33,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "WAKE_LOCK",
+        "RECEIVE_BOOT_COMPLETED"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -44,7 +48,8 @@
       "notification": {
         "icon": "./assets/icon.png",
         "color": "#4F46E5",
-        "channel": "default"
+        "channel": "default",
+        "sound": true
       },
       "googleServicesFile": "./google-services.json"
     },
@@ -59,7 +64,12 @@
         {
           "icon": "./assets/icon.png",
           "color": "#4F46E5",
-          "mode": "development"
+          "mode": "production",
+          "androidMode": "exact",
+          "androidCollapsedTitle": "#{unread_notifications} new interactions",
+          "sounds": [
+            "./assets/notification_sound.wav"
+          ]
         }
       ],
       "expo-secure-store",

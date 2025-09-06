@@ -41,41 +41,76 @@ export async function unregisterUserPushToken(token: string) {
 }
 
 export async function sendExpoPushToUser(userId: string, title: string, body: string, data?: any) {
+  console.log(`[EXPO PUSH] Sending to user: ${userId}`);
   const pAny: any = prisma as any;
   const tokens: any[] = await pAny.pushToken.findMany({ where: { userId, isActive: true } });
+  
   if (!tokens.length) return { sent: 0 };
 
   const validTokens = tokens.filter((t) => isValidExpoPushToken(t.token));
-  const messages: ExpoPushMessage[] = validTokens.map((t) => ({ to: t.token, sound: 'default', title, body, data, priority: 'high' }));
+  console.log(`[EXPO PUSH] Found ${validTokens.length} valid tokens`);
+  
+  const messages: ExpoPushMessage[] = validTokens.map((t) => ({
+    to: t.token,
+    sound: 'default' as const,
+    title: title || 'New Work Request',
+    body: body || 'A new work request has been posted in your area.',
+    data: data || {},
+    priority: 'high' as const,
+    channelId: 'urgent',
+    badge: 1,
+    // Android-specific configuration for better delivery
+    ...(t.platform === 'android' && {
+      android: {
+        channelId: 'urgent',
+        priority: 'high',
+        sound: 'default',
+        vibrate: true,
+        lights: true,
+        color: '#FF0000',
+      }
+    }),
+    // iOS-specific configuration
+    ...(t.platform === 'ios' && {
+      ios: {
+        sound: 'default',
+        badge: 1,
+      }
+    })
+  }));
 
   if (!messages.length) return { sent: 0 };
 
   const chunks = expo.chunkPushNotifications(messages);
   let sentCount = 0;
+  
   for (const chunk of chunks) {
     try {
       const tickets: ExpoPushTicket[] = await expo.sendPushNotificationsAsync(chunk);
-      // tickets align with chunk order
+      
       for (let i = 0; i < tickets.length; i++) {
         const ticket = tickets[i] as any;
         const msg = chunk[i];
         if (ticket.status === 'ok') {
           sentCount += 1;
+          console.log(`[EXPO PUSH] ✅ Sent successfully to ${validTokens.find(t => t.token === msg.to)?.platform}`);
         } else if (ticket.status === 'error') {
           const code = ticket.details?.error;
+          console.log(`[EXPO PUSH] ❌ Error: ${code}`);
+          
           if (code === 'DeviceNotRegistered' && typeof msg.to === 'string') {
             try {
               await pAny.pushToken.update({ where: { token: msg.to }, data: { isActive: false } });
+              console.log(`[EXPO PUSH] Deactivated invalid token`);
             } catch {}
-          } else {
-            console.warn('Expo push error ticket:', ticket);
           }
         }
       }
     } catch (error) {
-      console.error('Expo push send error:', error);
+      console.error('[EXPO PUSH] Send error:', error);
     }
   }
 
+  console.log(`[EXPO PUSH] Final result: sent ${sentCount}/${messages.length} notifications`);
   return { sent: sentCount };
 }

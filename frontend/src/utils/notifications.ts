@@ -5,13 +5,16 @@ import * as SecureStore from 'expo-secure-store';
 import { registerPushToken as apiRegisterPushToken, unregisterPushToken as apiUnregisterPushToken } from '../api';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async (notification) => {
+    console.log('[NOTIFICATION HANDLER] Received notification:', notification);
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    };
+  },
 });
 
 const SECURE_KEY = 'expo_push_token';
@@ -52,12 +55,51 @@ export async function registerForPushNotificationsAsync(token: string, deviceId?
   }
 
   if (Platform.OS === 'android') {
+    // Create default notification channel with maximum importance
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
+      name: 'Default Notifications',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#FF231F7C',
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: true,
+      enableLights: true,
+      enableVibrate: true,
+      sound: 'default',
     });
+    
+    // Create a high-priority channel for work requests
+    await Notifications.setNotificationChannelAsync('work_requests', {
+      name: 'Work Requests',
+      description: 'Notifications about new work opportunities',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 500, 250, 500],
+      lightColor: '#FF0000',
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: true,
+      enableLights: true,
+      enableVibrate: true,
+      sound: 'default',
+    });
+    
+    // Create urgent channel for time-sensitive notifications (Android 12 compatible)
+    await Notifications.setNotificationChannelAsync('urgent', {
+      name: 'Urgent Notifications',
+      description: 'Time-sensitive notifications that require immediate attention',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 1000, 500, 1000],
+      lightColor: '#FF0000',
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: true,
+      enableLights: true,
+      enableVibrate: true,
+      sound: 'default',
+    });
+    
+    console.log('Android notification channels configured');
   }
 
   // Only attempt backend registration if token string looks like an Expo push token

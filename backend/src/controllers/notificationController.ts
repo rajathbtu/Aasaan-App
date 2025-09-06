@@ -42,7 +42,9 @@ export async function markAllRead(req: Request, res: Response): Promise<void> {
 export async function sendTest(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
   try {
-    const result = await sendExpoPushToUser(user.id, 'Test Notification', 'Hello from Aasaan!', { test: true });
+    console.log(`[TEST NOTIFICATION] Sending test notification to user ${user.id}`);
+    const result = await sendExpoPushToUser(user.id, 'Test Notification', 'Hello from Aasaan! This is a test notification.', { test: true });
+    console.log(`[TEST NOTIFICATION] Result:`, result);
     res.json({ ok: true, ...result });
   } catch (e) {
     console.error('send test push error', e);

@@ -86,13 +86,16 @@ export async function create(req: Request, res: Response): Promise<void> {
     const wr = await pAny.workRequest.create({ data: { userId: user.id, service, locationId: loc?.id, tags: tags || [] } });
     // Notify eligible providers (service match + radius parity)
     const providers = await pAny.serviceProviderInfo?.findMany?.({ where: { services: { has: service } }, include: { location: true } }) || [];
+    console.log(`[NOTIFICATION DEBUG] Found ${providers.length} service providers for service "${service}"`);
     for (const p of providers) {
       let notify = true;
       if (p.location && p.radius > 0 && loc) {
         const d = distanceKm(loc.lat, loc.lng, p.location.lat, p.location.lng);
+        console.log(`[NOTIFICATION DEBUG] Provider ${p.userId}: distance ${d.toFixed(2)}km, radius ${p.radius}km, notify: ${d <= p.radius}`);
         notify = d <= p.radius;
       }
       if (notify) {
+        console.log(`[NOTIFICATION DEBUG] Sending notification to provider ${p.userId}...`);
         await notifyUser({
           userId: p.userId,
           type: 'newRequest',
@@ -101,6 +104,7 @@ export async function create(req: Request, res: Response): Promise<void> {
           params: { name: user.name, service },
           data: { requestId: wr.id }
         });
+        console.log(`[NOTIFICATION DEBUG] Notification sent to provider ${p.userId}`);
       }
     }
     res.status(201).json(wr);
