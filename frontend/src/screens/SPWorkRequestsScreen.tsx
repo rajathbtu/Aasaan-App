@@ -233,18 +233,7 @@ const SPWorkRequestsScreen: React.FC = () => {
       );
       distance = d.toFixed(1);
     }
-    // Determine icon and colour for the service
-    const serviceIconMap: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-      electrician: { icon: 'flash', color: colors.primarySoft },
-      plumber: { icon: 'water', color: colors.successLight },
-      cook: { icon: 'restaurant', color: tints.emeraldSoft },
-      carpenter: { icon: 'hammer', color: tints.redSoft },
-      painter: { icon: 'color-palette', color: tints.amberSoft },
-      maid: { icon: 'brush', color: tints.purpleSoft },
-      cleaner: { icon: 'sparkles', color: colors.infoLight },
-    };
-    const serviceKey = (item.service || '').toLowerCase().replace(/\s+/g, '');
-    const iconConfig = serviceIconMap[serviceKey] || { icon: 'briefcase', color: colors.surface };
+
     return (
       <View
         style={[
@@ -257,8 +246,8 @@ const SPWorkRequestsScreen: React.FC = () => {
       >
         {/* Service label and time/distance */}
         <View style={styles.cardHeader}>
-          <View style={[styles.iconCircle, { backgroundColor: iconConfig.color }]}> 
-            <Ionicons name={iconConfig.icon} size={16} color={colors.primary} />
+          <View style={[styles.iconCircle, { backgroundColor: item.color }]}> 
+            <Ionicons name={item.icon || 'construct'} size={16} color={colors.primary} />
           </View>
           <View style={{ flex: 1, marginLeft: spacing.sm }}>
             <Text style={styles.serviceName}>{item.serviceName}</Text>
