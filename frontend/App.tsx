@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotificationsAsync } from './src/utils/notifications';
+import { initializeAnalytics, trackAppOpen, trackScreenView } from './src/utils/analytics';
 
 // Import screens
 import LaunchScreen from './src/screens/LaunchScreen';
@@ -197,10 +198,33 @@ export type AuthStackNavigationProp = NativeStackNavigationProp<AuthStackParamLi
 export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function App() {
+  React.useEffect(() => {
+    // 🔥 Initialize Google Analytics 4 on app start
+    initializeAnalytics();
+    trackAppOpen(true); // Mark as first open for new installs
+  }, []);
+
+  const onStateChange = (state: any) => {
+    if (state) {
+      const currentRoute = getCurrentRouteName(state);
+      if (currentRoute) {
+        trackScreenView(currentRoute);
+      }
+    }
+  };
+
+  const getCurrentRouteName = (state: any): string | undefined => {
+    const route = state.routes[state.index];
+    if (route.state) {
+      return getCurrentRouteName(route.state);
+    }
+    return route.name;
+  };
+
   return (
     <AuthProvider>
       <SafeAreaProvider>
-        <NavigationContainer ref={navigationRef}>
+        <NavigationContainer ref={navigationRef} onStateChange={onStateChange}>
           <StatusBar style="dark" />
           <RootNavigator />
         </NavigationContainer>
