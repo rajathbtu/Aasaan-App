@@ -30,11 +30,12 @@ export async function registerForPushNotificationsAsync(token: string, deviceId?
 
   let expoToken: string;
   try {
-    const projectId = (Constants.expoConfig as any)?.projectId;
+    // Use the real project ID from EAS
+    const projectId = "30a58cf2-a668-45d2-81a8-130261a7a756";
     console.log('Getting Expo push token with projectId:', projectId);
 
-    // Try to get the push token
-    const tokenResponse = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
+    // Try to get the push token with real project ID
+    const tokenResponse = await Notifications.getExpoPushTokenAsync({ projectId });
     expoToken = tokenResponse.data;
     console.log('Expo Push Token obtained successfully:', expoToken);
   } catch (error: any) {

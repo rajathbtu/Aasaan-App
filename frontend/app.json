@@ -64,6 +64,12 @@
       ],
       "expo-secure-store",
       "@react-native-firebase/app"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "30a58cf2-a668-45d2-81a8-130261a7a756"
+      }
+    },
+    "owner": "aasaan-app"
   }
 }
