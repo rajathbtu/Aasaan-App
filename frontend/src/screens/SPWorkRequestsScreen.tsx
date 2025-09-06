@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Alert,
   RefreshControl,
   Linking,
+  Animated,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -53,6 +54,11 @@ const SPWorkRequestsScreen: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [refreshing, setRefreshing] = useState(false);
   const [showProBanner, setShowProBanner] = useState(true);
+  
+  // Scroll-based banner visibility
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const [isScrolledDown, setIsScrolledDown] = useState(false);
+  const bannerTranslateY = useRef(new Animated.Value(0)).current;
 
   // Fetch work requests from the API
   const fetchRequests = async () => {
@@ -319,6 +325,23 @@ const SPWorkRequestsScreen: React.FC = () => {
     }
   };
 
+  // Handle scroll events to show/hide pro banner
+  const handleScroll = useCallback((event: any) => {
+    const scrollOffset = event.nativeEvent.contentOffset.y;
+    const isScrollingDown = scrollOffset > 50; // Show/hide threshold
+    
+    if (isScrollingDown !== isScrolledDown) {
+      setIsScrolledDown(isScrollingDown);
+      
+      // Animate banner slide down/up (no fade)
+      Animated.timing(bannerTranslateY, {
+        toValue: isScrollingDown ? 100 : 0, // Slide down 100px or back to 0
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isScrolledDown, bannerTranslateY]);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -391,6 +414,8 @@ const SPWorkRequestsScreen: React.FC = () => {
             renderItem={renderRequest}
             contentContainerStyle={{ paddingBottom: spacing.xl * 3 }}
             showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -405,27 +430,38 @@ const SPWorkRequestsScreen: React.FC = () => {
         )}
         {/* Pro banner */}
         {showProBanner && (
-          <TouchableOpacity
-            style={styles.proBanner}
-            onPress={() => navigation.navigate('Subscription')}
+          <Animated.View 
+            style={[
+              styles.proBanner,
+              {
+                transform: [{
+                  translateY: bannerTranslateY
+                }]
+              }
+            ]}
           >
-            <View style={styles.proIconWrapper}>
-              <Ionicons name="trophy" size={20} color={colors.violetStrong} />
-            </View>
-            <View style={{ flex: 1, marginLeft: spacing.sm }}>
-              <Text style={styles.proTitle}>{t('spRequests.goPro')}</Text>
-              <Text style={styles.proSubtitle}>{t('spRequests.goProSubtitle')}</Text>
-            </View>
-            <View style={styles.proPriceWrapper}>
-              <Text style={styles.proPrice}>{t('spRequests.perMonth', { price: '₹100' })}</Text>
-            </View>
+            <TouchableOpacity
+              style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+              onPress={() => navigation.navigate('Subscription')}
+            >
+              <View style={styles.proIconWrapper}>
+                <Ionicons name="trophy" size={20} color={colors.violetStrong} />
+              </View>
+              <View style={{ flex: 1, marginLeft: spacing.sm }}>
+                <Text style={styles.proTitle}>{t('spRequests.goPro')}</Text>
+                <Text style={styles.proSubtitle}>{t('spRequests.goProSubtitle')}</Text>
+              </View>
+              <View style={styles.proPriceWrapper}>
+                <Text style={styles.proPrice}>{t('spRequests.perMonth', { price: '₹100' })}</Text>
+              </View>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setShowProBanner(false)}
             >
               <Ionicons name="close" size={16} color={colors.dark} />
             </TouchableOpacity>
-          </TouchableOpacity>
+          </Animated.View>
         )}
       </View>
     </View>
@@ -475,7 +511,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   pageTitle: {
-    margin: spacing.md,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
     fontSize: 20,
     fontWeight: '700',
     color: colors.dark,
