@@ -5,6 +5,7 @@ import { USE_MOCK_API } from '../config';
 import * as mock from '../api/mock';
 import { useNavigation } from '@react-navigation/native';
 import { AuthStackNavigationProp } from '../../App';
+import { registerForPushNotificationsAsync, unregisterPushToken, getStoredExpoPushToken } from '../utils/notifications';
 
 interface User {
   id: string;
@@ -70,6 +71,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await SecureStore.setItemAsync('aasaan_token', tok);
     await SecureStore.setItemAsync('aasaan_user', JSON.stringify(usr));
 
+    // Register device for push notifications
+    try {
+      await registerForPushNotificationsAsync(tok);
+    } catch {}
+
     // Redirect to role selection page if role is null
     if (!usr.role && navigation) {
       navigation.navigate('RoleSelect');
@@ -77,6 +83,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    const expoToken = await getStoredExpoPushToken();
+    if (token) {
+      await unregisterPushToken(token, expoToken || undefined);
+    }
     setToken(null);
     setUser(null);
     await SecureStore.deleteItemAsync('aasaan_token');

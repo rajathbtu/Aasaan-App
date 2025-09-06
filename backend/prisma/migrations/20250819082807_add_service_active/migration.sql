@@ -1,0 +1,1 @@
+-- This migration was already applied or the changes were included in a later migration

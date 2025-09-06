@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { areValidTags } from '../utils/validation';
-import { pushNotification } from '../models/dataStore';
 import { getReqLang, t, notifyUser } from '../utils/i18n';
 
 const pAny: any = prisma;
@@ -87,13 +86,16 @@ export async function create(req: Request, res: Response): Promise<void> {
     const wr = await pAny.workRequest.create({ data: { userId: user.id, service, locationId: loc?.id, tags: tags || [] } });
     // Notify eligible providers (service match + radius parity)
     const providers = await pAny.serviceProviderInfo?.findMany?.({ where: { services: { has: service } }, include: { location: true } }) || [];
+    console.log(`[NOTIFICATION DEBUG] Found ${providers.length} service providers for service "${service}"`);
     for (const p of providers) {
       let notify = true;
       if (p.location && p.radius > 0 && loc) {
         const d = distanceKm(loc.lat, loc.lng, p.location.lat, p.location.lng);
+        console.log(`[NOTIFICATION DEBUG] Provider ${p.userId}: distance ${d.toFixed(2)}km, radius ${p.radius}km, notify: ${d <= p.radius}`);
         notify = d <= p.radius;
       }
       if (notify) {
+        console.log(`[NOTIFICATION DEBUG] Sending notification to provider ${p.userId}...`);
         await notifyUser({
           userId: p.userId,
           type: 'newRequest',
@@ -102,6 +104,7 @@ export async function create(req: Request, res: Response): Promise<void> {
           params: { name: user.name, service },
           data: { requestId: wr.id }
         });
+        console.log(`[NOTIFICATION DEBUG] Notification sent to provider ${p.userId}`);
       }
     }
     res.status(201).json(wr);
@@ -144,28 +147,41 @@ export async function list(req: Request, res: Response): Promise<void> {
     const providerLoc = await pAny.location?.findUnique?.({ where: { id: providerInfo.locationId } });
     if (providerLoc) {
       const radiusInMeters = providerInfo.radius * 1000; // Convert km to meters
-      const relevantRequests = (await prisma.$queryRaw`
-        SELECT wr.*
-        FROM "WorkRequest" wr
-        JOIN "Location" loc ON wr."locationId" = loc."id"
-        WHERE wr."status" = 'active'
-          AND wr."service" = ANY(${services})
-          AND ST_DistanceSphere(
-            ST_MakePoint(${providerLoc.lng}, ${providerLoc.lat}),
-            ST_MakePoint(loc."lng", loc."lat")
-          ) <= ${radiusInMeters};
-      `) as any[];
 
-      // Fetch additional details for each request
+      // Get all active work requests for the provider's services
+      const allRequests = await prisma.workRequest.findMany({
+        where: {
+          status: 'active',
+          service: { in: services }
+        },
+        include: {
+          location: true,
+          user: true
+        }
+      });
+
+      // Filter requests by distance using Haversine formula
+      const relevantRequests = allRequests.filter(request => {
+        if (!request.location) return false;
+
+        const distance = distanceKm(
+          providerLoc.lat,
+          providerLoc.lng,
+          request.location.lat,
+          request.location.lng
+        ) * 1000; // Convert km to meters
+
+        return distance <= radiusInMeters;
+      });
+
+      // Fetch service details for each request
       const enrichedRequests = await Promise.all(
         relevantRequests.map(async (request: any) => {
-          const [accepted, service, location, requestUser] = await Promise.all([
+          const [accepted, service] = await Promise.all([
             pAny.acceptedProvider?.findFirst({
               where: { workRequestId: request.id, providerId: user.id },
             }),
             pAny.service?.findUnique({ where: { id: request.service } }),
-            pAny.location?.findUnique({ where: { id: request.locationId } }),
-            pAny.user?.findUnique({ where: { id: request.userId } }),
           ]);
 
           return {
@@ -173,11 +189,11 @@ export async function list(req: Request, res: Response): Promise<void> {
             acceptedByProvider: !!accepted,
             serviceName: service?.name || null,
             serviceIcon: service?.icon || null,
-            locationName: location?.name || null,
-            locationLat: location?.lat || null,
-            locationLng: location?.lng || null,
-            requesterName: requestUser?.name || null,
-            requesterPhone: requestUser?.phoneNumber || null,
+            locationName: request.location?.name || null,
+            locationLat: request.location?.lat || null,
+            locationLng: request.location?.lng || null,
+            requesterName: request.user?.name || null,
+            requesterPhone: request.user?.phoneNumber || null,
           };
         })
       );

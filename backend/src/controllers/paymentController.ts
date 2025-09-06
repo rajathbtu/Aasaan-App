@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
-import { pushNotification } from '../models/dataStore';
 import { getReqLang, t, notifyUser } from '../utils/i18n';
 import { createOrder, verifyPaymentSignature, getPaymentDetails } from '../utils/razorpay';
 

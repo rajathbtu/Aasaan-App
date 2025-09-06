@@ -1,6 +1,6 @@
 import React from 'react';
 import 'react-native-get-random-values'; 
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,8 @@ import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Notifications from 'expo-notifications';
+import { registerForPushNotificationsAsync } from './src/utils/notifications';
 
 // Import screens
 import LaunchScreen from './src/screens/LaunchScreen';
@@ -22,13 +24,16 @@ import WorkRequestAddDetailsScreen from './src/screens/WorkRequestAddDetailsScre
 import WorkRequestCreatedScreen from './src/screens/WorkRequestCreatedScreen';
 import BoostRequestScreen from './src/screens/BoostRequestScreen';
 import WorkRequestDetailsScreen from './src/screens/WorkRequestDetailsScreen';
-import WorkRequestsScreen from './src/screens/WorkRequestsScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SPSelectServicesScreen from './src/screens/SPSelectServicesScreen';
 import SPSelectLocationScreen from './src/screens/SPSelectLocationScreen';
+import WorkRequestsScreen from './src/screens/WorkRequestsScreen';
 import SPWorkRequestsScreen from './src/screens/SPWorkRequestsScreen';
+
+// Navigation ref for programmatic navigation on notification taps
+export const navigationRef = createNavigationContainerRef<any>();
 
 // Define stack navigators
 const Stack = createNativeStackNavigator();
@@ -37,7 +42,26 @@ const Tab = createBottomTabNavigator();
 // Splash/launch screen wrapper.  We show a spinner while the auth context
 // finishes loading the current user from secure storage.
 function RootNavigator() {
-  const { user, loading } = useAuth();
+  const { user, loading, token } = useAuth();
+
+  React.useEffect(() => {
+    if (user && token) {
+      registerForPushNotificationsAsync(token).catch(() => {});
+    }
+    const sub = Notifications.addNotificationResponseReceivedListener((response: Notifications.NotificationResponse) => {
+      try {
+        const data: any = response.notification.request.content.data;
+        const reqId = data?.requestId;
+        if (reqId && navigationRef.isReady()) {
+          navigationRef.navigate('WorkRequestDetails', { id: reqId });
+        }
+      } catch {}
+    });
+    return () => {
+      sub.remove();
+    };
+  }, [user, token]);
+
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -173,7 +197,7 @@ export default function App() {
   return (
     <AuthProvider>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
           <StatusBar style="dark" />
           <RootNavigator />
         </NavigationContainer>
