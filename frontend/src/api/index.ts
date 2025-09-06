@@ -215,3 +215,13 @@ export async function unregisterPushToken(token: string, expoPushToken: string) 
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+/**
+ * Get service provider profile with stats and reviews
+ */
+export async function getServiceProviderProfile(token: string, providerId: string) {
+  const res = await api.get(`/users/service-provider/${providerId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}

@@ -31,6 +31,7 @@ import SPSelectServicesScreen from './src/screens/SPSelectServicesScreen';
 import SPSelectLocationScreen from './src/screens/SPSelectLocationScreen';
 import WorkRequestsScreen from './src/screens/WorkRequestsScreen';
 import SPWorkRequestsScreen from './src/screens/SPWorkRequestsScreen';
+import ServiceProviderProfileScreen from './src/screens/ServiceProviderProfileScreen';
 
 // Navigation ref for programmatic navigation on notification taps
 export const navigationRef = createNavigationContainerRef<any>();
@@ -92,6 +93,7 @@ function RootNavigator() {
             <Stack.Screen name="WorkRequestCreated" component={WorkRequestCreatedScreen} />
             <Stack.Screen name="BoostRequest" component={BoostRequestScreen} />
             <Stack.Screen name="WorkRequestDetails" component={WorkRequestDetailsScreen} />
+            <Stack.Screen name="ServiceProviderProfile" component={ServiceProviderProfileScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
             {/* Provider tools */}
@@ -182,6 +184,7 @@ type RootStackParamList = {
   WorkRequestCreated: undefined;
   BoostRequest: undefined;
   WorkRequestDetails: undefined;
+  ServiceProviderProfile: { providerId?: string; providerData?: any };
   Notifications: undefined;
   Subscription: undefined;
   SPSelectServices: undefined;
