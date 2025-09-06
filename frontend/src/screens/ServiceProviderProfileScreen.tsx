@@ -32,6 +32,8 @@ interface ServiceProvider {
   profileImage?: string;
   rating: number;
   totalReviews: number;
+  completedJobs: number; // Add missing property
+  timeActive: string; // Add missing property
   positivePercentage: number;
   ratingBreakdown: {
     5: number;
@@ -96,6 +98,8 @@ const ServiceProviderProfileScreen: React.FC<ServiceProviderProfileProps> = () =
     ratingBreakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
     stats: { totalReviews: 0, jobsCompleted: 0, timeActive: '0 days' },
     serviceTypes: [],
+    completedJobs: 0,
+    timeActive: '0 days',
     trustBadges: []
   }), []);
 
@@ -281,6 +285,35 @@ const ServiceProviderProfileScreen: React.FC<ServiceProviderProfileProps> = () =
           breakdown={providerProfile.ratingBreakdown}
           stats={providerProfile.stats}
         />
+
+        {/* Stats Badges */}
+        <View style={styles.statsBadges}>
+          <View style={styles.statBadge}>
+            <Ionicons name="star" size={20} color={colors.primary} />
+            <Text style={styles.statValue}>{providerProfile.totalReviews}</Text>
+            <Text style={styles.statLabel}>Total Reviews</Text>
+          </View>
+          <View style={styles.statBadge}>
+            <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+            <Text style={styles.statValue}>{providerProfile.completedJobs}</Text>
+            <Text style={styles.statLabel}>Jobs Completed</Text>
+          </View>
+          <View style={styles.statBadge}>
+            <Ionicons name="time" size={20} color="#8B5CF6" />
+            <Text style={styles.statValue}>
+              {providerProfile.timeActive.includes('day') || providerProfile.timeActive.includes('month') 
+                ? providerProfile.timeActive.split(' ')[0] 
+                : providerProfile.timeActive}
+            </Text>
+            <Text style={styles.statLabel}>
+              {providerProfile.timeActive.includes('day') 
+                ? (providerProfile.timeActive === '1 day' ? 'Day Active' : 'Days Active')
+                : providerProfile.timeActive.includes('month')
+                ? (providerProfile.timeActive === '1 month' ? 'Month Active' : 'Months Active')  
+                : 'Years Active'}
+            </Text>
+          </View>
+        </View>
 
         {/* Filter Section */}
         <View style={styles.filterSection}>
@@ -689,6 +722,39 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: spacing.md,
+  },
+  statsBadges: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: colors.white,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    paddingVertical: spacing.lg,
+    borderRadius: radius.md,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statBadge: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.dark,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs / 2,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: colors.grey,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 });
 

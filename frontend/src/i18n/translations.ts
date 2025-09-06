@@ -313,7 +313,7 @@ export const translations = {
       serviceTypes: 'Service Types',
       trustSafety: 'Trust & Safety',
       contactProvider: 'Contact Provider',
-      active: 'Active',
+      active: 'Years Active',
       totalReviews: 'Total Reviews',
       jobsCompleted: 'Jobs Completed',
       positiveRating: 'Positive',

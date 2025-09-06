@@ -130,7 +130,7 @@ function calculateTimeActive(createdAt: Date): string {
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
   if (diffDays < 30) {
-    return `${diffDays} days`;
+    return `${diffDays} ${diffDays === 1 ? 'day' : 'days'}`;
   } else if (diffDays < 365) {
     const months = Math.floor(diffDays / 30);
     return `${months} ${months === 1 ? 'month' : 'months'}`;
