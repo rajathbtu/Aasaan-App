@@ -5,9 +5,9 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -42,18 +42,18 @@
         "RECEIVE_BOOT_COMPLETED"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
       },
       "notification": {
-        "icon": "./assets/icon.png",
+        "icon": "./assets/logo.png",
         "color": "#4F46E5",
         "channel": "default",
         "sound": true
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/logo.png"
     },
     "scheme": "aasaan",
     "plugins": [
@@ -61,7 +61,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
+          "icon": "./assets/logo.png",
           "color": "#4F46E5",
           "mode": "production",
           "androidMode": "exact",
