@@ -50,8 +50,7 @@
         "color": "#4F46E5",
         "channel": "default",
         "sound": true
-      },
-      "googleServicesFile": "./google-services.json"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -66,14 +65,10 @@
           "color": "#4F46E5",
           "mode": "production",
           "androidMode": "exact",
-          "androidCollapsedTitle": "#{unread_notifications} new interactions",
-          "sounds": [
-            "./assets/notification_sound.wav"
-          ]
+          "androidCollapsedTitle": "#{unread_notifications} new interactions"
         }
       ],
-      "expo-secure-store",
-      "@react-native-firebase/app"
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {
