@@ -9,6 +9,7 @@ import Header from '../components/Header';
 import { colors, spacing, radius, tints } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { trackScreenView, trackServiceProviderOnboarding, trackCustomEvent } from '../utils/analytics';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -40,6 +41,17 @@ const SPSelectServicesScreen: React.FC = () => {
   const [services, setServices] = useState<Service[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
+
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('SPSelectServicesScreen', 'ServiceProviderOnboarding');
+    
+    trackCustomEvent('sp_onboarding_step', {
+      step: 'select_services',
+      mode: mode,
+      initial_services_count: initialSelected.length
+    });
+  }, [mode, initialSelected.length]);
 
   useEffect(() => {
     setSelected(initialSelected);
@@ -97,11 +109,30 @@ const SPSelectServicesScreen: React.FC = () => {
   }, [grouped, query]);
 
   const toggleService = (id: string) => {
+    const service = services?.find(s => s.id === id);
+    const isAdding = !selected.includes(id);
+    
+    // Track service selection
+    trackCustomEvent('sp_service_toggle', {
+      service_id: id,
+      service_name: service?.name || 'unknown',
+      action: isAdding ? 'added' : 'removed',
+      total_selected: isAdding ? selected.length + 1 : selected.length - 1,
+      mode: mode
+    });
+    
     setSelected(prev => {
       if (prev.includes(id)) {
         return prev.filter(sid => sid !== id);
       }
       if (prev.length >= 3) {
+        // Track service limit reached
+        trackCustomEvent('sp_service_limit_reached', {
+          attempted_service_id: id,
+          current_count: prev.length,
+          max_limit: 3
+        });
+        
         Alert.alert(t('sp.selectServices.limitTitle'), t('sp.selectServices.limitDesc'));
         return prev;
       }
@@ -111,9 +142,24 @@ const SPSelectServicesScreen: React.FC = () => {
 
   const handleContinue = async () => {
     if (selected.length === 0) {
+      // Track validation failure
+      trackCustomEvent('sp_services_validation_failed', {
+        reason: 'no_services_selected',
+        mode: mode
+      });
+      
       Alert.alert(t('sp.selectServices.selectTitle'), t('sp.selectServices.selectDesc'));
       return;
     }
+
+    // Track service selection completion
+    const selectedServiceNames = services?.filter(s => selected.includes(s.id)).map(s => s.name) || [];
+    trackCustomEvent('sp_services_selected', {
+      selected_services: selected,
+      service_names: selectedServiceNames,
+      services_count: selected.length,
+      mode: mode
+    });
 
     if (mode === 'edit' && onDone) {
       onDone(selected);
@@ -123,8 +169,21 @@ const SPSelectServicesScreen: React.FC = () => {
 
     try {
       await updateUser({ services: selected });
+      
+      // Track successful service update
+      trackCustomEvent('sp_services_updated', {
+        selected_services: selected,
+        services_count: selected.length
+      });
+      
       navigation.navigate('SPSelectLocation');
     } catch (err: any) {
+      // Track service update failure
+      trackCustomEvent('sp_services_update_failed', {
+        selected_services: selected,
+        error: err?.message || 'unknown'
+      });
+      
       Alert.alert('Error', t('sp.selectServices.saveFailed'));
     }
   };

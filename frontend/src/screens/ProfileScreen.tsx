@@ -11,6 +11,7 @@ import Header from '../components/Header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices, sendTestNotification } from '../api';
 import * as Location from 'expo-location';
+import { trackScreenView, trackCustomEvent, trackError } from '../utils/analytics';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users
@@ -22,6 +23,18 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user, token, updateUser, logout, setLanguage: setGlobalLanguage, refreshUser } = useAuth();
   const { t, lang } = useI18n();
+
+  useEffect(() => {
+    trackScreenView('ProfileScreen', 'Profile');
+    
+    trackCustomEvent('profile_screen_opened', {
+      user_role: user?.role,
+      user_language: user?.language,
+      has_services: !!(user as any)?.services?.length,
+      has_location: !!(user as any)?.location,
+      has_avatar: !!user?.avatarUrl
+    });
+  }, [user]);
 
   // Shared services list to map ids -> display names
   type Service = { id: string; name: string; category: string; tags?: string[] };

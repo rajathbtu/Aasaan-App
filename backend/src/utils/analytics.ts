@@ -7,10 +7,38 @@ import { Request } from 'express';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
-// GA4 Configuration - Add to environment variables
-const GA4_MEASUREMENT_ID = process.env.GA4_MEASUREMENT_ID || 'G-XXXXXXXXXX';
-const GA4_API_SECRET = process.env.GA4_API_SECRET || 'your_api_secret';
-const GA4_ENDPOINT = `https://www.google-analytics.com/mp/collect?measurement_id=${GA4_MEASUREMENT_ID}&api_secret=${GA4_API_SECRET}`;
+// GA4 Configuration - Support multiple platforms
+const GA4_MEASUREMENT_ID_ANDROID = process.env.GA4_MEASUREMENT_ID_ANDROID || process.env.GA4_MEASUREMENT_ID || 'G-XXXXXXXXXX';
+const GA4_MEASUREMENT_ID_IOS = process.env.GA4_MEASUREMENT_ID_IOS || process.env.GA4_MEASUREMENT_ID || 'G-XXXXXXXXXX';
+const GA4_MEASUREMENT_ID_WEB = process.env.GA4_MEASUREMENT_ID_WEB || process.env.GA4_MEASUREMENT_ID || 'G-XXXXXXXXXX';
+
+const GA4_API_SECRET_ANDROID = process.env.GA4_API_SECRET_ANDROID || process.env.GA4_API_SECRET || 'your_api_secret';
+const GA4_API_SECRET_IOS = process.env.GA4_API_SECRET_IOS || process.env.GA4_API_SECRET || 'your_api_secret';
+const GA4_API_SECRET_WEB = process.env.GA4_API_SECRET_WEB || process.env.GA4_API_SECRET || 'your_api_secret';
+
+// Helper function to get platform-specific configuration
+function getGA4Config(platform: 'android' | 'ios' | 'web' = 'android') {
+  switch (platform) {
+    case 'ios':
+      return {
+        measurementId: GA4_MEASUREMENT_ID_IOS,
+        apiSecret: GA4_API_SECRET_IOS,
+        endpoint: `https://www.google-analytics.com/mp/collect?measurement_id=${GA4_MEASUREMENT_ID_IOS}&api_secret=${GA4_API_SECRET_IOS}`
+      };
+    case 'web':
+      return {
+        measurementId: GA4_MEASUREMENT_ID_WEB,
+        apiSecret: GA4_API_SECRET_WEB,
+        endpoint: `https://www.google-analytics.com/mp/collect?measurement_id=${GA4_MEASUREMENT_ID_WEB}&api_secret=${GA4_API_SECRET_WEB}`
+      };
+    default: // android
+      return {
+        measurementId: GA4_MEASUREMENT_ID_ANDROID,
+        apiSecret: GA4_API_SECRET_ANDROID,
+        endpoint: `https://www.google-analytics.com/mp/collect?measurement_id=${GA4_MEASUREMENT_ID_ANDROID}&api_secret=${GA4_API_SECRET_ANDROID}`
+      };
+  }
+}
 
 interface User {
   id: string;
@@ -49,14 +77,16 @@ class AnalyticsService {
   /**
    * Send event to Google Analytics 4 via Measurement Protocol
    */
-  private async sendToGA4(payload: GA4Payload): Promise<boolean> {
+  private async sendToGA4(payload: GA4Payload, platform: 'android' | 'ios' | 'web' = 'android'): Promise<boolean> {
     try {
-      if (!GA4_MEASUREMENT_ID.startsWith('G-') || GA4_API_SECRET === 'your_api_secret') {
-        console.warn('⚠️  GA4 not configured - events not sent');
+      const config = getGA4Config(platform);
+      
+      if (!config.measurementId.startsWith('G-') || config.apiSecret === 'your_api_secret') {
+        console.warn(`⚠️  GA4 not configured for ${platform} - events not sent`);
         return false;
       }
 
-      const response = await axios.post(GA4_ENDPOINT, payload, {
+      const response = await axios.post(config.endpoint, payload, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -64,11 +94,11 @@ class AnalyticsService {
       });
 
       if (response.status === 204) {
-        console.log(`✅ GA4 Event sent: ${payload.events[0].name}`);
+        console.log(`✅ GA4 Event sent to ${platform}: ${payload.events[0].name}`);
         return true;
       }
     } catch (error) {
-      console.error('❌ GA4 tracking failed:', error);
+      console.error(`❌ GA4 tracking failed for ${platform}:`, error);
     }
     return false;
   }
@@ -76,18 +106,18 @@ class AnalyticsService {
   /**
    * Track an event (sends to GA4)
    */
-  track(userId: string | undefined, event: string, properties: Record<string, any> = {}) {
+  track(userId: string | undefined, event: string, properties: Record<string, any> = {}, platform: 'android' | 'ios' | 'web' = 'android') {
     // Send to GA4
-    this.sendEventToGA4(userId, event, properties);
+    this.sendEventToGA4(userId, event, properties, platform);
 
     // Log for debugging
-    console.log(`[ANALYTICS] ${event}:`, properties);
+    console.log(`[ANALYTICS ${platform.toUpperCase()}] ${event}:`, properties);
   }
 
   /**
    * Send single event to GA4
    */
-  private async sendEventToGA4(userId: string | undefined, eventName: string, properties: Record<string, any>) {
+  private async sendEventToGA4(userId: string | undefined, eventName: string, properties: Record<string, any>, platform: 'android' | 'ios' | 'web' = 'android') {
     const payload: GA4Payload = {
       client_id: this.generateClientId(userId),
       user_id: userId,
@@ -97,36 +127,26 @@ class AnalyticsService {
       }]
     };
 
-    await this.sendToGA4(payload);
+    await this.sendToGA4(payload, platform);
   }
 
   /**
-   * Track user properties
+   * Identify a user (sends to GA4 for user properties)
    */
-  identify(user: User) {
-    this.track(user.id, 'identify', {
-      role: user.role,
-      language: user.language,
-      plan: user.plan,
-    });
+  identify(userId: string | undefined, traits: Record<string, any> = {}, platform: 'android' | 'ios' | 'web' = 'android') {
+    if (!userId) return;
 
-    // Send user properties to GA4
     const payload: GA4Payload = {
-      client_id: this.generateClientId(user.id),
-      user_id: user.id,
+      client_id: this.generateClientId(userId),
+      user_id: userId,
       events: [{
-        name: 'user_identified',
-        parameters: {}
+        name: 'identify_user',
+        parameters: traits
       }],
-      user_properties: {
-        user_role: { value: user.role || 'unknown' },
-        user_language: { value: user.language || 'en' },
-        user_plan: { value: user.plan || 'free' },
-        registration_date: { value: new Date().toISOString().split('T')[0] },
-      }
+      user_properties: traits
     };
 
-    this.sendToGA4(payload);
+    this.sendToGA4(payload, platform);
   }
 }
 
@@ -154,7 +174,13 @@ function getRequestProperties(req: Request) {
  * Authentication Events
  */
 export const trackUserRegistration = (req: Request, user: User, method: string) => {
-  analytics.identify(user);
+  const userTraits = {
+    user_role: user.role,
+    user_language: user.language,
+    user_id: user.id
+  };
+  
+  analytics.identify(user.id, userTraits);
   analytics.track(user.id, 'sign_up', {
     method,
     user_role: user.role,
@@ -202,6 +228,38 @@ export const trackAPICall = (req: Request, endpoint: string, method: string, res
     success: statusCode < 400,
     ...getRequestProperties(req),
   });
+};
+
+/**
+ * Detect platform from request headers
+ */
+export const detectPlatform = (req: Request): 'android' | 'ios' | 'web' => {
+  const userAgent = (req.headers['user-agent'] || '').toString().toLowerCase();
+  const appName = (req.headers['x-app-name'] || '').toString().toLowerCase();
+  const platform = (req.headers['x-platform'] || '').toString().toLowerCase();
+
+  // Explicit platform header
+  if (platform === 'android' || platform === 'ios' || platform === 'web') {
+    return platform as 'android' | 'ios' | 'web';
+  }
+
+  // App-specific headers
+  if (appName.includes('aasaan-android') || userAgent.includes('android')) {
+    return 'android';
+  }
+  
+  if (appName.includes('aasaan-ios') || userAgent.includes('iphone') || userAgent.includes('ipad')) {
+    return 'ios';
+  }
+
+  // Default to web for browser requests
+  return 'web';
+};
+
+// Enhanced tracking functions with auto-platform detection
+export const trackWithAutoDetection = (req: Request, userId: string | undefined, event: string, properties: Record<string, any> = {}) => {
+  const platform = detectPlatform(req);
+  return analytics.track(userId, event, properties, platform);
 };
 
 export default analytics;

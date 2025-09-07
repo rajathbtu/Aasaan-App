@@ -3,7 +3,7 @@ import { isValidPhoneNumber, isValidName } from '../utils/validation';
 import { findUserByPhone, createUser } from '../models/dataStore';
 import { generateOTP } from '../models/dataStore';
 import { getReqLang, t } from '../utils/i18n';
-import { trackUserRegistration, trackUserLogin, trackCustomEvent } from '../utils/analytics';
+import { trackUserRegistration, trackUserLogin, trackCustomEvent, trackWithAutoDetection } from '../utils/analytics';
 
 // In‑memory store for OTPs.  Keys are phone numbers, values are the
 // generated numeric codes.  In production you should send the OTP via
@@ -26,7 +26,7 @@ export function sendOtp(req: Request, res: Response): void {
   const otp = 8891; // TODO: Fixed OTP for testing; revert to generateOTP() for production
   pendingOtps.set(phone, otp);
   
-  // 📊 Analytics: Track OTP request
+  // Track OTP request
   trackCustomEvent(undefined, 'otp_requested', {
     phone_hash: phone.substring(0, 6) + '****', // Partial phone for privacy
     method: 'phone_otp',
@@ -53,7 +53,7 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
   }
   const expected = pendingOtps.get(phone);
   if (!expected || expected !== otp) {
-    // 📊 Analytics: Track failed OTP verification
+    // Track failed OTP verification
     trackCustomEvent(undefined, 'otp_verification_failed', {
       phone_hash: phone.substring(0, 6) + '****',
       reason: 'incorrect_otp',
@@ -68,14 +68,14 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
     // Consume OTP only when logging in an existing user
     pendingOtps.delete(phone);
     
-    // 📊 Analytics: Track user login
+    // Track user login
     trackUserLogin(req, existing.id, 'phone_otp');
     
     res.json({ token: existing.id, user: existing });
     return;
   }
   
-  // 📊 Analytics: Track successful OTP verification for new user
+  // Track successful OTP verification for new user
   trackCustomEvent(undefined, 'otp_verified_new_user', {
     phone_hash: phone.substring(0, 6) + '****',
   });
@@ -132,7 +132,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     });
     pendingOtps.delete(phone); // Consume OTP after successful registration
     
-    // 📊 Analytics: Track user registration
+    // Track user registration
     trackUserRegistration(req, {
       id: user.id,
       role: role || undefined,
@@ -144,7 +144,7 @@ export async function register(req: Request, res: Response): Promise<void> {
   } catch (error) {
     console.error('Error registering user:', error);
     
-    // 📊 Analytics: Track registration failure
+    // Track registration failure
     trackCustomEvent(undefined, 'user_registration_failed', {
       phone_hash: phone.substring(0, 6) + '****',
       error_type: 'server_error',

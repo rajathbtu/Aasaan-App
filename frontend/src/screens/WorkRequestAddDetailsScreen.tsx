@@ -11,6 +11,7 @@ import Header from '../components/Header';
 import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
 import BottomCTA from '../components/BottomCTA';
+import { trackScreenView, trackWorkRequestCreated, trackCustomEvent, trackError } from '../utils/analytics';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -32,6 +33,18 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
   const { t } = useI18n();
   const [requestInProgress, setRequestInProgress] = useState(false);
 
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('WorkRequestAddDetailsScreen', 'WorkRequest');
+    
+    // Track service selection flow step
+    trackCustomEvent('work_request_flow_step', {
+      step: 'add_details',
+      service_id: serviceId,
+      service_name: serviceName
+    });
+  }, [serviceId, serviceName]);
+
   if (!serviceId || !serviceName) {
     return (
       <View style={styles.emptyContainer}>
@@ -41,18 +54,51 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
   }
 
   const toggleTag = (tag: string) => {
+    const isAdding = !selectedTags.includes(tag);
+    
+    // Track tag selection/deselection
+    trackCustomEvent('work_request_tag_toggle', {
+      tag: tag,
+      action: isAdding ? 'added' : 'removed',
+      service_id: serviceId,
+      total_tags: isAdding ? selectedTags.length + 1 : selectedTags.length - 1
+    });
+    
     setSelectedTags(prev => (prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]));
   };
 
   const handleConfirm = async () => {
     if (!selectedLocation) {
+      // Track location validation failure
+      trackCustomEvent('work_request_validation_failed', {
+        reason: 'no_location',
+        service_id: serviceId,
+        selected_tags_count: selectedTags.length
+      });
+      
       Alert.alert(t('createRequest.addDetails.locationRequiredTitle'), t('createRequest.addDetails.locationRequiredDesc'));
       return;
     }
     if (!token) {
+      // Track authentication failure
+      trackCustomEvent('work_request_validation_failed', {
+        reason: 'no_auth',
+        service_id: serviceId
+      });
+      
       Alert.alert(t('createRequest.addDetails.authRequiredTitle'), t('createRequest.addDetails.authRequiredDesc'));
       return;
     }
+    
+    // Track work request creation attempt
+    trackCustomEvent('work_request_creation_attempted', {
+      service_id: serviceId,
+      service_name: serviceName,
+      location_name: selectedLocation.name || selectedLocation.description,
+      tags_count: selectedTags.length,
+      selected_tags: selectedTags
+    });
+    
     setRequestInProgress(true);
     try {
       const locName = selectedLocation.name || selectedLocation.description;
@@ -62,8 +108,15 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
         location: { name: locName, lat: selectedLocation.lat, lng: selectedLocation.lng, placeId },
         tags: selectedTags,
       });
+      
+      // Track successful work request creation
+      trackWorkRequestCreated(wr.id || 'unknown', serviceName, locName, selectedTags);
+      
       navigation.navigate('WorkRequestCreated', { request: wr, locationName: locName });
     } catch (err: any) {
+      // Track work request creation failure
+      trackError(err, 'Work Request Creation', undefined, 'high');
+      
       const message = err?.response?.data?.message || err.message || t('createRequest.addDetails.createFailed');
       Alert.alert(t('common.error'), message);
     } finally {

@@ -4,8 +4,19 @@
  */
 
 import analytics from '@react-native-firebase/analytics';
-import crashlytics from '@react-native-firebase/crashlytics';
 import { Platform } from 'react-native';
+
+// Note: Crashlytics removed temporarily due to compatibility issues
+// import crashlytics from '@react-native-firebase/crashlytics';
+
+// Temporary crashlytics stub
+const crashlytics = () => ({
+  setCrashlyticsCollectionEnabled: async (enabled: boolean) => console.log('Crashlytics enabled:', enabled),
+  setUserId: async (userId: string) => console.log('Crashlytics user ID set:', userId),
+  setAttribute: async (key: string, value: string) => console.log('Crashlytics attribute set:', key, value),
+  recordError: async (error: Error) => console.log('Crashlytics error recorded:', error.message),
+  log: async (message: string) => console.log('Crashlytics log:', message),
+});
 
 /**
  * Initialize Google Analytics and set user properties

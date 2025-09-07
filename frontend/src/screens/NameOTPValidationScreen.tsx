@@ -24,6 +24,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import { spacing, colors, radius } from '../theme';
+import { trackScreenView, trackSignUp, trackCustomEvent, trackError } from '../utils/analytics';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -44,6 +45,11 @@ const NameOTPValidationScreen: React.FC = () => {
   const { login } = useAuth();
 
   const otpValue = useMemo(() => otp.join(''), [otp]);
+
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('NameOTPValidationScreen', 'Registration');
+  }, []);
 
   useEffect(() => {
     if (seconds <= 0) return;
@@ -80,14 +86,34 @@ const NameOTPValidationScreen: React.FC = () => {
   const handleContinue = async () => {
     const name_trimmed = name.trim();
     if (!name_trimmed) {
+      // Track name validation failure
+      trackCustomEvent('registration_validation_failed', {
+        reason: 'empty_name',
+        phone: phone
+      });
+      
       Alert.alert(t('nameReg.nameRequired'), t('nameReg.nameRequiredDesc'));
       return;
     }
 
     if (otpValue.length < 4) {
+      // Track OTP validation failure
+      trackCustomEvent('registration_validation_failed', {
+        reason: 'incomplete_otp',
+        phone: phone,
+        otp_length: otpValue.length
+      });
+      
       Alert.alert(t('common.invalidOtp'), t('common.invalidOtpDesc'));
       return;
     }
+
+    // Track registration attempt
+    trackCustomEvent('user_registration_attempted', {
+      phone: phone,
+      name_length: name_trimmed.length,
+      language: language || 'en'
+    });
 
     try {
       setLoading(true);
@@ -98,9 +124,25 @@ const NameOTPValidationScreen: React.FC = () => {
         null, // Pass null for role
         otpValue // Pass OTP to the API
       );
+      
+      // Track successful registration
+      trackSignUp('phone_otp', 'endUser'); // Default to endUser, will be updated in role selection
+      
       await login(result.token, result.user);
+      
+      // Track successful user registration
+      trackCustomEvent('user_registration_success', {
+        user_id: result.user.id,
+        phone: phone,
+        name: name_trimmed,
+        language: language || 'en'
+      });
+      
       navigation.navigate('RoleSelect');
     } catch (err: any) {
+      // Track registration failure
+      trackError(err, 'User Registration', undefined, 'high');
+      
       Alert.alert(t('common.error'), err.message || 'Failed to register');
     } finally {
       setLoading(false);

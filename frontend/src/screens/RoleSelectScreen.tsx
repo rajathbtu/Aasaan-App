@@ -8,6 +8,7 @@ import { colors, spacing, radius } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
+import { trackScreenView, trackRoleSelection, trackCustomEvent } from '../utils/analytics';
 
 const STICKY_HEIGHT = 96; // approx height of the bottom CTA area (padding + button + note)
 
@@ -28,17 +29,41 @@ const RoleSelectScreen: React.FC = () => {
 
   const languageDisplay = useMemo(() => getLanguageDisplay(lang), [lang]);
 
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('RoleSelectScreen', 'Onboarding');
+  }, []);
+
   const confirmSelection = async () => {
     if (!selectedRole) return;
+    
+    // Track role selection
+    trackRoleSelection(selectedRole);
+    
     try {
       setSaving(true);
       await updateUser({ role: selectedRole });
+      
+      // Track successful role update
+      trackCustomEvent('role_updated', {
+        new_role: selectedRole,
+        user_id: user?.id,
+        previous_role: user?.role || 'none'
+      });
+      
       if (selectedRole === 'serviceProvider') {
         navigation.navigate('SPSelectServices');
       } else {
         navigation.navigate('Main');
       }
     } catch (err: any) {
+      // Track role update error
+      trackCustomEvent('role_update_failed', {
+        selected_role: selectedRole,
+        error_message: err?.message || 'Unknown error',
+        user_id: user?.id
+      });
+      
       Alert.alert(t('common.error'), err?.message || t('roleSelect.updateRoleError'));
     } finally {
       setSaving(false);
@@ -63,7 +88,14 @@ const RoleSelectScreen: React.FC = () => {
     const selected = selectedRole === role;
     return (
       <TouchableOpacity
-        onPress={() => setSelectedRole(role)}
+        onPress={() => {
+          setSelectedRole(role);
+          // Track role card selection
+          trackCustomEvent('role_card_selected', {
+            selected_role: role,
+            user_id: user?.id
+          });
+        }}
         activeOpacity={0.9}
         style={[
           styles.card,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import { trackScreenView, trackPurchaseStart, trackPurchaseCompleted, trackCustomEvent, trackError } from '../utils/analytics';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -50,8 +51,31 @@ const BoostRequestScreen: React.FC = () => {
   const credits = user?.creditPoints ?? 0;
   const hasEnoughCredits = credits >= CREDIT_COST;
 
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('BoostRequestScreen', 'Payment');
+    
+    if (request) {
+      trackCustomEvent('boost_request_screen_viewed', {
+        request_id: request.id || 'unknown',
+        user_credits: credits,
+        has_enough_credits: hasEnoughCredits,
+        boost_cost: CREDIT_COST
+      });
+    }
+  }, [request, credits, hasEnoughCredits]);
+
   const handleBoost = async (useCredits: boolean) => {
     if (!token || !request) return;
+    
+    // Track boost attempt
+    trackPurchaseStart('boost', useCredits ? 0 : MONEY_PRICE_INR);
+    trackCustomEvent('boost_payment_initiated', {
+      request_id: request.id,
+      payment_method: useCredits ? 'credits' : 'razorpay',
+      amount: useCredits ? CREDIT_COST : MONEY_PRICE_INR,
+      user_credits_before: credits
+    });
     
     setLoading(true);
     
@@ -60,6 +84,15 @@ const BoostRequestScreen: React.FC = () => {
         // Use existing credit-based flow
         await API.boostWorkRequest(token, request.id, useCredits);
         await refreshUser();
+        
+        // Track successful credit payment
+        trackPurchaseCompleted(
+          `boost_${request.id}_${Date.now()}`,
+          'boost',
+          CREDIT_COST,
+          'credits'
+        );
+        
         Alert.alert(t('common.success'), t('boostRequest.successDesc'));
         navigation.navigate('Main', { screen: 'MyRequests' });
       } else {
@@ -77,16 +110,30 @@ const BoostRequestScreen: React.FC = () => {
             userDetails
           );
           
+          // Track payment options created
+          trackCustomEvent('boost_payment_options_created', {
+            request_id: request.id,
+            order_data: orderData ? 'created' : 'failed',
+            amount: MONEY_PRICE_INR
+          });
+          
           setPaymentOptions(options);
           setCurrentRequestId(request.id);
           setShowPaymentWebView(true);
         } catch (err: any) {
           console.error('Error creating payment options:', err);
+          
+          // Track payment option creation failure
+          trackError(err, 'Boost Payment Options Creation', user?.id, 'high');
+          
           Alert.alert(t('common.error'), err.message || t('boostRequest.errorBoostFailed'));
         }
       }
     } catch (err: any) {
       console.error('Boost payment error:', err);
+      
+      // Track boost payment error
+      trackError(err, 'Boost Payment', user?.id, 'high');
       
       // Handle Razorpay specific errors
       if (err.code) {
@@ -117,6 +164,14 @@ const BoostRequestScreen: React.FC = () => {
   const handlePaymentSuccess = async (response: RazorpayWebResponse) => {
     if (!token) return;
     
+    // Track payment success response
+    trackCustomEvent('boost_payment_response_received', {
+      request_id: currentRequestId,
+      payment_id: response.razorpay_payment_id,
+      order_id: response.razorpay_order_id,
+      status: 'success'
+    });
+    
     setShowPaymentWebView(false);
     setLoading(true);
     
@@ -131,6 +186,14 @@ const BoostRequestScreen: React.FC = () => {
       const verificationResult = await verifyBoostPayment(token, verificationData);
       
       if (verificationResult.success) {
+        // Track successful boost payment
+        trackPurchaseCompleted(
+          response.razorpay_payment_id,
+          'boost',
+          MONEY_PRICE_INR,
+          'razorpay'
+        );
+        
         await refreshUser();
         Alert.alert(
           t('common.success'), 
@@ -143,10 +206,21 @@ const BoostRequestScreen: React.FC = () => {
           ]
         );
       } else {
+        // Track payment verification failure
+        trackCustomEvent('boost_payment_verification_failed', {
+          request_id: currentRequestId,
+          payment_id: response.razorpay_payment_id,
+          verification_result: verificationResult
+        });
+        
         Alert.alert(t('common.error'), t('boostRequest.paymentFailedDesc'));
       }
     } catch (err: any) {
       console.error('Payment verification error:', err);
+      
+      // Track payment verification error
+      trackError(err, 'Boost Payment Verification', user?.id, 'high');
+      
       Alert.alert(t('common.error'), err.message || t('boostRequest.paymentFailedDesc'));
     } finally {
       setLoading(false);
@@ -156,6 +230,13 @@ const BoostRequestScreen: React.FC = () => {
   const handlePaymentError = (error: any) => {
     setShowPaymentWebView(false);
     console.error('Razorpay payment error:', error);
+    
+    // Track payment error
+    trackCustomEvent('boost_payment_error', {
+      request_id: currentRequestId,
+      error_code: error.code || 'unknown',
+      error_description: error.description || error.message || 'Unknown error'
+    });
     
     // Handle Razorpay specific errors
     if (error.code) {
@@ -182,6 +263,14 @@ const BoostRequestScreen: React.FC = () => {
 
   const handlePaymentCancel = () => {
     setShowPaymentWebView(false);
+    
+    // Track payment cancellation
+    trackCustomEvent('boost_payment_cancelled', {
+      request_id: currentRequestId,
+      payment_method: 'razorpay',
+      amount: MONEY_PRICE_INR
+    });
+    
     // User cancelled payment, no need to show error
   };
 

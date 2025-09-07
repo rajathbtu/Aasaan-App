@@ -58,19 +58,6 @@
     "scheme": "aasaan",
     "plugins": [
       "expo-dev-client",
-      "@react-native-firebase/app",
-      [
-        "@react-native-firebase/analytics",
-        {
-          "analyticsCollectionEnabled": true
-        }
-      ],
-      [
-        "@react-native-firebase/crashlytics",
-        {
-          "crashlyticsCollectionEnabled": true
-        }
-      ],
       [
         "expo-notifications",
         {
