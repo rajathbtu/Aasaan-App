@@ -15,6 +15,12 @@ Thumbs.db
 android/
 ios/
 
+# But keep important Firebase configuration files
+!frontend/android/app/
+!frontend/android/app/google-services.json
+!frontend/ios/GoogleService-Info.plist
+!frontend/ios/*/GoogleService-Info.plist
+
 # Build outputs
 build/
 dist/

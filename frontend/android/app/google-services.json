@@ -1,0 +1,32 @@
+{
+  "project_info": {
+    "project_number": "172972750073",
+    "project_id": "aasaan-f79d5",
+    "storage_bucket": "aasaan-f79d5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:172972750073:android:0a7677ca11b9c1ff1ede28",
+        "android_client_info": {
+          "package_name": "in.aasaanapp.aasaan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBd5VcxG9duG8o-0UmEQyJ50AXTKRFHQco"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        },
+        "analytics_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
