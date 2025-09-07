@@ -1,66 +1,89 @@
 /**
- * Complete Google Analytics 4 Implementation for Aasaan App
- * Firebase Analytics integration for React Native
+ * Firebase Analytics Implementation for Aasaan App
+ * Real Google Analytics 4 tracking with Firebase
  */
 
 import { Platform } from 'react-native';
+import analytics from '@react-native-firebase/analytics';
+import firebase from '@react-native-firebase/app';
 
-// Safe Firebase Analytics import with error handling
-let analytics: any = null;
-let isFirebaseAvailable = false;
-
-try {
-  analytics = require('@react-native-firebase/analytics').default;
-  isFirebaseAvailable = true;
-  console.log('✅ Firebase Analytics loaded successfully');
-} catch (error) {
-  console.log('⚠️ Firebase Analytics not available, using console logs only');
-  // Create a mock analytics object
-  analytics = () => ({
-    setAnalyticsCollectionEnabled: async (enabled: boolean) => console.log('📊 Analytics enabled:', enabled),
-    setDefaultEventParameters: async (params: any) => console.log('📊 Default parameters set:', params),
-    setUserId: async (userId: string) => console.log('📊 User ID set:', userId),
-    setUserProperties: async (properties: any) => console.log('📊 User properties set:', properties),
-    logEvent: async (eventName: string, parameters?: any) => console.log('📊 Event logged:', eventName, parameters),
-    logAppOpen: async () => console.log('📊 App open logged'),
-    logScreenView: async (params: any) => console.log('📊 Screen view logged:', params),
-    logSignUp: async (params: any) => console.log('📊 Sign up logged:', params),
-    logLogin: async (params: any) => console.log('📊 Login logged:', params),
-    logSelectContent: async (params: any) => console.log('📊 Content selected:', params),
-    logPurchase: async (params: any) => console.log('📊 Purchase logged:', params),
-    logJoinGroup: async (params: any) => console.log('📊 Join group logged:', params),
-    logBeginCheckout: async (params: any) => console.log('📊 Begin checkout logged:', params),
-    logAddPaymentInfo: async (params: any) => console.log('📊 Add payment info logged:', params),
-  });
-}
+let isFirebaseReady = false;
+let initializationPromise: Promise<void> | null = null;
 
 /**
- * Initialize Google Analytics and set user properties
+ * Initialize Firebase Analytics with proper error handling and retries
  */
-export const initializeAnalytics = async () => {
-  try {
-    if (isFirebaseAvailable) {
-      await analytics().setAnalyticsCollectionEnabled(true);
-      console.log('🔥 Firebase Analytics initialized successfully');
-    } else {
-      console.log('📊 Using console-only analytics (Firebase not available)');
-    }
-    
-    console.log('🔥 Google Analytics 4 initialized via Firebase');
-    
-    // Set app-level properties
-    await analytics().setDefaultEventParameters({
-      app_version: '1.0.0',
-      platform: Platform.OS,
-      environment: __DEV__ ? 'development' : 'production',
-    });
-  } catch (error) {
-    console.error('Analytics initialization failed:', error);
+export const initializeAnalytics = async (): Promise<void> => {
+  // Return existing promise if already initializing
+  if (initializationPromise) {
+    return initializationPromise;
   }
+  
+  // Create initialization promise
+  initializationPromise = (async () => {
+    try {
+      // Wait for Firebase to be available
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      while (attempts < maxAttempts) {
+        try {
+          // Check if Firebase app is initialized
+          const app = firebase.app();
+          
+          if (app && app.options) {
+            // Enable analytics collection
+            await analytics().setAnalyticsCollectionEnabled(true);
+            
+            // Set app-level default parameters
+            await analytics().setDefaultEventParameters({
+              app_version: '1.0.0',
+              platform: Platform.OS,
+              environment: __DEV__ ? 'development' : 'production',
+            });
+            
+            isFirebaseReady = true;
+            console.log('🔥 Firebase Analytics initialized successfully');
+            return;
+          }
+        } catch (error) {
+          // Firebase not ready yet
+        }
+        
+        attempts++;
+        console.log(`⏳ Firebase initialization attempt ${attempts}/${maxAttempts}`);
+        
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      // Final attempt failed
+      console.warn('⚠️ Firebase Analytics initialization failed after maximum attempts');
+      
+    } catch (error) {
+      console.error('Firebase Analytics initialization error:', error);
+    }
+  })();
+  
+  return initializationPromise;
 };
 
 /**
- * Set user properties for segmentation and personalization
+ * Ensure Firebase is ready before executing analytics calls
+ */
+const ensureFirebaseReady = async (): Promise<boolean> => {
+  if (isFirebaseReady) {
+    return true;
+  }
+  
+  // Try to initialize if not already done
+  await initializeAnalytics();
+  return isFirebaseReady;
+};
+
+/**
+ * Set user properties and ID for analytics
  */
 export const identifyUser = async (userId: string, properties: {
   role: 'endUser' | 'serviceProvider';
@@ -68,8 +91,14 @@ export const identifyUser = async (userId: string, properties: {
   plan: 'free' | 'basic' | 'pro';
   registrationDate: string;
   city?: string;
-}) => {
+}): Promise<void> => {
   try {
+    const ready = await ensureFirebaseReady();
+    if (!ready) {
+      console.log('⚠️ Firebase not ready for user identification');
+      return;
+    }
+
     await analytics().setUserId(userId);
     await analytics().setUserProperties({
       user_role: properties.role,
@@ -89,8 +118,14 @@ export const identifyUser = async (userId: string, properties: {
 // 🚀 USER JOURNEY EVENTS
 // ========================================
 
-export const trackAppOpen = async (isFirstTime: boolean = false) => {
+export const trackAppOpen = async (isFirstTime: boolean = false): Promise<void> => {
   try {
+    const ready = await ensureFirebaseReady();
+    if (!ready) {
+      console.log('⚠️ Firebase not ready for app open tracking');
+      return;
+    }
+
     if (isFirstTime) {
       // Use 'app_open' with first_time parameter instead of reserved 'first_open'
       await analytics().logEvent('app_open', {
@@ -98,23 +133,34 @@ export const trackAppOpen = async (isFirstTime: boolean = false) => {
         platform: Platform.OS,
       });
     } else {
-      await analytics().logAppOpen();
+      // Use Firebase's built-in app_open event
+      await analytics().logEvent('app_open', {
+        first_time: false,
+        platform: Platform.OS,
+      });
     }
+    
     console.log(`🚀 App opened: ${isFirstTime ? 'first time' : 'returning'}`);
   } catch (error) {
     console.error('App open tracking failed:', error);
   }
 };
 
-export const trackScreenView = async (screenName: string, screenClass?: string) => {
+export const trackScreenView = async (screenName: string, screenClass?: string): Promise<void> => {
   try {
+    const ready = await ensureFirebaseReady();
+    if (!ready) {
+      console.log(`⚠️ Firebase not ready for screen: ${screenName}`);
+      return;
+    }
+
     await analytics().logScreenView({
       screen_name: screenName,
       screen_class: screenClass || screenName,
     });
     console.log(`📱 Screen viewed: ${screenName}`);
   } catch (error) {
-    console.error('Screen view tracking failed:', error);
+    console.error(`Screen view tracking failed for ${screenName}:`, error);
   }
 };
 
@@ -365,16 +411,29 @@ export const trackBusinessMetric = async (metric: string, value: number, dimensi
   }
 };
 
-export const trackCustomEvent = async (eventName: string, parameters: Record<string, any> = {}) => {
+export const trackCustomEvent = async (eventName: string, parameters: Record<string, any> = {}): Promise<void> => {
   try {
+    const ready = await ensureFirebaseReady();
+    if (!ready) {
+      console.log(`⚠️ Firebase not ready for custom event: ${eventName}`);
+      return;
+    }
+
     await analytics().logEvent(eventName, parameters);
+    console.log(`📊 Custom event tracked: ${eventName}`, parameters);
   } catch (error) {
-    console.error('Custom event tracking failed:', error);
+    console.error(`Custom event tracking failed for ${eventName}:`, error);
   }
 };
 
 export const trackFunnelStep = async (funnelName: string, step: number, stepName: string, completed: boolean) => {
   try {
+    const ready = await ensureFirebaseReady();
+    if (!ready) {
+      console.log('⚠️ Firebase not ready for funnel step tracking');
+      return;
+    }
+
     await analytics().logEvent('funnel_step', {
       funnel_name: funnelName,
       step_number: step,
@@ -385,3 +444,37 @@ export const trackFunnelStep = async (funnelName: string, step: number, stepName
     console.error('Funnel step tracking failed:', error);
   }
 };
+
+// ========================================
+// 🧪 TESTING & DEBUGGING
+// ========================================
+
+/**
+ * Test if Firebase Analytics is working by sending a test event
+ */
+export const testFirebaseAnalytics = async (): Promise<boolean> => {
+  try {
+    const ready = await ensureFirebaseReady();
+    if (!ready) {
+      console.error('❌ Firebase Analytics test failed - Firebase not ready');
+      return false;
+    }
+
+    await analytics().logEvent('test_analytics_connection', {
+      test_timestamp: Date.now(),
+      platform: Platform.OS,
+      environment: __DEV__ ? 'development' : 'production',
+    });
+    
+    console.log('✅ Firebase Analytics test event sent successfully!');
+    return true;
+  } catch (error) {
+    console.error('❌ Firebase Analytics test failed:', error);
+    return false;
+  }
+};
+
+// Auto-initialize Firebase Analytics when the module loads
+initializeAnalytics().catch(() => {
+  // Silently fail - initialization will be retried when functions are called
+});
