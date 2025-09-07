@@ -3,11 +3,36 @@
  * Firebase Analytics integration for React Native
  */
 
-import analytics from '@react-native-firebase/analytics';
 import { Platform } from 'react-native';
 
-// Note: Crashlytics removed temporarily due to compatibility issues
-// import crashlytics from '@react-native-firebase/crashlytics';
+// Safe Firebase Analytics import with error handling
+let analytics: any = null;
+let isFirebaseAvailable = false;
+
+try {
+  analytics = require('@react-native-firebase/analytics').default;
+  isFirebaseAvailable = true;
+  console.log('✅ Firebase Analytics loaded successfully');
+} catch (error) {
+  console.log('⚠️ Firebase Analytics not available, using console logs only');
+  // Create a mock analytics object
+  analytics = () => ({
+    setAnalyticsCollectionEnabled: async (enabled: boolean) => console.log('📊 Analytics enabled:', enabled),
+    setDefaultEventParameters: async (params: any) => console.log('📊 Default parameters set:', params),
+    setUserId: async (userId: string) => console.log('📊 User ID set:', userId),
+    setUserProperties: async (properties: any) => console.log('📊 User properties set:', properties),
+    logEvent: async (eventName: string, parameters?: any) => console.log('📊 Event logged:', eventName, parameters),
+    logAppOpen: async () => console.log('📊 App open logged'),
+    logScreenView: async (params: any) => console.log('📊 Screen view logged:', params),
+    logSignUp: async (params: any) => console.log('📊 Sign up logged:', params),
+    logLogin: async (params: any) => console.log('📊 Login logged:', params),
+    logSelectContent: async (params: any) => console.log('📊 Content selected:', params),
+    logPurchase: async (params: any) => console.log('📊 Purchase logged:', params),
+    logJoinGroup: async (params: any) => console.log('📊 Join group logged:', params),
+    logBeginCheckout: async (params: any) => console.log('📊 Begin checkout logged:', params),
+    logAddPaymentInfo: async (params: any) => console.log('📊 Add payment info logged:', params),
+  });
+}
 
 // Temporary crashlytics stub
 const crashlytics = () => ({
@@ -23,7 +48,13 @@ const crashlytics = () => ({
  */
 export const initializeAnalytics = async () => {
   try {
-    await analytics().setAnalyticsCollectionEnabled(true);
+    if (isFirebaseAvailable) {
+      await analytics().setAnalyticsCollectionEnabled(true);
+      console.log('🔥 Firebase Analytics initialized successfully');
+    } else {
+      console.log('📊 Using console-only analytics (Firebase not available)');
+    }
+    
     await crashlytics().setCrashlyticsCollectionEnabled(true);
     console.log('🔥 Google Analytics 4 initialized via Firebase');
     
