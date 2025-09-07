@@ -21,6 +21,7 @@
       "bundleIdentifier": "in.aasaanapp.aasaan",
       "buildNumber": "1",
       "supportsTablet": true,
+      "googleServicesFile": "./ios/GoogleService-Info.plist",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Aasaan uses your location to show nearby services.",
         "NSUserTrackingUsageDescription": "We use notifications to alert you about updates to your requests.",
@@ -32,8 +33,7 @@
     "android": {
       "package": "in.aasaanapp.aasaan",
       "versionCode": 1,
-      "compileSdkVersion": 33,
-      "targetSdkVersion": 33,
+      "googleServicesFile": "./android/app/google-services.json",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -44,12 +44,6 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
-      },
-      "notification": {
-        "icon": "./assets/logo.png",
-        "color": "#4F46E5",
-        "channel": "default",
-        "sound": true
       }
     },
     "web": {
@@ -57,6 +51,17 @@
     },
     "scheme": "aasaan",
     "plugins": [
+      [
+        "@react-native-firebase/app",
+        {
+          "android": {
+            "googleServicesFile": "./android/app/google-services.json"
+          },
+          "ios": {
+            "googleServicesFile": "./ios/GoogleService-Info.plist"
+          }
+        }
+      ],
       "expo-dev-client",
       [
         "expo-notifications",
@@ -68,7 +73,8 @@
           "androidCollapsedTitle": "#{unread_notifications} new interactions"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font"
     ],
     "extra": {
       "eas": {

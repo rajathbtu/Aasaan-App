@@ -1,15 +1,16 @@
-const { getDefaultConfig } = require("expo/metro-config");
+const { getDefaultConfig } = require('expo/metro-config');
 
+/** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-// Comprehensive fix for React Native Firebase ESM import issues with Node.js v22
-config.resolver.alias = {
-  "@react-native-firebase/app/lib/common": "@react-native-firebase/app/lib/common/index.js",
-  "@react-native-firebase/analytics/lib": "@react-native-firebase/analytics/lib/index.js",
-};
+// This is to address an issue with symlinks and monorepos in Metro.
+// It's a common workaround for ensuring modules are resolved correctly.
+config.resolver.unstable_enableSymlinks = true;
 
-// Force CommonJS module resolution
-config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
-config.resolver.sourceExts = [...(config.resolver?.sourceExts || []), 'cjs'];
+// Fix for @react-native-firebase packages which use `mjs` files.
+// Metro doesn't handle them by default.
+// See: https://github.com/invertase/react-native-firebase/issues/7527
+config.resolver.sourceExts.push('mjs');
 
 module.exports = config;
+

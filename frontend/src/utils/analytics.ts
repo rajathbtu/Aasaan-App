@@ -34,15 +34,6 @@ try {
   });
 }
 
-// Temporary crashlytics stub
-const crashlytics = () => ({
-  setCrashlyticsCollectionEnabled: async (enabled: boolean) => console.log('Crashlytics enabled:', enabled),
-  setUserId: async (userId: string) => console.log('Crashlytics user ID set:', userId),
-  setAttribute: async (key: string, value: string) => console.log('Crashlytics attribute set:', key, value),
-  recordError: async (error: Error) => console.log('Crashlytics error recorded:', error.message),
-  log: async (message: string) => console.log('Crashlytics log:', message),
-});
-
 /**
  * Initialize Google Analytics and set user properties
  */
@@ -55,7 +46,6 @@ export const initializeAnalytics = async () => {
       console.log('📊 Using console-only analytics (Firebase not available)');
     }
     
-    await crashlytics().setCrashlyticsCollectionEnabled(true);
     console.log('🔥 Google Analytics 4 initialized via Firebase');
     
     // Set app-level properties
@@ -102,12 +92,15 @@ export const identifyUser = async (userId: string, properties: {
 export const trackAppOpen = async (isFirstTime: boolean = false) => {
   try {
     if (isFirstTime) {
-      await analytics().logEvent('first_open', {
+      // Use 'app_open' with first_time parameter instead of reserved 'first_open'
+      await analytics().logEvent('app_open', {
+        first_time: true,
         platform: Platform.OS,
       });
     } else {
       await analytics().logAppOpen();
     }
+    console.log(`🚀 App opened: ${isFirstTime ? 'first time' : 'returning'}`);
   } catch (error) {
     console.error('App open tracking failed:', error);
   }
@@ -343,22 +336,11 @@ export const trackNotificationOpened = async (type: string, title: string) => {
 
 export const trackError = async (error: Error, context: string, userId?: string, severity: 'low' | 'medium' | 'high' = 'medium') => {
   try {
-    if (userId) {
-      await crashlytics().setUserId(userId);
-    }
-    await crashlytics().setAttribute('context', context);
-    await crashlytics().setAttribute('severity', severity);
-    
-    if (severity === 'high') {
-      await crashlytics().recordError(error);
-    } else {
-      await crashlytics().log(`${context}: ${error.message}`);
-    }
-    
     await analytics().logEvent('app_exception', {
       description: error.message.substring(0, 150),
       fatal: severity === 'high',
       context: context,
+      user_id: userId,
     });
     
     console.error(`🚨 Error tracked: ${context} - ${error.message}`);
