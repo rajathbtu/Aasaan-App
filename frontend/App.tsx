@@ -199,9 +199,22 @@ export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamLi
 
 export default function App() {
   React.useEffect(() => {
-    // 🔥 Initialize Google Analytics 4 on app start
-    initializeAnalytics();
-    trackAppOpen(true); // Mark as first open for new installs
+    // Initialize Firebase Analytics on app start
+    const initializeApp = async () => {
+      try {
+        // Initialize Firebase Analytics
+        await initializeAnalytics();
+        
+        // Track app open
+        await trackAppOpen();
+        
+        console.log('App initialization complete');
+      } catch (error) {
+        console.error('App initialization failed:', error);
+      }
+    };
+    
+    initializeApp();
   }, []);
 
   const onStateChange = (state: any) => {

@@ -1,480 +1,289 @@
 /**
  * Firebase Analytics Implementation for Aasaan App
- * Real Google Analytics 4 tracking with Firebase
+ * Clean v22+ Modular API implementation
  */
 
 import { Platform } from 'react-native';
-import analytics from '@react-native-firebase/analytics';
-import firebase from '@react-native-firebase/app';
+import { 
+  getAnalytics, 
+  logEvent, 
+  setAnalyticsCollectionEnabled, 
+  setDefaultEventParameters,
+  setUserId,
+  setUserProperties
+} from '@react-native-firebase/analytics';
+import { getApp } from '@react-native-firebase/app';
 
+let analyticsInstance: any = null;
 let isFirebaseReady = false;
-let initializationPromise: Promise<void> | null = null;
 
 /**
- * Initialize Firebase Analytics with proper error handling and retries
+ * Initialize Firebase Analytics
  */
 export const initializeAnalytics = async (): Promise<void> => {
-  // Return existing promise if already initializing
-  if (initializationPromise) {
-    return initializationPromise;
-  }
-  
-  // Create initialization promise
-  initializationPromise = (async () => {
-    try {
-      // Wait for Firebase to be available
-      let attempts = 0;
-      const maxAttempts = 10;
-      
-      while (attempts < maxAttempts) {
-        try {
-          // Check if Firebase app is initialized
-          const app = firebase.app();
-          
-          if (app && app.options) {
-            // Enable analytics collection
-            await analytics().setAnalyticsCollectionEnabled(true);
-            
-            // Set app-level default parameters
-            await analytics().setDefaultEventParameters({
-              app_version: '1.0.0',
-              platform: Platform.OS,
-              environment: __DEV__ ? 'development' : 'production',
-            });
-            
-            isFirebaseReady = true;
-            console.log('🔥 Firebase Analytics initialized successfully');
-            return;
-          }
-        } catch (error) {
-          // Firebase not ready yet
-        }
-        
-        attempts++;
-        console.log(`⏳ Firebase initialization attempt ${attempts}/${maxAttempts}`);
-        
-        if (attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-      
-      // Final attempt failed
-      console.warn('⚠️ Firebase Analytics initialization failed after maximum attempts');
-      
-    } catch (error) {
-      console.error('Firebase Analytics initialization error:', error);
-    }
-  })();
-  
-  return initializationPromise;
-};
-
-/**
- * Ensure Firebase is ready before executing analytics calls
- */
-const ensureFirebaseReady = async (): Promise<boolean> => {
-  if (isFirebaseReady) {
-    return true;
-  }
-  
-  // Try to initialize if not already done
-  await initializeAnalytics();
-  return isFirebaseReady;
-};
-
-/**
- * Set user properties and ID for analytics
- */
-export const identifyUser = async (userId: string, properties: {
-  role: 'endUser' | 'serviceProvider';
-  language: string;
-  plan: 'free' | 'basic' | 'pro';
-  registrationDate: string;
-  city?: string;
-}): Promise<void> => {
   try {
-    const ready = await ensureFirebaseReady();
-    if (!ready) {
-      console.log('⚠️ Firebase not ready for user identification');
-      return;
-    }
+    if (isFirebaseReady) return;
 
-    await analytics().setUserId(userId);
-    await analytics().setUserProperties({
-      user_role: properties.role,
-      user_language: properties.language,
-      user_plan: properties.plan,
-      registration_date: properties.registrationDate,
-      user_city: properties.city || 'unknown',
+    const app = getApp();
+    analyticsInstance = getAnalytics(app);
+    
+    await setAnalyticsCollectionEnabled(analyticsInstance, true);
+    await setDefaultEventParameters(analyticsInstance, {
+      platform: Platform.OS,
+      app_version: '1.0.0',
+      environment: __DEV__ ? 'development' : 'production',
     });
     
-    console.log(`👤 User identified: ${userId} (${properties.role})`);
+    isFirebaseReady = true;
+    console.log('Firebase Analytics initialized');
   } catch (error) {
-    console.error('User identification failed:', error);
+    console.error('Analytics initialization failed:', error);
+    throw error;
   }
 };
 
-// ========================================
-// 🚀 USER JOURNEY EVENTS
-// ========================================
+/**
+ * Get analytics instance
+ */
+const getAnalyticsInstance = () => {
+  if (!analyticsInstance) {
+    const app = getApp();
+    analyticsInstance = getAnalytics(app);
+  }
+  return analyticsInstance;
+};
 
-export const trackAppOpen = async (isFirstTime: boolean = false): Promise<void> => {
+/**
+ * Set user ID for analytics
+ */
+export const setAnalyticsUserId = async (userId: string): Promise<void> => {
   try {
-    const ready = await ensureFirebaseReady();
-    if (!ready) {
-      console.log('⚠️ Firebase not ready for app open tracking');
-      return;
-    }
+    const analytics = getAnalyticsInstance();
+    await setUserId(analytics, userId);
+    await setUserProperties(analytics, {
+      user_id: userId,
+      registration_date: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Set user ID failed:', error);
+  }
+};
 
-    if (isFirstTime) {
-      // Use 'app_open' with first_time parameter instead of reserved 'first_open'
-      await analytics().logEvent('app_open', {
-        first_time: true,
-        platform: Platform.OS,
-      });
-    } else {
-      // Use Firebase's built-in app_open event
-      await analytics().logEvent('app_open', {
-        first_time: false,
-        platform: Platform.OS,
-      });
-    }
-    
-    console.log(`🚀 App opened: ${isFirstTime ? 'first time' : 'returning'}`);
+/**
+ * Track app open
+ */
+export const trackAppOpen = async (): Promise<void> => {
+  try {
+    const analytics = getAnalyticsInstance();
+    await logEvent(analytics, 'app_open', {
+      platform: Platform.OS,
+      timestamp: Date.now(),
+    });
   } catch (error) {
     console.error('App open tracking failed:', error);
   }
 };
 
-export const trackScreenView = async (screenName: string, screenClass?: string): Promise<void> => {
+/**
+ * Track screen view
+ */
+export const trackScreenView = async (screenName: string, category?: string): Promise<void> => {
   try {
-    const ready = await ensureFirebaseReady();
-    if (!ready) {
-      console.log(`⚠️ Firebase not ready for screen: ${screenName}`);
-      return;
-    }
-
-    await analytics().logScreenView({
+    const analytics = getAnalyticsInstance();
+    await logEvent(analytics, 'screen_view_custom', {
       screen_name: screenName,
-      screen_class: screenClass || screenName,
+      screen_category: category || 'general',
+      platform: Platform.OS,
     });
-    console.log(`📱 Screen viewed: ${screenName}`);
   } catch (error) {
-    console.error(`Screen view tracking failed for ${screenName}:`, error);
+    console.error('Screen view tracking failed:', error);
   }
 };
 
-export const trackSignUp = async (method: 'phone_otp' | 'google' | 'apple', role: 'endUser' | 'serviceProvider') => {
+/**
+ * Track custom event
+ */
+export const trackCustomEvent = async (eventName: string, parameters?: Record<string, any>): Promise<void> => {
   try {
-    await analytics().logSignUp({ method });
-    await analytics().logEvent('user_registered', {
-      method,
-      user_role: role,
+    const analytics = getAnalyticsInstance();
+    await logEvent(analytics, eventName, {
+      ...parameters,
+      platform: Platform.OS,
+      timestamp: Date.now(),
     });
-    console.log(`✍️ User signed up: ${method} as ${role}`);
+  } catch (error) {
+    console.error(`Custom event tracking failed for ${eventName}:`, error);
+  }
+};
+
+/**
+ * Track sign up
+ */
+export const trackSignUp = async (method: string = 'mobile', userType?: string): Promise<void> => {
+  try {
+    const analytics = getAnalyticsInstance();
+    await logEvent(analytics, 'sign_up', {
+      method,
+      user_type: userType || 'unknown',
+      platform: Platform.OS,
+    });
+    await logEvent(analytics, 'user_registered', {
+      registration_method: method,
+      user_type: userType || 'unknown',
+      platform: Platform.OS,
+    });
   } catch (error) {
     console.error('Sign up tracking failed:', error);
   }
 };
 
-export const trackLogin = async (method: 'phone_otp' | 'google' | 'apple') => {
+/**
+ * Track login
+ */
+export const trackLogin = async (method: string = 'mobile'): Promise<void> => {
   try {
-    await analytics().logLogin({ method });
-    console.log(`🔐 User logged in: ${method}`);
+    const analytics = getAnalyticsInstance();
+    await logEvent(analytics, 'login', {
+      method,
+      platform: Platform.OS,
+    });
   } catch (error) {
     console.error('Login tracking failed:', error);
   }
 };
 
-export const trackRoleSelection = async (role: 'endUser' | 'serviceProvider') => {
+/**
+ * Track role selection
+ */
+export const trackRoleSelection = async (role: string): Promise<void> => {
   try {
-    await analytics().logSelectContent({
+    const analytics = getAnalyticsInstance();
+    await logEvent(analytics, 'select_content', {
       content_type: 'role',
       item_id: role,
     });
-    console.log(`🎭 Role selected: ${role}`);
   } catch (error) {
     console.error('Role selection tracking failed:', error);
   }
 };
 
-// ========================================
-// 🛍️ WORK REQUEST JOURNEY
-// ========================================
-
-export const trackServiceSelection = async (serviceId: string, serviceName: string) => {
+/**
+ * Track service selection
+ */
+export const trackServiceSelection = async (serviceId: string, serviceName: string): Promise<void> => {
   try {
-    await analytics().logEvent('select_service', {
+    const analytics = getAnalyticsInstance();
+    await logEvent(analytics, 'select_service', {
       service_id: serviceId,
       service_name: serviceName,
+      platform: Platform.OS,
     });
-    console.log(`🔧 Service selected: ${serviceName}`);
   } catch (error) {
     console.error('Service selection tracking failed:', error);
   }
 };
 
-export const trackWorkRequestCreated = async (requestId: string, service: string, location: string, tags: string[]) => {
+/**
+ * Track work request created
+ */
+export const trackWorkRequestCreated = async (serviceId: string, location: string): Promise<void> => {
   try {
-    await analytics().logPurchase({
-      transaction_id: requestId,
-      currency: 'INR',
-      value: 0,
-      items: [{
-        item_id: `work_request_${service}`,
-        item_name: `Work Request: ${service}`,
-        item_category: 'work_request',
-        quantity: 1,
-      }]
+    const analytics = getAnalyticsInstance();
+    await logEvent(analytics, 'work_request_created', {
+      service_id: serviceId,
+      location,
+      platform: Platform.OS,
     });
-    
-    await analytics().logEvent('work_request_created', {
-      request_id: requestId,
-      service_type: service,
-      location_name: location,
-      tags_count: tags.length,
-    });
-    
-    console.log(`📋 Work request created: ${requestId}`);
   } catch (error) {
-    console.error('Work request creation tracking failed:', error);
+    console.error('Work request created tracking failed:', error);
   }
 };
 
-export const trackWorkRequestClosed = async (requestId: string, hasRating: boolean, stars?: number) => {
+/**
+ * Track service provider onboarding
+ */
+export const trackServiceProviderOnboarding = async (step: string, data?: Record<string, any>): Promise<void> => {
   try {
-    await analytics().logEvent('work_request_closed', {
-      request_id: requestId,
-      has_rating: hasRating,
-      rating_stars: stars || 0,
+    const analytics = getAnalyticsInstance();
+    await logEvent(analytics, 'service_provider_onboarded', {
+      onboarding_step: step,
+      ...data,
+      platform: Platform.OS,
     });
-    console.log(`✅ Work request closed: ${requestId}`);
-  } catch (error) {
-    console.error('Work request closure tracking failed:', error);
-  }
-};
-
-// ========================================
-// 🏢 SERVICE PROVIDER EVENTS
-// ========================================
-
-export const trackServiceProviderOnboarding = async (services: string[], radius: number) => {
-  try {
-    await analytics().logJoinGroup({
-      group_id: 'service_providers',
-    });
-    
-    await analytics().logEvent('service_provider_onboarded', {
-      services_count: services.length,
-      service_radius: radius,
-    });
-    
-    console.log(`🏗️ Service provider onboarded: ${services.length} services`);
   } catch (error) {
     console.error('Service provider onboarding tracking failed:', error);
   }
 };
 
-export const trackWorkRequestAccepted = async (requestId: string, serviceId: string) => {
+/**
+ * Track purchase start
+ */
+export const trackPurchaseStart = async (amount: number, currency: string = 'INR'): Promise<void> => {
   try {
-    await analytics().logSelectContent({
-      content_type: 'work_request',
-      item_id: requestId,
-    });
-    
-    await analytics().logEvent('work_request_accepted', {
-      request_id: requestId,
-      service_id: serviceId,
-    });
-    
-    console.log(`🤝 Work request accepted: ${requestId}`);
-  } catch (error) {
-    console.error('Work request acceptance tracking failed:', error);
-  }
-};
-
-// ========================================
-// 💰 PAYMENT EVENTS
-// ========================================
-
-export const trackPurchaseStart = async (itemType: 'boost' | 'subscription', value: number) => {
-  try {
-    await analytics().logBeginCheckout({
-      currency: 'INR',
-      value: value,
-      items: [{
-        item_id: itemType,
-        item_name: itemType === 'boost' ? 'Work Request Boost' : 'Subscription',
-        item_category: itemType,
-        price: value,
-        quantity: 1,
-      }]
+    const analytics = getAnalyticsInstance();
+    await logEvent(analytics, 'begin_checkout', {
+      currency,
+      value: amount,
+      platform: Platform.OS,
     });
   } catch (error) {
     console.error('Purchase start tracking failed:', error);
   }
 };
 
+/**
+ * Track purchase completed
+ */
 export const trackPurchaseCompleted = async (
-  transactionId: string,
-  itemType: 'boost' | 'subscription',
-  value: number,
-  paymentMethod: 'razorpay' | 'credits'
-) => {
+  amount: number, 
+  currency: string = 'INR', 
+  transactionId?: string
+): Promise<void> => {
   try {
-    await analytics().logPurchase({
-      transaction_id: transactionId,
-      currency: 'INR',
-      value: value,
-      items: [{
-        item_id: itemType,
-        item_name: itemType === 'boost' ? 'Work Request Boost' : 'Subscription',
-        item_category: itemType,
-        price: value,
-        quantity: 1,
-      }]
-    });
-    
-    await analytics().logEvent('payment_completed', {
-      transaction_id: transactionId,
-      payment_method: paymentMethod,
-      item_type: itemType,
-      amount: value,
-    });
-    
-    console.log(`💳 Purchase completed: ${itemType} - ₹${value}`);
-  } catch (error) {
-    console.error('Purchase completion tracking failed:', error);
-  }
-};
-
-// ========================================
-// 🔔 NOTIFICATION EVENTS
-// ========================================
-
-export const trackNotificationReceived = async (type: string, title: string) => {
-  try {
-    await analytics().logEvent('notification_received', {
-      notification_type: type,
-      notification_title: title.substring(0, 100),
+    const analytics = getAnalyticsInstance();
+    await logEvent(analytics, 'purchase', {
+      currency,
+      value: amount,
+      transaction_id: transactionId || `txn_${Date.now()}`,
       platform: Platform.OS,
     });
   } catch (error) {
-    console.error('Notification received tracking failed:', error);
+    console.error('Purchase completed tracking failed:', error);
   }
 };
-
-export const trackNotificationOpened = async (type: string, title: string) => {
-  try {
-    await analytics().logEvent('notification_opened', {
-      notification_type: type,
-      notification_title: title.substring(0, 100),
-      platform: Platform.OS,
-    });
-  } catch (error) {
-    console.error('Notification opened tracking failed:', error);
-  }
-};
-
-// ========================================
-// ⚡ TECHNICAL EVENTS
-// ========================================
-
-export const trackError = async (error: Error, context: string, userId?: string, severity: 'low' | 'medium' | 'high' = 'medium') => {
-  try {
-    await analytics().logEvent('app_exception', {
-      description: error.message.substring(0, 150),
-      fatal: severity === 'high',
-      context: context,
-      user_id: userId,
-    });
-    
-    console.error(`🚨 Error tracked: ${context} - ${error.message}`);
-  } catch (trackingError) {
-    console.error('Error tracking failed:', trackingError);
-  }
-};
-
-// ========================================
-// 📊 CUSTOM BUSINESS EVENTS
-// ========================================
-
-export const trackBusinessMetric = async (metric: string, value: number, dimensions: Record<string, any> = {}) => {
-  try {
-    await analytics().logEvent('business_metric', {
-      metric_name: metric,
-      metric_value: value,
-      ...dimensions,
-    });
-  } catch (error) {
-    console.error('Business metric tracking failed:', error);
-  }
-};
-
-export const trackCustomEvent = async (eventName: string, parameters: Record<string, any> = {}): Promise<void> => {
-  try {
-    const ready = await ensureFirebaseReady();
-    if (!ready) {
-      console.log(`⚠️ Firebase not ready for custom event: ${eventName}`);
-      return;
-    }
-
-    await analytics().logEvent(eventName, parameters);
-    console.log(`📊 Custom event tracked: ${eventName}`, parameters);
-  } catch (error) {
-    console.error(`Custom event tracking failed for ${eventName}:`, error);
-  }
-};
-
-export const trackFunnelStep = async (funnelName: string, step: number, stepName: string, completed: boolean) => {
-  try {
-    const ready = await ensureFirebaseReady();
-    if (!ready) {
-      console.log('⚠️ Firebase not ready for funnel step tracking');
-      return;
-    }
-
-    await analytics().logEvent('funnel_step', {
-      funnel_name: funnelName,
-      step_number: step,
-      step_name: stepName,
-      step_completed: completed,
-    });
-  } catch (error) {
-    console.error('Funnel step tracking failed:', error);
-  }
-};
-
-// ========================================
-// 🧪 TESTING & DEBUGGING
-// ========================================
 
 /**
- * Test if Firebase Analytics is working by sending a test event
+ * Track error
  */
-export const testFirebaseAnalytics = async (): Promise<boolean> => {
+export const trackError = async (error: any, context: string, userId?: string, severity?: string): Promise<void> => {
   try {
-    const ready = await ensureFirebaseReady();
-    if (!ready) {
-      console.error('❌ Firebase Analytics test failed - Firebase not ready');
-      return false;
-    }
-
-    await analytics().logEvent('test_analytics_connection', {
-      test_timestamp: Date.now(),
-      platform: Platform.OS,
-      environment: __DEV__ ? 'development' : 'production',
-    });
+    const analytics = getAnalyticsInstance();
+    const errorMessage = error?.message || error?.toString() || 'Unknown error';
     
-    console.log('✅ Firebase Analytics test event sent successfully!');
-    return true;
-  } catch (error) {
-    console.error('❌ Firebase Analytics test failed:', error);
-    return false;
+    await logEvent(analytics, 'app_error', {
+      error_message: errorMessage.substring(0, 100),
+      context: context || 'unknown',
+      user_id: userId || 'anonymous',
+      severity: severity || 'medium',
+      platform: Platform.OS,
+    });
+  } catch (analyticsError) {
+    console.error('Error tracking failed:', analyticsError);
   }
 };
 
-// Auto-initialize Firebase Analytics when the module loads
-initializeAnalytics().catch(() => {
-  // Silently fail - initialization will be retried when functions are called
-});
+/**
+ * Generic track event function
+ */
+export const trackEvent = async (eventName: string, parameters?: Record<string, any>): Promise<void> => {
+  try {
+    const analytics = getAnalyticsInstance();
+    await logEvent(analytics, eventName, {
+      ...parameters,
+      platform: Platform.OS,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    console.error(`Event tracking failed for ${eventName}:`, error);
+  }
+};
