@@ -15,11 +15,10 @@ Thumbs.db
 android/
 ios/
 
-# But keep important Firebase configuration files
-!frontend/android/app/
-!frontend/android/app/google-services.json
-!frontend/ios/GoogleService-Info.plist
-!frontend/ios/*/GoogleService-Info.plist
+# Firebase configuration files (security sensitive - added via CI/CD)
+frontend/android/app/google-services.json
+frontend/ios/GoogleService-Info.plist
+frontend/ios/*/GoogleService-Info.plist
 
 # Build outputs
 build/

@@ -21,11 +21,10 @@ packager-cache-*
 ios/
 android/
 
-# But keep important Firebase configuration files
-!android/app/
-!android/app/google-services.json
-!ios/GoogleService-Info.plist
-!ios/*/GoogleService-Info.plist
+# Firebase configuration files (security sensitive - added via CI/CD)
+android/app/google-services.json
+ios/GoogleService-Info.plist
+ios/*/GoogleService-Info.plist
 
 # Misc
 .DS_Store
