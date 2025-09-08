@@ -37,16 +37,22 @@ CODE=$?
 set -e
 if [[ $CODE -ne 0 && "$OUTPUT" == *"P3005"* ]]; then
   echo "[prisma-deploy] ⚠️ P3005 detected (non-empty DB). Attempting baseline..."
-  # Baseline by marking all migrations as applied in order
-  MIGRATIONS=( $(ls -1 prisma/migrations | sort) )
+  # Baseline by marking all migration directories as applied in order
+  # Only include directories under prisma/migrations (skip files like migration_lock.toml)
+  mapfile -t MIGRATIONS < <(ls -1d prisma/migrations/*/ 2>/dev/null | xargs -n1 basename | sort)
   if [[ ${#MIGRATIONS[@]} -eq 0 ]]; then
     echo "[prisma-deploy] ❌ No migrations found to baseline" >&2
     echo "$OUTPUT"
     exit 1
   fi
   for m in "${MIGRATIONS[@]}"; do
-    echo "[prisma-deploy] Marking applied: $m"
-    npx prisma migrate resolve --applied "$m" --schema=./prisma/schema.prisma
+    # Validate migration directory contains a migration file (e.g., migration.sql)
+    if [[ -f "prisma/migrations/$m/migration.sql" || -f "prisma/migrations/$m/steps.json" ]]; then
+      echo "[prisma-deploy] Marking applied: $m"
+      npx prisma migrate resolve --applied "$m" --schema=./prisma/schema.prisma
+    else
+      echo "[prisma-deploy] Skipping non-migration entry: $m"
+    fi
   done
   echo "[prisma-deploy] Retrying migrate deploy..."
   npx prisma migrate deploy --schema=./prisma/schema.prisma
