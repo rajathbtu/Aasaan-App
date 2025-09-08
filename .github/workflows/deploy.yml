@@ -86,9 +86,15 @@ jobs:
         run: |
           # Create android/app directory if it doesn't exist
           mkdir -p android/app
-          # Restore google-services.json for Android
-          echo "$GOOGLE_SERVICES_JSON" | base64 --decode > android/app/google-services.json
-          echo "✅ Restored google-services.json"
+          # Restore google-services.json for Android (trim whitespace and decode)
+          if [ ! -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" | tr -d '\n\r\t ' | base64 -d > android/app/google-services.json
+            echo "✅ Restored google-services.json"
+            ls -la android/app/google-services.json
+          else
+            echo "❌ GOOGLE_SERVICES_JSON secret not found"
+            exit 1
+          fi
 
       - name: Expo prebuild (Android)
         env:
@@ -165,9 +171,15 @@ jobs:
         run: |
           # Create ios directory if it doesn't exist
           mkdir -p ios
-          # Restore GoogleService-Info.plist for iOS
-          echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/GoogleService-Info.plist
-          echo "✅ Restored GoogleService-Info.plist"
+          # Restore GoogleService-Info.plist for iOS (trim whitespace and decode)
+          if [ ! -z "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+            echo "$GOOGLE_SERVICE_INFO_PLIST" | tr -d '\n\r\t ' | base64 -d > ios/GoogleService-Info.plist
+            echo "✅ Restored GoogleService-Info.plist"
+            ls -la ios/GoogleService-Info.plist
+          else
+            echo "❌ GOOGLE_SERVICE_INFO_PLIST secret not found"
+            exit 1
+          fi
 
       - name: Expo prebuild (iOS)
         env:
