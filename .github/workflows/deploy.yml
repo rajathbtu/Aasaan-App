@@ -87,7 +87,7 @@ jobs:
           if [ -z "$GOOGLE_SERVICES_JSON" ]; then
             echo "❌ GOOGLE_SERVICES_JSON secret not found" && exit 1
           fi
-          echo "$GOOGLE_SERVICES_JSON" | tr -d '\n\r\t ' | base64 -d > google-services.json
+          node -e "const fs=require('fs'); const s=(process.env.GOOGLE_SERVICES_JSON||'').replace(/\\s+/g,''); if(!s){console.error('Secret empty'); process.exit(1);} fs.writeFileSync('google-services.json', Buffer.from(s,'base64'));"
           echo "✅ Restored google-services.json at project root" && ls -la google-services.json
 
       - name: Expo prebuild (Android)
@@ -167,7 +167,7 @@ jobs:
           if [ -z "$GOOGLE_SERVICE_INFO_PLIST" ]; then
             echo "❌ GOOGLE_SERVICE_INFO_PLIST secret not found" && exit 1
           fi
-          echo "$GOOGLE_SERVICE_INFO_PLIST" | tr -d '\n\r\t ' | base64 -d > GoogleService-Info.plist
+          node -e "const fs=require('fs'); const s=(process.env.GOOGLE_SERVICE_INFO_PLIST||'').replace(/\\s+/g,''); if(!s){console.error('Secret empty'); process.exit(1);} fs.writeFileSync('GoogleService-Info.plist', Buffer.from(s,'base64'));"
           echo "✅ Restored GoogleService-Info.plist at project root" && ls -la GoogleService-Info.plist
 
       - name: Expo prebuild (iOS)
@@ -175,6 +175,24 @@ jobs:
           EXPO_NO_TELEMETRY: '1'
           CI: '1'
         run: npx expo prebuild --platform ios
+
+      - name: Ensure Podfile uses modular headers
+        run: |
+          PODFILE=ios/Podfile
+          echo "📄 Checking Podfile at $PODFILE"
+          if [ ! -f "$PODFILE" ]; then
+            echo "❌ Podfile not found at $PODFILE" && ls -la ios && exit 1
+          fi
+          if grep -q "use_modular_headers!" "$PODFILE"; then
+            echo "ℹ️ Podfile already contains use_modular_headers!"
+          else
+            echo "🔧 Prepending use_modular_headers! to Podfile"
+            tmpfile=$(mktemp)
+            { echo "# Enable modular headers for Firebase Swift pods"; echo "use_modular_headers!"; echo; cat "$PODFILE"; } > "$tmpfile"
+            mv "$tmpfile" "$PODFILE"
+          fi
+          echo "--- Podfile preview (top 60 lines) ---"
+          head -n 60 "$PODFILE"
 
       - name: Install CocoaPods
         run: npx pod-install ios
