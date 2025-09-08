@@ -7,7 +7,7 @@
     "build": "prisma generate && tsc",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "postinstall": "prisma migrate deploy"
+    "postinstall": "bash ./scripts/prisma-deploy.sh"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",
