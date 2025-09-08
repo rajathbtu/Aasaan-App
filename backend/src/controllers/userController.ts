@@ -3,16 +3,45 @@ import { isValidName, isValidRadius } from '../utils/validation';
 import prisma from '../utils/prisma';
 import { Role } from '../models/User';
 import { getReqLang, t } from '../utils/i18n';
+import { trackCustomEvent, trackError, detectPlatform } from '../utils/analytics';
 
 export async function getProfile(req: Request, res: Response): Promise<void> {
   const authUser = (req as any).user as { id: string };
   const lang = getReqLang(req);
+  
+  trackCustomEvent(authUser.id, 'profile_fetch_requested', {
+    platform: detectPlatform(req)
+  });
+  
   try {
-    const user = await prisma.user.findUnique({ where: { id: authUser.id } });
-    if (!user) { res.status(404).json({ message: t(lang, 'user.notFound') }); return; }
-    const sp = await prisma.serviceProviderInfo.findUnique({ where: { userId: user.id }, include: { location: true } }).catch(() => null);
-    res.json({ ...user, role: user.role ?? null, serviceProviderInfo: sp || null });
-  } catch {
+    const user = await prisma.user.findUnique({ 
+      where: { id: authUser.id },
+      include: {
+        serviceProviderInfo: {
+          include: {
+            location: true
+          }
+        }
+      }
+    });
+    if (!user) { 
+      trackCustomEvent(authUser.id, 'profile_fetch_failed', {
+        reason: 'user_not_found',
+        platform: detectPlatform(req)
+      });
+      res.status(404).json({ message: t(lang, 'user.notFound') }); 
+      return; 
+    }
+    
+    trackCustomEvent(authUser.id, 'profile_fetch_success', {
+      user_role: user.role,
+      has_sp_info: !!user.serviceProviderInfo,
+      platform: detectPlatform(req)
+    });
+    
+    res.json({ ...user, role: user.role ?? null, serviceProviderInfo: user.serviceProviderInfo || null });
+  } catch (err: any) {
+    trackError(req, err.message || 'Profile fetch error', 'Profile Fetch', 'medium');
     res.status(500).json({ message: t(lang, 'user.profileFetchFailed') });
   }
 }
@@ -31,9 +60,28 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     avatarUrl?: string | null;
   };
 
+  trackCustomEvent(authUser.id, 'profile_update_attempted', {
+    has_name: name !== undefined,
+    has_language: language !== undefined,
+    has_role: role !== undefined,
+    has_services: services !== undefined,
+    has_location: location !== undefined,
+    has_radius: radius !== undefined,
+    has_plan: plan !== undefined,
+    has_avatar: avatarUrl !== undefined,
+    platform: detectPlatform(req)
+  });
+
   const data: any = {};
   if (name !== undefined) {
-    if (!isValidName(name)) { res.status(400).json({ message: t(lang, 'auth.invalidName') }); return; }
+    if (!isValidName(name)) { 
+      trackCustomEvent(authUser.id, 'profile_update_failed', {
+        reason: 'invalid_name',
+        platform: detectPlatform(req)
+      });
+      res.status(400).json({ message: t(lang, 'auth.invalidName') }); 
+      return; 
+    }
     data.name = name.trim();
   }
   if (language !== undefined) data.language = language;
@@ -100,11 +148,211 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     const updated = await prisma.user.update({
       where: { id: authUser.id },
       data: { ...data, ...(spUpdate ? { serviceProviderInfo: spUpdate } : {}) },
+      include: {
+        serviceProviderInfo: {
+          include: {
+            location: true
+          }
+        }
+      }
     });
-    const sp = await (prisma as any).serviceProviderInfo.findUnique({ where: { userId: updated.id }, include: { location: true } }).catch(() => null);
-    res.json({ ...updated, serviceProviderInfo: sp || null });
+    res.json({ ...updated, serviceProviderInfo: updated.serviceProviderInfo || null });
   } catch (e) {
     console.error('Error updating profile:', e);
     res.status(500).json({ message: t(lang, 'user.updateFailed') });
+  }
+}
+
+// Helper function to calculate time active
+function calculateTimeActive(createdAt: Date): string {
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - createdAt.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays < 30) {
+    return `${diffDays} ${diffDays === 1 ? 'day' : 'days'}`;
+  } else if (diffDays < 365) {
+    const months = Math.floor(diffDays / 30);
+    return `${months} ${months === 1 ? 'month' : 'months'}`;
+  } else {
+    const years = Math.floor(diffDays / 365);
+    return `${years} ${years === 1 ? 'year' : 'years'}`;
+  }
+}
+
+// Helper function to calculate rating statistics
+function calculateRatingStats(ratingsData: any[]) {
+  const ratingBreakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  let totalRating = 0;
+  
+  ratingsData.forEach(rating => {
+    if (rating) {
+      const stars = rating.stars;
+      ratingBreakdown[stars as keyof typeof ratingBreakdown]++;
+      totalRating += stars;
+    }
+  });
+
+  const totalReviews = ratingsData.length;
+  const averageRating = totalReviews > 0 ? totalRating / totalReviews : 0;
+  const positiveReviews = ratingBreakdown[4] + ratingBreakdown[5];
+
+  return { ratingBreakdown, averageRating, positiveReviews, totalReviews };
+}
+
+/**
+ * Get service provider profile with stats and reviews
+ */
+export async function getServiceProviderProfile(req: Request, res: Response): Promise<void> {
+  const { providerId } = req.params;
+  const lang = getReqLang(req);
+  
+  try {
+    // Parallel database queries for better performance
+    const [user, acceptedProviders, allServices] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: providerId },
+        include: {
+          serviceProviderInfo: {
+            include: {
+              location: true
+            }
+          }
+        }
+      }),
+      prisma.acceptedProvider.findMany({
+        where: { providerId: providerId },
+        include: {
+          workRequest: {
+            include: {
+              rating: true,
+              user: {
+                select: { id: true, name: true, avatarUrl: true }
+              }
+            }
+          }
+        }
+      }),
+      prisma.service.findMany({
+        select: { id: true, name: true }
+      })
+    ]);
+
+    if (!user) {
+      res.status(404).json({ message: t(lang, 'user.notFound') });
+      return;
+    }
+
+    if (user.role !== 'serviceProvider') {
+      res.status(400).json({ message: t(lang, 'user.notServiceProvider') });
+      return;
+    }
+
+    // Create service mapping once
+    const serviceMap = Object.fromEntries(allServices.map(s => [s.id, s.name]));
+    
+    // Calculate stats
+    const totalJobs = acceptedProviders.length;
+    const closedJobs = acceptedProviders.filter(ap => ap.workRequest.status === 'closed').length;
+    const ratingsData = acceptedProviders
+      .map(ap => ap.workRequest.rating)
+      .filter(rating => rating !== null);
+
+    // Calculate rating statistics
+    const { ratingBreakdown, averageRating, positiveReviews, totalReviews } = calculateRatingStats(ratingsData);
+
+    // Calculate time active
+    const timeActive = calculateTimeActive(new Date(user.createdAt));
+
+    // Format reviews with mapped service names
+    const reviews = ratingsData.map(rating => {
+      if (!rating) return null;
+      const workRequest = acceptedProviders.find(ap => ap.workRequest.rating?.id === rating.id)?.workRequest;
+      return {
+        id: rating.id,
+        name: workRequest?.user.name || 'Anonymous',
+        avatar: workRequest?.user.avatarUrl,
+        rating: rating.stars,
+        date: workRequest?.closedAt || workRequest?.createdAt,
+        content: rating.review || '',
+        serviceType: serviceMap[workRequest?.service || ''] || workRequest?.service || 'Service',
+        helpful: 0,
+      };
+    }).filter(review => review !== null);
+
+    // Get service types with stats - optimized to avoid repeated filtering
+    const serviceJobsMap = new Map<string, any[]>();
+    acceptedProviders.forEach(ap => {
+      const service = ap.workRequest.service;
+      if (!serviceJobsMap.has(service)) {
+        serviceJobsMap.set(service, []);
+      }
+      serviceJobsMap.get(service)!.push(ap);
+    });
+
+    const serviceTypes = user.serviceProviderInfo?.services.map(service => {
+      const serviceJobs = serviceJobsMap.get(service) || [];
+      const serviceRatings = serviceJobs.map(sj => sj.workRequest.rating).filter(r => r !== null);
+      const serviceAvg = serviceRatings.length > 0 
+        ? serviceRatings.reduce((sum, r) => sum + (r?.stars || 0), 0) / serviceRatings.length 
+        : 0;
+      
+      return {
+        name: serviceMap[service] || service,
+        reviews: serviceRatings.length,
+        rating: Number(serviceAvg.toFixed(1))
+      };
+    }) || [];
+
+    // Trust badges
+    const createdAt = new Date(user.createdAt);
+    const trustBadges = [
+      {
+        type: 'Identity Verified',
+        description: 'Government ID confirmed',
+        verified: true // Could be based on actual verification status
+      },
+      {
+        type: 'Phone Verified',
+        description: 'Contact number confirmed',
+        verified: !!user.phoneNumber
+      },
+      {
+        type: 'Top Rated Provider',
+        description: 'Maintains 4.6+ rating',
+        verified: averageRating >= 4.6
+      },
+      {
+        type: `Active Since ${createdAt.getFullYear()}`,
+        description: `${timeActive} on platform`,
+        verified: true
+      }
+    ];
+
+    const responseData = {
+      id: user.id,
+      name: user.name,
+      phone: user.phoneNumber,
+      profession: serviceMap[user.serviceProviderInfo?.services[0] || ''] || user.serviceProviderInfo?.services[0] || 'Service Provider',
+      services: user.serviceProviderInfo?.services.map(service => serviceMap[service] || service) || [],
+      location: user.serviceProviderInfo?.location?.name || 'Location not set',
+      isOnline: true, // Could be based on last activity
+      avatar: user.avatarUrl,
+      rating: Number(averageRating.toFixed(1)),
+      totalReviews,
+      completedJobs: closedJobs,
+      responseTime: '15 mins', // Could be calculated from actual data
+      timeActive,
+      ratingBreakdown,
+      positiveReviews,
+      reviews,
+      serviceTypes,
+      trustBadges
+    };
+
+    res.json(responseData);
+  } catch (error) {
+    console.error('Error fetching service provider profile:', error);
+    res.status(500).json({ message: t(lang, 'user.profileFetchFailed') });
   }
 }

@@ -18,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import { trackScreenView, trackCustomEvent, trackError } from '../utils/analytics';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -51,13 +52,30 @@ const NotificationsScreen: React.FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  useFocusEffect(
+    useCallback(() => {
+      trackScreenView('NotificationsScreen', 'Notifications');
+      
+      trackCustomEvent('notifications_screen_opened', {
+        has_token: !!token,
+        timestamp: new Date().toISOString()
+      });
+    }, [token])
+  );
+
   const fetchNotifications = async () => {
     if (!token) return;
     try {
       setLoading(true);
       const list = await API.getNotifications(token);
       setNotifications(list);
+      
+      trackCustomEvent('notifications_loaded', {
+        count: list.length,
+        unread_count: list.filter((n: any) => !n.read_at).length
+      });
     } catch (err) {
+      trackError(err as Error, 'Notification Loading', undefined, 'medium');
       console.error(err);
     } finally {
       setLoading(false);

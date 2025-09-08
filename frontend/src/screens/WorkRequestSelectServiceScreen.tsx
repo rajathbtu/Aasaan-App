@@ -8,6 +8,7 @@ import { useI18n } from '../i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
 import { useAuth } from '../contexts/AuthContext'; // Corrected import
+import { trackScreenView, trackServiceSelection, trackCustomEvent } from '../utils/analytics';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -29,6 +30,11 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const userId = useAuth()?.user?.id || 'guest'; // Fetch user ID from Auth or fallback to 'guest'
   const [recentServices, setRecentServices] = useState<Service[]>([]);
+
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('WorkRequestSelectServiceScreen', 'WorkRequest');
+  }, []);
 
   useEffect(() => {
     // Load cached services immediately
@@ -122,6 +128,16 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
         key={service.id}
         style={[styles.serviceCard, styles.shadow]}
         onPress={() => {
+          // Track service selection
+          trackServiceSelection(service.id, service.name);
+          trackCustomEvent('service_card_pressed', {
+            service_id: service.id,
+            service_name: service.name,
+            service_category: service.category,
+            user_id: userId,
+            from_recent: false
+          });
+          
           updateRecentServices(service);
           navigation.navigate('WorkRequestAddDetails', { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [] });
         }}
@@ -176,7 +192,17 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
                 placeholder={placeholderTexts[placeholderIndex]}
                 placeholderTextColor={colors.grey}
                 value={query}
-                onChangeText={setQuery}
+                onChangeText={(text) => {
+                  setQuery(text);
+                  // Track search queries (debounced)
+                  if (text.length > 2) {
+                    trackCustomEvent('service_search', {
+                      search_query: text.toLowerCase(),
+                      query_length: text.length,
+                      user_id: userId
+                    });
+                  }
+                }}
               />
               {query.trim() !== '' && (
                 <TouchableOpacity style={styles.resetButton} onPress={() => setQuery('')}>

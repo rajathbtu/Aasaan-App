@@ -177,6 +177,18 @@ export async function markAllNotificationsRead(token: string) {
 }
 
 /**
+ * Trigger a backend test push notification to the current user.
+ */
+export async function sendTestNotification(token: string) {
+  const res = await api.post(
+    '/notifications/test',
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.data as { ok: boolean; sent?: number };
+}
+
+/**
  * Fetch available services.
  */
 export async function getServices() {
@@ -189,5 +201,27 @@ export async function getServices() {
  */
 export async function checkUserRegistration(phone: string) {
   const res = await api.post('/auth/check-registration', { phone });
+  return res.data;
+}
+
+export async function registerPushToken(token: string, expoPushToken: string, platform: 'ios' | 'android', deviceId?: string) {
+  await api.post('/push-tokens/register', { token: expoPushToken, platform, deviceId }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function unregisterPushToken(token: string, expoPushToken: string) {
+  await api.post('/push-tokens/unregister', { token: expoPushToken }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+/**
+ * Get service provider profile with stats and reviews
+ */
+export async function getServiceProviderProfile(token: string, providerId: string) {
+  const res = await api.get(`/users/service-provider/${providerId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return res.data;
 }

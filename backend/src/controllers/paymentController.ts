@@ -1,26 +1,79 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
-import { pushNotification } from '../models/dataStore';
 import { getReqLang, t, notifyUser } from '../utils/i18n';
 import { createOrder, verifyPaymentSignature, getPaymentDetails } from '../utils/razorpay';
+import { trackCustomEvent, trackError } from '../utils/analytics';
 
 export async function boostWorkRequest(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
   const lang = getReqLang(req);
   if (user.role !== 'endUser') { res.status(403).json({ message: t(lang, 'payment.onlyEndUsers') }); return; }
   const { requestId, useCredits } = req.body as { requestId: string; useCredits?: boolean };
+  
+  // Track boost request attempt
+  trackCustomEvent(user.id, 'boost_request_attempted_backend', {
+    request_id: requestId,
+    payment_method: useCredits ? 'credits' : 'unknown',
+    user_role: user.role
+  });
+  
   try {
     const wr = await prisma.workRequest.findFirst({ where: { id: requestId, userId: user.id } });
-    if (!wr) { res.status(404).json({ message: t(lang, 'request.notFound') }); return; }
-    if (wr.boosted) { res.status(409).json({ message: t(lang, 'payment.alreadyBoosted') }); return; }
+    if (!wr) { 
+      // Track request not found
+      trackCustomEvent(user.id, 'boost_request_not_found', {
+        request_id: requestId
+      });
+      
+      res.status(404).json({ message: t(lang, 'request.notFound') }); 
+      return; 
+    }
+    if (wr.boosted) { 
+      // Track already boosted
+      trackCustomEvent(user.id, 'boost_request_already_boosted', {
+        request_id: requestId
+      });
+      
+      res.status(409).json({ message: t(lang, 'payment.alreadyBoosted') }); 
+      return; 
+    }
+    
     const costPoints = 100;
     if (useCredits) {
       const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
       if (!dbUser) { res.status(404).json({ message: t(lang, 'user.notFound') }); return; }
-      if (dbUser.creditPoints < costPoints) { res.status(400).json({ message: t(lang, 'payment.insufficientCredits') }); return; }
+      
+      if (dbUser.creditPoints < costPoints) { 
+        // Track insufficient credits
+        trackCustomEvent(user.id, 'boost_insufficient_credits', {
+          request_id: requestId,
+          user_credits: dbUser.creditPoints,
+          required_credits: costPoints
+        });
+        
+        res.status(400).json({ message: t(lang, 'payment.insufficientCredits') }); 
+        return; 
+      }
+      
       await prisma.user.update({ where: { id: user.id }, data: { creditPoints: { decrement: costPoints } } });
+      
+      // Track credit payment
+      trackCustomEvent(user.id, 'boost_paid_with_credits', {
+        request_id: requestId,
+        credits_spent: costPoints,
+        credits_remaining: dbUser.creditPoints - costPoints
+      });
     }
+    
     const updatedWr = await prisma.workRequest.update({ where: { id: wr.id }, data: { boosted: true } });
+    
+    // Track successful boost
+    trackCustomEvent(user.id, 'work_request_boosted', {
+      request_id: requestId,
+      payment_method: useCredits ? 'credits' : 'unknown',
+      service: wr.service
+    });
+    
     await notifyUser({
       userId: user.id,
       type: 'boostPromotion',
@@ -29,7 +82,10 @@ export async function boostWorkRequest(req: Request, res: Response): Promise<voi
       data: { requestId: wr.id },
     });
     res.json(updatedWr);
-  } catch {
+  } catch (error: any) {
+    // Track boost failure
+    trackError(req, error?.message || 'Boost request failed', 'Boost Payment', 'high');
+    
     res.status(500).json({ message: t(lang, 'payment.boostFailed') });
   }
 }

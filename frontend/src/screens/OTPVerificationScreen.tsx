@@ -23,6 +23,7 @@ import { useI18n } from '../i18n';
 import { WebView } from 'react-native-webview';
 import Header from '../components/Header';
 import { spacing, colors, radius } from '../theme';
+import { trackScreenView, trackLogin, trackCustomEvent, trackError } from '../utils/analytics';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -45,6 +46,11 @@ const OTPVerificationScreen: React.FC = () => {
   const inputsRef = useRef<Array<TextInput | null>>([null, null, null, null]);
 
   const otpValue = useMemo(() => otp.join(''), [otp]);
+
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('OTPVerificationScreen', 'Authentication');
+  }, []);
 
   useEffect(() => {
     const tmr = setTimeout(() => setShowAutoRead(false), 2500);
@@ -77,17 +83,47 @@ const OTPVerificationScreen: React.FC = () => {
 
   const handleVerify = async () => {
     if (otpValue.length < 4) {
+      // Track invalid OTP attempt
+      trackCustomEvent('otp_validation_failed', {
+        reason: 'incomplete_otp',
+        otp_length: otpValue.length,
+        phone: phone
+      });
+      
       Alert.alert(t('common.invalidOtp'), t('common.invalidOtpDesc'));
       return;
     }
+    
+    // Track OTP verification attempt
+    trackCustomEvent('otp_verification_attempted', {
+      phone: phone,
+      otp_length: otpValue.length
+    });
+    
     try {
       setLoading(true);
       const result: any = await API.verifyOtp(phone, Number(otpValue));
       if (result.needsRegistration) {
+        // Track new user requiring registration
+        trackCustomEvent('new_user_registration_required', {
+          phone: phone
+        });
+        
         navigation.navigate('NameOTPValidation', { phone, language: lang });
       } else if (result.token) {
+        // Track successful login
+        trackLogin('phone_otp');
+        
         await login(result.token, result.user);
         const user = result.user;
+        
+        // Track user login with role info
+        trackCustomEvent('user_login_success', {
+          user_id: user.id,
+          user_role: user.role,
+          phone: phone
+        });
+        
         if (user.role === 'serviceProvider') {
           const info = user.serviceProviderInfo || {};
           if (!info.services || info.services.length === 0) {
@@ -101,9 +137,18 @@ const OTPVerificationScreen: React.FC = () => {
         }
         navigation.navigate('Main');
       } else if (result.error) {
+        // Track OTP verification failure
+        trackCustomEvent('otp_verification_failed', {
+          phone: phone,
+          error: result.message || 'Invalid OTP'
+        });
+        
         Alert.alert(t('common.error'), result.message || t('common.invalidOtp'));
       }
     } catch (err: any) {
+      // Track OTP verification error
+      trackError(err, 'OTP Verification', undefined, 'medium');
+      
       Alert.alert(t('common.error'), err.message || t('common.invalidOtp'));
     } finally {
       setLoading(false);
@@ -111,14 +156,29 @@ const OTPVerificationScreen: React.FC = () => {
   };
 
   const handleResend = async () => {
+    // Track OTP resend request
+    trackCustomEvent('otp_resend_requested', {
+      phone: phone,
+      previous_attempt_count: 30 - seconds // Estimate attempts based on timer
+    });
+    
     try {
       setLoading(true);
       await API.sendOtp(phone);
       setOtp(['', '', '', '']);
       inputsRef.current[0]?.focus();
       setSeconds(30);
+      
+      // Track successful OTP resend
+      trackCustomEvent('otp_resend_success', {
+        phone: phone
+      });
+      
       Alert.alert(t('common.otpSent'), t('common.otpSentDesc'));
     } catch (err: any) {
+      // Track OTP resend failure
+      trackError(err, 'OTP Resend', undefined, 'medium');
+      
       Alert.alert(t('common.error'), err.message || t('common.invalidOtp'));
     } finally {
       setLoading(false);

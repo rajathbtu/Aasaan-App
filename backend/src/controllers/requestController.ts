@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { areValidTags } from '../utils/validation';
-import { pushNotification } from '../models/dataStore';
 import { getReqLang, t, notifyUser } from '../utils/i18n';
+import { trackCustomEvent, trackError } from '../utils/analytics';
 
 const pAny: any = prisma;
 
@@ -79,21 +79,64 @@ export async function create(req: Request, res: Response): Promise<void> {
   if (!service || typeof service !== 'string') { res.status(400).json({ message: t(lang, 'request.serviceRequired') }); return; }
   if (!location || typeof location.name !== 'string' || typeof location.lat !== 'number' || typeof location.lng !== 'number') { res.status(400).json({ message: t(lang, 'user.invalidLocation') }); return; }
   if (tags && !areValidTags(tags)) { res.status(400).json({ message: t(lang, 'request.invalidTags') }); return; }
+  
+  // Track work request creation attempt
+  trackCustomEvent(user.id, 'work_request_creation_attempted_backend', {
+    service: service,
+    location_name: location.name,
+    tags_count: tags ? tags.length : 0,
+    has_tags: !!(tags && tags.length > 0)
+  });
+  
   try {
     const since = new Date(Date.now() - 24*60*60*1000);
     const recent = await prisma.workRequest.count({ where: { userId: user.id, createdAt: { gt: since } } });
-    if (recent >= 3 && !req.body.force) { res.status(429).json({ message: t(lang, 'request.limitReached'), code: 'LIMIT_EXCEEDED' }); return; }
+    
+    if (recent >= 3 && !req.body.force) { 
+      // Track rate limit exceeded
+      trackCustomEvent(user.id, 'work_request_rate_limit_exceeded', {
+        recent_requests_count: recent,
+        limit: 3,
+        service: service
+      });
+      
+      res.status(429).json({ message: t(lang, 'request.limitReached'), code: 'LIMIT_EXCEEDED' }); 
+      return; 
+    }
+    
     const loc = await pAny.location.create?.({ data: { name: location.name, lat: location.lat, lng: location.lng } });
     const wr = await pAny.workRequest.create({ data: { userId: user.id, service, locationId: loc?.id, tags: tags || [] } });
+    
+    // Track successful work request creation
+    trackCustomEvent(user.id, 'work_request_created_backend', {
+      request_id: wr.id,
+      service: service,
+      location_name: location.name,
+      tags: tags || [],
+      tags_count: tags ? tags.length : 0
+    });
+    
     // Notify eligible providers (service match + radius parity)
     const providers = await pAny.serviceProviderInfo?.findMany?.({ where: { services: { has: service } }, include: { location: true } }) || [];
+    console.log(`[NOTIFICATION DEBUG] Found ${providers.length} service providers for service "${service}"`);
+    
+    // Track provider matching
+    trackCustomEvent(user.id, 'work_request_providers_matched', {
+      request_id: wr.id,
+      service: service,
+      total_providers: providers.length
+    });
+    
+    let notifiedCount = 0;
     for (const p of providers) {
       let notify = true;
       if (p.location && p.radius > 0 && loc) {
         const d = distanceKm(loc.lat, loc.lng, p.location.lat, p.location.lng);
+        console.log(`[NOTIFICATION DEBUG] Provider ${p.userId}: distance ${d.toFixed(2)}km, radius ${p.radius}km, notify: ${d <= p.radius}`);
         notify = d <= p.radius;
       }
       if (notify) {
+        console.log(`[NOTIFICATION DEBUG] Sending notification to provider ${p.userId}...`);
         await notifyUser({
           userId: p.userId,
           type: 'newRequest',
@@ -102,10 +145,26 @@ export async function create(req: Request, res: Response): Promise<void> {
           params: { name: user.name, service },
           data: { requestId: wr.id }
         });
+        console.log(`[NOTIFICATION DEBUG] Notification sent to provider ${p.userId}`);
+        notifiedCount++;
       }
     }
+    
+    // Track notification broadcast
+    trackCustomEvent(user.id, 'work_request_notifications_sent', {
+      request_id: wr.id,
+      service: service,
+      providers_notified: notifiedCount,
+      total_providers: providers.length
+    });
+    
     res.status(201).json(wr);
-  } catch { res.status(500).json({ message: t(lang, 'request.createFailed') }); }
+  } catch (error: any) {
+    // Track work request creation failure
+    trackError(req, error?.message || 'Work request creation failed', 'Work Request Creation', 'high');
+    
+    res.status(500).json({ message: t(lang, 'request.createFailed') }); 
+  }
 }
 
 /**
@@ -144,28 +203,41 @@ export async function list(req: Request, res: Response): Promise<void> {
     const providerLoc = await pAny.location?.findUnique?.({ where: { id: providerInfo.locationId } });
     if (providerLoc) {
       const radiusInMeters = providerInfo.radius * 1000; // Convert km to meters
-      const relevantRequests = (await prisma.$queryRaw`
-        SELECT wr.*
-        FROM "WorkRequest" wr
-        JOIN "Location" loc ON wr."locationId" = loc."id"
-        WHERE wr."status" = 'active'
-          AND wr."service" = ANY(${services})
-          AND ST_DistanceSphere(
-            ST_MakePoint(${providerLoc.lng}, ${providerLoc.lat}),
-            ST_MakePoint(loc."lng", loc."lat")
-          ) <= ${radiusInMeters};
-      `) as any[];
 
-      // Fetch additional details for each request
+      // Get all active work requests for the provider's services
+      const allRequests = await prisma.workRequest.findMany({
+        where: {
+          status: 'active',
+          service: { in: services }
+        },
+        include: {
+          location: true,
+          user: true
+        }
+      });
+
+      // Filter requests by distance using Haversine formula
+      const relevantRequests = allRequests.filter(request => {
+        if (!request.location) return false;
+
+        const distance = distanceKm(
+          providerLoc.lat,
+          providerLoc.lng,
+          request.location.lat,
+          request.location.lng
+        ) * 1000; // Convert km to meters
+
+        return distance <= radiusInMeters;
+      });
+
+      // Fetch service details for each request
       const enrichedRequests = await Promise.all(
         relevantRequests.map(async (request: any) => {
-          const [accepted, service, location, requestUser] = await Promise.all([
+          const [accepted, service] = await Promise.all([
             pAny.acceptedProvider?.findFirst({
               where: { workRequestId: request.id, providerId: user.id },
             }),
             pAny.service?.findUnique({ where: { id: request.service } }),
-            pAny.location?.findUnique({ where: { id: request.locationId } }),
-            pAny.user?.findUnique({ where: { id: request.userId } }),
           ]);
 
           return {
@@ -173,11 +245,11 @@ export async function list(req: Request, res: Response): Promise<void> {
             acceptedByProvider: !!accepted,
             serviceName: service?.name || null,
             serviceIcon: service?.icon || null,
-            locationName: location?.name || null,
-            locationLat: location?.lat || null,
-            locationLng: location?.lng || null,
-            requesterName: requestUser?.name || null,
-            requesterPhone: requestUser?.phoneNumber || null,
+            locationName: request.location?.name || null,
+            locationLat: request.location?.lat || null,
+            locationLng: request.location?.lng || null,
+            requesterName: request.user?.name || null,
+            requesterPhone: request.user?.phoneNumber || null,
           };
         })
       );

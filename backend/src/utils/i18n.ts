@@ -1,6 +1,7 @@
 // Backend i18n utilities: translations, translator, and helpers to localize API responses
 import prisma from './prisma';
 import { pushNotification } from '../models/dataStore';
+import { sendExpoPushToUser } from './expoPush';
 
 export type Locale = 'en' | 'hi' | 'gu' | 'mr' | 'ta' | 'te' | 'kn';
 
@@ -606,11 +607,14 @@ export async function notifyUser(options: {
   const lang = ensureLocale(u?.language);
   const title = t(lang, options.titleKey, options.params);
   const message = t(lang, options.messageKey, options.params);
-  return pushNotification({
+  const record = await pushNotification({
     userId: options.userId,
     type: options.type as any,
     title,
     message,
     data: options.data,
   } as any);
+  // Fire-and-forget push send; do not block request
+  sendExpoPushToUser(options.userId, title, message, options.data).catch((e) => console.warn('push send error', e));
+  return record;
 }

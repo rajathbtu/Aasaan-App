@@ -9,8 +9,9 @@ import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
 import Header from '../components/Header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getServices } from '../api';
+import { getServices, sendTestNotification } from '../api';
 import * as Location from 'expo-location';
+import { trackScreenView, trackCustomEvent, trackError } from '../utils/analytics';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users
@@ -20,8 +21,20 @@ import * as Location from 'expo-location';
  */
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { user, updateUser, logout, setLanguage: setGlobalLanguage, refreshUser } = useAuth();
+  const { user, token, updateUser, logout, setLanguage: setGlobalLanguage, refreshUser } = useAuth();
   const { t, lang } = useI18n();
+
+  useEffect(() => {
+    trackScreenView('ProfileScreen', 'Profile');
+    
+    trackCustomEvent('profile_screen_opened', {
+      user_role: user?.role,
+      user_language: user?.language,
+      has_services: !!(user as any)?.services?.length,
+      has_location: !!(user as any)?.location,
+      has_avatar: !!user?.avatarUrl
+    });
+  }, [user]);
 
   // Shared services list to map ids -> display names
   type Service = { id: string; name: string; category: string; tags?: string[] };
@@ -374,6 +387,22 @@ const ProfileScreen: React.FC = () => {
 
         {/* Account Actions */}
         <View style={styles.section}>
+          {__DEV__ && token && (
+            <TouchableOpacity
+              onPress={async () => {
+                try {
+                  const res = await sendTestNotification(token);
+                  Alert.alert('Test Push', `Triggered: sent=${res?.sent ?? 0}`);
+                } catch (e: any) {
+                  Alert.alert('Test Push Failed', e?.message || 'Unknown error');
+                }
+              }}
+              style={[styles.logoutRow, { justifyContent: 'center', borderWidth: 1, borderColor: colors.greyLight, borderRadius: radius.md, marginBottom: spacing.sm }]}
+            >
+              <Ionicons name="notifications" size={16} color={colors.primary} style={{ marginRight: spacing.xs }} />
+              <Text style={{ color: colors.primary, fontWeight: '600' }}>Send Test Notification</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={logout} style={styles.logoutRow}>
             <Ionicons name="log-out" size={16} color={colors.error} style={{ marginRight: spacing.xs }} />
             <Text style={styles.logoutText}>{t('profile.logout')}</Text>
