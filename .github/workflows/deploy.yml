@@ -79,25 +79,27 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --prefer-offline
 
-      - name: Expo prebuild (Android)
-        env:
-          EXPO_NO_TELEMETRY: '1'
-          CI: '1'
-        run: npx expo prebuild --platform android --non-interactive
-
       - name: Restore Firebase configuration files
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
-          # Restore google-services.json for Android after prebuild (trim whitespace and decode)
+          # Create directories and restore Firebase config files before prebuild
+          mkdir -p android/app
+          # Restore google-services.json for Android (trim whitespace and decode)
           if [ ! -z "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" | tr -d '\n\r\t ' | base64 -d > android/app/google-services.json
-            echo "✅ Restored google-services.json after prebuild"
+            echo "✅ Restored google-services.json before prebuild"
             ls -la android/app/google-services.json
           else
             echo "❌ GOOGLE_SERVICES_JSON secret not found"
             exit 1
           fi
+
+      - name: Expo prebuild (Android)
+        env:
+          EXPO_NO_TELEMETRY: '1'
+          CI: '1'
+        run: npx expo prebuild --platform android --non-interactive
 
       - name: Cache Gradle
         uses: actions/cache@v4
@@ -162,25 +164,27 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --prefer-offline
 
-      - name: Expo prebuild (iOS)
-        env:
-          EXPO_NO_TELEMETRY: '1'
-          CI: '1'
-        run: npx expo prebuild --platform ios --non-interactive
-
       - name: Restore Firebase configuration files
         env:
           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
         run: |
-          # Restore GoogleService-Info.plist for iOS after prebuild (trim whitespace and decode)
+          # Create directories and restore Firebase config files before prebuild
+          mkdir -p ios
+          # Restore GoogleService-Info.plist for iOS (trim whitespace and decode)
           if [ ! -z "$GOOGLE_SERVICE_INFO_PLIST" ]; then
             echo "$GOOGLE_SERVICE_INFO_PLIST" | tr -d '\n\r\t ' | base64 -d > ios/GoogleService-Info.plist
-            echo "✅ Restored GoogleService-Info.plist after prebuild"
+            echo "✅ Restored GoogleService-Info.plist before prebuild"
             ls -la ios/GoogleService-Info.plist
           else
             echo "❌ GOOGLE_SERVICE_INFO_PLIST secret not found"
             exit 1
           fi
+
+      - name: Expo prebuild (iOS)
+        env:
+          EXPO_NO_TELEMETRY: '1'
+          CI: '1'
+        run: npx expo prebuild --platform ios --non-interactive
 
       - name: Install CocoaPods
         run: npx pod-install ios
