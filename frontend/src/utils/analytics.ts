@@ -1,6 +1,5 @@
 /**
- * Firebase Analytics Implementation for Aasaan App
- * React Native Firebase (v23.x) proper API usage
+ * Analytics utility (basic only): screen views, app open, login/signup, button clicks.
  */
 
 import { Platform } from 'react-native';
@@ -16,7 +15,7 @@ try {
 
 const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
 let initialized = false;
-let collectionEnabled = true; // allow runtime consent toggle
+let collectionEnabled = true; // runtime consent toggle
 
 type QueuedEvent =
   | { kind: 'event'; name: string; params?: Record<string, any> }
@@ -43,7 +42,7 @@ const sanitizeParams = (params: Record<string, any> = {}) => {
   Object.entries(params).forEach(([k, v]) => {
     if (v === undefined || v === null) return;
     const key = toSnakeCase(k).slice(0, 40);
-    // GA4 best practice: strings <= 100 chars for custom params
+    // Keep strings short to match GA4 best practices
     if (typeof v === 'string') out[key] = v.slice(0, 100);
     else out[key] = v;
   });
@@ -68,7 +67,7 @@ const flushQueue = async () => {
         await analytics().setUserProperties(sanitizeParams(item.props));
       }
     } catch (e) {
-      // If it fails, break to avoid spinning; remaining events will try next flush
+      // On failure, stop and retry later
       console.warn('[analytics] flush failed, will retry later:', e);
       break;
     }
@@ -76,7 +75,7 @@ const flushQueue = async () => {
 };
 
 export const initializeAnalytics = async (): Promise<void> => {
-  if (!isNative) return; // no-op on web
+  if (!isNative) return; // no analytics on web
   if (initialized) return;
   try {
     await analytics().setAnalyticsCollectionEnabled(collectionEnabled);
@@ -86,7 +85,7 @@ export const initializeAnalytics = async (): Promise<void> => {
       environment: __DEV__ ? 'development' : 'production',
     });
     initialized = true;
-    console.log('Firebase Analytics initialized');
+    console.log('Analytics initialized');
     await flushQueue();
   } catch (error) {
     console.error('Analytics initialization failed:', error);
@@ -138,7 +137,7 @@ export const trackAppOpen = async (): Promise<void> => {
 export const trackScreenView = async (screenName: string, category?: string): Promise<void> => {
   if (!isNative) return;
   try {
-    // De-dupe rapid consecutive screen views for same screen
+    // De-dupe rapid consecutive screen views
     const now = Date.now();
     if (lastScreenName === screenName && now - lastScreenTs < 800) return;
     lastScreenName = screenName; lastScreenTs = now;
@@ -152,36 +151,26 @@ export const trackScreenView = async (screenName: string, category?: string): Pr
   }
 };
 
-export const trackCustomEvent = async (eventName: string, parameters?: Record<string, any>): Promise<void> => {
+// Basic button click event
+export const trackButtonClick = async (label: string, parameters?: Record<string, any>): Promise<void> => {
   if (!isNative) return;
   try {
-    const name = sanitizeEventName(eventName);
-    const params = sanitizeParams({
-      ...parameters,
-      platform: Platform.OS,
-      timestamp: Date.now(),
-    });
+    const name = 'button_click';
+    const params = sanitizeParams({ label, ...parameters, timestamp: Date.now() });
     if (!initialized) queue.push({ kind: 'event', name, params });
     await analytics().logEvent(name, params);
     trace('event', name, params);
   } catch (error) {
-    console.error(`Custom event tracking failed for ${eventName}:`, error);
+    console.error('Button click tracking failed:', error);
   }
 };
 
 export const trackSignUp = async (method: string = 'mobile', userType?: string): Promise<void> => {
   if (!isNative) return;
   try {
-    const name = sanitizeEventName('sign_up');
-    await analytics().logEvent(name, {
+    await analytics().logEvent('sign_up', {
       method,
       user_type: userType || 'unknown',
-      platform: Platform.OS,
-    });
-    await analytics().logEvent('user_registered', {
-      registration_method: method,
-      user_type: userType || 'unknown',
-      platform: Platform.OS,
     });
   } catch (error) {
     console.error('Sign up tracking failed:', error);
@@ -191,120 +180,9 @@ export const trackSignUp = async (method: string = 'mobile', userType?: string):
 export const trackLogin = async (method: string = 'mobile'): Promise<void> => {
   if (!isNative) return;
   try {
-    await analytics().logEvent('login', { method, platform: Platform.OS });
+    await analytics().logEvent('login', { method });
   } catch (error) {
     console.error('Login tracking failed:', error);
-  }
-};
-
-export const trackRoleSelection = async (role: string): Promise<void> => {
-  if (!isNative) return;
-  try {
-    await analytics().logEvent('select_content', {
-      content_type: 'role',
-      item_id: role,
-    });
-  } catch (error) {
-    console.error('Role selection tracking failed:', error);
-  }
-};
-
-export const trackServiceSelection = async (serviceId: string, serviceName: string): Promise<void> => {
-  if (!isNative) return;
-  try {
-    await analytics().logEvent('select_service', {
-      service_id: serviceId,
-      service_name: serviceName,
-      platform: Platform.OS,
-    });
-  } catch (error) {
-    console.error('Service selection tracking failed:', error);
-  }
-};
-
-export const trackWorkRequestCreated = async (serviceId: string, location: string): Promise<void> => {
-  if (!isNative) return;
-  try {
-    await analytics().logEvent('work_request_created', {
-      service_id: serviceId,
-      location,
-      platform: Platform.OS,
-    });
-  } catch (error) {
-    console.error('Work request created tracking failed:', error);
-  }
-};
-
-export const trackServiceProviderOnboarding = async (step: string, data?: Record<string, any>): Promise<void> => {
-  if (!isNative) return;
-  try {
-    await analytics().logEvent('service_provider_onboarded', {
-      onboarding_step: step,
-      ...data,
-      platform: Platform.OS,
-    });
-  } catch (error) {
-    console.error('Service provider onboarding tracking failed:', error);
-  }
-};
-
-export const trackPurchaseStart = async (amount: number, currency: string = 'INR'): Promise<void> => {
-  if (!isNative) return;
-  try {
-    await analytics().logEvent('begin_checkout', {
-      currency,
-      value: amount,
-      platform: Platform.OS,
-    });
-  } catch (error) {
-    console.error('Purchase start tracking failed:', error);
-  }
-};
-
-export const trackPurchaseCompleted = async (
-  amount: number,
-  currency: string = 'INR',
-  transactionId?: string
-): Promise<void> => {
-  if (!isNative) return;
-  try {
-    await analytics().logEvent('purchase', {
-      currency,
-      value: amount,
-      transaction_id: transactionId || `txn_${Date.now()}`,
-      platform: Platform.OS,
-    });
-  } catch (error) {
-    console.error('Purchase completed tracking failed:', error);
-  }
-};
-
-export const trackError = async (error: any, context: string, userId?: string, severity?: string): Promise<void> => {
-  if (!isNative) return;
-  try {
-    const errorMessage = error?.message || error?.toString() || 'Unknown error';
-    await analytics().logEvent('app_error', {
-      error_message: errorMessage.substring(0, 100),
-      context: context || 'unknown',
-      user_id: userId || 'anonymous',
-      severity: severity || 'medium',
-      platform: Platform.OS,
-    });
-  } catch (analyticsError) {
-    console.error('Error tracking failed:', analyticsError);
-  }
-};
-
-export const trackEvent = async (eventName: string, parameters?: Record<string, any>): Promise<void> => {
-  if (!isNative) return;
-  try {
-    await analytics().logEvent(eventName, {
-      ...parameters,
-      platform: Platform.OS,
-      timestamp: Date.now(),
-    });
-  } catch (error) {
-    console.error(`Event tracking failed for ${eventName}:`, error);
   }
 };
 

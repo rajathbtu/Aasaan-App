@@ -1,13 +1,13 @@
 /**
- * Enhanced Backend Analytics Service
- * Integrates Google Analytics 4 via Measurement Protocol
+ * Backend Analytics Service
+ * Uses Google Analytics 4 Measurement Protocol
  */
 
 import { Request } from 'express';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
-// GA4 Configuration - Support multiple platforms
+// GA4 configuration for multiple platforms
 const GA4_MEASUREMENT_ID_ANDROID = process.env.GA4_MEASUREMENT_ID_ANDROID || process.env.GA4_MEASUREMENT_ID || 'G-XXXXXXXXXX';
 const GA4_MEASUREMENT_ID_IOS = process.env.GA4_MEASUREMENT_ID_IOS || process.env.GA4_MEASUREMENT_ID || 'G-XXXXXXXXXX';
 const GA4_MEASUREMENT_ID_WEB = process.env.GA4_MEASUREMENT_ID_WEB || process.env.GA4_MEASUREMENT_ID || 'G-XXXXXXXXXX';
@@ -16,7 +16,7 @@ const GA4_API_SECRET_ANDROID = process.env.GA4_API_SECRET_ANDROID || process.env
 const GA4_API_SECRET_IOS = process.env.GA4_API_SECRET_IOS || process.env.GA4_API_SECRET || 'your_api_secret';
 const GA4_API_SECRET_WEB = process.env.GA4_API_SECRET_WEB || process.env.GA4_API_SECRET || 'your_api_secret';
 
-// Helper function to get platform-specific configuration
+// Get platform-specific configuration
 function getGA4Config(platform: 'android' | 'ios' | 'web' = 'android') {
   switch (platform) {
     case 'ios':
@@ -59,30 +59,24 @@ interface GA4Payload {
   user_properties?: Record<string, { value: any }>;
 }
 
-/**
- * Enhanced analytics service with GA4 integration
- */
+// GA4 analytics service
 class AnalyticsService {
   constructor() {
     // Service ready for GA4 tracking
   }
 
-  /**
-   * Generate client ID for GA4 session tracking
-   */
+  // Generate client ID for GA4 session tracking
   private generateClientId(userId?: string): string {
     return userId ? `user_${userId}` : uuidv4();
   }
 
-  /**
-   * Send event to Google Analytics 4 via Measurement Protocol
-   */
+  // Send event to Google Analytics 4 via Measurement Protocol
   private async sendToGA4(payload: GA4Payload, platform: 'android' | 'ios' | 'web' = 'android'): Promise<boolean> {
     try {
       const config = getGA4Config(platform);
       
       if (!config.measurementId.startsWith('G-') || config.apiSecret === 'your_api_secret') {
-        console.warn(`⚠️  GA4 not configured for ${platform} - events not sent`);
+        console.warn(`GA4 not configured for ${platform}; event not sent`);
         return false;
       }
 
@@ -94,29 +88,25 @@ class AnalyticsService {
       });
 
       if (response.status === 204) {
-        console.log(`✅ GA4 Event sent to ${platform}: ${payload.events[0].name}`);
+        console.log(`GA4 event sent to ${platform}: ${payload.events[0].name}`);
         return true;
       }
     } catch (error) {
-      console.error(`❌ GA4 tracking failed for ${platform}:`, error);
+      console.error(`GA4 tracking failed for ${platform}:`, error);
     }
     return false;
   }
 
-  /**
-   * Track an event (sends to GA4)
-   */
+  // Track an event (sends to GA4)
   track(userId: string | undefined, event: string, properties: Record<string, any> = {}, platform: 'android' | 'ios' | 'web' = 'android') {
     // Send to GA4
     this.sendEventToGA4(userId, event, properties, platform);
 
-    // Log for debugging
-    console.log(`[ANALYTICS ${platform.toUpperCase()}] ${event}:`, properties);
+    // Debug log
+    console.log(`[analytics ${platform}] ${event}`, properties);
   }
 
-  /**
-   * Send single event to GA4
-   */
+  // Send single event to GA4
   private async sendEventToGA4(userId: string | undefined, eventName: string, properties: Record<string, any>, platform: 'android' | 'ios' | 'web' = 'android') {
     const payload: GA4Payload = {
       client_id: this.generateClientId(userId),
@@ -130,9 +120,7 @@ class AnalyticsService {
     await this.sendToGA4(payload, platform);
   }
 
-  /**
-   * Identify a user (sends to GA4 for user properties)
-   */
+  // Identify a user (sends to GA4 with user properties)
   identify(userId: string | undefined, traits: Record<string, any> = {}, platform: 'android' | 'ios' | 'web' = 'android') {
     if (!userId) return;
 
