@@ -6,7 +6,6 @@ import requestRoutes from './routes/requestRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import serviceRoutes from './routes/serviceRoutes';
-import analyticsRoutes from './routes/analyticsRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import pushTokenRoutes from './routes/pushTokenRoutes';
 
@@ -29,7 +28,7 @@ app.use('/notifications', notificationRoutes);
 app.use('/payments', paymentRoutes);
 app.use('/services', serviceRoutes);
 app.use('/push-tokens', pushTokenRoutes);
-app.use('/api/analytics', analyticsRoutes);
+// Analytics routes removed (backend analytics disabled)
 
 // Catch‑all for unknown routes
 app.use((req, res, next) => {

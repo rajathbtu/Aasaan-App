@@ -3,15 +3,11 @@ import { isValidName, isValidRadius } from '../utils/validation';
 import prisma from '../utils/prisma';
 import { Role } from '../models/User';
 import { getReqLang, t } from '../utils/i18n';
-import { trackCustomEvent, trackError, detectPlatform } from '../utils/analytics';
 
 export async function getProfile(req: Request, res: Response): Promise<void> {
   const authUser = (req as any).user as { id: string };
   const lang = getReqLang(req);
   
-  trackCustomEvent(authUser.id, 'profile_fetch_requested', {
-    platform: detectPlatform(req)
-  });
   
   try {
     const user = await prisma.user.findUnique({ 
@@ -25,23 +21,12 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
       }
     });
     if (!user) { 
-      trackCustomEvent(authUser.id, 'profile_fetch_failed', {
-        reason: 'user_not_found',
-        platform: detectPlatform(req)
-      });
       res.status(404).json({ message: t(lang, 'user.notFound') }); 
       return; 
     }
     
-    trackCustomEvent(authUser.id, 'profile_fetch_success', {
-      user_role: user.role,
-      has_sp_info: !!user.serviceProviderInfo,
-      platform: detectPlatform(req)
-    });
-    
     res.json({ ...user, role: user.role ?? null, serviceProviderInfo: user.serviceProviderInfo || null });
   } catch (err: any) {
-    trackError(req, err.message || 'Profile fetch error', 'Profile Fetch', 'medium');
     res.status(500).json({ message: t(lang, 'user.profileFetchFailed') });
   }
 }
@@ -60,25 +45,10 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     avatarUrl?: string | null;
   };
 
-  trackCustomEvent(authUser.id, 'profile_update_attempted', {
-    has_name: name !== undefined,
-    has_language: language !== undefined,
-    has_role: role !== undefined,
-    has_services: services !== undefined,
-    has_location: location !== undefined,
-    has_radius: radius !== undefined,
-    has_plan: plan !== undefined,
-    has_avatar: avatarUrl !== undefined,
-    platform: detectPlatform(req)
-  });
 
   const data: any = {};
   if (name !== undefined) {
     if (!isValidName(name)) { 
-      trackCustomEvent(authUser.id, 'profile_update_failed', {
-        reason: 'invalid_name',
-        platform: detectPlatform(req)
-      });
       res.status(400).json({ message: t(lang, 'auth.invalidName') }); 
       return; 
     }

@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { areValidTags } from '../utils/validation';
 import { getReqLang, t, notifyUser } from '../utils/i18n';
-import { trackCustomEvent, trackError } from '../utils/analytics';
 
 const pAny: any = prisma;
 
@@ -80,25 +79,12 @@ export async function create(req: Request, res: Response): Promise<void> {
   if (!location || typeof location.name !== 'string' || typeof location.lat !== 'number' || typeof location.lng !== 'number') { res.status(400).json({ message: t(lang, 'user.invalidLocation') }); return; }
   if (tags && !areValidTags(tags)) { res.status(400).json({ message: t(lang, 'request.invalidTags') }); return; }
   
-  // Track work request creation attempt
-  trackCustomEvent(user.id, 'work_request_creation_attempted_backend', {
-    service: service,
-    location_name: location.name,
-    tags_count: tags ? tags.length : 0,
-    has_tags: !!(tags && tags.length > 0)
-  });
   
   try {
     const since = new Date(Date.now() - 24*60*60*1000);
     const recent = await prisma.workRequest.count({ where: { userId: user.id, createdAt: { gt: since } } });
     
     if (recent >= 3 && !req.body.force) { 
-      // Track rate limit exceeded
-      trackCustomEvent(user.id, 'work_request_rate_limit_exceeded', {
-        recent_requests_count: recent,
-        limit: 3,
-        service: service
-      });
       
       res.status(429).json({ message: t(lang, 'request.limitReached'), code: 'LIMIT_EXCEEDED' }); 
       return; 
@@ -107,25 +93,11 @@ export async function create(req: Request, res: Response): Promise<void> {
     const loc = await pAny.location.create?.({ data: { name: location.name, lat: location.lat, lng: location.lng } });
     const wr = await pAny.workRequest.create({ data: { userId: user.id, service, locationId: loc?.id, tags: tags || [] } });
     
-    // Track successful work request creation
-    trackCustomEvent(user.id, 'work_request_created_backend', {
-      request_id: wr.id,
-      service: service,
-      location_name: location.name,
-      tags: tags || [],
-      tags_count: tags ? tags.length : 0
-    });
     
     // Notify eligible providers (service match + radius parity)
     const providers = await pAny.serviceProviderInfo?.findMany?.({ where: { services: { has: service } }, include: { location: true } }) || [];
     console.log(`[NOTIFICATION DEBUG] Found ${providers.length} service providers for service "${service}"`);
     
-    // Track provider matching
-    trackCustomEvent(user.id, 'work_request_providers_matched', {
-      request_id: wr.id,
-      service: service,
-      total_providers: providers.length
-    });
     
     let notifiedCount = 0;
     for (const p of providers) {
@@ -150,19 +122,9 @@ export async function create(req: Request, res: Response): Promise<void> {
       }
     }
     
-    // Track notification broadcast
-    trackCustomEvent(user.id, 'work_request_notifications_sent', {
-      request_id: wr.id,
-      service: service,
-      providers_notified: notifiedCount,
-      total_providers: providers.length
-    });
     
     res.status(201).json(wr);
   } catch (error: any) {
-    // Track work request creation failure
-    trackError(req, error?.message || 'Work request creation failed', 'Work Request Creation', 'high');
-    
     res.status(500).json({ message: t(lang, 'request.createFailed') }); 
   }
 }
