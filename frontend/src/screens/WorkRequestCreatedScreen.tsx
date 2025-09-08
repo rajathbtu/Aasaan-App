@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import { useI18n } from '../i18n';
-import { trackScreenView, trackCustomEvent } from '../utils/analytics';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 /**
  * Confirmation screen displayed after a work request has been created.
@@ -23,38 +23,18 @@ const WorkRequestCreatedScreen: React.FC = () => {
   const locationName = locationNameParam ?? request?.location?.name ?? request?.locationName ?? t('userRequests.locationFallback');
   const tags = Array.isArray(request?.tags) ? request.tags.slice(0, 2) : [];
 
-  // Track screen view and work request completion
+  // Track screen view only
   useEffect(() => {
     trackScreenView('WorkRequestCreatedScreen', 'WorkRequest');
-    
-    if (request) {
-      trackCustomEvent('work_request_creation_completed', {
-        request_id: request.id || 'unknown',
-        service_name: serviceName,
-        location_name: locationName,
-        tags_count: tags.length
-      });
-    }
   }, [request, serviceName, locationName, tags.length]);
 
   const goToMyRequests = () => {
-    // Track navigation to requests list
-    trackCustomEvent('work_request_created_navigation', {
-      action: 'view_my_requests',
-      request_id: request?.id || 'unknown'
-    });
-    
+    trackButtonClick('view_my_requests');
     navigation.navigate('Main', { screen: 'MyRequests' });
   };
 
   const handleBoost = () => {
-    // Track boost request attempt
-    trackCustomEvent('work_request_boost_initiated', {
-      request_id: request?.id || 'unknown',
-      service_name: serviceName,
-      location_name: locationName
-    });
-    
+    trackButtonClick('boost_request_start');
     navigation.navigate('BoostRequest', { request });
   };
 

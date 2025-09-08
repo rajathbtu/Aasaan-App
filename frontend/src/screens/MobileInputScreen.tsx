@@ -25,7 +25,7 @@ import { getLanguageDisplay } from '../data/languages';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import { spacing, colors, radius } from '../theme';
-import { trackScreenView, trackCustomEvent } from '../utils/analytics';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -60,52 +60,23 @@ const MobileInputScreen: React.FC = () => {
 
   const handleSendOtp = async () => {
     const trimmed = phone.trim();
-    if (!trimmed || trimmed.length < 10) {
-      // Track validation error
-      trackCustomEvent('mobile_input_validation_error', {
-        error_type: 'invalid_phone_length',
-        phone_length: trimmed.length,
-      });
-      return;
-    }
+    if (!trimmed || trimmed.length < 10) return;
     try {
       setLoading(true);
-      
-      // Track OTP request attempt
-      trackCustomEvent('otp_request_started', {
-        phone_length: trimmed.length,
-        has_country_code: trimmed.startsWith('+'),
-      });
       
       const result = await API.checkUserRegistration(trimmed); // Check if user is registered
 
       if (result.isRegistered) {
-        // Navigate to OTPVerificationScreen if user is registered
         await API.sendOtp(trimmed);
-        
-        // Track existing user flow
-        trackCustomEvent('existing_user_otp_sent', {
-          phone_hash: trimmed.substring(0, 6) + '****',
-        });
-        
+        // Major action: send OTP
+        trackButtonClick('send_otp');
         navigation.navigate('OTPVerification', { phone: trimmed, language });
       } else {
-        // Navigate to NameOTPValidationScreen if user is not registered
-        
-        // Track new user flow
-        trackCustomEvent('new_user_registration_started', {
-          phone_hash: trimmed.substring(0, 6) + '****',
-        });
-        
+        // New user flow
+        trackButtonClick('start_registration');
         navigation.navigate('NameOTPValidation', { phone: trimmed, language });
       }
     } catch (err: any) {
-      // Track API error
-      trackCustomEvent('otp_request_failed', {
-        error_message: err.message || 'Unknown error',
-        phone_length: trimmed.length,
-      });
-      
       Alert.alert(t('common.error'), err.message || 'Failed to process request');
     } finally {
       setLoading(false);
@@ -126,24 +97,14 @@ const MobileInputScreen: React.FC = () => {
   };
 
   const openLanguagePicker = () => {
-    // Track language picker usage
-    trackCustomEvent('language_picker_opened', {
-      current_language: language || 'en',
-      from_screen: 'MobileInputScreen',
-    });
-    
+    // Major action: change language
+    trackButtonClick('open_language_picker');
     navigation.navigate('LanguageSelection', {
       preferred: language,
     });
   };
 
   const openWeb = (type: 'terms' | 'privacy') => {
-    // Track legal document views
-    trackCustomEvent('legal_document_opened', {
-      document_type: type,
-      from_screen: 'MobileInputScreen',
-    });
-    
     const url =
       type === 'terms'
         ? 'https://www.aasaanapp.in/terms.html'

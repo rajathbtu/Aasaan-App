@@ -11,7 +11,7 @@ import Header from '../components/Header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices, sendTestNotification } from '../api';
 import * as Location from 'expo-location';
-import { trackScreenView, trackCustomEvent, trackError } from '../utils/analytics';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users
@@ -26,14 +26,6 @@ const ProfileScreen: React.FC = () => {
 
   useEffect(() => {
     trackScreenView('ProfileScreen', 'Profile');
-    
-    trackCustomEvent('profile_screen_opened', {
-      user_role: user?.role,
-      user_language: user?.language,
-      has_services: !!(user as any)?.services?.length,
-      has_location: !!(user as any)?.location,
-      has_avatar: !!user?.avatarUrl
-    });
   }, [user]);
 
   // Shared services list to map ids -> display names
@@ -125,6 +117,7 @@ const ProfileScreen: React.FC = () => {
   }, [editing, name, pendingRole, pendingServices, pendingRadius, pendingLocation, initialName, initialRole, initialServices, initialRadius, initialLocation]);
 
   const onSave = async () => {
+    trackButtonClick('save_profile');
     if (!canSave) return;
     const updates: any = {};
     if (editing && name.trim() !== initialName.trim()) updates.name = name.trim();
@@ -403,7 +396,7 @@ const ProfileScreen: React.FC = () => {
               <Text style={{ color: colors.primary, fontWeight: '600' }}>Send Test Notification</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={logout} style={styles.logoutRow}>
+            <TouchableOpacity onPress={() => { trackButtonClick('logout'); logout(); }} style={styles.logoutRow}>
             <Ionicons name="log-out" size={16} color={colors.error} style={{ marginRight: spacing.xs }} />
             <Text style={styles.logoutText}>{t('profile.logout')}</Text>
           </TouchableOpacity>
