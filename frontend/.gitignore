@@ -25,6 +25,9 @@ android/
 android/app/google-services.json
 ios/GoogleService-Info.plist
 ios/*/GoogleService-Info.plist
+# Root-level (we restore to project root before prebuild)
+google-services.json
+GoogleService-Info.plist
 
 # Misc
 .DS_Store

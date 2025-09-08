@@ -21,7 +21,7 @@
       "bundleIdentifier": "in.aasaanapp.aasaan",
       "buildNumber": "1",
       "supportsTablet": true,
-      "googleServicesFile": "./ios/GoogleService-Info.plist",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Aasaan uses your location to show nearby services.",
         "NSUserTrackingUsageDescription": "We use notifications to alert you about updates to your requests.",
@@ -33,7 +33,7 @@
     "android": {
       "package": "in.aasaanapp.aasaan",
       "versionCode": 1,
-      "googleServicesFile": "./android/app/google-services.json",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -55,10 +55,10 @@
         "@react-native-firebase/app",
         {
           "android": {
-            "googleServicesFile": "./android/app/google-services.json"
+            "googleServicesFile": "./google-services.json"
           },
           "ios": {
-            "googleServicesFile": "./ios/GoogleService-Info.plist"
+            "googleServicesFile": "./GoogleService-Info.plist"
           }
         }
       ],
