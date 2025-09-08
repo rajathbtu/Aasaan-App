@@ -8,7 +8,7 @@ import Header from '../components/Header';
 import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { trackScreenView, trackServiceProviderOnboarding, trackCustomEvent, trackError } from '../utils/analytics';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 const SPSelectLocationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -27,32 +27,15 @@ const SPSelectLocationScreen: React.FC = () => {
   // Track screen view on mount
   useEffect(() => {
     trackScreenView('SPSelectLocationScreen', 'ServiceProviderOnboarding');
-    
-    trackCustomEvent('sp_onboarding_step', {
-      step: 'select_location',
-      has_initial_location: !!initialLoc,
-      initial_radius: initialRadius
-    });
   }, [initialLoc, initialRadius]);
 
   const handleSave = async () => {
     if (!selectedLocation) {
-      // Track location validation failure
-      trackCustomEvent('sp_location_validation_failed', {
-        reason: 'no_location_selected',
-        radius: radius
-      });
-      
       Alert.alert(t('common.error'), t('sp.selectLocation.selectLocation'));
       return;
     }
-    
-    // Track location and radius selection
-    trackCustomEvent('sp_location_selected', {
-      location_name: selectedLocation.description || selectedLocation.name,
-      radius: radius,
-      has_place_id: !!(selectedLocation?.place_id || selectedLocation?.placeId)
-    });
+    // Basic: save
+    trackButtonClick('sp_location_save');
     
     try {
       const locPayload = selectedLocation?.place_id || selectedLocation?.placeId
@@ -71,21 +54,8 @@ const SPSelectLocationScreen: React.FC = () => {
       
       await updateUser({ location: locPayload as any, radius });
       
-      // Track successful SP onboarding completion
-      const userServices = user?.serviceProviderInfo?.services || [];
-      trackServiceProviderOnboarding(userServices, radius);
-      
-      trackCustomEvent('sp_onboarding_completed', {
-        location_name: selectedLocation.description || selectedLocation.name,
-        radius: radius,
-        services_count: userServices.length
-      });
-      
       navigation.navigate('Main');
     } catch (err: any) {
-      // Track location save failure
-      trackError(err, 'SP Location Save', user?.id, 'high');
-      
       Alert.alert(t('common.error'), t('sp.selectLocation.saveFailed'));
     }
   };

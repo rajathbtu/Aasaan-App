@@ -7,8 +7,8 @@ import Header from '../components/Header';
 import { useI18n } from '../i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
-import { useAuth } from '../contexts/AuthContext'; // Corrected import
-import { trackScreenView, trackServiceSelection, trackCustomEvent } from '../utils/analytics';
+import { useAuth } from '../contexts/AuthContext';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -128,16 +128,8 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
         key={service.id}
         style={[styles.serviceCard, styles.shadow]}
         onPress={() => {
-          // Track service selection
-          trackServiceSelection(service.id, service.name);
-          trackCustomEvent('service_card_pressed', {
-            service_id: service.id,
-            service_name: service.name,
-            service_category: service.category,
-            user_id: userId,
-            from_recent: false
-          });
-          
+          // Major action: picked a service
+          trackButtonClick('select_service', { service_id: service.id, service_name: service.name });
           updateRecentServices(service);
           navigation.navigate('WorkRequestAddDetails', { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [] });
         }}
@@ -194,14 +186,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
                 value={query}
                 onChangeText={(text) => {
                   setQuery(text);
-                  // Track search queries (debounced)
-                  if (text.length > 2) {
-                    trackCustomEvent('service_search', {
-                      search_query: text.toLowerCase(),
-                      query_length: text.length,
-                      user_id: userId
-                    });
-                  }
+                  // No advanced analytics for search
                 }}
               />
               {query.trim() !== '' && (

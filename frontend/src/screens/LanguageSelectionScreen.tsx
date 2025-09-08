@@ -16,7 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations, SupportedLocale } from '../i18n/translations';
 import Header from '../components/Header';
 import { spacing, colors, radius } from '../theme';
-import { trackScreenView, trackCustomEvent } from '../utils/analytics';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 const STICKY_HEIGHT = 72; // approx height of the bottom CTA area (padding + button)
 
@@ -34,13 +34,7 @@ const LanguageSelectionScreen: React.FC = () => {
 
   useEffect(() => {
     trackScreenView('LanguageSelectionScreen', 'Onboarding');
-    
-    trackCustomEvent('language_selection_initiated', {
-      has_user: !!user,
-      preferred_language: preferred,
-      current_language: user?.language,
-      is_onboarding: !user
-    });
+    // No extra analytics
   }, [user, preferred]);
 
   // Prevent leaving only during onboarding (no user) until Continue is pressed
@@ -58,12 +52,7 @@ const LanguageSelectionScreen: React.FC = () => {
   }, [selectedLanguage]);
 
   const handleLanguageSelect = (langCode: string) => {
-    trackCustomEvent('language_selected', {
-      language_code: langCode,
-      language_name: getLanguageDisplay(langCode),
-      previous_selection: selectedLanguage,
-      has_user: !!user
-    });
+    trackButtonClick('select_language', { language: langCode });
     
     setSelectedLanguage(langCode);
   };
@@ -71,12 +60,7 @@ const LanguageSelectionScreen: React.FC = () => {
   const handleContinue = async () => {
     if (!selectedLanguage) return;
     
-    trackCustomEvent('language_selection_confirmed', {
-      selected_language: selectedLanguage,
-      language_name: getLanguageDisplay(selectedLanguage),
-      has_user: !!user,
-      is_onboarding: !user
-    });
+    trackButtonClick('confirm_language', { language: selectedLanguage });
     
     await setLanguage(selectedLanguage);
 

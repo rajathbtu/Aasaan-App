@@ -8,7 +8,7 @@ import { colors, spacing, radius } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
-import { trackScreenView, trackRoleSelection, trackCustomEvent } from '../utils/analytics';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 const STICKY_HEIGHT = 96; // approx height of the bottom CTA area (padding + button + note)
 
@@ -38,18 +38,15 @@ const RoleSelectScreen: React.FC = () => {
     if (!selectedRole) return;
     
     // Track role selection
-    trackRoleSelection(selectedRole);
+    // Major action: role selection
+    trackButtonClick('select_role', { role: selectedRole });
     
     try {
       setSaving(true);
       await updateUser({ role: selectedRole });
       
       // Track successful role update
-      trackCustomEvent('role_updated', {
-        new_role: selectedRole,
-        user_id: user?.id,
-        previous_role: user?.role || 'none'
-      });
+      // No extra analytics
       
       if (selectedRole === 'serviceProvider') {
         navigation.navigate('SPSelectServices');
@@ -58,11 +55,7 @@ const RoleSelectScreen: React.FC = () => {
       }
     } catch (err: any) {
       // Track role update error
-      trackCustomEvent('role_update_failed', {
-        selected_role: selectedRole,
-        error_message: err?.message || 'Unknown error',
-        user_id: user?.id
-      });
+      // No extra analytics
       
       Alert.alert(t('common.error'), err?.message || t('roleSelect.updateRoleError'));
     } finally {
@@ -91,10 +84,7 @@ const RoleSelectScreen: React.FC = () => {
         onPress={() => {
           setSelectedRole(role);
           // Track role card selection
-          trackCustomEvent('role_card_selected', {
-            selected_role: role,
-            user_id: user?.id
-          });
+          // No extra analytics
         }}
         activeOpacity={0.9}
         style={[

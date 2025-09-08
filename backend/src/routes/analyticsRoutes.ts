@@ -1,6 +1,5 @@
 /**
- * Analytics Routes
- * Handles Google Analytics 4 event tracking endpoints
+ * Analytics Routes for Google Analytics 4 event tracking
  */
 
 import express from 'express';
@@ -8,15 +7,12 @@ import analytics, { trackCustomEvent, trackWithAutoDetection } from '../utils/an
 
 const router = express.Router();
 
-/**
- * Test endpoint for analytics functionality
- * POST /api/analytics/test
- */
+// Test endpoint for analytics functionality
 router.post('/test', async (req, res) => {
   try {
     const { event_name, user_id, platform, parameters } = req.body;
     
-    console.log('🧪 Testing analytics with:', { event_name, user_id, platform, parameters });
+  console.log('Testing analytics with:', { event_name, user_id, platform, parameters });
     
     // Test the analytics function
     const result = analytics.track(user_id || 'test_user_123', event_name || 'test_event', {
@@ -27,7 +23,7 @@ router.post('/test', async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Analytics test event sent successfully',
+  message: 'Analytics test event sent',
       event_name: event_name || 'test_event',
       user_id: user_id || 'test_user_123',
       platform: platform || 'web',
@@ -35,7 +31,7 @@ router.post('/test', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Analytics test failed:', error);
+  console.error('Analytics test failed:', error);
     res.status(500).json({
       success: false,
       message: 'Analytics test failed',
@@ -44,10 +40,7 @@ router.post('/test', async (req, res) => {
   }
 });
 
-/**
- * Generic event tracking endpoint
- * POST /api/analytics/track
- */
+// Generic event tracking endpoint
 router.post('/track', async (req, res) => {
   try {
     const { event_name, parameters, user_id, platform } = req.body;
@@ -70,7 +63,7 @@ router.post('/track', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Event tracking failed:', error);
+  console.error('Event tracking failed:', error);
     res.status(500).json({
       success: false,
       message: 'Event tracking failed',
@@ -79,10 +72,7 @@ router.post('/track', async (req, res) => {
   }
 });
 
-/**
- * Batch event tracking endpoint
- * POST /api/analytics/batch
- */
+// Batch event tracking endpoint
 router.post('/batch', async (req, res) => {
   try {
     const { events, user_id, platform } = req.body;
@@ -121,7 +111,7 @@ router.post('/batch', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Batch event tracking failed:', error);
+  console.error('Batch event tracking failed:', error);
     res.status(500).json({
       success: false,
       message: 'Batch event tracking failed',
