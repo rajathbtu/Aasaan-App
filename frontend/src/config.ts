@@ -14,7 +14,7 @@ const DEV_PORT = 3000;
 
 const resolvedBaseUrl = __DEV__
   ? resolveDevBaseUrl(DEV_PORT, DEV_FALLBACK)
-  : 'https://aasaan-backend.onrender.com';
+  : 'https://aasaan-app.onrender.com';
 
 // Log helpful info in development
 logDevNetworkDebug({ port: DEV_PORT, fallback: DEV_FALLBACK, resolved: resolvedBaseUrl });
