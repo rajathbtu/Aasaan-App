@@ -10,7 +10,7 @@ import { errorHandler } from './middleware/errorHandler';
 import pushTokenRoutes from './routes/pushTokenRoutes';
 
 // Create and configure the Express application.  All middleware and routes are
-// registered here.  The exported app is used by the server entry point.
+// registered here.  The exported app is used by the server entry point
 const app = express();
 
 // Middlewares
