@@ -1,13 +1,13 @@
 {
   "name": "aasaan-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Backend API server for the Aasaan mobile application",
   "main": "dist/server.js",
   "scripts": {
     "build": "prisma generate && tsc",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "postinstall": "bash ./scripts/prisma-deploy.sh"
+    "migrate": "npx prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",

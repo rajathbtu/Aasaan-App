@@ -92,6 +92,7 @@ model Service {
   name     String
   category String
   tags     String[]
+  icon     String
   color    String
 }
 

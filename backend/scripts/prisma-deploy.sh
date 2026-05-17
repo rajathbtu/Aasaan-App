@@ -7,6 +7,13 @@ set -euo pipefail
 
 echo "[prisma-deploy] Starting Prisma deploy..."
 
+# Load local environment variables when running from npm install
+if [[ -f .env ]]; then
+  set -a
+  source .env
+  set +a
+fi
+
 # Ensure DATABASE_URL is set
 if [[ -z "${DATABASE_URL:-}" ]]; then
   echo "[prisma-deploy] ❌ DATABASE_URL is not set" >&2

@@ -14,10 +14,15 @@ import pushTokenRoutes from './routes/pushTokenRoutes';
 const app = express();
 
 // Middlewares
-app.use(cors({
-  origin: process.env.NODE_ENV === 'development' ? 'http://192.168.29.8:19006' : '*',
+const corsOptions = {
+  origin: process.env.NODE_ENV !== 'production'
+    ? true
+    : process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim())
+      : undefined,
   credentials: true,
-}));
+};
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' })); // Enable JSON limit for push payloads
 
 // Routes

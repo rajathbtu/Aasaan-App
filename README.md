@@ -1,66 +1,65 @@
-# Aasaan App – React&nbsp;Native and Backend Codebase
+# Aasaan App – React Native and Backend Codebase
 
-This repository contains the full source code for **Aasaan**, a mobile application
-designed to seamlessly connect people looking for help with everyday tasks
-(end‑users) to nearby professionals (service providers).  The project is split
-into two parts:
+This repository contains the full source code for **Aasaan**, a mobile
+application that connects people needing everyday services with nearby
+professionals. The repo is organized as a full-stack workspace:
 
-* **Frontend** – An Expo/React Native application implemented in TypeScript.  It
-  supports both Android and iOS out of the box and is designed with
-  responsiveness, accessibility and low‑end device performance in mind.  The
-  frontend implements all of the screens described in the specification
-  (registration, profile management, work request creation and viewing,
-  service‑provider flows, payments and tutorials) and talks to the backend via
-  REST APIs or local mocks depending on a configurable flag.
-* **Backend** – A lightweight Express server written in TypeScript.  It
-  implements all API endpoints required by the mobile app, including
-  authentication, profile management, work request creation and listing,
-  accepting and closing requests, notifications, payments and professional
-  plans.  For simplicity and ease of setup the backend stores all data in
-  memory; in a production deployment you would swap out the in‑memory
-  store for a proper database such as PostgreSQL or MongoDB.
+* **frontend/** – Expo + React Native application written in TypeScript.
+* **backend/** – Express API server written in TypeScript, using Prisma + PostgreSQL.
 
-The backend runs on `localhost` by default so that the frontend can be run
-independently during development.  When you are ready to deploy the backend
-to a remote server, update the base URL in `frontend/src/config.ts`.
+The backend now persists data in PostgreSQL, and the frontend resolves the
+backend host dynamically during development using `frontend/src/config.ts`.
 
 ## Prerequisites
 
-* Node.js >= 18 with npm installed.
-* `expo-cli` installed globally (`npm install -g expo-cli`) to run the
-  mobile application.
+* Node.js >= 18 with npm installed.
+* PostgreSQL accessible locally or remotely.
+* `expo-cli` is optional; the repo uses `npx expo`.
 
 ## Getting Started
 
-1. **Install dependencies** for both projects:
+1. Copy the backend environment example and configure local secrets:
 
    ```bash
-   cd aasaan-app-01/frontend
-   npm install
+   cd backend
+   cp .env.example .env
+   # edit .env and set DATABASE_URL, JWT_SECRET, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
+   ```
 
-   cd ../backend
+2. Install backend dependencies and deploy Prisma schema:
+
+   ```bash
+   cd backend
    npm install
    ```
 
-2. **Run the backend** (the server will start on <http://localhost:3000>):
+3. Install frontend dependencies:
 
    ```bash
-   cd aasaan-app-01/backend
+   cd ../frontend
+   npm install
+   ```
+
+4. Start the backend:
+
+   ```bash
+   cd ../backend
    npm run dev
    ```
 
-3. **Run the frontend** in a separate terminal tab:
+5. Start the frontend in a second terminal:
 
    ```bash
-   cd aasaan-app-01/frontend
-   # Start the Expo development server.  Use the Expo Go app on your phone
-   # or an Android/iOS simulator to run the app.
+   cd ../frontend
    npm start
    ```
 
-4. By default the frontend uses mocked API responses so that you can work
-   without the backend.  To enable real API calls set `USE_MOCK_API` to
-   `false` in `frontend/src/config.ts`.
+6. Run the Android app using Expo:
+
+   ```bash
+   cd frontend
+   npm run android
+   ```
 
 ## Project Structure
 
