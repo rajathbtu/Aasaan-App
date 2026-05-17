@@ -7,7 +7,7 @@ services:
     plan: free
     rootDir: ./backend
     buildCommand: "npm install && npm run build"
-    startCommand: "npm run migrate && npm start"
+    startCommand: "bash ./scripts/start.sh"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
