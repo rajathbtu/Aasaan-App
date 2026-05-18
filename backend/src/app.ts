@@ -25,6 +25,42 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' })); // Enable JSON limit for push payloads
 
+// Comprehensive API Logging Middleware
+app.use((req, res, next) => {
+  const startTime = Date.now();
+  const originalJson = res.json;
+  const originalSend = res.send;
+
+  // Capture response
+  res.json = function (data) {
+    const duration = Date.now() - startTime;
+    console.log(`\n📊 API CALL - ${new Date().toISOString()}`);
+    console.log(`├─ Method: ${req.method}`);
+    console.log(`├─ Path: ${req.path}`);
+    console.log(`├─ Status: ${res.statusCode}`);
+    console.log(`├─ Duration: ${duration}ms`);
+    console.log(`├─ Request Body: ${JSON.stringify(req.body, null, 2)}`);
+    console.log(`├─ Response: ${JSON.stringify(data, null, 2)}`);
+    console.log(`└─ IP: ${req.ip}\n`);
+    return originalJson.call(this, data);
+  };
+
+  res.send = function (data) {
+    const duration = Date.now() - startTime;
+    console.log(`\n📊 API CALL - ${new Date().toISOString()}`);
+    console.log(`├─ Method: ${req.method}`);
+    console.log(`├─ Path: ${req.path}`);
+    console.log(`├─ Status: ${res.statusCode}`);
+    console.log(`├─ Duration: ${duration}ms`);
+    console.log(`├─ Request Body: ${JSON.stringify(req.body, null, 2)}`);
+    console.log(`├─ Response Type: ${typeof data}`);
+    console.log(`└─ IP: ${req.ip}\n`);
+    return originalSend.call(this, data);
+  };
+
+  next();
+});
+
 // Routes
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);

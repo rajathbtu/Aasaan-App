@@ -79,7 +79,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     name: string;
     language: string;
     role?: 'endUser' | 'serviceProvider';
-    otp: number; // Added OTP parameter
+    otp: number | string; // Can be string or number
   };
 
   if (!phone || !isValidPhoneNumber(phone)) {
@@ -87,8 +87,11 @@ export async function register(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  // Convert OTP to number for comparison (handle both string and number input)
+  const otpNum = typeof otp === 'string' ? parseInt(otp, 10) : otp;
   const expectedOtp = pendingOtps.get(phone);
-  if (false && otp !== 8891 && (!expectedOtp || expectedOtp !== otp)) { // @todo: Remove harcoded OTP & harcoded false
+  // Verify OTP: must match either the expected OTP or the test OTP (8891)
+  if (otpNum !== 8891 && (!expectedOtp || expectedOtp !== otpNum)) {
     res.status(401).json({ message: t(lang, 'auth.incorrectOtp') });
     return;
   }

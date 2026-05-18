@@ -19,6 +19,7 @@ model User {
   avatarUrl           String?
   notifications       Notification[]
   payments            Payment[]            @relation("UserPayments")
+  PushToken           PushToken[]
   serviceProviderInfo ServiceProviderInfo? @relation("User_ServiceProvider")
   workRequests        WorkRequest[]        @relation("UserWorkRequests")
 }
@@ -92,28 +93,43 @@ model Service {
   name     String
   category String
   tags     String[]
-  icon     String
-  color    String
+  active   Boolean  @default(true)
 }
 
 model Payment {
-  id          String   @id @default(uuid())
+  id          String        @id @default(uuid())
   userId      String
-  orderId     String   @unique
-  paymentId   String?  @unique
+  orderId     String        @unique
+  paymentId   String?       @unique
   amount      Int
-  currency    String   @default("INR")
-  status      String   @default("created")
-  type        String
+  currency    String        @default("INR")
   description String?
   notes       Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        User     @relation("UserPayments", fields: [userId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  status      PaymentStatus @default(created)
+  type        PaymentType
+  user        User          @relation("UserPayments", fields: [userId], references: [id])
 
   @@index([userId])
   @@index([status])
   @@index([type])
+}
+
+model PushToken {
+  id         String         @id @default(uuid())
+  userId     String
+  token      String         @unique
+  platform   DevicePlatform
+  deviceId   String?
+  isActive   Boolean        @default(true)
+  lastUsedAt DateTime       @default(now())
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  User       User           @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([platform])
 }
 
 enum Role {
@@ -141,17 +157,22 @@ enum NotificationType {
   planPromotion
 }
 
-model PushToken {
-  id         String   @id @default(uuid())
-  userId     String
-  token      String   @unique
-  platform   String
-  deviceId   String?
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  lastUsedAt DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+enum DevicePlatform {
+  ios
+  android
+}
 
-  @@index([userId])
-  @@index([isActive])
+enum PaymentStatus {
+  created
+  authorized
+  captured
+  failed
+  cancelled
+  refunded
+}
+
+enum PaymentType {
+  boost
+  subscription
+  credit_purchase
 }

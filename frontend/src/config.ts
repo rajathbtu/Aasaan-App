@@ -9,7 +9,10 @@ export const USE_MOCK_API = false;
 
 import { resolveDevBaseUrl, logDevNetworkDebug } from './utils/network';
 
-const DEV_FALLBACK = 'http://192.168.1.71:3000'; // optional last-known IP; safe to change or remove
+// Fallback used when automatic detection via Expo/Metro fails.
+// Use `http://localhost:3000` so simulators/emulators work without editing.
+// On a physical device, `resolveDevBaseUrl` will detect your machine's LAN IP.
+const DEV_FALLBACK = 'http://localhost:3000';
 const DEV_PORT = 3000;
 
 const resolvedBaseUrl = __DEV__

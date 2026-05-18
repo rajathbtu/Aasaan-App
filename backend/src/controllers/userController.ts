@@ -78,10 +78,14 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     if (location === null) {
       // Allow null to disconnect location
     } else if (
-      typeof location.name !== 'string' || typeof location.lat !== 'number' || typeof location.lng !== 'number'
+      typeof location.lat !== 'number' || typeof location.lng !== 'number'
     ) {
       res.status(400).json({ message: t(lang, 'user.invalidLocation') });
       return;
+    }
+    // If name is not provided, generate a default one from coordinates
+    if (location && !location.name) {
+      location.name = `Service Location (${location.lat.toFixed(3)}, ${location.lng.toFixed(3)})`;
     }
   }
 
