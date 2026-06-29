@@ -49,22 +49,18 @@ export async function listServices(req: Request, res: Response) {
     const pAny = prisma as any;
     const count = await pAny.service.count();
     if (count === 0) {
-      await pAny.$transaction(
-        defaultServices.map((s: any) =>
-          pAny.service.upsert({
-            where: { id: s.id },
-            update: {},
-            create: {
-              id: s.id,
-              name: s.name,
-              category: s.category,
-              tags: s.tags,
-              icon: s.icon,
-              color: s.color,
-            },
-          })
-        )
-      );
+      await pAny.service.createMany({
+        data: defaultServices.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          category: s.category,
+          tags: s.tags,
+          icon: s.icon,
+          color: s.color,
+          active: true,
+        })),
+        skipDuplicates: true,
+      });
     }
     const items = await pAny.service.findMany({ orderBy: [{ category: 'asc' }, { name: 'asc' }] });
     res.json({ services: items, updatedAt: new Date().toISOString() });
