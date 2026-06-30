@@ -13,11 +13,50 @@ import { errorHandler } from './middleware/errorHandler';
 const app = express();
 
 // Middlewares
-app.use(cors({
-  origin: process.env.NODE_ENV === 'development' ? 'http://192.168.29.8:19006' : '*',
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
+app.use((req, res, next) => {
+  try {
+    // Log request & response for debugging
+    const bodyPreview = req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : '{}';
+    console.log(`[REQ] ${req.method} ${req.originalUrl} body=${bodyPreview}`);
+  } catch (err) {
+    console.log(`[REQ] ${req.method} ${req.originalUrl} body=<unserializable>`);
+  }
+
+  res.on('finish', () => {
+    console.log(`[RES] ${req.method} ${req.originalUrl} status=${res.statusCode}`);
+  });
+
+  next();
+});
+
+const allowedOrigins = new Set([
+  'https://crevice-drank-groggily.ngrok-free.dev',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://192.168.29.8:3000',
+  'http://192.168.32.1:3000',
+]);
+
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    if (!origin || origin === 'null' || isDevelopment || allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(null, false);
+  },
   credentials: true,
-}));
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+};
+
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 app.use(express.json());
+
 
 // Routes
 app.use('/auth', authRoutes);

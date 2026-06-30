@@ -35,7 +35,6 @@ android/local.properties
 *.swo
 
 # Environment files
-.env
 .env.local
 .env.*.local
 

@@ -11,9 +11,10 @@ import { resolveDevBaseUrl, logDevNetworkDebug } from './utils/network';
 
 const DEV_FALLBACK = 'http://192.168.29.8:3000'; // optional last-known IP; safe to change or remove
 const DEV_PORT = 3000;
+const PUBLIC_DEV_BASE_URL = 'https://crevice-drank-groggily.ngrok-free.dev';
 
 const resolvedBaseUrl = __DEV__
-  ? resolveDevBaseUrl(DEV_PORT, DEV_FALLBACK)
+  ? (process.env.EXPO_PUBLIC_API_BASE_URL || PUBLIC_DEV_BASE_URL || resolveDevBaseUrl(DEV_PORT, DEV_FALLBACK))
   : 'https://aasaan-backend.onrender.com';
 
 // Log helpful info in development
