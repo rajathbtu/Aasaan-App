@@ -16,16 +16,17 @@ const app = express();
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 app.use((req, res, next) => {
+  const time = new Date().toLocaleTimeString('en-GB');
   try {
     // Log request & response for debugging
     const bodyPreview = req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : '{}';
-    console.log(`[REQ] ${req.method} ${req.originalUrl} body=${bodyPreview}`);
+    console.log(`# # # REQUEST  # # #   ${time} ${req.method} ${req.originalUrl} body=${bodyPreview}`);
   } catch (err) {
-    console.log(`[REQ] ${req.method} ${req.originalUrl} body=<unserializable>`);
+    console.log(`# # # REQUEST  # # #   ${time} ${req.method} ${req.originalUrl} body=<unserializable>`);
   }
 
   res.on('finish', () => {
-    console.log(`[RES] ${req.method} ${req.originalUrl} status=${res.statusCode}`);
+    console.log(`# # # RESPONSE # # #   ${time} ${req.method} ${req.originalUrl} status=${res.statusCode}`);
   });
 
   next();

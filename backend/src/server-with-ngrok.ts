@@ -30,8 +30,8 @@ function startNgrokTunnel() {
   const child = spawn(ngrokBin, args, { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
 
   child.stdout.on('data', (chunk: Buffer) => {
-    const text = chunk.toString();
-    console.log(`[Tunnel] ${text.trim()}`);
+    // const text = chunk.toString();
+    // console.log(`[Tunnel] ${text.trim()}`);
   });
 
   child.stderr.on('data', (chunk: Buffer) => {
