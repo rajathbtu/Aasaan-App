@@ -42,11 +42,19 @@ to a remote server, update the base URL in `frontend/src/config.ts`.
    npm install
    ```
 
-2. **Run the backend** (the server will start on <http://localhost:3000>):
+2. **Run the backend**. For normal local development use `npm run dev`.
 
    ```bash
    cd aasaan-app-01/backend
    npm run dev
+   ```
+
+   If you need the backend to be reachable from a mobile device or remote
+   emulator, run the tunnel-enabled backend instead:
+
+   ```bash
+   cd aasaan-app-01/backend
+   npm run dev:tunnel
    ```
 
 3. **Run the frontend** in a separate terminal tab:
@@ -56,6 +64,15 @@ to a remote server, update the base URL in `frontend/src/config.ts`.
    # Start the Expo development server.  Use the Expo Go app on your phone
    # or an Android/iOS simulator to run the app.
    npm start
+   ```
+
+   If the backend is running through ngrok, set `EXPO_PUBLIC_API_BASE_URL`
+   to the ngrok URL exposed by the backend tunnel before starting Expo, for
+   example:
+
+   ```bash
+   cd aasaan-app-01/frontend
+   EXPO_PUBLIC_API_BASE_URL=https://abcd-1234.ngrok-free.dev npm start
    ```
 
 4. By default the frontend uses mocked API responses so that you can work
