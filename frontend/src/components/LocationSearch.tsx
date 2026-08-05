@@ -6,7 +6,7 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing, radius, sizes } from '../theme';
 
-const GOOGLE_PLACES_API_KEY = 'AIzaSyA38lonSYxTC6Ro6sBQB11Gg7IragTG2XU'; // Replace with your API key
+const GOOGLE_PLACES_API_KEY = 'AIzaSyC4n8PRgWHs34mn7Iyw8nkkU6aXMyJFj9g'; // Replace with your API key
 const MAX_SAVED_LOCATIONS = 3;
 
 type Location = {
@@ -73,15 +73,27 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
   }; 
 
   const handleSelect = async (place: any) => {
+    if (place.place_id === 'current_location') {
+      return detectLocation();
+    }
+
     const cleanedPlaceName = removeStateAndCountry(place);
     setQuery(cleanedPlaceName); 
     setSuggestions([]);
 
+    if (!place.place_id) {
+      onSelect({ ...place, description: cleanedPlaceName });
+      return;
+    }
+
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&key=${GOOGLE_PLACES_API_KEY}`;
     try {
       const response = await axios.get(detailsUrl);
-      const { lat, lng } = response.data.result.geometry.location;
-      // place.name = cleanedPlaceName;
+      const location = response.data?.result?.geometry?.location;
+      if (!location) {
+        throw new Error('Place details missing geometry');
+      }
+      const { lat, lng } = location;
       place.description = cleanedPlaceName;
       const selectedLocation = { ...place, lat, lng };
       onSelect(selectedLocation);
@@ -89,7 +101,7 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
       setSavedLocations(await getSavedLocations());
     } catch (error) {
       console.error('Error fetching place details:', error);
-      onSelect(place); // Fallback to place without lat/lng
+      onSelect({ ...place, description: cleanedPlaceName });
     }
   };
 
@@ -99,7 +111,7 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
       setQuery(cachedLocation.description);
       return;
     }
-
+    console.log('Detecting current location...');
     try {
       setLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
