@@ -44,7 +44,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
-      <Header title="Aasaan" showNotification={false} showBackButton={true} />
+      {/* <Header title="Aasaan" showNotification={false} showBackButton={true} /> */}
       <View style={{ height: spacing.sm }} />
 
       <View style={styles.successIconContainer}>

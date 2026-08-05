@@ -144,12 +144,31 @@ export async function list(req: Request, res: Response): Promise<void> {
     const providerLoc = await pAny.location?.findUnique?.({ where: { id: providerInfo.locationId } });
     if (providerLoc) {
       const radiusInMeters = providerInfo.radius * 1000; // Convert km to meters
+      const earthRadius = 6371000; // meters
+      const latDelta = (radiusInMeters / earthRadius) * (180 / Math.PI);
+      const lngDelta =
+        (radiusInMeters /
+          (earthRadius * Math.cos((providerLoc.lat * Math.PI) / 180))) *
+        (180 / Math.PI);
+
+      const minLat = providerLoc.lat - latDelta;
+      const maxLat = providerLoc.lat + latDelta;
+      const minLng = providerLoc.lng - lngDelta;
+      const maxLng = providerLoc.lng + lngDelta;
+
+
       const relevantRequests = (await prisma.$queryRaw`
         SELECT wr.*
         FROM "WorkRequest" wr
         JOIN "Location" loc ON wr."locationId" = loc."id"
         WHERE wr."status" = 'active'
           AND wr."service" = ANY(${services})
+
+          -- Bounding box filter (fast)
+          AND loc."lat" BETWEEN ${minLat} AND ${maxLat}
+          AND loc."lng" BETWEEN ${minLng} AND ${maxLng}
+
+          -- Exact distance
           AND ST_DistanceSphere(
             ST_MakePoint(${providerLoc.lng}, ${providerLoc.lat}),
             ST_MakePoint(loc."lng", loc."lat")
