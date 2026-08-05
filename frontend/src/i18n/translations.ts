@@ -70,6 +70,8 @@ export const translations = {
       help: 'Your data is encrypted and secure',
       nameRequired: 'Name required',
       nameRequiredDesc: 'Please enter your full name',
+      invalidName: 'Invalid name',
+      invalidNameDesc: 'Name can only contain letters and spaces'
     },
     roleSelect: {
       title: 'How would you like to use Aasaan?',

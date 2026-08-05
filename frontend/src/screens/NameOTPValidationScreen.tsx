@@ -78,9 +78,15 @@ const NameOTPValidationScreen: React.FC = () => {
   };
 
   const handleContinue = async () => {
+    const nameRegex = /^[\p{L}\s]+$/u; // Allow only letters and spaces
     const name_trimmed = name.trim();
+
     if (!name_trimmed) {
       Alert.alert(t('nameReg.nameRequired'), t('nameReg.nameRequiredDesc'));
+      return;
+    }
+    if (!nameRegex.test(name_trimmed)) {
+      Alert.alert(t('nameReg.invalidName'), t('nameReg.invalidNameDesc'));
       return;
     }
 
