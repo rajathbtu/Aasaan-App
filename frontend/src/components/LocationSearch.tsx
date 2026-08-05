@@ -35,8 +35,6 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
       const locations = await getSavedLocations();
       setSavedLocations(locations);
     })();
-
-    if (cachedLocation==null) detectLocation(); // Call detectLocation on component load to cache current location
   }, [initialValue]);
 
   const fetchSuggestions = async (text: string) => {
@@ -116,7 +114,6 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
       setLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        setLocating(false);
         return;
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -137,8 +134,15 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
       setCachedLocation(detectedLocation); // Cache the detected location
       setQuery(displayName);
       onSelect(detectedLocation);
-    } catch (error) {
-      console.error('Error detecting location:', error);
+    } catch (error: any) {
+      const message = error?.message || String(error);
+      const isExpectedFailure = message.includes('unsatisfied device settings')
+        || message.includes('Location request failed')
+        || message.includes('LOCATION_SERVICES_DISABLED')
+        || message.includes('permissions');
+      if (!isExpectedFailure) {
+        console.error('Error detecting location:', error);
+      }
     } finally {
       setLocating(false);
     }
@@ -194,6 +198,11 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
           numberOfLines={2} // Limit to 2 lines
           onChangeText={(text) => {
             setQuery(text);
+            if (!text.trim()) {
+              setSuggestions([]);
+              onSelect(null);
+              return;
+            }
             fetchSuggestions(text);
           }}
         />
@@ -208,7 +217,11 @@ const LocationSearch: React.FC<Props> = ({ onSelect, initialValue = '', placehol
         )}
         {query.length > 0 && (
           <TouchableOpacity
-            onPress={() => setQuery('')} // Clear the input field
+            onPress={() => {
+              setQuery('');
+              setSuggestions([]);
+              onSelect(null);
+            }}
             style={styles.clearButton}
           >
             <Ionicons name="close-circle" size={21} color={colors.grey} />
