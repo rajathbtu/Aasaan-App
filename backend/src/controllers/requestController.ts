@@ -157,49 +157,63 @@ export async function list(req: Request, res: Response): Promise<void> {
       const maxLng = providerLoc.lng + lngDelta;
 
 
+      if (!services.length) {
+        res.json([]);
+        return;
+      }
+
       const relevantRequests = (await prisma.$queryRaw`
-        SELECT wr.*
+        SELECT wr.*,
+               s.name AS service_name,
+               s.icon AS service_icon,
+               loc.name AS location_name,
+               loc.lat AS location_lat,
+               loc.lng AS location_lng,
+               usr.name AS requester_name,
+               usr."phoneNumber" AS requester_phone,
+               CASE WHEN ap.id IS NULL THEN false ELSE true END AS accepted_by_provider
         FROM "WorkRequest" wr
         JOIN "Location" loc ON wr."locationId" = loc."id"
+        JOIN "User" usr ON wr."userId" = usr."id"
+        LEFT JOIN "AcceptedProvider" ap
+          ON ap."workRequestId" = wr."id"
+         AND ap."providerId" = ${user.id}
+        LEFT JOIN "Service" s ON s."id" = wr."service"
         WHERE wr."status" = 'active'
           AND wr."service" = ANY(${services})
-
-          -- Bounding box filter (fast)
           AND loc."lat" BETWEEN ${minLat} AND ${maxLat}
           AND loc."lng" BETWEEN ${minLng} AND ${maxLng}
-
-          -- Exact distance
           AND ST_DistanceSphere(
             ST_MakePoint(${providerLoc.lng}, ${providerLoc.lat}),
             ST_MakePoint(loc."lng", loc."lat")
           ) <= ${radiusInMeters};
       `) as any[];
 
-      // Fetch additional details for each request
-      const enrichedRequests = await Promise.all(
-        relevantRequests.map(async (request: any) => {
-          const [accepted, service, location, requestUser] = await Promise.all([
-            pAny.acceptedProvider?.findFirst({
-              where: { workRequestId: request.id, providerId: user.id },
-            }),
-            pAny.service?.findUnique({ where: { id: request.service } }),
-            pAny.location?.findUnique({ where: { id: request.locationId } }),
-            pAny.user?.findUnique({ where: { id: request.userId } }),
-          ]);
+      const enrichedRequests = relevantRequests.map((request: any) => {
+        const {
+          accepted_by_provider,
+          service_name,
+          service_icon,
+          location_name,
+          location_lat,
+          location_lng,
+          requester_name,
+          requester_phone,
+          ...rest
+        } = request;
 
-          return {
-            ...request,
-            acceptedByProvider: !!accepted,
-            serviceName: service?.name || null,
-            serviceIcon: service?.icon || null,
-            locationName: location?.name || null,
-            locationLat: location?.lat || null,
-            locationLng: location?.lng || null,
-            requesterName: requestUser?.name || null,
-            requesterPhone: requestUser?.phoneNumber || null,
-          };
-        })
-      );
+        return {
+          ...rest,
+          acceptedByProvider: !!accepted_by_provider,
+          serviceName: service_name || null,
+          serviceIcon: service_icon || null,
+          locationName: location_name || null,
+          locationLat: location_lat || null,
+          locationLng: location_lng || null,
+          requesterName: requester_name || null,
+          requesterPhone: requester_phone || null,
+        };
+      });
 
       console.log('enrichedRequests', enrichedRequests);
       res.json(enrichedRequests);
