@@ -220,6 +220,11 @@ export const translations = {
         authRequiredTitle: 'Not authenticated',
         authRequiredDesc: 'Please login again',
         createFailed: 'Failed to create request',
+        locationPermissionDenied: 'Please allow location permission to use the map picker',
+        currentLocationLabel: 'Current location',
+        currentLocationFailed: 'Unable to fetch current location',
+        selectedOnMap: 'Selected location',
+        locationSearchPlaceholder: 'Search for location',
       },
       created: {
         title: 'Work Request Created!',

@@ -45,7 +45,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
   };
 
   const handleConfirm = async () => {
-    if (!selectedLocation) {
+    if (!selectedLocation || !selectedLocation.lat || !selectedLocation.lng) {
       Alert.alert(t('createRequest.addDetails.locationRequiredTitle'), t('createRequest.addDetails.locationRequiredDesc'));
       return;
     }
@@ -110,6 +110,10 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
             <LocationSearch
               onSelect={(location) => setSelectedLocation(location)}
               initialValue={selectedLocation?.name || selectedLocation?.description || ''}
+              placeholder={t('createRequest.addDetails.locationSearchPlaceholder')}
+              enableMap={true}
+              initialLocation={selectedLocation}
+              mapHeight={250}
             />
             <Text style={styles.locationNote}> {t('createRequest.addDetails.locationNote')}</Text>
           </View>
