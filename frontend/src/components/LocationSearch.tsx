@@ -1,13 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, MapPressEvent, MarkerDragStartEndEvent, Region } from 'react-native-maps';
+import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+
+const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY || '';
+
+let MapView: any = null;
+let Marker: any = null;
+let PROVIDER_GOOGLE: any = null;
+
+if (Platform.OS !== 'web') {
+  const Maps = require('react-native-maps');
+  MapView = Maps.default ?? Maps.MapView;
+  Marker = Maps.Marker;
+  PROVIDER_GOOGLE = Maps.PROVIDER_GOOGLE;
+}
+
+type MapRegion = {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+};
+
+type MapPressEvent = any;
+type MarkerDragStartEndEvent = any;
+
+const isWeb = Platform.OS === 'web';
 import axios from 'axios';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing, radius, sizes } from '../theme';
 
-const GOOGLE_PLACES_API_KEY = 'AIzaSyC4n8PRgWHs34mn7Iyw8nkkU6aXMyJFj9g'; // Replace with your API key
 const MAX_SAVED_LOCATIONS = 3;
 
 type Location = {
@@ -39,7 +62,7 @@ const LocationSearch: React.FC<Props> = ({
   const [savedLocations, setSavedLocations] = useState<Array<{ place_id: string; description: string }>>([]);
   const [locating, setLocating] = useState(false);
   const [cachedLocation, setCachedLocation] = useState<any>(null); // Cache for current location
-  const [mapRegion, setMapRegion] = useState<Region | null>(
+  const [mapRegion, setMapRegion] = useState<MapRegion | null>(
     initialLocation?.lat && initialLocation?.lng
       ? {
           latitude: initialLocation.lat,
@@ -82,6 +105,12 @@ const LocationSearch: React.FC<Props> = ({
 
   const fetchSuggestions = async (text: string) => {
     if (!text) {
+      setSuggestions([]);
+      return;
+    }
+
+    if (!GOOGLE_PLACES_API_KEY) {
+      console.warn('Missing EXPO_PUBLIC_GOOGLE_PLACES_API_KEY in environment');
       setSuggestions([]);
       return;
     }
@@ -322,12 +351,16 @@ const LocationSearch: React.FC<Props> = ({
               <ActivityIndicator size="large" color={colors.primary} />
             </View>
           )}
-          {mapRegion ? (
+          {isWeb ? (
+            <View style={[styles.map, styles.mapPlaceholder]}>
+              <Text style={styles.mapWebText}>Map preview is unavailable on the web.</Text>
+            </View>
+          ) : mapRegion ? (
             <MapView
               provider={PROVIDER_GOOGLE}
               style={styles.map}
               region={mapRegion}
-              onRegionChangeComplete={(region: Region) => setMapRegion(region)}
+              onRegionChangeComplete={(region: MapRegion) => setMapRegion(region)}
               onMapReady={() => setMapLoading(false)}
               showsUserLocation={true}
             >
@@ -441,6 +474,12 @@ const styles = StyleSheet.create({
   mapPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  mapWebText: {
+    color: colors.grey,
+    fontSize: 12,
+    textAlign: 'center',
+    paddingHorizontal: spacing.md,
   },
 });
 
