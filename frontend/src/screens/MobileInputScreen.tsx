@@ -25,6 +25,7 @@ import { getLanguageDisplay } from '../data/languages';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import { spacing, colors, radius } from '../theme';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -51,27 +52,28 @@ const MobileInputScreen: React.FC = () => {
   // Re-render when screen regains focus so useI18n picks up global language
   useFocusEffect(
     React.useCallback(() => {
-      // no-op; simply forces rerender on focus change via hook
+      // Track screen view
+      trackScreenView('MobileInputScreen', 'Authentication');
       return () => {};
     }, [])
   );
 
   const handleSendOtp = async () => {
     const trimmed = phone.trim();
-    if (!trimmed || trimmed.length < 10) {
-      // Input validation UI handled below; do nothing here
-      return;
-    }
+    if (!trimmed || trimmed.length < 10) return;
     try {
       setLoading(true);
+      
       const result = await API.checkUserRegistration(trimmed); // Check if user is registered
 
       if (result.isRegistered) {
-        // Navigate to OTPVerificationScreen if user is registered
         await API.sendOtp(trimmed);
+        // Major action: send OTP
+        trackButtonClick('send_otp');
         navigation.navigate('OTPVerification', { phone: trimmed, language });
       } else {
-        // Navigate to NameOTPValidationScreen if user is not registered
+        // New user flow
+        trackButtonClick('start_registration');
         navigation.navigate('NameOTPValidation', { phone: trimmed, language });
       }
     } catch (err: any) {
@@ -95,6 +97,8 @@ const MobileInputScreen: React.FC = () => {
   };
 
   const openLanguagePicker = () => {
+    // Major action: change language
+    trackButtonClick('open_language_picker');
     navigation.navigate('LanguageSelection', {
       preferred: language,
     });

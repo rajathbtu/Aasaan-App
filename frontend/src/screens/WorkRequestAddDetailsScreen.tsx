@@ -11,6 +11,7 @@ import Header from '../components/Header';
 import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
 import BottomCTA from '../components/BottomCTA';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -32,6 +33,11 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
   const { t } = useI18n();
   const [requestInProgress, setRequestInProgress] = useState(false);
 
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('WorkRequestAddDetailsScreen', 'WorkRequest');
+  }, [serviceId, serviceName]);
+
   if (!serviceId || !serviceName) {
     return (
       <View style={styles.emptyContainer}>
@@ -41,6 +47,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
   }
 
   const toggleTag = (tag: string) => {
+    const isAdding = !selectedTags.includes(tag);
     setSelectedTags(prev => (prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]));
   };
 
@@ -53,6 +60,8 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
       Alert.alert(t('createRequest.addDetails.authRequiredTitle'), t('createRequest.addDetails.authRequiredDesc'));
       return;
     }
+    // Major action: create work request
+    trackButtonClick('create_work_request');
     setRequestInProgress(true);
     try {
       const locName = selectedLocation.name || selectedLocation.description;

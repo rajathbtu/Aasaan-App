@@ -1,18 +1,25 @@
 /**
- * Global application configuration.  
+ * Global application configuration.  Changing `USE_MOCK_API` controls
+ * whether the frontend uses local mock implementations or calls the
+ * Express backend defined in `aasaan-app-01/backend`.  The `BASE_URL`
+ * specifies where the backend is hosted.  When deploying the backend
+ * remotely you should update this value accordingly.
  */
 export const USE_MOCK_API = false;
 
-const PUBLIC_DEV_BASE_URL = 'https://crevice-drank-groggily.ngrok-free.dev';
-const PRODUCTION_BASE_URL = 'https://aasaan-backend-3v3u.onrender.com';
+import { resolveDevBaseUrl, logDevNetworkDebug } from './utils/network';
 
-const isDevelopment = true;
+// Fallback used when automatic detection via Expo/Metro fails.
+// Use `http://localhost:3000` so simulators/emulators work without editing.
+// On a physical device, `resolveDevBaseUrl` will detect your machine's LAN IP.
+const DEV_FALLBACK = 'http://localhost:3000';
+const DEV_PORT = 3000;
 
-const resolvedBaseUrl = isDevelopment
-  ? PUBLIC_DEV_BASE_URL
-  : PRODUCTION_BASE_URL;
+const resolvedBaseUrl = __DEV__
+  ? resolveDevBaseUrl(DEV_PORT, DEV_FALLBACK)
+  : 'https://aasaan-backend-3v3u.onrender.com';
 
 // Log helpful info in development
-console.log('API Base URL:', resolvedBaseUrl);
+logDevNetworkDebug({ port: DEV_PORT, fallback: DEV_FALLBACK, resolved: resolvedBaseUrl });
 
 export const BASE_URL = resolvedBaseUrl;

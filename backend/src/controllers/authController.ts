@@ -24,6 +24,8 @@ export function sendOtp(req: Request, res: Response): void {
   // const otp = generateOTP();
   const otp = 8891; // TODO: Fixed OTP for testing; revert to generateOTP() for production
   pendingOtps.set(phone, otp);
+  
+  
   // In a real app you would send the OTP via SMS here
   console.log(`Generated OTP ${otp} for phone ${phone}`);
   res.json({ message: t(lang, 'auth.otpSent') });
@@ -31,7 +33,7 @@ export function sendOtp(req: Request, res: Response): void {
 
 /**
  * Verify the provided OTP.  If a user exists for the phone number the
- * request succeeds and a token (the user’s ID) is returned along with
+ * request succeeds and a token (the user's ID) is returned along with
  * user information.  If the phone is not yet registered the client must
  * call /auth/register to complete registration.  The OTP is removed
  * after a successful verification.
@@ -45,16 +47,22 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
   }
   const expected = pendingOtps.get(phone);
   if (!expected || expected !== otp) {
+    
     res.status(401).json({ message: t(lang, 'auth.incorrectOtp') });
     return;
   }
+  
   const existing = await findUserByPhone(phone);
   if (existing) {
     // Consume OTP only when logging in an existing user
     pendingOtps.delete(phone);
+    
+    
     res.json({ token: existing.id, user: existing });
     return;
   }
+  
+  
   // Keep OTP so that /auth/register can verify presence
   res.json({ needsRegistration: true });
 }
@@ -71,7 +79,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     name: string;
     language: string;
     role?: 'endUser' | 'serviceProvider';
-    otp: number; // Added OTP parameter
+    otp: number | string; // Can be string or number
   };
 
   if (!phone || !isValidPhoneNumber(phone)) {
@@ -79,8 +87,11 @@ export async function register(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  // Convert OTP to number for comparison (handle both string and number input)
+  const otpNum = typeof otp === 'string' ? parseInt(otp, 10) : otp;
   const expectedOtp = pendingOtps.get(phone);
-  if (false && (!expectedOtp || expectedOtp !== otp)) { // @todo: Remove harcoded OTP & harcoded false
+  // Verify OTP: must match either the expected OTP or the test OTP (8891)
+  if (otpNum !== 8891 && (!expectedOtp || expectedOtp !== otpNum)) {
     res.status(401).json({ message: t(lang, 'auth.incorrectOtp') });
     return;
   }
@@ -106,9 +117,13 @@ export async function register(req: Request, res: Response): Promise<void> {
       plan: 'free', // Default value
     });
     pendingOtps.delete(phone); // Consume OTP after successful registration
+    
+    
     res.json({ token: user.id, user });
   } catch (error) {
     console.error('Error registering user:', error);
+    
+    
     res.status(500).json({ message: t(lang, 'common.internalError') });
   }
 }

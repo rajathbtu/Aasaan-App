@@ -7,7 +7,8 @@ import Header from '../components/Header';
 import { useI18n } from '../i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
-import { useAuth } from '../contexts/AuthContext'; // Corrected import
+import { useAuth } from '../contexts/AuthContext';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -29,6 +30,11 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const userId = useAuth()?.user?.id || 'guest'; // Fetch user ID from Auth or fallback to 'guest'
   const [recentServices, setRecentServices] = useState<Service[]>([]);
+
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('WorkRequestSelectServiceScreen', 'WorkRequest');
+  }, []);
 
   useEffect(() => {
     // Load cached services immediately
@@ -122,6 +128,8 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
         key={service.id}
         style={[styles.serviceCard, styles.shadow]}
         onPress={() => {
+          // Major action: picked a service
+          trackButtonClick('select_service', { service_id: service.id, service_name: service.name });
           updateRecentServices(service);
           navigation.navigate('WorkRequestAddDetails', { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [] });
         }}
@@ -176,7 +184,10 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
                 placeholder={placeholderTexts[placeholderIndex]}
                 placeholderTextColor={colors.grey}
                 value={query}
-                onChangeText={setQuery}
+                onChangeText={(text) => {
+                  setQuery(text);
+                  // No advanced analytics for search
+                }}
               />
               {query.trim() !== '' && (
                 <TouchableOpacity style={styles.resetButton} onPress={() => setQuery('')}>

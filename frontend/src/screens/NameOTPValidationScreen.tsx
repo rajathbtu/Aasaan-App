@@ -24,6 +24,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import { spacing, colors, radius } from '../theme';
+import { trackScreenView, trackSignUp, trackButtonClick } from '../utils/analytics';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -44,6 +45,11 @@ const NameOTPValidationScreen: React.FC = () => {
   const { login } = useAuth();
 
   const otpValue = useMemo(() => otp.join(''), [otp]);
+
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('NameOTPValidationScreen', 'Registration');
+  }, []);
 
   useEffect(() => {
     if (seconds <= 0) return;
@@ -95,6 +101,9 @@ const NameOTPValidationScreen: React.FC = () => {
       return;
     }
 
+    // Basic: continue button click
+    trackButtonClick('registration_continue');
+
     try {
       setLoading(true);
       const result: any = await API.registerUser(
@@ -104,7 +113,12 @@ const NameOTPValidationScreen: React.FC = () => {
         null, // Pass null for role
         otpValue // Pass OTP to the API
       );
+      
+      // Track successful registration
+      trackSignUp('phone_otp', 'endUser'); // Default to endUser, will be updated in role selection
+      
       await login(result.token, result.user);
+      
       navigation.navigate('RoleSelect');
     } catch (err: any) {
       Alert.alert(t('common.error'), err.message || 'Failed to register');

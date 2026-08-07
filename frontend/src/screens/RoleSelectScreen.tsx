@@ -8,6 +8,7 @@ import { colors, spacing, radius } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 const STICKY_HEIGHT = 96; // approx height of the bottom CTA area (padding + button + note)
 
@@ -28,17 +29,34 @@ const RoleSelectScreen: React.FC = () => {
 
   const languageDisplay = useMemo(() => getLanguageDisplay(lang), [lang]);
 
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('RoleSelectScreen', 'Onboarding');
+  }, []);
+
   const confirmSelection = async () => {
     if (!selectedRole) return;
+    
+    // Track role selection
+    // Major action: role selection
+    trackButtonClick('select_role', { role: selectedRole });
+    
     try {
       setSaving(true);
       await updateUser({ role: selectedRole });
+      
+      // Track successful role update
+      // No extra analytics
+      
       if (selectedRole === 'serviceProvider') {
         navigation.navigate('SPSelectServices');
       } else {
         navigation.navigate('Main');
       }
     } catch (err: any) {
+      // Track role update error
+      // No extra analytics
+      
       Alert.alert(t('common.error'), err?.message || t('roleSelect.updateRoleError'));
     } finally {
       setSaving(false);
@@ -63,7 +81,11 @@ const RoleSelectScreen: React.FC = () => {
     const selected = selectedRole === role;
     return (
       <TouchableOpacity
-        onPress={() => setSelectedRole(role)}
+        onPress={() => {
+          setSelectedRole(role);
+          // Track role card selection
+          // No extra analytics
+        }}
         activeOpacity={0.9}
         style={[
           styles.card,

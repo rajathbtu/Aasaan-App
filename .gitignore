@@ -1,3 +1,37 @@
 # Ignore node_modules folders
 node_modules/
+<<<<<<< HEAD
 .expo/
+=======
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Expo/React Native
+.expo/
+android/
+ios/
+
+# Firebase configuration files (security sensitive - added via CI/CD)
+frontend/android/app/google-services.json
+frontend/ios/GoogleService-Info.plist
+frontend/ios/*/GoogleService-Info.plist
+
+# Build outputs
+build/
+dist/
+
+# Environment files
+.env.local
+.env.development
+.env.production
+
+# Firebase service account (sensitive credentials)
+**/firebase-service-account.json
+>>>>>>> d639e35ace70e803a44aae247eaa8b95d9dc8f31

@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { areValidTags } from '../utils/validation';
-import { pushNotification } from '../models/dataStore';
 import { getReqLang, t, notifyUser } from '../utils/i18n';
 
 const pAny: any = prisma;
@@ -79,21 +78,37 @@ export async function create(req: Request, res: Response): Promise<void> {
   if (!service || typeof service !== 'string') { res.status(400).json({ message: t(lang, 'request.serviceRequired') }); return; }
   if (!location || typeof location.name !== 'string' || typeof location.lat !== 'number' || typeof location.lng !== 'number') { res.status(400).json({ message: t(lang, 'user.invalidLocation') }); return; }
   if (tags && !areValidTags(tags)) { res.status(400).json({ message: t(lang, 'request.invalidTags') }); return; }
+  
+  
   try {
     const since = new Date(Date.now() - 24*60*60*1000);
     const recent = await prisma.workRequest.count({ where: { userId: user.id, createdAt: { gt: since } } });
-    if (recent >= 3 && !req.body.force) { res.status(429).json({ message: t(lang, 'request.limitReached'), code: 'LIMIT_EXCEEDED' }); return; }
+    
+    if (recent >= 3 && !req.body.force) { 
+      
+      res.status(429).json({ message: t(lang, 'request.limitReached'), code: 'LIMIT_EXCEEDED' }); 
+      return; 
+    }
+    
     const loc = await pAny.location.create?.({ data: { name: location.name, lat: location.lat, lng: location.lng } });
     const wr = await pAny.workRequest.create({ data: { userId: user.id, service, locationId: loc?.id, tags: tags || [] } });
+    
+    
     // Notify eligible providers (service match + radius parity)
     const providers = await pAny.serviceProviderInfo?.findMany?.({ where: { services: { has: service } }, include: { location: true } }) || [];
+    console.log(`[NOTIFICATION DEBUG] Found ${providers.length} service providers for service "${service}"`);
+    
+    
+    let notifiedCount = 0;
     for (const p of providers) {
       let notify = true;
       if (p.location && p.radius > 0 && loc) {
         const d = distanceKm(loc.lat, loc.lng, p.location.lat, p.location.lng);
+        console.log(`[NOTIFICATION DEBUG] Provider ${p.userId}: distance ${d.toFixed(2)}km, radius ${p.radius}km, notify: ${d <= p.radius}`);
         notify = d <= p.radius;
       }
       if (notify) {
+        console.log(`[NOTIFICATION DEBUG] Sending notification to provider ${p.userId}...`);
         await notifyUser({
           userId: p.userId,
           type: 'newRequest',
@@ -102,10 +117,16 @@ export async function create(req: Request, res: Response): Promise<void> {
           params: { name: user.name, service },
           data: { requestId: wr.id }
         });
+        console.log(`[NOTIFICATION DEBUG] Notification sent to provider ${p.userId}`);
+        notifiedCount++;
       }
     }
+    
+    
     res.status(201).json(wr);
-  } catch { res.status(500).json({ message: t(lang, 'request.createFailed') }); }
+  } catch (error: any) {
+    res.status(500).json({ message: t(lang, 'request.createFailed') }); 
+  }
 }
 
 /**
@@ -144,76 +165,56 @@ export async function list(req: Request, res: Response): Promise<void> {
     const providerLoc = await pAny.location?.findUnique?.({ where: { id: providerInfo.locationId } });
     if (providerLoc) {
       const radiusInMeters = providerInfo.radius * 1000; // Convert km to meters
-      const earthRadius = 6371000; // meters
-      const latDelta = (radiusInMeters / earthRadius) * (180 / Math.PI);
-      const lngDelta =
-        (radiusInMeters /
-          (earthRadius * Math.cos((providerLoc.lat * Math.PI) / 180))) *
-        (180 / Math.PI);
 
-      const minLat = providerLoc.lat - latDelta;
-      const maxLat = providerLoc.lat + latDelta;
-      const minLng = providerLoc.lng - lngDelta;
-      const maxLng = providerLoc.lng + lngDelta;
-
-
-      if (!services.length) {
-        res.json([]);
-        return;
-      }
-
-      const relevantRequests = (await prisma.$queryRaw`
-        SELECT wr.*,
-               s.name AS service_name,
-               s.icon AS service_icon,
-               loc.name AS location_name,
-               loc.lat AS location_lat,
-               loc.lng AS location_lng,
-               usr.name AS requester_name,
-               usr."phoneNumber" AS requester_phone,
-               CASE WHEN ap.id IS NULL THEN false ELSE true END AS accepted_by_provider
-        FROM "WorkRequest" wr
-        JOIN "Location" loc ON wr."locationId" = loc."id"
-        JOIN "User" usr ON wr."userId" = usr."id"
-        LEFT JOIN "AcceptedProvider" ap
-          ON ap."workRequestId" = wr."id"
-         AND ap."providerId" = ${user.id}
-        LEFT JOIN "Service" s ON s."id" = wr."service"
-        WHERE wr."status" = 'active'
-          AND wr."service" = ANY(${services})
-          AND loc."lat" BETWEEN ${minLat} AND ${maxLat}
-          AND loc."lng" BETWEEN ${minLng} AND ${maxLng}
-          AND ST_DistanceSphere(
-            ST_MakePoint(${providerLoc.lng}, ${providerLoc.lat}),
-            ST_MakePoint(loc."lng", loc."lat")
-          ) <= ${radiusInMeters};
-      `) as any[];
-
-      const enrichedRequests = relevantRequests.map((request: any) => {
-        const {
-          accepted_by_provider,
-          service_name,
-          service_icon,
-          location_name,
-          location_lat,
-          location_lng,
-          requester_name,
-          requester_phone,
-          ...rest
-        } = request;
-
-        return {
-          ...rest,
-          acceptedByProvider: !!accepted_by_provider,
-          serviceName: service_name || null,
-          serviceIcon: service_icon || null,
-          locationName: location_name || null,
-          locationLat: location_lat || null,
-          locationLng: location_lng || null,
-          requesterName: requester_name || null,
-          requesterPhone: requester_phone || null,
-        };
+      // Get all active work requests for the provider's services
+      const allRequests = await prisma.workRequest.findMany({
+        where: {
+          status: 'active',
+          service: { in: services }
+        },
+        include: {
+          location: true,
+          user: true
+        }
       });
+
+      // Filter requests by distance using Haversine formula
+      const relevantRequests = allRequests.filter(request => {
+        if (!request.location) return false;
+
+        const distance = distanceKm(
+          providerLoc.lat,
+          providerLoc.lng,
+          request.location.lat,
+          request.location.lng
+        ) * 1000; // Convert km to meters
+
+        return distance <= radiusInMeters;
+      });
+
+      // Fetch service details for each request
+      const enrichedRequests = await Promise.all(
+        relevantRequests.map(async (request: any) => {
+          const [accepted, service] = await Promise.all([
+            pAny.acceptedProvider?.findFirst({
+              where: { workRequestId: request.id, providerId: user.id },
+            }),
+            pAny.service?.findUnique({ where: { id: request.service } }),
+          ]);
+
+          return {
+            ...request,
+            acceptedByProvider: !!accepted,
+            serviceName: service?.name || null,
+            serviceIcon: service?.icon || null,
+            locationName: request.location?.name || null,
+            locationLat: request.location?.lat || null,
+            locationLng: request.location?.lng || null,
+            requesterName: request.user?.name || null,
+            requesterPhone: request.user?.phoneNumber || null,
+          };
+        })
+      );
 
       console.log('enrichedRequests', enrichedRequests);
       res.json(enrichedRequests);

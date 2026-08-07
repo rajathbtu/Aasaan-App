@@ -8,6 +8,7 @@ import Header from '../components/Header';
 import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 const SPSelectLocationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -23,11 +24,19 @@ const SPSelectLocationScreen: React.FC = () => {
   const [radius, setRadius] = useState<number>(initialRadius);
   const [searchOpen, setSearchOpen] = useState(false);
 
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('SPSelectLocationScreen', 'ServiceProviderOnboarding');
+  }, [initialLoc, initialRadius]);
+
   const handleSave = async () => {
     if (!selectedLocation) {
       Alert.alert(t('common.error'), t('sp.selectLocation.selectLocation'));
       return;
     }
+    // Basic: save
+    trackButtonClick('sp_location_save');
+    
     try {
       const locPayload = selectedLocation?.place_id || selectedLocation?.placeId
         ? {
@@ -42,7 +51,9 @@ const SPSelectLocationScreen: React.FC = () => {
             lng: selectedLocation.lng,
             placeId: selectedLocation.placeId,
           };
+      
       await updateUser({ location: locPayload as any, radius });
+      
       navigation.navigate('Main');
     } catch (err: any) {
       Alert.alert(t('common.error'), t('sp.selectLocation.saveFailed'));

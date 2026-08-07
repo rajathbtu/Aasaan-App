@@ -1,88 +1,124 @@
-# Aasaan App – React&nbsp;Native and Backend Codebase
+# Aasaan App – React Native and Backend Codebase
 
-This repository contains the full source code for **Aasaan**, a mobile application
-designed to seamlessly connect people looking for help with everyday tasks
-(end‑users) to nearby professionals (service providers).  The project is split
-into two parts:
+This repository contains the full source code for **Aasaan**, a mobile
+application that connects people needing everyday services with nearby
+professionals. The repo is organized as a full-stack workspace:
 
-* **Frontend** – An Expo/React Native application implemented in TypeScript.  It
-  supports both Android and iOS out of the box and is designed with
-  responsiveness, accessibility and low‑end device performance in mind.  The
-  frontend implements all of the screens described in the specification
-  (registration, profile management, work request creation and viewing,
-  service‑provider flows, payments and tutorials) and talks to the backend via
-  REST APIs or local mocks depending on a configurable flag.
-* **Backend** – A lightweight Express server written in TypeScript.  It
-  implements all API endpoints required by the mobile app, including
-  authentication, profile management, work request creation and listing,
-  accepting and closing requests, notifications, payments and professional
-  plans.  For simplicity and ease of setup the backend stores all data in
-  memory; in a production deployment you would swap out the in‑memory
-  store for a proper database such as PostgreSQL or MongoDB.
+* **frontend/** – Expo + React Native application written in TypeScript.
+* **backend/** – Express API server written in TypeScript, using Prisma + PostgreSQL.
 
-The backend runs on `localhost` by default so that the frontend can be run
-independently during development.  When you are ready to deploy the backend
-to a remote server, update the base URL in `frontend/src/config.ts`.
+The backend uses PostgreSQL for persistent storage, while the frontend
+resolves the backend host dynamically in development via
+`frontend/src/config.ts`.
 
 ## Prerequisites
 
-* Node.js >= 18 with npm installed.
-* `expo-cli` installed globally (`npm install -g expo-cli`) to run the
-  mobile application.
+* Node.js >= 18 with npm installed.
+* PostgreSQL available locally for development or a managed Postgres URL.
+* `expo` is available via `npx expo`.
 
 ## Getting Started
 
-1. **Install dependencies** for both projects:
+1. Copy the backend environment example and configure local secrets:
 
    ```bash
-   cd aasaan-app-01/frontend
-   npm install
+   cd backend
+   cp .env.example .env
+   # edit .env and set DATABASE_URL, JWT_SECRET, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
+   ```
 
-   cd ../backend
+2. Install backend dependencies:
+
+   ```bash
+   cd backend
    npm install
    ```
 
-2. **Run the backend**. For normal local development use `npm run dev`.
+3. Install frontend dependencies:
 
    ```bash
-   cd aasaan-app-01/backend
+   cd ../frontend
+   npm install
+   ```
+
+4. Start the backend locally:
+
+   ```bash
+   cd ../backend
    npm run dev
    ```
 
-   If you need the backend to be reachable from a mobile device or remote
-   emulator, run the tunnel-enabled backend instead:
+5. Start the frontend in a second terminal:
 
    ```bash
-   cd aasaan-app-01/backend
-   npm run dev:tunnel
-   ```
-
-3. **Run the frontend** in a separate terminal tab:
-
-   ```bash
-   cd aasaan-app-01/frontend
-   # Start the Expo development server.  Use the Expo Go app on your phone
-   # or an Android/iOS simulator to run the app.
+   cd ../frontend
    npm start
    ```
 
-   If the backend is running through ngrok, set `EXPO_PUBLIC_API_BASE_URL`
-   to the ngrok URL exposed by the backend tunnel before starting Expo, for
-   example:
+6. Run the Android app using Expo:
 
    ```bash
-   cd aasaan-app-01/frontend
-   EXPO_PUBLIC_API_BASE_URL=https://abcd-1234.ngrok-free.dev npm start
+   cd frontend
+   npm run android
    ```
 
-4. By default the frontend uses mocked API responses so that you can work
-   without the backend.  To enable real API calls set `USE_MOCK_API` to
-   `false` in `frontend/src/config.ts`.
+## Backend database behavior
+
+The backend persists service data in PostgreSQL through Prisma.
+
+* `backend/prisma/schema.prisma` defines the database models.
+* `backend/.env.example` shows required values such as `DATABASE_URL`.
+* `backend/package.json` includes:
+  * `npm run build` — generates Prisma client and compiles TypeScript
+  * `npm run dev` — starts the backend in development mode
+  * `npm run migrate` — applies pending Prisma migrations
+  * `npm run seed:dummy` — inserts 50+ dummy service categories for testing
+* `backend/scripts/start.sh` waits for the database to be available and
+  runs migrations before launching the server.
+
+The first time the backend is started, the service endpoint itself
+seeds the database with default service categories if none exist.
+The `GET /services` endpoint in `backend/src/routes/serviceRoutes.ts`
+loads service rows and inserts defaults on an empty database.
+
+## Render deployment
+
+This repo includes a `render.yaml` file at the repository root.
+It should configure Render to build and start the backend correctly:
+
+* `buildCommand: "npm install && npm run build"`
+* `startCommand: "bash ./scripts/start.sh"`
+
+If Render still shows the old build command
+`npm install && npx prisma migrate deploy && npm run build`, that means the
+service is still using a dashboard override or an older Render configuration
+instead of the repo `render.yaml`.
+
+### Render dashboard troubleshooting
+
+1. Open your Render service dashboard for the backend.
+2. Confirm the service is set to use the repository's `render.yaml` file.
+3. If the dashboard build/start commands are configured manually, update them to:
+   * build: `npm install && npm run build`
+   * start: `bash ./scripts/start.sh`
+4. Verify the latest commit includes the updated `render.yaml` and `backend/scripts/start.sh`.
+5. If Render is still using the old command after pushing, refresh the service settings and redeploy.
+
+Important: Render may continue to use the dashboard command if the repository-level
+`render.yaml` is not enabled for the service. In that case, the dashboard override
+must be removed or updated.
+
+## Frontend configuration
+
+* `frontend/src/config.ts` resolves the backend URL:
+  * development uses `resolveDevBaseUrl(...)`
+  * production uses `https://aasaan-app.onrender.com`
+* `USE_MOCK_API` controls whether the app uses mock data or the real API.
 
 ## Project Structure
 
 ```text
-aasaan-app-01/
+aasaan-app/
 ├── README.md              – High level documentation and setup
 ├── frontend/              – Expo/React Native application
 │   ├── app.json           – Expo configuration
@@ -103,12 +139,14 @@ aasaan-app-01/
 └── backend/               – Node/Express server
     ├── package.json       – Backend dependencies and scripts
     ├── tsconfig.json      – TypeScript compiler options
+    ├── prisma/            – Prisma schema and migrations
+    ├── scripts/           – startup and database scripts
     └── src/
         ├── app.ts         – Express application setup
         ├── server.ts      – Entry point creating the HTTP server
         ├── controllers/   – API controllers handling business logic
         ├── routes/        – API route definitions
-        ├── models/        – In‑memory data models
+        ├── models/        – Data models and Prisma client usage
         ├── utils/         – Helpers (validations, encryption)
         └── middleware/    – Express middleware (auth, error handling)
 ```
@@ -116,21 +154,11 @@ aasaan-app-01/
 ## Notes
 
 * **TypeScript** is used throughout both projects to catch errors early and
-  improve code readability.  The provided configuration targets modern
-  JavaScript and includes source maps for easier debugging.
+  improve code readability.
 * **Expo** is used to simplify native development and enable OTA updates.
-  When you are ready to publish the app to the App Store or Play Store, you
-  can run `expo build` to generate the native binaries.
-* The **mock API** mode uses artificial delays to mimic network requests.
-  Switching to real API mode will cause the frontend to call the Express
-  server running on `localhost` (by default).  See `frontend/src/api/mock.ts`
-  for the mock implementation and `frontend/src/api/index.ts` for the real
-  implementation.
-* Data persistence in the backend is **in memory** for demonstration
-  purposes.  All data will reset when the server restarts.  To use a
-  persistent database in production you should replace the store in
-  `backend/src/models` with an appropriate database layer and update the
-  controllers accordingly.
+* The backend now uses **PostgreSQL with Prisma** for persistent storage.
+* The `GET /services` route seeds default service categories when the database
+  is empty.
 
 ## Mobile CI/CD (GitHub Actions)
 
@@ -152,36 +180,8 @@ This repo ships with a ready‑to‑use workflow that builds Android and iOS art
   - `android.package`, `android.versionCode`
   - Any permission usage descriptions (e.g., `NSLocationWhenInUseUsageDescription`).
 
-### iOS .ipa signing (optional)
-To generate a distributable `.ipa`, add the following GitHub repository secrets:
-
-- `IOS_CERT_P12_BASE64`: Base64 of your Apple signing certificate `.p12`
-- `IOS_CERT_PASSWORD`: Password for that `.p12`
-- `IOS_PROVISIONING_PROFILE_BASE64`: Base64 of the `.mobileprovision`
-- `IOS_TEAM_ID`: Your Apple Developer Team ID
-- `IOS_BUNDLE_IDENTIFIER`: e.g., `com.rajathbtu.aasaan`
-
-If these secrets are not provided, the workflow still builds the iOS Simulator `.app` for testing.
-
-### Local verification
-
-From `frontend/` you can reproduce CI steps:
-
-- Android prebuild: `npx expo prebuild --platform android`
-- iOS prebuild: `npx expo prebuild --platform ios`
-- Android assemble debug: `(cd android && ./gradlew assembleDebug)`
-- Android assemble release: `(cd android && ./gradlew assembleRelease)`
-- Android app bundle: `(cd android && ./gradlew bundleRelease)`
-- iOS (simulator): open the Xcode workspace in `ios/` and build the `Release` scheme for `Any iOS Simulator Device`.
-
-### Store submission notes
-
-- Google Play requires the `.aab` artifact. Use the uploaded `android-aab` bundle.
-- The unsigned Release APK is not installable; use `android-debug-apk` for device tests or sign the release APK/bundle in Play Console.
-- App Store submission requires an Apple Developer account and proper signing; you can adapt the workflow to export an `ad-hoc` or `app-store` method in `exportOptions.plist`.
-
 ### Troubleshooting
 
-- Prebuild fails: ensure `app.json` contains the identifiers and permissions and that all assets exist at the paths referenced.
-- CocoaPods issues on CI: the workflow runs `npx pod-install ios` on macOS. If a specific Pod fails, pin versions in your `ios/Podfile` after prebuild and commit them.
-- Gradle out of memory: add `ORG_GRADLE_OPTS: -Xmx3g` as an env var in the Android job.
+* Prebuild fails: ensure `app.json` contains the identifiers and permissions and that all assets exist at the paths referenced.
+* CocoaPods issues on CI: the workflow runs `npx pod-install ios` on macOS. If a specific Pod fails, pin versions in your `ios/Podfile` after prebuild and commit them.
+* Gradle out of memory: add `ORG_GRADLE_OPTS: -Xmx3g` as an env var in the Android job.

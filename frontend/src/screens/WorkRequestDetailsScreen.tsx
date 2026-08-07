@@ -187,23 +187,32 @@ const WorkRequestDetailsScreen: React.FC = () => {
               const avatarUri = provider.avatarUrl || undefined;
               return (
                 <View key={p.id || p.providerId || index} style={styles.providerRow}>
-                  {avatarUri ? (
-                    <View style={styles.avatarImageWrapper}>
-                      <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                  <TouchableOpacity
+                    style={styles.providerInfoSection}
+                    onPress={() => navigation.navigate('ServiceProviderProfile', {
+                      providerId: p.providerId,
+                      providerData: provider
+                    })}
+                    activeOpacity={0.7}
+                  >
+                    {avatarUri ? (
+                      <View style={styles.avatarImageWrapper}>
+                        <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                      </View>
+                    ) : (
+                      <View style={styles.providerAvatar}>
+                        <Text style={styles.providerAvatarText}>{String(displayName).charAt(0).toUpperCase()}</Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.providerName}>{displayName}</Text>
+                      <View style={styles.ratingRow}>
+                        <Ionicons name="star" size={12} color={colors.secondary} />
+                        <Text style={styles.ratingText}> 4.5 (20)</Text>
+                      </View>
                     </View>
-                  ) : (
-                    <View style={styles.providerAvatar}>
-                      <Text style={styles.providerAvatarText}>{String(displayName).charAt(0).toUpperCase()}</Text>
-                    </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.providerName}>{displayName}</Text>
-                    <View style={styles.ratingRow}>
-                      <Ionicons name="star" size={12} color={colors.secondary} />
-                      <Text style={styles.ratingText}> 4.5 (20)</Text>
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: 'row' }}>
+                  </TouchableOpacity>
+                  <View style={styles.actionButtonsGroup}>
                     <TouchableOpacity
                       style={styles.callButton}
                       onPress={() => {
@@ -276,6 +285,14 @@ const WorkRequestDetailsScreen: React.FC = () => {
                       key={p.id || p.providerId || idx}
                       style={[styles.providerCard, isSelected ? styles.providerCardSelected : styles.providerCardUnselected]}
                       onPress={() => setSelectedProviderId(p.providerId)}
+                      onLongPress={() => {
+                        // Long press to view profile
+                        setCloseVisible(false);
+                        navigation.navigate('ServiceProviderProfile', {
+                          providerId: p.providerId,
+                          providerData: provider
+                        });
+                      }}
                       activeOpacity={0.8}
                     >
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -462,6 +479,16 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 1,
+  },
+  providerInfoSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  actionButtonsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   providerAvatar: {
     width: 48,

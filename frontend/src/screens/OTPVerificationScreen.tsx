@@ -23,6 +23,7 @@ import { useI18n } from '../i18n';
 import { WebView } from 'react-native-webview';
 import Header from '../components/Header';
 import { spacing, colors, radius } from '../theme';
+import { trackScreenView, trackLogin, trackButtonClick } from '../utils/analytics';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -45,6 +46,11 @@ const OTPVerificationScreen: React.FC = () => {
   const inputsRef = useRef<Array<TextInput | null>>([null, null, null, null]);
 
   const otpValue = useMemo(() => otp.join(''), [otp]);
+
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('OTPVerificationScreen', 'Authentication');
+  }, []);
 
   useEffect(() => {
     const tmr = setTimeout(() => setShowAutoRead(false), 2500);
@@ -80,16 +86,22 @@ const OTPVerificationScreen: React.FC = () => {
       Alert.alert(t('common.invalidOtp'), t('common.invalidOtpDesc'));
       return;
     }
+    
     try {
       setLoading(true);
       const result: any = await API.verifyOtp(phone, Number(otpValue));
       if (result.needsRegistration) {
+        // Major action: continue to registration
+        trackButtonClick('continue_registration');
         navigation.navigate('NameOTPValidation', { phone, language: lang });
       } else if (result.token) {
+        trackLogin('phone_otp');
+        
         await login(result.token, result.user);
-        const user = result.user;
-        if (user.role === 'serviceProvider') {
-          const info = user.serviceProviderInfo || {};
+        
+        const userInfo = result.user;
+        if (userInfo.role === 'serviceProvider') {
+          const info = userInfo.serviceProviderInfo || {};
           if (!info.services || info.services.length === 0) {
             navigation.navigate('SPSelectServices');
             return;
@@ -111,6 +123,8 @@ const OTPVerificationScreen: React.FC = () => {
   };
 
   const handleResend = async () => {
+    // Major action: resend OTP
+    trackButtonClick('resend_otp');
     try {
       setLoading(true);
       await API.sendOtp(phone);

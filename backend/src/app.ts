@@ -7,57 +7,59 @@ import notificationRoutes from './routes/notificationRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import serviceRoutes from './routes/serviceRoutes';
 import { errorHandler } from './middleware/errorHandler';
+import pushTokenRoutes from './routes/pushTokenRoutes';
 
 // Create and configure the Express application.  All middleware and routes are
-// registered here.  The exported app is used by the server entry point.
+// registered here.  The exported app is used by the server entry point
 const app = express();
 
 // Middlewares
-const isDevelopment = process.env.NODE_ENV !== 'production';
+const corsOptions = {
+  origin: process.env.NODE_ENV !== 'production'
+    ? true
+    : process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim())
+      : undefined,
+  credentials: true,
+};
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '10mb' })); // Enable JSON limit for push payloads
 
+// Comprehensive API Logging Middleware
 app.use((req, res, next) => {
-  const time = new Date().toLocaleTimeString('en-GB');
-  try {
-    // Log request & response for debugging
-    const bodyPreview = req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : '{}';
-    console.log(`# # # REQUEST  # # #   ${time} ${req.method} ${req.originalUrl} body=${bodyPreview}`);
-  } catch (err) {
-    console.log(`# # # REQUEST  # # #   ${time} ${req.method} ${req.originalUrl} body=<unserializable>`);
-  }
+  const startTime = Date.now();
+  const originalJson = res.json;
+  const originalSend = res.send;
 
-  res.on('finish', () => {
-    console.log(`# # # RESPONSE # # #   ${time} ${req.method} ${req.originalUrl} status=${res.statusCode}`);
-  });
+  // Capture response
+  res.json = function (data) {
+    const duration = Date.now() - startTime;
+    console.log(`\n📊 API CALL - ${new Date().toISOString()}`);
+    console.log(`├─ Method: ${req.method}`);
+    console.log(`├─ Path: ${req.path}`);
+    console.log(`├─ Status: ${res.statusCode}`);
+    console.log(`├─ Duration: ${duration}ms`);
+    console.log(`├─ Request Body: ${JSON.stringify(req.body, null, 2)}`);
+    console.log(`├─ Response: ${JSON.stringify(data, null, 2)}`);
+    console.log(`└─ IP: ${req.ip}\n`);
+    return originalJson.call(this, data);
+  };
+
+  res.send = function (data) {
+    const duration = Date.now() - startTime;
+    console.log(`\n📊 API CALL - ${new Date().toISOString()}`);
+    console.log(`├─ Method: ${req.method}`);
+    console.log(`├─ Path: ${req.path}`);
+    console.log(`├─ Status: ${res.statusCode}`);
+    console.log(`├─ Duration: ${duration}ms`);
+    console.log(`├─ Request Body: ${JSON.stringify(req.body, null, 2)}`);
+    console.log(`├─ Response Type: ${typeof data}`);
+    console.log(`└─ IP: ${req.ip}\n`);
+    return originalSend.call(this, data);
+  };
 
   next();
 });
-
-const allowedOrigins = new Set([
-  'https://crevice-drank-groggily.ngrok-free.dev',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'http://192.168.29.8:3000',
-  'http://192.168.32.1:3000',
-]);
-
-const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    if (!origin || origin === 'null' || isDevelopment || allowedOrigins.has(origin)) {
-      callback(null, true);
-      return;
-    }
-
-    callback(null, false);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-};
-
-app.options('*', cors(corsOptions));
-app.use(cors(corsOptions));
-app.use(express.json());
-
 
 // Routes
 app.use('/auth', authRoutes);
@@ -66,6 +68,8 @@ app.use('/work-requests', requestRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/payments', paymentRoutes);
 app.use('/services', serviceRoutes);
+app.use('/push-tokens', pushTokenRoutes);
+// Analytics routes removed (backend analytics disabled)
 
 // Catch‑all for unknown routes
 app.use((req, res, next) => {

@@ -1,19 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import axios from 'axios';
+import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import LocationMap from './LocationMap';
+import { colors, spacing, radius, sizes } from '../theme';
 
 const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY || '';
-
-let MapView: any = null;
-let Marker: any = null;
-let PROVIDER_GOOGLE: any = null;
-
-if (Platform.OS !== 'web') {
-  const Maps = require('react-native-maps');
-  MapView = Maps.default ?? Maps.MapView;
-  Marker = Maps.Marker;
-  PROVIDER_GOOGLE = Maps.PROVIDER_GOOGLE;
-}
 
 type MapRegion = {
   latitude: number;
@@ -24,12 +18,6 @@ type MapRegion = {
 
 type MapPressEvent = any;
 type MarkerDragStartEndEvent = any;
-
-const isWeb = Platform.OS === 'web';
-import axios from 'axios';
-import * as Location from 'expo-location';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { colors, spacing, radius, sizes } from '../theme';
 
 const MAX_SAVED_LOCATIONS = 3;
 
@@ -351,30 +339,13 @@ const LocationSearch: React.FC<Props> = ({
               <ActivityIndicator size="large" color={colors.primary} />
             </View>
           )}
-          {isWeb ? (
-            <View style={[styles.map, styles.mapPlaceholder]}>
-              <Text style={styles.mapWebText}>Map preview is unavailable on the web.</Text>
-            </View>
-          ) : mapRegion ? (
-            <MapView
-              provider={PROVIDER_GOOGLE}
-              style={styles.map}
-              region={mapRegion}
-              onRegionChangeComplete={(region: MapRegion) => setMapRegion(region)}
-              onMapReady={() => setMapLoading(false)}
-              showsUserLocation={true}
-            >
-              <Marker
-                coordinate={{ latitude: mapRegion.latitude, longitude: mapRegion.longitude }}
-                draggable
-                onDragEnd={onMarkerDragEnd}
-              />
-            </MapView>
-          ) : (
-            <View style={[styles.map, styles.mapPlaceholder]}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          )}
+          <LocationMap
+            mapRegion={mapRegion}
+            mapLoading={mapLoading}
+            onRegionChangeComplete={(region: MapRegion) => setMapRegion(region)}
+            onMapReady={() => setMapLoading(false)}
+            onMarkerDragEnd={onMarkerDragEnd}
+          />
           <TouchableOpacity style={styles.mapButton} onPress={centerMapOnCurrentLocation}>
             <Ionicons name="locate" size={20} color={colors.white} />
           </TouchableOpacity>

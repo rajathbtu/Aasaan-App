@@ -9,6 +9,7 @@ import Header from '../components/Header';
 import { colors, spacing, radius, tints } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -40,6 +41,11 @@ const SPSelectServicesScreen: React.FC = () => {
   const [services, setServices] = useState<Service[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
+
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('SPSelectServicesScreen', 'ServiceProviderOnboarding');
+  }, [mode, initialSelected.length]);
 
   useEffect(() => {
     setSelected(initialSelected);
@@ -97,6 +103,10 @@ const SPSelectServicesScreen: React.FC = () => {
   }, [grouped, query]);
 
   const toggleService = (id: string) => {
+    const isAdding = !selected.includes(id);
+    // Basic: button click on toggle
+    trackButtonClick('sp_toggle_service', { action: isAdding ? 'add' : 'remove' });
+    
     setSelected(prev => {
       if (prev.includes(id)) {
         return prev.filter(sid => sid !== id);
@@ -115,6 +125,9 @@ const SPSelectServicesScreen: React.FC = () => {
       return;
     }
 
+    // Basic: continue
+    trackButtonClick('sp_services_continue', { count: selected.length, mode });
+
     if (mode === 'edit' && onDone) {
       onDone(selected);
       navigation.goBack();
@@ -123,6 +136,7 @@ const SPSelectServicesScreen: React.FC = () => {
 
     try {
       await updateUser({ services: selected });
+      
       navigation.navigate('SPSelectLocation');
     } catch (err: any) {
       Alert.alert('Error', t('sp.selectServices.saveFailed'));

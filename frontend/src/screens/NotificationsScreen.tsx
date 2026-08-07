@@ -18,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -50,6 +51,12 @@ const NotificationsScreen: React.FC = () => {
   const timeAgo = buildTimeAgo(t);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      trackScreenView('NotificationsScreen', 'Notifications');
+    }, [token])
+  );
 
   const fetchNotifications = async () => {
     if (!token) return;
@@ -177,7 +184,7 @@ const NotificationsScreen: React.FC = () => {
         showBackButton={true}
         showNotification={false}
         customRightComponent={
-          <TouchableOpacity onPress={markAllRead} style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
+          <TouchableOpacity onPress={() => { trackButtonClick('notifications_mark_all_read'); markAllRead(); }} style={{ paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }}>
             <Text style={styles.markAllText}>{t('notifications.markAllRead')}</Text>
           </TouchableOpacity>
         }

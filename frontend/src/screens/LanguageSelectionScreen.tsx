@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations, SupportedLocale } from '../i18n/translations';
 import Header from '../components/Header';
 import { spacing, colors, radius } from '../theme';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 const STICKY_HEIGHT = 72; // approx height of the bottom CTA area (padding + button)
 
@@ -30,6 +31,11 @@ const LanguageSelectionScreen: React.FC = () => {
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(
     preferred || user?.language || null
   );
+
+  useEffect(() => {
+    trackScreenView('LanguageSelectionScreen', 'Onboarding');
+    // No extra analytics
+  }, [user, preferred]);
 
   // Prevent leaving only during onboarding (no user) until Continue is pressed
   const prevent = !user && !canLeave;
@@ -46,11 +52,16 @@ const LanguageSelectionScreen: React.FC = () => {
   }, [selectedLanguage]);
 
   const handleLanguageSelect = (langCode: string) => {
+    trackButtonClick('select_language', { language: langCode });
+    
     setSelectedLanguage(langCode);
   };
 
   const handleContinue = async () => {
     if (!selectedLanguage) return;
+    
+    trackButtonClick('confirm_language', { language: selectedLanguage });
+    
     await setLanguage(selectedLanguage);
 
     // allow this screen to be popped/navigated away

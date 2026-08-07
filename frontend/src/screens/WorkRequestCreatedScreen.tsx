@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import { useI18n } from '../i18n';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 /**
  * Confirmation screen displayed after a work request has been created.
@@ -22,11 +23,18 @@ const WorkRequestCreatedScreen: React.FC = () => {
   const locationName = locationNameParam ?? request?.location?.name ?? request?.locationName ?? t('userRequests.locationFallback');
   const tags = Array.isArray(request?.tags) ? request.tags.slice(0, 2) : [];
 
+  // Track screen view only
+  useEffect(() => {
+    trackScreenView('WorkRequestCreatedScreen', 'WorkRequest');
+  }, [request, serviceName, locationName, tags.length]);
+
   const goToMyRequests = () => {
+    trackButtonClick('view_my_requests');
     navigation.navigate('Main', { screen: 'MyRequests' });
   };
 
   const handleBoost = () => {
+    trackButtonClick('boost_request_start');
     navigation.navigate('BoostRequest', { request });
   };
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import { trackScreenView, trackButtonClick } from '../utils/analytics';
 
 const API = USE_MOCK_API ? mockApi : realApi;
 
@@ -50,8 +51,16 @@ const BoostRequestScreen: React.FC = () => {
   const credits = user?.creditPoints ?? 0;
   const hasEnoughCredits = credits >= CREDIT_COST;
 
+  // Track screen view on mount
+  useEffect(() => {
+    trackScreenView('BoostRequestScreen', 'Payment');
+  }, [request, credits, hasEnoughCredits]);
+
   const handleBoost = async (useCredits: boolean) => {
     if (!token || !request) return;
+    
+    // Basic: user tapped boost
+    trackButtonClick('boost_request_start', { method: useCredits ? 'credits' : 'money' });
     
     setLoading(true);
     
@@ -60,6 +69,7 @@ const BoostRequestScreen: React.FC = () => {
         // Use existing credit-based flow
         await API.boostWorkRequest(token, request.id, useCredits);
         await refreshUser();
+        
         Alert.alert(t('common.success'), t('boostRequest.successDesc'));
         navigation.navigate('Main', { screen: 'MyRequests' });
       } else {
@@ -87,7 +97,7 @@ const BoostRequestScreen: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Boost payment error:', err);
-      
+
       // Handle Razorpay specific errors
       if (err.code) {
         switch (err.code) {
@@ -131,6 +141,7 @@ const BoostRequestScreen: React.FC = () => {
       const verificationResult = await verifyBoostPayment(token, verificationData);
       
       if (verificationResult.success) {
+        
         await refreshUser();
         Alert.alert(
           t('common.success'), 
@@ -143,10 +154,12 @@ const BoostRequestScreen: React.FC = () => {
           ]
         );
       } else {
+        
         Alert.alert(t('common.error'), t('boostRequest.paymentFailedDesc'));
       }
     } catch (err: any) {
       console.error('Payment verification error:', err);
+
       Alert.alert(t('common.error'), err.message || t('boostRequest.paymentFailedDesc'));
     } finally {
       setLoading(false);
@@ -182,6 +195,8 @@ const BoostRequestScreen: React.FC = () => {
 
   const handlePaymentCancel = () => {
     setShowPaymentWebView(false);
+    // Basic: cancel button
+    trackButtonClick('boost_payment_cancel');
     // User cancelled payment, no need to show error
   };
 

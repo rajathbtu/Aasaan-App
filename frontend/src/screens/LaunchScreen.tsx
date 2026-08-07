@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useI18n } from '../i18n';
 import { colors, spacing } from '../theme';
+import { trackScreenView } from '../utils/analytics';
 
 /**
  * A simple splash screen shown on startup.  It displays the app name
@@ -14,7 +15,9 @@ import { colors, spacing } from '../theme';
 const LaunchScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t } = useI18n();
+  
   useEffect(() => {
+    trackScreenView('LaunchScreen', 'App');
     const timer = setTimeout(() => {
       navigation.navigate('LanguageSelection');
     }, 1000);
@@ -23,7 +26,7 @@ const LaunchScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Image
-        source={require('../../assets/icon.png')}
+        source={require('../../assets/logo.png')}
         style={styles.logo}
         resizeMode="contain"
       />
