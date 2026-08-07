@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, MapPressEvent, MarkerDragStartEndEvent, Region } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import * as Location from 'expo-location';
@@ -9,6 +9,12 @@ import { colors, spacing, radius, sizes } from '../theme';
 
 const GOOGLE_PLACES_API_KEY = 'AIzaSyC4n8PRgWHs34mn7Iyw8nkkU6aXMyJFj9g'; // Replace with your API key
 const MAX_SAVED_LOCATIONS = 3;
+const DEFAULT_DELHI_REGION = {
+  latitude: 28.613939,
+  longitude: 77.209021,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
+};
 
 type Location = {
   place_id: string;
@@ -47,9 +53,10 @@ const LocationSearch: React.FC<Props> = ({
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         }
-      : null
+      : DEFAULT_DELHI_REGION
   );
   const [mapLoading, setMapLoading] = useState(enableMap);
+  const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setQuery(initialValue || '');
@@ -76,7 +83,8 @@ const LocationSearch: React.FC<Props> = ({
     }
 
     if (!mapRegion) {
-      centerMapOnCurrentLocation();
+      setMapRegion(DEFAULT_DELHI_REGION);
+      setMapLoading(false);
     }
   }, [enableMap, initialLocation]);
 
@@ -197,6 +205,47 @@ const LocationSearch: React.FC<Props> = ({
     }
   };
 
+  const reverseGeocodeLocation = async (latitude: number, longitude: number) => {
+    try {
+      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_PLACES_API_KEY}`;
+      const response = await axios.get(geocodeUrl);
+      if (response.data.results && response.data.results.length > 0) {
+        return response.data.results[0].formatted_address || '';
+      }
+    } catch (error) {
+      console.error('Error reverse geocoding location:', error);
+    }
+    return 'Selected location';
+  };
+
+  const regionsAreClose = (r1: Region | null, r2: Region | null, delta = 0.00005) => {
+    if (!r1 || !r2) return false;
+    return (
+      Math.abs((r1.latitude ?? 0) - (r2.latitude ?? 0)) < delta &&
+      Math.abs((r1.longitude ?? 0) - (r2.longitude ?? 0)) < delta
+    );
+  };
+
+  const scheduleCenterLocationUpdate = (region: Region) => {
+    if (regionChangeTimeout.current) {
+      clearTimeout(regionChangeTimeout.current);
+    }
+
+    regionChangeTimeout.current = setTimeout(async () => {
+      const description = await reverseGeocodeLocation(region.latitude, region.longitude);
+      setQuery(description);
+      onSelect({ lat: region.latitude, lng: region.longitude, description });
+    }, 2000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (regionChangeTimeout.current) {
+        clearTimeout(regionChangeTimeout.current);
+      }
+    };
+  }, []);
+
   const centerMapOnCurrentLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -213,23 +262,6 @@ const LocationSearch: React.FC<Props> = ({
     } catch (error) {
       console.error('Error centering map on current location:', error);
     }
-  };
-
-  const onMarkerDragEnd = (event: MarkerDragStartEndEvent) => {
-    const { coordinate } = event.nativeEvent;
-    const selectedLocation = {
-      lat: coordinate.latitude,
-      lng: coordinate.longitude,
-      description: 'Selected location',
-    };
-    setQuery(selectedLocation.description);
-    setMapRegion({
-      latitude: coordinate.latitude,
-      longitude: coordinate.longitude,
-      latitudeDelta: mapRegion?.latitudeDelta ?? 0.01,
-      longitudeDelta: mapRegion?.longitudeDelta ?? 0.01,
-    });
-    onSelect(selectedLocation);
   };
 
   const saveLocation = async (location: Location) => {
@@ -315,38 +347,6 @@ const LocationSearch: React.FC<Props> = ({
           <ActivityIndicator style={styles.rightAdornment} size="small" />
         )}
       </View>
-      {enableMap && (
-        <View style={[styles.mapContainer, { height: mapHeight ?? 250 }]}>            
-          {mapLoading && (
-            <View style={styles.mapLoadingOverlay}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          )}
-          {mapRegion ? (
-            <MapView
-              provider={PROVIDER_GOOGLE}
-              style={styles.map}
-              region={mapRegion}
-              onRegionChangeComplete={(region: Region) => setMapRegion(region)}
-              onMapReady={() => setMapLoading(false)}
-              showsUserLocation={true}
-            >
-              <Marker
-                coordinate={{ latitude: mapRegion.latitude, longitude: mapRegion.longitude }}
-                draggable
-                onDragEnd={onMarkerDragEnd}
-              />
-            </MapView>
-          ) : (
-            <View style={[styles.map, styles.mapPlaceholder]}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          )}
-          <TouchableOpacity style={styles.mapButton} onPress={centerMapOnCurrentLocation}>
-            <Ionicons name="locate" size={20} color={colors.white} />
-          </TouchableOpacity>
-        </View>
-      )}
       {query.trim() === '' && savedLocations.length > 0 && (
         <View style={styles.suggestionsContainer}>
           {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Use current location' }, true, 'CURRENT')}
@@ -357,6 +357,43 @@ const LocationSearch: React.FC<Props> = ({
         <View style={styles.suggestionsContainer}>
           {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Use current location' }, true, 'CURRENT')}
           {suggestions.map((item) => renderLocationOption(item, false, 'SEARCHED'))}
+        </View>
+      )}
+      {enableMap && (
+        <View style={[styles.mapContainer, { height: mapHeight ?? 250 }]}>            
+          {mapLoading && (
+            <View style={styles.mapLoadingOverlay}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          )}
+          {mapRegion ? (
+            <View style={styles.mapWrapper}>
+              <MapView
+                provider={PROVIDER_GOOGLE}
+                style={styles.map}
+                region={mapRegion}
+                onRegionChangeComplete={(region: Region) => {
+                  if (!regionsAreClose(mapRegion, region)) { // Only update if new region differs meaningfully
+                    console.log('Map region changed:', region.latitude, region.longitude);
+                    setMapRegion(region);
+                    scheduleCenterLocationUpdate(region);
+                  }
+                }}
+                onMapReady={() => setMapLoading(false)}
+                showsUserLocation={true}
+              />
+              <View pointerEvents="none" style={styles.centerMarkerContainer}>
+                <View style={styles.centerMarker} />
+              </View>
+            </View>
+          ) : (
+            <View style={[styles.map, styles.mapPlaceholder]}>
+              <ActivityIndicator size="large" color={colors.primary} />
+            </View>
+          )}
+          <TouchableOpacity style={styles.mapButton} onPress={centerMapOnCurrentLocation}>
+            <Ionicons name="locate" size={20} color={colors.white} />
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -419,8 +456,29 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: spacing.sm,
   },
+  mapWrapper: {
+    flex: 1,
+  },
   map: {
     flex: 1,
+  },
+  centerMarkerContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  centerMarker: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    borderWidth: 3,
+    borderColor: colors.white,
+    shadowColor: colors.dark,
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
   },
   mapLoadingOverlay: {
     ...StyleSheet.absoluteFillObject,
