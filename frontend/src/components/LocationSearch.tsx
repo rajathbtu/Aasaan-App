@@ -57,6 +57,15 @@ const LocationSearch: React.FC<Props> = ({
   );
   const [mapLoading, setMapLoading] = useState(enableMap);
   const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mapRef = useRef<MapView | null>(null);
+
+  const animateToRegion = (region: Region) => {
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(region, 300);
+    } else {
+      setMapRegion(region);
+    }
+  };
 
   useEffect(() => {
     setQuery(initialValue || '');
@@ -71,20 +80,20 @@ const LocationSearch: React.FC<Props> = ({
       return;
     }
 
-    if (initialLocation?.lat && initialLocation?.lng) {
-      setMapRegion({
-        latitude: initialLocation.lat,
-        longitude: initialLocation.lng,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
-      setMapLoading(false);
-      return;
-    }
+    const region = initialLocation?.lat && initialLocation?.lng
+      ? {
+          latitude: initialLocation.lat,
+          longitude: initialLocation.lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }
+      : DEFAULT_DELHI_REGION;
 
-    if (!mapRegion) {
-      setMapRegion(DEFAULT_DELHI_REGION);
-      setMapLoading(false);
+    setMapRegion(region);
+    setMapLoading(false);
+
+    if (mapRef.current) {
+      animateToRegion(region);
     }
   }, [enableMap, initialLocation]);
 
@@ -184,12 +193,14 @@ const LocationSearch: React.FC<Props> = ({
       const detectedLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude, description: displayName };
       setCachedLocation(detectedLocation); // Cache the detected location
       setQuery(displayName);
-      setMapRegion({
+      const region = {
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
-      });
+      };
+      setMapRegion(region);
+      animateToRegion(region);
       onSelect(detectedLocation);
     } catch (error: any) {
       const message = error?.message || String(error);
@@ -253,12 +264,14 @@ const LocationSearch: React.FC<Props> = ({
         return;
       }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      setMapRegion({
+      const region = {
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
-      });
+      };
+      setMapRegion(region);
+      animateToRegion(region);
     } catch (error) {
       console.error('Error centering map on current location:', error);
     }
@@ -369,9 +382,10 @@ const LocationSearch: React.FC<Props> = ({
           {mapRegion ? (
             <View style={styles.mapWrapper}>
               <MapView
+                ref={(ref) => { mapRef.current = ref; }}
                 provider={PROVIDER_GOOGLE}
                 style={styles.map}
-                region={mapRegion}
+                initialRegion={mapRegion || DEFAULT_DELHI_REGION}
                 onRegionChangeComplete={(region: Region) => {
                   if (!regionsAreClose(mapRegion, region)) { // Only update if new region differs meaningfully
                     console.log('Map region changed:', region.latitude, region.longitude);
