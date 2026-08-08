@@ -113,7 +113,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
               placeholder={t('createRequest.addDetails.locationSearchPlaceholder')}
               enableMap={true}
               initialLocation={selectedLocation}
-              mapHeight={250}
+              mapHeight={450}
             />
             <Text style={styles.locationNote}> {t('createRequest.addDetails.locationNote')}</Text>
           </View>

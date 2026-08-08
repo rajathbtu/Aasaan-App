@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import locationMarkerIcon from '../../assets/location_marker.png';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing, radius, sizes } from '../theme';
@@ -56,6 +57,7 @@ const LocationSearch: React.FC<Props> = ({
       : DEFAULT_DELHI_REGION
   );
   const [mapLoading, setMapLoading] = useState(enableMap);
+  const [isMapInteracting, setIsMapInteracting] = useState(false);
   const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mapRef = useRef<MapView | null>(null);
 
@@ -128,7 +130,26 @@ const LocationSearch: React.FC<Props> = ({
       return capitalizeWords(terms.slice(0, -2).map((term: { value: string }) => term.value).join(', '));
     }
     return place.description; // Fallback to the full description if terms are insufficient
-  }; 
+  };
+
+  const removeStateCountryAndPostalCode = (result: any) => { // this is for treating api responses from geocode api.. places api gives different reponse structure 
+    const addressComponents = result?.address_components || [];
+
+    const filteredComponents = addressComponents.filter((component: any) => {
+      const types = component?.types || [];
+      return !types.some((type: string) => ['plus_code','street_number','route','premise','subpremise','country', 'administrative_area_level_1', 'administrative_area_level_2', 'postal_code'].includes(type));
+    });
+
+    const cleanedNames = filteredComponents
+      .map((component: any) => component?.long_name || component?.short_name)
+      .filter(Boolean);
+
+    if (cleanedNames.length > 0) {
+      return cleanedNames.join(', ');
+    }
+
+    return result?.formatted_address || '';
+  };
 
   const handleSelect = async (place: any) => {
     if (place.place_id === 'current_location') {
@@ -164,65 +185,51 @@ const LocationSearch: React.FC<Props> = ({
   };
 
   const detectLocation = async () => {
-    if (cachedLocation) {
-      onSelect(cachedLocation);
-      setQuery(cachedLocation.description);
-      return;
-    }
-    console.log('Detecting current location...');
-    try {
-      setLocating(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        return;
-      }
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      let displayName = '';
+    var detectedLocation = cachedLocation; // Use cached location if available
+    if (!detectedLocation) {
+      console.log('Detecting current location...');
       try {
-        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${pos.coords.latitude},${pos.coords.longitude}&key=${GOOGLE_PLACES_API_KEY}`;
-        const response = await axios.get(geocodeUrl);
-        if (response.data.results && response.data.results.length > 0) {
-          const comps = response.data.results[0].address_components;
-          displayName = comps.length >= 3
-            ? comps[0].long_name + ', ' + comps[1].long_name + ', ' + comps[2].long_name
-            : response.data.results[0].formatted_address || '';
+        setLocating(true);
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          return;
         }
-      } catch (error) {
-        console.error('Error fetching location name from Google Maps API:', error);
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const displayName = await reverseGeocodeLocation(pos.coords.latitude, pos.coords.longitude);
+        detectedLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude, description: displayName };
+        setCachedLocation(detectedLocation); // Cache the detected location
+      } catch (error: any) {
+        const message = error?.message || String(error);
+        const isExpectedFailure = message.includes('unsatisfied device settings')
+          || message.includes('Location request failed')
+          || message.includes('LOCATION_SERVICES_DISABLED')
+          || message.includes('permissions');
+        if (!isExpectedFailure) {
+          console.error('Error detecting location:', error);
+        }
+      } finally {
+        setLocating(false);
       }
-      const detectedLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude, description: displayName };
-      setCachedLocation(detectedLocation); // Cache the detected location
-      setQuery(displayName);
-      const region = {
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
-      setMapRegion(region);
-      animateToRegion(region);
-      onSelect(detectedLocation);
-    } catch (error: any) {
-      const message = error?.message || String(error);
-      const isExpectedFailure = message.includes('unsatisfied device settings')
-        || message.includes('Location request failed')
-        || message.includes('LOCATION_SERVICES_DISABLED')
-        || message.includes('permissions');
-      if (!isExpectedFailure) {
-        console.error('Error detecting location:', error);
-      }
-    } finally {
-      setLocating(false);
     }
+    setQuery(detectedLocation.description);
+    onSelect(detectedLocation);
+    const region = {
+          latitude: detectedLocation.lat,
+          longitude: detectedLocation.lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+    setMapRegion(region);
+    animateToRegion(region);
+    return;
   };
 
   const reverseGeocodeLocation = async (latitude: number, longitude: number) => {
     try {
       const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_PLACES_API_KEY}`;
       const response = await axios.get(geocodeUrl);
-      if (response.data.results && response.data.results.length > 0) {
-        return response.data.results[0].formatted_address || '';
-      }
+      if (response.data.results && response.data.results.length > 0) 
+        return removeStateCountryAndPostalCode(response.data.results[0]);
     } catch (error) {
       console.error('Error reverse geocoding location:', error);
     }
@@ -237,7 +244,7 @@ const LocationSearch: React.FC<Props> = ({
     );
   };
 
-  const scheduleCenterLocationUpdate = (region: Region) => {
+  const scheduleCenterLocationUpdate = (region: Region) => { // delay the reverse geocoding to avoid excessive API calls while user is interacting with the map
     if (regionChangeTimeout.current) {
       clearTimeout(regionChangeTimeout.current);
     }
@@ -246,7 +253,7 @@ const LocationSearch: React.FC<Props> = ({
       const description = await reverseGeocodeLocation(region.latitude, region.longitude);
       setQuery(description);
       onSelect({ lat: region.latitude, lng: region.longitude, description });
-    }, 2000);
+    }, 3000);
   };
 
   useEffect(() => {
@@ -256,26 +263,6 @@ const LocationSearch: React.FC<Props> = ({
       }
     };
   }, []);
-
-  const centerMapOnCurrentLocation = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        return;
-      }
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const region = {
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
-      setMapRegion(region);
-      animateToRegion(region);
-    } catch (error) {
-      console.error('Error centering map on current location:', error);
-    }
-  };
 
   const saveLocation = async (location: Location) => {
     try {
@@ -386,18 +373,30 @@ const LocationSearch: React.FC<Props> = ({
                 provider={PROVIDER_GOOGLE}
                 style={styles.map}
                 initialRegion={mapRegion || DEFAULT_DELHI_REGION}
+                onPanDrag={() => setIsMapInteracting(true)}
+                // onLongPress={() => setIsMapInteracting(true)}
+                // onPress={() => setIsMapInteracting(false)}
                 onRegionChangeComplete={(region: Region) => {
                   if (!regionsAreClose(mapRegion, region)) { // Only update if new region differs meaningfully
                     console.log('Map region changed:', region.latitude, region.longitude);
                     setMapRegion(region);
                     scheduleCenterLocationUpdate(region);
                   }
+                  setIsMapInteracting(false);
                 }}
                 onMapReady={() => setMapLoading(false)}
                 showsUserLocation={true}
+                showsMyLocationButton={false}
               />
               <View pointerEvents="none" style={styles.centerMarkerContainer}>
-                <View style={styles.centerMarker} />
+                <Image
+                  source={locationMarkerIcon}
+                  style={[
+                    styles.centerMarker,
+                    isMapInteracting && styles.centerMarkerActive,
+                  ]}
+                  resizeMode="contain"
+                />
               </View>
             </View>
           ) : (
@@ -405,8 +404,12 @@ const LocationSearch: React.FC<Props> = ({
               <ActivityIndicator size="large" color={colors.primary} />
             </View>
           )}
-          <TouchableOpacity style={styles.mapButton} onPress={centerMapOnCurrentLocation}>
-            <Ionicons name="locate" size={20} color={colors.white} />
+          <TouchableOpacity
+            style={styles.mapButton}
+            onPress={detectLocation}
+            accessibilityLabel="Center map on current location" >
+            <Ionicons name="locate" size={18} color={colors.white} />
+            <Text style={styles.mapButtonText}>PICK MY CURRENT LOCATION</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -483,16 +486,14 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   centerMarker: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
-    borderWidth: 3,
-    borderColor: colors.white,
-    shadowColor: colors.dark,
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    width: 42,
+    height: 42,
+  },
+  centerMarkerActive: {
+    width: 28,
+    height: 28,
+    opacity: 0.75,
+
   },
   mapLoadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -503,12 +504,27 @@ const styles = StyleSheet.create({
   },
   mapButton: {
     position: 'absolute',
-    right: spacing.md,
-    bottom: spacing.md,
+    top: spacing.md,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: colors.primary,
     borderRadius: 999,
-    padding: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  mapButtonText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: '700',
+    marginLeft: spacing.xs,
+    letterSpacing: 0.3,
   },
   mapPlaceholder: {
     justifyContent: 'center',
