@@ -289,7 +289,7 @@ const ProfileScreen: React.FC = () => {
             <View style={{ marginBottom: spacing.md }}>
               <Text style={styles.fieldLabel}>{t('profile.serviceLocation')}</Text>
                <LocationSearch
-                     onSelect={(loc) => setPendingLocation({ name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng })}
+                     onSelect={(loc) => setPendingLocation((!loc)? null: { name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng })}
                      initialValue={pendingLocation?.name || pendingLocation?.description || ''}
                    />
             </View>

@@ -74,7 +74,7 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
       upsert: {
         create: {
           services: services && services.length ? services : [],
-          radius: radius ?? 5,
+          radius: radius ?? 20, //default radius if not provided
           location: location ? { create: { name: location.name, lat: location.lat, lng: location.lng } } : undefined,
         },
         update: {

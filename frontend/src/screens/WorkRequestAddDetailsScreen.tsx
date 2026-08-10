@@ -108,7 +108,7 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
               <Text style={styles.sectionTitle}>{t('createRequest.addDetails.locationTitle')}</Text>
             </View>
             <LocationSearch
-              onSelect={(location) => setSelectedLocation(location)}
+              onSelect={(location) =>setSelectedLocation((!location)? null: location)}
               initialValue={selectedLocation?.name || selectedLocation?.description || ''}
               placeholder={t('createRequest.addDetails.locationSearchPlaceholder')}
               enableMap={true}

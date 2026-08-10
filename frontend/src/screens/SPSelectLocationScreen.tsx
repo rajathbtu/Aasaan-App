@@ -17,11 +17,11 @@ const SPSelectLocationScreen: React.FC = () => {
 
   // Initialize from user data to avoid hardcoding
   const initialLoc = user?.serviceProviderInfo?.location || null;
-  const initialRadius = (user?.serviceProviderInfo?.radius as number | undefined) ?? 10;
+  const initialRadius = (user?.serviceProviderInfo?.radius as number | undefined) ?? 20;
 
   const [selectedLocation, setSelectedLocation] = useState<any>(initialLoc);
   const [radius, setRadius] = useState<number>(initialRadius);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [isRadiusExpanded, setIsRadiusExpanded] = useState(false);
 
   const handleSave = async () => {
     if (!selectedLocation) {
@@ -55,23 +55,24 @@ const SPSelectLocationScreen: React.FC = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
-      <Header title={t('sp.selectLocation.stepLabel') || 'Step 2 of 2'} showBackButton={true} showNotification={false} />
+      <Header title={t('sp.selectLocation.pageTitle') || 'Step 2 of 2'} showBackButton={true} showNotification={false} />
       <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}>
-        {/* Heading */}
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm, backgroundColor: colors.white }}>
-          <Text style={styles.pageTitle}>{t('sp.selectLocation.heading') || 'Set your service area'}</Text>
-          <Text style={styles.subtitle}>{t('sp.selectLocation.subheading') || 'You will receive work requests near this location'}</Text>
-        </View>
-
-        {/* Location section */}
+        
+        <LocationSearch
+              onSelect={(loc) => {
+                setSelectedLocation((!loc)? null: { name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng });
+              }}
+              enableMap={true}
+              mapHeight={350}
+              initialValue={selectedLocation?.name || selectedLocation?.description || ''}
+        />
+      </ScrollView>
+      
+      {/* Sticky save CTA */}
+      <View style={[styles.bottomCta, { paddingBottom: insets.bottom + spacing.sm }] }>
+        
         <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-            <View style={styles.stepDot}><Text style={styles.stepDotText}>1</Text></View>
-            <Text style={styles.sectionTitle}>{t('sp.selectLocation.locationTitle') || 'Location'}</Text>
-          </View>
-
-          {/* Current Location Card */}
           <View style={styles.locationCard}>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1 }}>
@@ -82,52 +83,43 @@ const SPSelectLocationScreen: React.FC = () => {
                   <Text style={styles.locationName} numberOfLines={2}>
                     {displayLocationName}
                   </Text>
-                  <Text style={styles.locationNote}>{t('sp.selectLocation.autoDetected') || 'Use the locate icon to auto-detect or search manually'}</Text>
                 </View>
               </View>
-              <TouchableOpacity onPress={() => setSearchOpen(true)} style={styles.changeBtn}>
-                <Text style={styles.changeBtnText}>{t('sp.selectLocation.change') || t('common.change')}</Text>
-              </TouchableOpacity>
             </View>
 
-            {/* Inline search input when Change pressed */}
-            {searchOpen && (
-              <View style={{ marginTop: spacing.md }}>
-                <LocationSearch
-                  onSelect={(loc) => {
-                    setSelectedLocation({ name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng });
-                    setSearchOpen(false);
-                  }}
-                  initialValue={selectedLocation?.name || selectedLocation?.description || ''}
-                />
-              </View>
-            )}
           </View>
         </View>
 
         {/* Radius */}
         <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-            <View style={styles.stepDot}><Text style={styles.stepDotText}>2</Text></View>
-            <Text style={styles.sectionTitle}>{t('sp.selectLocation.radiusTitle') || 'Service Radius'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+            <Text style={styles.radiusSummaryText}>
+              {`You'll see work requests within ${radius} kms of ${selectedLocation?.name || selectedLocation?.description || 'your selected location'}`}
+            </Text>
+            <TouchableOpacity onPress={() => setIsRadiusExpanded((prev) => !prev)} style={styles.radiusLink}>
+              <Text style={styles.radiusLinkText}>{t('sp.selectLocation.changeRadius')}</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.radiusQuestion}>{t('sp.selectLocation.radiusQuestion') || 'How far are you willing to travel for work?'}</Text>
 
-          <View style={styles.radiusGrid}>
-            {radiusOptions.map((value) => {
-              const active = radius === value;
-              return (
-                <TouchableOpacity key={value} style={[styles.radiusCell, active ? styles.radiusCellActive : styles.radiusCellInactive]} onPress={() => setRadius(value)}>
-                  <Text style={[styles.radiusCellText, active && styles.radiusCellTextActive]}>{value} km</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {isRadiusExpanded && (
+            <View style={{ marginTop: spacing.md }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
+                <Text style={styles.sectionTitle}>{t('sp.selectLocation.radiusQuestion') || 'How far are you willing to travel for work?'}</Text>
+              </View>
+              
+              <View style={styles.radiusGrid}>
+                {radiusOptions.map((value) => {
+                  const active = radius === value;
+                  return (
+                    <TouchableOpacity key={value} style={[styles.radiusCell, active ? styles.radiusCellActive : styles.radiusCellInactive]} onPress={() => setRadius(value)}>
+                      <Text style={[styles.radiusCellText, active && styles.radiusCellTextActive]}>{value} km</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
         </View>
-      </ScrollView>
-
-      {/* Sticky save CTA */}
-      <View style={[styles.bottomCta, { paddingBottom: insets.bottom + spacing.sm }] }>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Ionicons name="checkmark" size={18} color={colors.white} style={{ marginRight: spacing.xs }} />
           <Text style={styles.saveText}>{t('sp.selectLocation.saveButton')}</Text>
@@ -205,6 +197,21 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 12,
     fontWeight: '700',
+  },
+  radiusSummaryText: {
+    fontSize: 12,
+    color: colors.dark,
+    // fontWeight: '600',
+  },
+  radiusLink: {
+    marginLeft: spacing.xs,
+    paddingVertical: spacing.xs,
+  },
+  radiusLinkText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   radiusQuestion: {
     fontSize: 12,

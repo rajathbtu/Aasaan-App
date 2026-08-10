@@ -25,7 +25,7 @@ type Location = {
 };
 
 type Props = {
-  onSelect: (location: any) => void;
+  onSelect: (location: any | null) => void;
   initialValue?: string;
   placeholder?: string;
   enableMap?: boolean;
@@ -58,6 +58,7 @@ const LocationSearch: React.FC<Props> = ({
   );
   const [mapLoading, setMapLoading] = useState(enableMap);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
+  const [showLocationSearchOverlay, setShowLocationSearchOverlay] = useState(false);
   const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mapRef = useRef<MapView | null>(null);
 
@@ -153,12 +154,14 @@ const LocationSearch: React.FC<Props> = ({
 
   const handleSelect = async (place: any) => {
     if (place.place_id === 'current_location') {
+      setShowLocationSearchOverlay(false);
       return detectLocation();
     }
 
     const cleanedPlaceName = removeStateAndCountry(place);
-    setQuery(cleanedPlaceName); 
+    setQuery(cleanedPlaceName);
     setSuggestions([]);
+    setShowLocationSearchOverlay(false);
 
     if (!place.place_id) {
       onSelect({ ...place, description: cleanedPlaceName });
@@ -212,6 +215,7 @@ const LocationSearch: React.FC<Props> = ({
       }
     }
     setQuery(detectedLocation.description);
+    setShowLocationSearchOverlay(false);
     onSelect(detectedLocation);
     const region = {
           latitude: detectedLocation.lat,
@@ -304,61 +308,6 @@ const LocationSearch: React.FC<Props> = ({
   return (
     <View>
       
-      <View style={styles.inputWrap}>
-        <TextInput
-          style={[styles.input, { maxHeight: 60 }]} // Adjust maxHeight to fit 2 lines
-          placeholder={locating ? 'Fetching current location...' : placeholder} // Show fetching message
-          placeholderTextColor={colors.grey}
-          value={query}
-          multiline={true} // Enable multiline to allow wrapping
-          numberOfLines={2} // Limit to 2 lines
-          onChangeText={(text) => {
-            setQuery(text);
-            if (!text.trim()) {
-              setSuggestions([]);
-              onSelect(null);
-              return;
-            }
-            fetchSuggestions(text);
-          }}
-        />
-        {query.length == 0 && !locating && (
-          <TouchableOpacity
-          onPress={detectLocation}
-          style={styles.rightAdornment}
-          accessibilityLabel="Detect current location"
-        >
-          <Ionicons name="locate-outline" size={21} color={colors.dark} />
-        </TouchableOpacity>
-        )}
-        {query.length > 0 && (
-          <TouchableOpacity
-            onPress={() => {
-              setQuery('');
-              setSuggestions([]);
-              onSelect(null);
-            }}
-            style={styles.clearButton}
-          >
-            <Ionicons name="close-circle" size={21} color={colors.grey} />
-          </TouchableOpacity>
-        )}
-        {locating && (
-          <ActivityIndicator style={styles.rightAdornment} size="small" />
-        )}
-      </View>
-      {query.trim() === '' && savedLocations.length > 0 && (
-        <View style={styles.suggestionsContainer}>
-          {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Use current location' }, true, 'CURRENT')}
-          {savedLocations.map((item) => renderLocationOption(item, false, 'RECENT'))}
-        </View>
-      )}
-      {query.trim() !== '' && suggestions.length > 0 && (
-        <View style={styles.suggestionsContainer}>
-          {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Use current location' }, true, 'CURRENT')}
-          {suggestions.map((item) => renderLocationOption(item, false, 'SEARCHED'))}
-        </View>
-      )}
       {enableMap && (
         <View style={[styles.mapContainer, { height: mapHeight ?? 250 }]}>            
           {mapLoading && (
@@ -398,6 +347,21 @@ const LocationSearch: React.FC<Props> = ({
                   resizeMode="contain"
                 />
               </View>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => setShowLocationSearchOverlay(true)}
+                style={styles.mapInputOverlay}
+                accessibilityLabel="Enter location name"
+              >
+                <TextInput
+                  value={query || ''}
+                  placeholder="Enter location name"
+                  placeholderTextColor={colors.grey}
+                  editable={false}
+                  pointerEvents="none"
+                  style={styles.mapInput}
+                />
+              </TouchableOpacity>
             </View>
           ) : (
             <View style={[styles.map, styles.mapPlaceholder]}>
@@ -411,6 +375,74 @@ const LocationSearch: React.FC<Props> = ({
             <Ionicons name="locate" size={18} color={colors.white} />
             <Text style={styles.mapButtonText}>PICK MY CURRENT LOCATION</Text>
           </TouchableOpacity>
+        </View>
+      )}
+      {showLocationSearchOverlay && (
+        <View style={styles.overlay}>
+          <TouchableOpacity
+            activeOpacity={1}
+            style={styles.overlayBackdrop}
+            onPress={() => setShowLocationSearchOverlay(false)}
+          />
+          <View id="location-search-input" style={styles.overlayContent}>
+            <View style={styles.inputWrap}>
+              <TextInput
+                style={[styles.input, { maxHeight: 60 }]} // Adjust maxHeight to fit 2 lines
+                placeholder={locating ? 'Fetching current location...' : placeholder} // Show fetching message
+                placeholderTextColor={colors.grey}
+                value={query}
+                multiline={true} // Enable multiline to allow wrapping
+                numberOfLines={2} // Limit to 2 lines
+                autoFocus
+                onChangeText={(text) => {
+                  setQuery(text);
+                  if (!text.trim()) {
+                    setSuggestions([]);
+                    onSelect(null);
+                    return;
+                  }
+                  fetchSuggestions(text);
+                }}
+              />
+              {query.length == 0 && !locating && (
+                <TouchableOpacity
+                  onPress={detectLocation}
+                  style={styles.rightAdornment}
+                  accessibilityLabel="Detect current location"
+                >
+                  <Ionicons name="locate-outline" size={21} color={colors.dark} />
+                </TouchableOpacity>
+              )}
+              {query.length > 0 && (
+                <TouchableOpacity id= "clear-button"
+                  onPress={() => {
+                    setQuery('');
+                    setSuggestions([]);
+                    setShowLocationSearchOverlay(false);
+                    onSelect(null);
+                  }}
+                  style={styles.clearButton}
+                >
+                  <Ionicons name="close-circle" size={21} color={colors.grey} />
+                </TouchableOpacity>
+              )}
+              {locating && (
+                <ActivityIndicator style={styles.rightAdornment} size="small" />
+              )}
+            </View>
+            {query.trim() === '' && savedLocations.length > 0 && (
+              <View style={styles.suggestionsContainer}>
+                {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Use current location' }, true, 'CURRENT')}
+                {savedLocations.map((item) => renderLocationOption(item, false, 'RECENT'))}
+              </View>
+            )}
+            {query.trim() !== '' && suggestions.length > 0 && (
+              <View style={styles.suggestionsContainer}>
+                {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Use current location' }, true, 'CURRENT')}
+                {suggestions.map((item) => renderLocationOption(item, false, 'SEARCHED'))}
+              </View>
+            )}
+          </View>
         </View>
       )}
     </View>
@@ -502,9 +534,32 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.85)',
     zIndex: 1,
   },
+  mapInputOverlay: {
+    position: 'absolute',
+    top: spacing.sm,
+    alignSelf: 'center',
+    width: '78%',
+    zIndex: 3,
+  },
+  mapInput: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.greyLight,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    color: colors.dark,
+    fontSize: 14,
+    opacity: 0.98,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
   mapButton: {
     position: 'absolute',
-    top: spacing.md,
+    bottom: spacing.md,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
@@ -529,6 +584,30 @@ const styles = StyleSheet.create({
   mapPlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'flex-start',
+  },
+  overlayBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
+  overlayContent: {
+    position: 'relative',
+    zIndex: 1,
+    width: '100%',
+    flex: 1,
+    backgroundColor: colors.white,
+    paddingTop: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.xl,
   },
 });
 
