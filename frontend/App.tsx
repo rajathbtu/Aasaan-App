@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import 'react-native-get-random-values'; 
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -9,6 +9,7 @@ import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { locationManager } from './src/services/LocationManager';
 
 // Import screens
 import LaunchScreen from './src/screens/LaunchScreen';
@@ -170,6 +171,10 @@ export type AuthStackNavigationProp = NativeStackNavigationProp<AuthStackParamLi
 export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function App() {
+  useEffect(() => {
+    void locationManager.initialize();
+  }, []);
+
   return (
     <AuthProvider>
       <SafeAreaProvider>

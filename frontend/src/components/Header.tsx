@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
+import DetectedLocationCard from './DetectedLocationCard';
 
 type HeaderProps = {
   title: string;
@@ -53,6 +54,8 @@ const Header: React.FC<HeaderProps> = ({
         )
         )}
       </View>
+       <DetectedLocationCard />
+
     </SafeAreaView>
   );
 };
