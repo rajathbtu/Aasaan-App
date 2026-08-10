@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,16 +6,23 @@ import axios from 'axios';
 import locationMarkerIcon from '../../assets/location_marker.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing, radius, sizes } from '../theme';
-import { locationManager } from '../services/LocationManager';
+import { locationManager, useLocation } from '../services/LocationManager';
 
 const GOOGLE_PLACES_API_KEY = 'AIzaSyC4n8PRgWHs34mn7Iyw8nkkU6aXMyJFj9g'; // Replace with your API key
 const MAX_SAVED_LOCATIONS = 3;
-const DEFAULT_DELHI_REGION = {
+const DEFAULT_LOCATION = {
   latitude: 28.613939,
   longitude: 77.209021,
   latitudeDelta: 0.01,
   longitudeDelta: 0.01,
 };
+
+const getRegionFromLocation = (location?: { latitude: number; longitude: number } | null): Region => ({
+  latitude: location?.latitude ?? DEFAULT_LOCATION.latitude,
+  longitude: location?.longitude ?? DEFAULT_LOCATION.longitude,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
+});
 
 type Location = {
   place_id: string;
@@ -41,6 +48,9 @@ const LocationSearch: React.FC<Props> = ({
   initialLocation,
   mapHeight,
 }) => {
+  const { gpsLocation, ipLocation } = useLocation();
+  const liveDefaultRegion = useMemo(() => 
+    getRegionFromLocation(gpsLocation ?? ipLocation),[gpsLocation, ipLocation]);
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<Array<{ place_id: string; description: string }>>([]);
   const [savedLocations, setSavedLocations] = useState<Array<{ place_id: string; description: string }>>([]);
@@ -54,7 +64,7 @@ const LocationSearch: React.FC<Props> = ({
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         }
-      : DEFAULT_DELHI_REGION
+      : liveDefaultRegion
   );
   const [mapLoading, setMapLoading] = useState(enableMap);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
@@ -79,6 +89,10 @@ const LocationSearch: React.FC<Props> = ({
   }, [initialValue]);
 
   useEffect(() => {
+    void locationManager.initialize();
+  }, []);
+
+  useEffect(() => {
     if (!enableMap) {
       return;
     }
@@ -90,15 +104,19 @@ const LocationSearch: React.FC<Props> = ({
           latitudeDelta: 0.01,
           longitudeDelta: 0.01,
         }
-      : DEFAULT_DELHI_REGION;
+      : liveDefaultRegion;
 
-    setMapRegion(region);
+    setMapRegion((currentRegion) => {
+      if (currentRegion && regionsAreClose(currentRegion, region)) 
+        return currentRegion;
+      return region;
+    });
     setMapLoading(false);
 
     if (mapRef.current) {
       animateToRegion(region);
     }
-  }, [enableMap, initialLocation]);
+  }, [enableMap, initialLocation, liveDefaultRegion]);
 
   const fetchSuggestions = async (text: string) => {
     if (!text) {
@@ -190,10 +208,9 @@ const LocationSearch: React.FC<Props> = ({
   const detectLocation = async () => {
     let detectedLocation = cachedLocation; // Use cached location if available
     if (!detectedLocation) {
-      console.log('Detecting current location...');
       try {
         setLocating(true);
-        const gpsLocation = await locationManager.getGPSLocation();
+        const gpsLocation = await locationManager.getGPSLocation(true);
         if (!gpsLocation) {
           return;
         }
@@ -326,7 +343,7 @@ const LocationSearch: React.FC<Props> = ({
                 ref={(ref) => { mapRef.current = ref; }}
                 provider={PROVIDER_GOOGLE}
                 style={styles.map}
-                initialRegion={mapRegion || DEFAULT_DELHI_REGION}
+                initialRegion={mapRegion || DEFAULT_LOCATION}
                 onPanDrag={() => setIsMapInteracting(true)}
                 // onLongPress={() => setIsMapInteracting(true)}
                 // onPress={() => setIsMapInteracting(false)}

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Linking } from 'react-native';
 import * as Location from 'expo-location';
 
 export type LocationStatus =
@@ -208,7 +209,35 @@ class LocationManager {
     return null;
   }
 
-  async getGPSLocation(): Promise<LocationRecord | null> {
+  private async openLocationSettings() {
+    try {
+      if (typeof (Location as any).openSettingsAsync === 'function') {
+        await (Location as any).openSettingsAsync();
+        return;
+      }
+
+      if (typeof Linking.openSettings === 'function') {
+        await Linking.openSettings();
+      }
+    } catch (error) {
+      console.warn('Unable to open location settings:', error);
+    }
+  }
+
+  private async tryExplicitLocationPrompt(): Promise<boolean> {
+    try {
+      const permission = await this.requestPermission();
+      if (permission === 'granted') {
+        return true;
+      }
+    } catch (error) {
+      console.warn('Unable to trigger native location permission dialog:', error);
+    }
+
+    return false;
+  }
+
+  async getGPSLocation(explicitPrompt = false): Promise<LocationRecord | null> {
     if (this.gpsLocation) {
       return this.gpsLocation;
     }
@@ -221,16 +250,33 @@ class LocationManager {
     this.permissionStatus = permissionResponse.status;
 
     if (permissionResponse.status !== 'granted') {
-      if (permissionResponse.status === 'denied' || (permissionResponse.status as string) === 'restricted') {
-        this.gpsStatus = 'permission_denied';
-        this.error = null;
-      } else {
+      if (explicitPrompt) {
         this.gpsStatus = 'permission_required';
-        this.error = null;
+        this.error = 'Location access is required to use your current location.';
         this.notify();
-        const permission = await this.requestPermission();
-        if (permission !== 'granted') {
+
+        const permissionGranted = await this.tryExplicitLocationPrompt();
+        if (!permissionGranted) {
+          if (permissionResponse.status === 'denied' || (permissionResponse.status as string) === 'restricted') {
+            this.gpsStatus = 'permission_denied';
+            this.error = 'Location access is required to use your current location.';
+            this.notify();
+            await this.openLocationSettings();
+          }
           return null;
+        }
+      } else {
+        if (permissionResponse.status === 'denied' || (permissionResponse.status as string) === 'restricted') {
+          this.gpsStatus = 'permission_denied';
+          this.error = null;
+        } else {
+          this.gpsStatus = 'permission_required';
+          this.error = null;
+          this.notify();
+          const permission = await this.requestPermission();
+          if (permission !== 'granted') {
+            return null;
+          }
         }
       }
     }
@@ -239,12 +285,34 @@ class LocationManager {
     this.locationEnabled = servicesEnabled;
 
     if (!servicesEnabled) {
-      this.gpsStatus = 'location_disabled';
-      this.error = null;
-      this.notify();
-      return null;
+      if (explicitPrompt) {
+        this.gpsStatus = 'location_disabled';
+        this.error = 'Please turn on device location services to fetch your current location.';
+        this.notify();
+
+        try {
+          await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+            mayShowUserSettingsDialog: true,
+          });
+        } catch (error) {
+          console.warn('Location services prompt did not resolve:', error);
+        }
+
+        const servicesStillDisabled = !(await Location.hasServicesEnabledAsync());
+        if (servicesStillDisabled) {
+          await this.openLocationSettings();
+          return null;
+        }
+      } else {
+        this.gpsStatus = 'location_disabled';
+        this.error = null;
+        this.notify();
+        return null;
+      }
     }
 
+    this.locationEnabled = await Location.hasServicesEnabledAsync();
     this.gpsStatus = 'fetching';
     this.notify();
 
@@ -296,7 +364,7 @@ export function useLocation() {
 
   return {
     ...snapshot,
-    getGPSLocation: () => locationManager.getGPSLocation(),
+    getGPSLocation: (explicitPrompt = false) => locationManager.getGPSLocation(explicitPrompt),
     getIPLocation: () => locationManager.getIPLocation(),
     requestPermission: () => locationManager.requestPermission(),
     refreshPermissionStatus: () => locationManager.refreshPermissionStatus(),
