@@ -10,7 +10,6 @@ import { getLanguageDisplay } from '../data/languages';
 import Header from '../components/Header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
-import * as Location from 'expo-location';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users

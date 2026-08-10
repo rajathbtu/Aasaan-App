@@ -4,9 +4,9 @@ import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import locationMarkerIcon from '../../assets/location_marker.png';
-import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing, radius, sizes } from '../theme';
+import { locationManager } from '../services/LocationManager';
 
 const GOOGLE_PLACES_API_KEY = 'AIzaSyC4n8PRgWHs34mn7Iyw8nkkU6aXMyJFj9g'; // Replace with your API key
 const MAX_SAVED_LOCATIONS = 3;
@@ -188,18 +188,18 @@ const LocationSearch: React.FC<Props> = ({
   };
 
   const detectLocation = async () => {
-    var detectedLocation = cachedLocation; // Use cached location if available
+    let detectedLocation = cachedLocation; // Use cached location if available
     if (!detectedLocation) {
       console.log('Detecting current location...');
       try {
         setLocating(true);
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
+        const gpsLocation = await locationManager.getGPSLocation();
+        if (!gpsLocation) {
           return;
         }
-        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        const displayName = await reverseGeocodeLocation(pos.coords.latitude, pos.coords.longitude);
-        detectedLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude, description: displayName };
+
+        const displayName = await reverseGeocodeLocation(gpsLocation.latitude, gpsLocation.longitude);
+        detectedLocation = { lat: gpsLocation.latitude, lng: gpsLocation.longitude, description: displayName };
         setCachedLocation(detectedLocation); // Cache the detected location
       } catch (error: any) {
         const message = error?.message || String(error);
@@ -214,15 +214,20 @@ const LocationSearch: React.FC<Props> = ({
         setLocating(false);
       }
     }
+
+    if (!detectedLocation) {
+      return;
+    }
+
     setQuery(detectedLocation.description);
     setShowLocationSearchOverlay(false);
     onSelect(detectedLocation);
     const region = {
-          latitude: detectedLocation.lat,
-          longitude: detectedLocation.lng,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        };
+      latitude: detectedLocation.lat,
+      longitude: detectedLocation.lng,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    };
     setMapRegion(region);
     animateToRegion(region);
     return;
