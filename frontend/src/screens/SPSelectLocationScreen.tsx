@@ -57,23 +57,20 @@ const SPSelectLocationScreen: React.FC = () => {
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header title={t('sp.selectLocation.pageTitle') || 'Step 2 of 2'} showBackButton={true} showNotification={false} />
       {/* <View style={{ height: spacing.sm }} /> */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}>
-        
+      <View style={{ flex: 1 }}>
         <LocationSearch
               onSelect={(loc) => {
                 setSelectedLocation((!loc)? null: { name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng });
               }}
               enableMap={true}
-              mapHeight={350}
               initialValue={selectedLocation?.name || selectedLocation?.description || ''}/>
-        
-      </ScrollView>
+      </View>
       
       
       <View style={[styles.bottomCta, { paddingBottom: insets.bottom + spacing.sm }] }>
         {displayLocationName && displayLocationName !== t('sp.selectLocation.selectLocation') && (
             <View style={styles.locationCard}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
                 <View style={styles.locIconCircle}>
                   <Ionicons name="location" size={16} color={colors.primary} />
                 </View>
@@ -156,11 +153,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   locationCard: {
+    flexDirection: 'row', alignItems: 'center', flexShrink: 1 ,
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.greyLight,
     borderRadius: radius.md,
-    padding: spacing.md,
+    padding: spacing.sm,
     shadowColor: colors.black,
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -244,10 +242,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   bottomCta: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.greyLight,

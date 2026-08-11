@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Modal } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
@@ -8,6 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing, radius, sizes } from '../theme';
 import { locationManager, useLocation } from '../services/LocationManager';
 import EdgeLoader from './EdgeLoader';
+import Header from './Header';
 
 const GOOGLE_PLACES_API_KEY = 'AIzaSyC4n8PRgWHs34mn7Iyw8nkkU6aXMyJFj9g'; // Replace with your API key
 const MAX_SAVED_LOCATIONS = 3;
@@ -57,6 +58,7 @@ const LocationSearch: React.FC<Props> = ({
   const [savedLocations, setSavedLocations] = useState<Array<{ place_id: string; description: string }>>([]);
   const [locating, setLocating] = useState(false);
   const [cachedLocation, setCachedLocation] = useState<any>(null); // Cache for current location
+  const [currentLocationRegion, setCurrentLocationRegion] = useState<{ latitude: number; longitude: number } | null>(null);
   const [mapRegion, setMapRegion] = useState<Region | null>(
     initialLocation?.lat && initialLocation?.lng
       ? {
@@ -258,6 +260,10 @@ const LocationSearch: React.FC<Props> = ({
     }
 
     setQuery(detectedLocation.description);
+    setCurrentLocationRegion({
+      latitude: detectedLocation.lat,
+      longitude: detectedLocation.lng,
+    });
     setShowLocationSearchOverlay(false);
     onSelect(detectedLocation);
     const region = {
@@ -338,23 +344,32 @@ const LocationSearch: React.FC<Props> = ({
     return text.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
   };
 
-  const renderLocationOption = (item: { place_id: string; description: string }, isCurrentLocation = false, tag?: string) => (
+  const renderLocationOption = (item: { place_id: string; description: string }, isCurrentLocation = false, iconName?: string) => (
     <TouchableOpacity
       key={item.place_id}
       onPress={() => (isCurrentLocation ? detectLocation() : handleSelect(item))}
     >
       <View style={styles.suggestionRow}>
-        {tag && <Text style={styles.tag}>{tag}</Text>}
+        {iconName ? (
+          <View style={styles.iconWrap}>
+            <Ionicons name={iconName as any} size={16} color={colors.primary} />
+          </View>
+        ) : null}
         <Text style={styles.suggestion}>{item.description}</Text>
       </View>
     </TouchableOpacity>
   );
 
+  const isCurrentLocationSelected = currentLocationRegion
+    && mapRegion
+    && Math.abs(currentLocationRegion.latitude - mapRegion.latitude) < 0.00005
+    && Math.abs(currentLocationRegion.longitude - mapRegion.longitude) < 0.00005;
+
   return (
-    <View>
+    <View style={enableMap && !mapHeight ? styles.flexContainer : undefined}>
       
       {enableMap && (
-        <View style={[styles.mapContainer, { height: mapHeight ?? 250 }]}>            
+        <View style={[styles.mapContainer, mapHeight ? { height: mapHeight } : { flex: 1 }]}>            
           {mapLoading && (
             <View style={styles.mapLoadingOverlay}>
               <ActivityIndicator size="large" color={colors.primary} />
@@ -403,9 +418,8 @@ const LocationSearch: React.FC<Props> = ({
                 accessibilityLabel="Enter location name"
               >
                 <TextInput
-                  value={query || ''}
-                  placeholder="Enter location name"
-                  placeholderTextColor={colors.grey}
+                  placeholder="Search by location name.."
+                  placeholderTextColor={colors.primary}
                   editable={false}
                   pointerEvents="none"
                   style={styles.mapInput}
@@ -418,21 +432,26 @@ const LocationSearch: React.FC<Props> = ({
             </View>
           )}
           <TouchableOpacity
-            style={styles.mapButton}
+            style={[styles.mapButton, isCurrentLocationSelected && styles.mapButtonDisabled]}
             onPress={detectLocation}
-            accessibilityLabel="Center map on current location" >
+            accessibilityLabel="Center map on current location"
+            disabled={isCurrentLocationSelected || false}
+          >
             <Ionicons name="locate" size={18} color={colors.white} />
             <Text style={styles.mapButtonText}>PICK MY CURRENT LOCATION</Text>
           </TouchableOpacity>
         </View>
       )}
-      {showLocationSearchOverlay && (
+      <Modal
+        visible={showLocationSearchOverlay}
+        animationType="fade"
+        transparent
+        statusBarTranslucent
+        onRequestClose={() => setShowLocationSearchOverlay(false)}
+      >
         <View style={styles.overlay}>
-          <TouchableOpacity
-            activeOpacity={1}
-            style={styles.overlayBackdrop}
-            onPress={() => setShowLocationSearchOverlay(false)}
-          />
+          <Header title={'Search Location'} showBackButton={true} showNotification={false}
+                  keepTitleCenterAligned={false} />
           <View id="location-search-input" style={styles.overlayContent}>
             <View style={styles.inputWrap}>
               <TextInput
@@ -453,7 +472,7 @@ const LocationSearch: React.FC<Props> = ({
                   fetchSuggestions(text);
                 }}
               />
-              {query.length == 0 && !locating && (
+              {/* {query.length == 0 && !locating && (
                 <TouchableOpacity
                   onPress={detectLocation}
                   style={styles.rightAdornment}
@@ -461,9 +480,9 @@ const LocationSearch: React.FC<Props> = ({
                 >
                   <Ionicons name="locate-outline" size={21} color={colors.dark} />
                 </TouchableOpacity>
-              )}
+              )} */}
               {query.length > 0 && (
-                <TouchableOpacity id= "clear-button"
+                <TouchableOpacity id="clear-button"
                   onPress={() => {
                     setQuery('');
                     setSuggestions([]);
@@ -481,19 +500,19 @@ const LocationSearch: React.FC<Props> = ({
             </View>
             {query.trim() === '' && savedLocations.length > 0 && (
               <View style={styles.suggestionsContainer}>
-                {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Use current location' }, true, 'CURRENT')}
-                {savedLocations.map((item) => renderLocationOption(item, false, 'RECENT'))}
+                {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Current Location' }, true, 'navigate-outline')}
+                {savedLocations.map((item) => renderLocationOption(item, false, 'time-outline'))}
               </View>
             )}
             {query.trim() !== '' && suggestions.length > 0 && (
               <View style={styles.suggestionsContainer}>
-                {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Use current location' }, true, 'CURRENT')}
-                {suggestions.map((item) => renderLocationOption(item, false, 'SEARCHED'))}
+                {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Current Location' }, true, 'navigate-outline')}
+                {suggestions.map((item) => renderLocationOption(item, false, 'location-outline'))}
               </View>
             )}
           </View>
         </View>
-      )}
+      </Modal>
     </View>
   );
 };
@@ -505,12 +524,15 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: colors.greyLight,
-    borderRadius: radius.md,
+    // borderRadius: radius.sm,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     color: colors.dark,
     backgroundColor: colors.white,
     paddingRight: sizes.inputRightPadding,
+    fontSize: 16,
+    fontWeight: '600',
+    height: 60, // Fixed height to accommodate 2 lines of text
   },
   rightAdornment: {
     position: 'absolute',
@@ -525,34 +547,41 @@ const styles = StyleSheet.create({
   suggestionsContainer: {
     borderWidth: 1,
     borderColor: colors.greyLight,
-    borderRadius: radius.md,
+    // borderRadius: radius.sm,
     overflow: 'hidden',
     backgroundColor: colors.white,
   },
-  tag: {
-    color: colors.grey,
-    fontSize: 9,
-    marginRight: spacing.sm, // Add spacing between tag and text
+  iconWrap: {
+    width: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
   },
   suggestion: {
-    flex: 1, // Ensure text takes up remaining space
+    flex: 1,
     color: colors.dark,
-    // fontSize: 14
+    fontSize: 15,
+    fontWeight: '500',
+    lineHeight: 20,
   },
   suggestionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.greyLight,
+    minHeight: 56,
   },
   mapContainer: {
     width: '100%',
     backgroundColor: colors.greyLight,
     borderRadius: radius.md,
     overflow: 'hidden',
-    marginBottom: spacing.sm,
+    // marginBottom: spacing.sm,
+  },
+  flexContainer: {
+    flex: 1,
   },
   mapWrapper: {
     flex: 1,
@@ -593,13 +622,13 @@ const styles = StyleSheet.create({
   mapInput: {
     backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: colors.greyLight,
+    borderColor: colors.primary,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    color: colors.dark,
+    color: colors.primary,
     fontSize: 14,
-    opacity: 0.98,
+    opacity: 0.95,
     shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -622,6 +651,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
+  },
+  mapButtonDisabled: {
+    backgroundColor: colors.grey,
+    opacity: 0.5,
   },
   mapButtonText: {
     color: colors.white,
