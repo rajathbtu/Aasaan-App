@@ -30,7 +30,7 @@ const Header: React.FC<HeaderProps> = ({
       <View style={styles.headerRow}>
         {showBackButton && (
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={20} color={colors.dark} />
+            <Ionicons name="arrow-back" size={24} color={colors.dark} />
           </TouchableOpacity>
         )}
         <Text style={[styles.headerTitle,
@@ -73,11 +73,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start', // Ensure left alignment of content
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
   },
   backButton: {
-    padding: spacing.sm,
+    paddingRight: spacing.sm,
   },
   headerTitle: {
     fontSize: 20,

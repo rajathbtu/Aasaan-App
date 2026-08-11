@@ -7,6 +7,7 @@ import locationMarkerIcon from '../../assets/location_marker.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing, radius, sizes } from '../theme';
 import { locationManager, useLocation } from '../services/LocationManager';
+import EdgeLoader from './EdgeLoader';
 
 const GOOGLE_PLACES_API_KEY = 'AIzaSyC4n8PRgWHs34mn7Iyw8nkkU6aXMyJFj9g'; // Replace with your API key
 const MAX_SAVED_LOCATIONS = 3;
@@ -69,6 +70,7 @@ const LocationSearch: React.FC<Props> = ({
   const [mapLoading, setMapLoading] = useState(enableMap);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
   const [showLocationSearchOverlay, setShowLocationSearchOverlay] = useState(false);
+  const [showEdgeLoader, setShowEdgeLoader] = useState(false);
   const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mapRef = useRef<MapView | null>(null);
 
@@ -176,6 +178,7 @@ const LocationSearch: React.FC<Props> = ({
       return detectLocation();
     }
 
+    setShowEdgeLoader(true);
     const cleanedPlaceName = removeStateAndCountry(place);
     setQuery(cleanedPlaceName);
     setSuggestions([]);
@@ -183,6 +186,7 @@ const LocationSearch: React.FC<Props> = ({
 
     if (!place.place_id) {
       onSelect({ ...place, description: cleanedPlaceName });
+      setShowEdgeLoader(false);
       return;
     }
 
@@ -197,21 +201,37 @@ const LocationSearch: React.FC<Props> = ({
       place.description = cleanedPlaceName;
       const selectedLocation = { ...place, lat, lng };
       onSelect(selectedLocation);
+      setMapRegion({
+        latitude: lat,
+        longitude: lng,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+      animateToRegion({
+        latitude: lat,
+        longitude: lng,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
       await saveLocation(selectedLocation);
       setSavedLocations(await getSavedLocations());
+      setShowEdgeLoader(false);
     } catch (error) {
       console.error('Error fetching place details:', error);
       onSelect({ ...place, description: cleanedPlaceName });
+      setShowEdgeLoader(false);
     }
   };
 
   const detectLocation = async () => {
+    setShowEdgeLoader(true);
     let detectedLocation = cachedLocation; // Use cached location if available
     if (!detectedLocation) {
       try {
         setLocating(true);
         const gpsLocation = await locationManager.getGPSLocation(true);
         if (!gpsLocation) {
+          setShowEdgeLoader(false);
           return;
         }
 
@@ -233,6 +253,7 @@ const LocationSearch: React.FC<Props> = ({
     }
 
     if (!detectedLocation) {
+      setShowEdgeLoader(false);
       return;
     }
 
@@ -247,6 +268,7 @@ const LocationSearch: React.FC<Props> = ({
     };
     setMapRegion(region);
     animateToRegion(region);
+    setShowEdgeLoader(false);
     return;
   };
 
@@ -279,6 +301,7 @@ const LocationSearch: React.FC<Props> = ({
       const description = await reverseGeocodeLocation(region.latitude, region.longitude);
       setQuery(description);
       onSelect({ lat: region.latitude, lng: region.longitude, description });
+      setShowEdgeLoader(false);
     }, 3000);
   };
 
@@ -344,7 +367,10 @@ const LocationSearch: React.FC<Props> = ({
                 provider={PROVIDER_GOOGLE}
                 style={styles.map}
                 initialRegion={mapRegion || DEFAULT_LOCATION}
-                onPanDrag={() => setIsMapInteracting(true)}
+                onPanDrag={() => {
+                  setIsMapInteracting(true);
+                  setShowEdgeLoader(true);
+                }}
                 // onLongPress={() => setIsMapInteracting(true)}
                 // onPress={() => setIsMapInteracting(false)}
                 onRegionChangeComplete={(region: Region) => {
@@ -359,6 +385,7 @@ const LocationSearch: React.FC<Props> = ({
                 showsUserLocation={true}
                 showsMyLocationButton={false}
               />
+              <EdgeLoader visible={showEdgeLoader} />
               <View pointerEvents="none" style={styles.centerMarkerContainer}>
                 <Image
                   source={locationMarkerIcon}

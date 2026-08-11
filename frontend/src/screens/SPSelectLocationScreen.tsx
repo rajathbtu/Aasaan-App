@@ -56,7 +56,7 @@ const SPSelectLocationScreen: React.FC = () => {
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header title={t('sp.selectLocation.pageTitle') || 'Step 2 of 2'} showBackButton={true} showNotification={false} />
-      <View style={{ height: spacing.sm }} />
+      {/* <View style={{ height: spacing.sm }} /> */}
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}>
         
         <LocationSearch
@@ -65,17 +65,15 @@ const SPSelectLocationScreen: React.FC = () => {
               }}
               enableMap={true}
               mapHeight={350}
-              initialValue={selectedLocation?.name || selectedLocation?.description || ''}
-        />
+              initialValue={selectedLocation?.name || selectedLocation?.description || ''}/>
+        
       </ScrollView>
       
-      {/* Sticky save CTA */}
+      
       <View style={[styles.bottomCta, { paddingBottom: insets.bottom + spacing.sm }] }>
-        
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg }}>
-          <View style={styles.locationCard}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1 }}>
+        {displayLocationName && displayLocationName !== t('sp.selectLocation.selectLocation') && (
+            <View style={styles.locationCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', flex: 1 }}>
                 <View style={styles.locIconCircle}>
                   <Ionicons name="location" size={16} color={colors.primary} />
                 </View>
@@ -86,14 +84,12 @@ const SPSelectLocationScreen: React.FC = () => {
                 </View>
               </View>
             </View>
-
-          </View>
-        </View>
+        )}
 
         {/* Radius */}
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.lg }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-            <Text style={styles.radiusSummaryText}>
+        <View style={{ paddingHorizontal: spacing.lg, padding: spacing.lg }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
+            <Text style={[styles.radiusSummaryText, { flexShrink: 1 }]} numberOfLines={2} ellipsizeMode="tail">
               {`You'll see work requests within ${radius} kms of ${selectedLocation?.name || selectedLocation?.description || 'your selected location'}`}
             </Text>
             <TouchableOpacity onPress={() => setIsRadiusExpanded((prev) => !prev)} style={styles.radiusLink}>
@@ -104,7 +100,7 @@ const SPSelectLocationScreen: React.FC = () => {
           {isRadiusExpanded && (
             <View style={{ marginTop: spacing.md }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-                <Text style={styles.sectionTitle}>{t('sp.selectLocation.radiusQuestion') || 'How far are you willing to travel for work?'}</Text>
+                <Text style={styles.sectionTitle}>{t('sp.selectLocation.radiusQuestion') || 'How far can you travel for work?'}</Text>
               </View>
               
               <View style={styles.radiusGrid}>
@@ -227,7 +223,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
     borderWidth: 1,
     borderRadius: radius.md,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     alignItems: 'center',
   },
   radiusCellInactive: {
@@ -239,7 +235,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   radiusCellText: {
-    fontSize: 16,
+    fontSize: 13,
     color: colors.dark,
     fontWeight: '500',
   },

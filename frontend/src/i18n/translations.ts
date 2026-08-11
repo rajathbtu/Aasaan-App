@@ -272,7 +272,7 @@ export const translations = {
         change: 'Change',
         radiusTitle: 'Service Radius',
         changeRadius: 'Change radius',
-        radiusQuestion: 'How far are you willing to travel for work?',
+        radiusQuestion: 'How far can you travel for work?',
       },
     },
     subscription: {
@@ -711,7 +711,7 @@ export const translations = {
         autoDetected: 'Your current location auto-detected',
         change: 'Change',
         radiusTitle: 'Service Radius',
-        radiusQuestion: 'How far are you willing to travel for work?',
+        radiusQuestion: 'Work Radius (in km)',
       },
     },
     subscription: {
