@@ -25,6 +25,8 @@ const LanguageSelectionScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { setLanguage, user } = useAuth();
   const preferred = (route.params && route.params.preferred) || undefined;
+  // Mode: 'edit' used when opened for profile-update flows, 'onboarding' otherwise
+  const mode: 'edit' | 'onboarding' = (route.params?.mode as any) === 'edit' ? 'edit' : 'onboarding';
   const [canLeave, setCanLeave] = useState(false);
 
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(
@@ -68,7 +70,7 @@ const LanguageSelectionScreen: React.FC = () => {
     <View style={{ flex: 1}}>
       <View style={styles.container}>
         {/* Header */}
-        <Header title={t.language.title} showBackButton={false} showNotification={false} keepTitleCenterAligned={true} />
+        <Header title={t.language.title} showBackButton={mode === 'edit'} showNotification={false} keepTitleCenterAligned={mode!== 'edit'} />
         <View style={{ height: spacing.sm }} />
 
         {/* Language Selection Content */}

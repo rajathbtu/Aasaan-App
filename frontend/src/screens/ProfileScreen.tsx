@@ -223,6 +223,7 @@ const ProfileScreen: React.FC = () => {
                 onPress={() =>
                   navigation.navigate('LanguageSelection', {
                     preferred: user?.language || lang,
+                    mode: 'edit',
                   })
                 }
               style={styles.infoCell}
@@ -242,7 +243,7 @@ const ProfileScreen: React.FC = () => {
           </View>
           <TouchableOpacity
             style={styles.infoCell}
-            onPress={() => navigation.navigate('RoleSelect')}
+            onPress={() => navigation.navigate('RoleSelect', { mode: 'edit' })}
             activeOpacity={0.8}
           >
             <Text style={styles.infoValue}> 
@@ -317,7 +318,7 @@ const ProfileScreen: React.FC = () => {
                 </View>
 
                 <TouchableOpacity
-                  onPress={() => navigation.navigate('SPSelectLocation')}
+                  onPress={() => navigation.navigate('SPSelectLocation', { mode: 'edit' })}
                   style={styles.editButton}
                   activeOpacity={0.8}
                 >

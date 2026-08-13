@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator, BackHandler } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
 import BottomCTA from '../components/BottomCTA';
@@ -19,6 +19,9 @@ const STICKY_HEIGHT = 96; // approx height of the bottom CTA area (padding + but
  */
 const RoleSelectScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
+  // Mode: 'edit' when opened from profile-update flows, otherwise 'onboarding'
+  const mode: 'edit' | 'onboarding' = (route.params?.mode as any) === 'edit' ? 'edit' : 'onboarding';
   const { user, updateUser } = useAuth();
   const { t, lang } = useI18n();
   const [selectedRole, setSelectedRole] = useState<'endUser' | 'serviceProvider' | null>(
@@ -85,12 +88,13 @@ const RoleSelectScreen: React.FC = () => {
   };
 
   React.useEffect(() => {
-    const backHandler = () => {
-      return true; // Prevent app exit on back button press
-    };
+    // Only prevent going back during onboarding; allow back in edit mode
+    if (mode === 'edit') return;
+
+    const backHandler = () => true;
 
     const unsubscribe = navigation.addListener('beforeRemove', (e: any) => {
-      e.preventDefault(); // Disable going back
+      e.preventDefault(); // Disable going back during onboarding
     });
 
     const backHandlerListener = BackHandler.addEventListener('hardwareBackPress', backHandler);
@@ -105,9 +109,9 @@ const RoleSelectScreen: React.FC = () => {
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header
         title={'Choose your Role'}
-        showBackButton={false}
+        showBackButton={mode === 'edit'} // Show back button only in edit mode
         showNotification={false}
-        customRightComponent={
+        customRightComponent={mode !== 'edit' && (
           <TouchableOpacity
             onPress={() => navigation.navigate('LanguageSelection')}
             style={styles.langPill}
@@ -116,7 +120,7 @@ const RoleSelectScreen: React.FC = () => {
             <Text style={styles.langText}>{languageDisplay}</Text>
             <Ionicons name="chevron-down" size={14} color={colors.grey} />
           </TouchableOpacity>
-        }
+        )}
       />
       {/* small spacer to normalize gap below header across platforms */}
       <View style={{ height: spacing.sm }} />
@@ -147,18 +151,19 @@ const RoleSelectScreen: React.FC = () => {
         </View>
 
         {/* Motivation element */}
-        <View style={styles.motivationBox}>
+        {( mode !== 'edit' && <View style={styles.motivationBox}  >
           <View style={[styles.iconWrap, { backgroundColor: colors.primaryLight }]}>
             <Ionicons name="people-outline" size={16} color={colors.primary} />
           </View>
           <Text style={styles.motivationText}>{t('roleSelect.motivation', { count: '10,000+' })}</Text>
         </View>
+        )}
       </ScrollView>
 
       {/* Sticky bottom confirm CTA */}
       <BottomCTA
         isSticky={true}
-        noteText={t('roleSelect.changeRoleNote')}
+        noteText={mode !== 'edit' ? t('roleSelect.changeRoleNote') : ''}
         buttonText={t('roleSelect.confirmButton')}
         onPress={confirmSelection}
         isLoading={saving}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
@@ -11,9 +11,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const SPSelectLocationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { user, updateUser } = useAuth();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
+
+  // Mode: 'edit' when used for profile updates, 'onboarding' otherwise
+  const mode: 'edit' | 'onboarding' = (route.params?.mode as any) === 'edit' ? 'edit' : 'onboarding';
 
   // Initialize from user data to avoid hardcoding
   const initialLoc = user?.serviceProviderInfo?.location || null;
