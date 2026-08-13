@@ -237,29 +237,19 @@ const ProfileScreen: React.FC = () => {
         {/* User Role */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
-            <Ionicons name="people"  style={styles.sectionIcon} />
+            <Ionicons name="people" style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>{t('roleSelect.title')}</Text>
           </View>
-          <View style={styles.roleGrid}>
-            <TouchableOpacity
-              style={[styles.roleCard, pendingRole === 'endUser' ? styles.roleCardSelected : styles.roleCardUnselected]}
-              onPress={() => setPendingRole('endUser')}
-            >
-              <View style={[styles.roleIconCircle, pendingRole === 'endUser' ? { backgroundColor: colors.primary } : { backgroundColor: colors.greyLight }]}>
-                <Ionicons name="search" size={18} color={pendingRole === 'endUser' ? colors.white : colors.grey} />
-              </View>
-              <Text style={[styles.roleText, pendingRole === 'endUser' ? { color: colors.primary } : { color: colors.grey }]}>{t('profile.roleEndUser')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.roleCard, pendingRole === 'serviceProvider' ? styles.roleCardSelected : styles.roleCardUnselected]}
-              onPress={() => setPendingRole('serviceProvider')}
-            >
-              <View style={[styles.roleIconCircle, { backgroundColor: colors.greyLight }]}>
-                <Ionicons name="briefcase" size={18} color={colors.grey} />
-              </View>
-              <Text style={[styles.roleText, { color: colors.grey }]}>{t('profile.roleServiceProvider')}</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.infoCell}
+            onPress={() => navigation.navigate('RoleSelect')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.infoValue}> 
+              {pendingRole === 'serviceProvider' ? t('profile.roleServiceProvider') : t('profile.roleEndUser')}
+            </Text>
+            <Ionicons name="pencil" size={14} color={colors.primary} />
+          </TouchableOpacity>
         </View>
 
         {/* Service Provider Information */}
@@ -487,7 +477,7 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: spacing.lg,
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -575,16 +565,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   serviceChipPrimary: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: 999,
-    marginRight: spacing.sm,
-    marginBottom: spacing.sm,
+    backgroundColor: colors.primaryLight,
+    padding: spacing.sm,
+    borderRadius: 10,
+    margin: spacing.xs,
   },
   serviceChipTextWhite: {
-    color: colors.white,
-    fontSize: 12,
+    color: colors.dark,
+    fontSize: 14,
     fontWeight: '600',
   },
   addServiceFullButton: {

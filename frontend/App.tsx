@@ -65,6 +65,7 @@ function RootNavigator() {
             {/* Main tab navigator */}
             <Stack.Screen name="Main" component={MainTabs} />
             {/* Screens accessible post-auth */}
+            <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
             <Stack.Screen name="WorkRequestAddDetails" component={WorkRequestAddDetailsScreen} />
             <Stack.Screen name="WorkRequestCreated" component={WorkRequestCreatedScreen} />
             <Stack.Screen name="BoostRequest" component={BoostRequestScreen} />
@@ -155,6 +156,7 @@ type AuthStackParamList = {
 
 type RootStackParamList = {
   Main: undefined;
+  RoleSelect: undefined;
   WorkRequestAddDetails: undefined;
   WorkRequestCreated: undefined;
   BoostRequest: undefined;
