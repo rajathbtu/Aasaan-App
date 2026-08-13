@@ -173,13 +173,14 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.photoNote}>{t('profile.tapToChangePhoto')}</Text>
         </View>
 
-        {/* Personal Information */}
+        {/* Full Name */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('profile.personalInfo')}</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="person"  style={styles.sectionIcon} />
+            <Text style={styles.sectionTitle}>{t('profile.yourName')}</Text>
+          </View>
 
-          {/* Full Name */}
           <View style={{ marginBottom: spacing.md }}>
-            <Text style={styles.fieldLabel}>{t('profile.yourName')}</Text>
             <TouchableOpacity onPress={() => setEditing(true)} style={styles.infoCell} activeOpacity={1}>
               {editing ? (
                 <TextInput
@@ -195,19 +196,29 @@ const ProfileScreen: React.FC = () => {
               <Ionicons name="pencil" size={14} color={editing ? colors.primary : colors.greyMuted} />
             </TouchableOpacity>
           </View>
+        </View>
 
           {/* Mobile Number */}
+        <View style={styles.section}> 
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="call"  style={styles.sectionIcon} />
+            <Text style={styles.sectionTitle}>{t('profile.mobileNumber')}</Text>
+          </View>
           <View style={{ marginBottom: spacing.md }}>
-            <Text style={styles.fieldLabel}>{t('profile.mobileNumber')}</Text>
             <TouchableOpacity onPress={() => Alert.alert(t('common.notEditable'), t('profile.phoneNotEditable'))} style={styles.infoCell} activeOpacity={1}>
               <Text style={styles.infoValue}>{user?.phoneNumber || user?.phone || ''}</Text>
               <Ionicons name="pencil" size={14} color={colors.greyMuted} />
             </TouchableOpacity>
           </View>
+        </View>
 
           {/* Language */}
-          <View style={{ marginBottom: spacing.sm }}>
-            <Text style={styles.fieldLabel}>{t('profile.languageLabel')}</Text>
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="globe"  style={styles.sectionIcon} />
+            <Text style={styles.sectionTitle}>{t('profile.languageLabel')}</Text>
+          </View>
+          <View style={{ marginBottom: spacing.sm }}> 
               <TouchableOpacity
                 onPress={() =>
                   navigation.navigate('LanguageSelection', {
@@ -225,7 +236,10 @@ const ProfileScreen: React.FC = () => {
 
         {/* User Role */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('profile.userRole')}</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="people"  style={styles.sectionIcon} />
+            <Text style={styles.sectionTitle}>{t('roleSelect.title')}</Text>
+          </View>
           <View style={styles.roleGrid}>
             <TouchableOpacity
               style={[styles.roleCard, pendingRole === 'endUser' ? styles.roleCardSelected : styles.roleCardUnselected]}
@@ -251,66 +265,74 @@ const ProfileScreen: React.FC = () => {
         {/* Service Provider Information */}
         {pendingRole === 'serviceProvider' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('profile.spInfo')}</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Ionicons name="briefcase"  style={styles.sectionIcon} />
+              <Text style={styles.sectionTitle}>{t('sp.selectServices.title')}</Text>
+            </View>
 
             {/* Services Offered */}
             <View style={{ marginBottom: spacing.md }}>
-              <Text style={styles.fieldLabel}>{t('profile.servicesOffered')}</Text>
-              <View style={styles.servicesBox}>
-                <View style={styles.servicesChipsRow}>
-                  {pendingServices && pendingServices.length > 0 ? (
-                    pendingServices.map((svc: string) => (
-                      <View key={svc} style={styles.serviceChipPrimary}>
-                        <Text style={styles.serviceChipTextWhite}>{serviceNameMap[svc] || svc}</Text>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={{ fontSize: 12, color: colors.grey }}>{t('profile.noServices')}</Text>
-                  )}
+              <View style={styles.summaryCard}>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.servicesChipsRow}>
+                    {pendingServices && pendingServices.length > 0 ? (
+                      pendingServices.map((svc: string) => (
+                        <View key={svc} style={styles.serviceChipPrimary}>
+                          <Text style={styles.serviceChipTextWhite}>{serviceNameMap[svc] || svc}</Text>
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={{ fontSize: 12, color: colors.grey }}>{t('profile.noServices')}</Text>
+                    )}
+                  </View>
                 </View>
+
                 <TouchableOpacity
                   onPress={() =>
                     navigation.navigate('SPSelectServices', {
                       mode: 'edit',
                       initialSelected: pendingServices,
-                      onDone: (sel: string[]) => setPendingServices(sel),
+                      onDone: async (sel: string[]) => {
+                        setPendingServices(sel);
+                        try {
+                          await updateUser({ services: sel });
+                        } catch (err: any) {
+                          Alert.alert(t('common.error'), err?.message || 'Failed to update services');
+                        }
+                      },
                     })
                   }
-                  style={styles.addServiceFullButton}
+                  style={styles.editButton}
+                  activeOpacity={0.8}
                 >
-                  <Ionicons name="add" size={16} color={colors.white} style={{ marginRight: spacing.xs }} />
-                  <Text style={styles.addServiceFullText}>{t('profile.addService')}</Text>
+                  <Ionicons name="pencil"  />
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Service Location */}
-            <View style={{ marginBottom: spacing.md }}>
-              <Text style={styles.fieldLabel}>{t('profile.serviceLocation')}</Text>
-               <LocationSearch
-                     onSelect={(loc) => setPendingLocation((!loc)? null: { name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng })}
-                     initialValue={pendingLocation?.name || pendingLocation?.description || ''}
-                   />
+            {/* Service Location & Radius */}
+            <View style={styles.sectionHeaderRow}>
+              <Ionicons name="location"  style={styles.sectionIcon} />
+              <Text style={styles.sectionTitle}>{t('profile.serviceLocation')}</Text>
             </View>
+            <View style={{ marginBottom: spacing.md }}>
+              <View style={styles.summaryCard}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.locationSummaryText} numberOfLines={2}>
+                    {pendingLocation?.name || pendingLocation?.description || t('profile.noLocation') || 'No location selected'}
+                  </Text>
 
-            {/* Service Radius */}
-            <View style={{ marginBottom: spacing.xs }}>
-              <Text style={styles.fieldLabel}>{t('profile.serviceRadius')}</Text>
-              <View style={styles.radiusGrid}>
-                {[5, 10, 15, 20].map(r => {
-                  const selected = pendingRadius === r;
-                  return (
-                    <TouchableOpacity
-                      key={r}
-                      style={[styles.radiusCell, selected ? styles.radiusCellSelected : styles.radiusCellUnselected]}
-                      onPress={() => setPendingRadius(r)}
-                    >
-                      <Text style={[styles.radiusCellText, selected ? { color: colors.primary, fontWeight: '700' } : { color: colors.grey }]}>
-                        {r} km
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                  <Text style={[styles.fieldLabel, { marginTop: spacing.sm }]}>{t('profile.serviceRadius')}</Text>
+                  <Text style={styles.locationSummaryText}>{pendingRadius} km</Text>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('SPSelectLocation')}
+                  style={styles.editButton}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="pencil" size={16} color={colors.primary} />
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -318,7 +340,10 @@ const ProfileScreen: React.FC = () => {
 
         {/* Additional Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('profile.additionalSettings')}</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Ionicons name="settings"  style={styles.sectionIcon} />
+            <Text style={styles.sectionTitle}>{t('profile.additionalSettings')}</Text>
+          </View>
           <View style={styles.settingRow}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="moon" size={16} color={colors.grey} style={{ marginRight: spacing.sm }} />
@@ -464,11 +489,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginTop: spacing.lg,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  sectionIcon: {
+    marginRight: spacing.sm,
+    color: colors.greyMuted,
+    fontSize: 16,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.dark,
-    marginBottom: spacing.sm,
   },
   fieldLabel: {
     fontSize: 12,
@@ -480,12 +514,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.light,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
+    backgroundColor: colors.greyLight,
     borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
+    padding: spacing.lg,
   },
   inputInCell: {
     flex: 1,
@@ -496,7 +527,7 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     color: colors.dark,
-    fontSize: 14,
+    fontSize: 16,
     flex: 1,
     marginRight: spacing.sm,
   },
@@ -569,29 +600,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  radiusGrid: {
+  summaryCard: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-  },
-  radiusCell: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-    marginRight: spacing.sm,
-    borderWidth: 2,
-  },
-  radiusCellSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
-  },
-  radiusCellUnselected: {
+    backgroundColor: colors.light,
+    borderWidth: 1,
     borderColor: colors.greyLight,
-    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    padding: spacing.md,
   },
-  radiusCellText: {
-    fontSize: 12,
+  locationSummaryText: {
+    color: colors.dark,
+    fontSize: 14,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+  editButton: {
+    marginLeft: spacing.sm,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   settingRow: {
     flexDirection: 'row',

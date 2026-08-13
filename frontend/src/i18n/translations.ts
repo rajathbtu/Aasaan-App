@@ -86,11 +86,11 @@ export const translations = {
       changeRoleNote: 'You can change your role anytime from the profile page',
     },
     profile: {
-      header: 'Profile',
+      header: 'Update your Profile',
       changePhotoTitle: 'Change Photo',
       changePhotoDesc: 'Paste an image URL to use as your profile photo',
       tapToChangePhoto: 'Tap to change profile photo',
-      yourName: 'Your name',
+      yourName: 'Your Name',
       phoneNotEditable: 'Mobile number cannot be changed',
       languageNotEditable: 'Language cannot be changed in this demo',
       spInfo: 'Service Provider Information',
@@ -246,7 +246,7 @@ export const translations = {
     },
     sp: {
       selectServices: {
-        title: 'Select the services you offer',
+        title: 'Select Services you offer',
         limitTitle: 'Limit reached',
         limitDesc: 'You can select up to 3 services',
         selectTitle: 'Select services',
