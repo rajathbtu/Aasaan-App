@@ -137,13 +137,7 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.white }}>
-      <Header title={t('profile.header')} showBackButton={false} showNotification={false} 
-        customRightComponent={
-            <TouchableOpacity onPress={onSave} disabled={!canSave} style={[styles.saveBtn, !canSave && { opacity: 0.5 }]}>
-              <Text style={styles.saveBtnText}>{t('common.saveChanges')}</Text>
-            </TouchableOpacity>
-        }
-      />
+      <Header title={t('profile.header')} showBackButton={false} showNotification={false} />
       <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }}>
         {/* Profile photo */}
@@ -181,7 +175,12 @@ const ProfileScreen: React.FC = () => {
           </View>
 
           <View style={{ marginBottom: spacing.md }}>
-            <TouchableOpacity onPress={() => setEditing(true)} style={styles.infoCell} activeOpacity={1}>
+            <View style={styles.infoCell}>
+              <TouchableOpacity
+                onPress={() => setEditing(true)}
+                style={styles.nameFieldPressable}
+                activeOpacity={1}
+              >
               {editing ? (
                 <TextInput
                   style={styles.inputInCell}
@@ -193,8 +192,16 @@ const ProfileScreen: React.FC = () => {
               ) : (
                 <Text style={styles.infoValue}>{user.name}</Text>
               )}
-              <Ionicons name="pencil" size={14} color={editing ? colors.primary : colors.greyMuted} />
-            </TouchableOpacity>
+              </TouchableOpacity>
+
+              {editing && name.trim() !== initialName.trim() ? (
+                <TouchableOpacity onPress={onSave} style={styles.inlineSaveBtn} activeOpacity={0.8}>
+                  <Text style={styles.inlineSaveBtnText}>{t('common.saveChanges')}</Text>
+                </TouchableOpacity>
+              ) : (
+                <Ionicons name="pencil" size={14} color={editing ? colors.primary : colors.greyMuted} />
+              )}
+            </View>
           </View>
         </View>
 
@@ -431,17 +438,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
   },
-  saveBtn: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.md,
-  },
-  saveBtnText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '600',
-  },
   photoSection: {
     alignItems: 'center',
     marginTop: spacing.md,
@@ -507,14 +503,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: colors.greyLight,
     borderRadius: radius.md,
-    padding: spacing.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+  },
+  nameFieldPressable: {
+    flex: 1,
+    minWidth: 0,
+  },
+  inlineSaveBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inlineSaveBtnText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: '700',
   },
   inputInCell: {
     flex: 1,
     fontSize: 14,
     color: colors.dark,
     paddingVertical: 0,
-    marginRight: spacing.sm,
+    minHeight: 20,
   },
   infoValue: {
     color: colors.dark,
