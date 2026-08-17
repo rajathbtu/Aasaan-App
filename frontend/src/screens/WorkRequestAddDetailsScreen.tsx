@@ -73,34 +73,15 @@ const WorkRequestAddDetailsScreen: React.FC = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      <Header title={t('createRequest.addDetails.headerTitle')} showNotification={false} showBackButton={true} />
+      <Header title={service.name} subheader={t('createRequest.addDetails.headerSubTitle')} showNotification={false} showBackButton={true} />
       {/* Spacer to prevent overlap and add small bottom margin below header */}
-      <View style={{ height: spacing.sm }} />
+      <View style={{ height: spacing.xs }} />
 
       <ImageBackground
         source={require('../../assets/bckgnd_tile.png')}
         resizeMode="repeat"  // this makes it tile like WhatsApp
         style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
-
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="briefcase" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-              <Text style={styles.sectionTitle}>{t('createRequest.addDetails.serviceTitle')}</Text>
-            </View>
-            <View style={styles.serviceCard}>
-              <View style={styles.serviceIconContainer}>
-                <Ionicons name="flash" size={20} color={colors.white} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.serviceName}>{service.name}</Text>
-                <Text style={styles.serviceSubtitle}>{t('createRequest.addDetails.serviceSubtitle')}</Text>
-              </View>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.editButton}>
-                <Ionicons name="pencil" size={18} color={colors.primary} />
-              </TouchableOpacity>
-            </View>
-          </View>
 
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -214,9 +195,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.sm,
+    marginTop: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: colors.dark,
   },

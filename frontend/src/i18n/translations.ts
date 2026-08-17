@@ -208,10 +208,10 @@ export const translations = {
       addDetails: {
         headerTitle: 'Add work details',
         serviceTitle: 'Service',
-        serviceSubtitle: 'Selected service',
-        locationTitle: 'Location',
+        headerSubTitle: 'Looking for',
+        locationTitle: 'Location of Work',
         locationNote: 'Precise location will not be shared with service providers',
-        tagsTitle: 'Tags',
+        tagsTitle: 'Select Tags',
         tagHint: 'Select tags that describe your work',
         confirmButton: 'Confirm Request',
         unknownService: 'Unknown service',
@@ -514,7 +514,7 @@ export const translations = {
       addDetails: {
         headerTitle: 'Add work details',
         serviceTitle: 'Service',
-        serviceSubtitle: 'Selected service',
+        headerSubTitle: 'Looking for',
         locationTitle: 'Location',
         locationNote: 'Precise location will not be shared with service providers',
         tagsTitle: 'Tags',

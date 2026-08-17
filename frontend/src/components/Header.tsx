@@ -13,6 +13,7 @@ type HeaderProps = {
   notificationCount?: number;
   customRightComponent?: React.ReactNode; // New prop for custom UI
   keepTitleCenterAligned?: boolean; // New optional prop
+  subheader?: string; // Optional subtle subheader shown above the title
 };
 
 const Header: React.FC<HeaderProps> = ({
@@ -22,6 +23,7 @@ const Header: React.FC<HeaderProps> = ({
   notificationCount = 0,
   customRightComponent,
   keepTitleCenterAligned = false, // Default to false
+  subheader,
 }) => {
   const navigation = useNavigation<any>();
 
@@ -33,10 +35,15 @@ const Header: React.FC<HeaderProps> = ({
             <Ionicons name="arrow-back" size={24} color={colors.dark} />
           </TouchableOpacity>
         )}
-        <Text style={[styles.headerTitle,
-            keepTitleCenterAligned && styles.centerAlignedTitle, // Apply center alignment to title if the prop is true
-          ]}
-        >{title}</Text>
+        <View style={styles.titleContainer}>
+          {subheader ? (
+            <Text style={styles.subHeaderText}>{subheader}</Text>
+          ) : null}
+          <Text style={[styles.headerTitle,
+              keepTitleCenterAligned && styles.centerAlignedTitle, // Apply center alignment to title if the prop is true
+            ]}
+          >{title}</Text>
+        </View>
         {customRightComponent ? (
           customRightComponent // Render custom UI if provided
         ) : (
@@ -54,7 +61,7 @@ const Header: React.FC<HeaderProps> = ({
         )
         )}
       </View>
-       <DetectedLocationCard />
+       {/* <DetectedLocationCard /> */}
 
     </SafeAreaView>
   );
@@ -84,7 +91,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.dark,
     textAlign: 'left',
-    flex: 1, // Take up remaining space to ensure alignment
+  },
+  titleContainer: {
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'center',
+  },
+  subHeaderText: {
+    fontSize: 12,
+    color: colors.greyMuted,
+    fontWeight: '500',
+    textTransform: 'uppercase',
   },
   centerAlignedTitle: {
     textAlign: 'center', // Center align title text
