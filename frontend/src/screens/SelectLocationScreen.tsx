@@ -9,7 +9,7 @@ import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const SPSelectLocationScreen: React.FC = () => {
+const SelectLocationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { user, updateUser } = useAuth();
@@ -319,4 +319,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SPSelectLocationScreen;
+export default SelectLocationScreen;
