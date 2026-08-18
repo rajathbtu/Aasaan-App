@@ -11,9 +11,10 @@ type HeaderProps = {
   showBackButton?: boolean;
   showNotification?: boolean;
   notificationCount?: number;
-  customRightComponent?: React.ReactNode; // New prop for custom UI
-  keepTitleCenterAligned?: boolean; // New optional prop
-  subheader?: string; // Optional subtle subheader shown above the title
+  showProfileButton?: boolean;
+  customRightComponent?: React.ReactNode;
+  keepTitleCenterAligned?: boolean;
+  subheader?: string;
 };
 
 const Header: React.FC<HeaderProps> = ({
@@ -21,11 +22,14 @@ const Header: React.FC<HeaderProps> = ({
   showBackButton = true,
   showNotification = true,
   notificationCount = 0,
+  showProfileButton = false,
   customRightComponent,
-  keepTitleCenterAligned = false, // Default to false
+  keepTitleCenterAligned = false,
   subheader,
 }) => {
   const navigation = useNavigation<any>();
+
+  const handleProfilePress = () => navigation.navigate('Profile');
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -40,25 +44,37 @@ const Header: React.FC<HeaderProps> = ({
             <Text style={styles.subHeaderText}>{subheader}</Text>
           ) : null}
           <Text style={[styles.headerTitle,
-              keepTitleCenterAligned && styles.centerAlignedTitle, // Apply center alignment to title if the prop is true
+              keepTitleCenterAligned && styles.centerAlignedTitle,
             ]}
           >{title}</Text>
         </View>
         {customRightComponent ? (
-          customRightComponent // Render custom UI if provided
+          customRightComponent
         ) : (
-        showNotification && (
-          <TouchableOpacity 
-            style={styles.notificationButton} 
-            onPress={() => navigation.navigate('Notifications')}>
-            <Ionicons name="notifications-outline" size={20} color={colors.dark} />
-            {notificationCount > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
-              </View>
+          <View style={styles.rightActions}>
+            {showProfileButton && (
+              <TouchableOpacity
+                style={styles.profileButton}
+                onPress={handleProfilePress}
+                accessibilityRole="button"
+                accessibilityLabel="Open profile"
+              >
+                <Ionicons name="person-circle-outline" size={22} color={colors.dark} />
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
-        )
+            {showNotification && (
+              <TouchableOpacity 
+                style={styles.notificationButton} 
+                onPress={() => navigation.navigate('Notifications')}>
+                <Ionicons name="notifications-outline" size={20} color={colors.dark} />
+                {notificationCount > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
         )}
       </View>
        {/* <DetectedLocationCard /> */}
@@ -104,7 +120,20 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   centerAlignedTitle: {
-    textAlign: 'center', // Center align title text
+    textAlign: 'center',
+  },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginLeft: spacing.sm,
+  },
+  profileButton: {
+    padding: spacing.sm,
+    marginRight: spacing.xs,
+    borderRadius: 999,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   notificationButton: {
     position: 'relative',

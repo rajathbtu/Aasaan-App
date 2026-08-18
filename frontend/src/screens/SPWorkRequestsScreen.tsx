@@ -328,7 +328,7 @@ const SPWorkRequestsScreen: React.FC = () => {
               <Text style={styles.actionButtonText}>{t('spRequests.accept')}</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity
+          <TouchableOpacity // @todo: Navigate CTA may be dangerous for app engagement as users are redirected to external maps app... so should be used with caution
             style={[styles.actionButton, { backgroundColor: colors.secondary }]}
             onPress={() => handleNavigate(item)}>
             <Ionicons name="navigate" size={16} color="white" style={{ marginRight: 4 }} />
@@ -388,7 +388,8 @@ const SPWorkRequestsScreen: React.FC = () => {
       <Header 
         title="Aasaan" 
         showBackButton={false} 
-        showNotification={true} 
+        showNotification={true}
+        showProfileButton={true} 
       />
       <View style={{ height: spacing.sm }} />
       <View style={styles.container}>
