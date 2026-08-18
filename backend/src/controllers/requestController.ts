@@ -82,7 +82,7 @@ export async function create(req: Request, res: Response): Promise<void> {
   try {
     const since = new Date(Date.now() - 24*60*60*1000);
     const recent = await prisma.workRequest.count({ where: { userId: user.id, createdAt: { gt: since } } });
-    if (recent >= 3 && !req.body.force) { res.status(429).json({ message: t(lang, 'request.limitReached'), code: 'LIMIT_EXCEEDED' }); return; }
+    if (recent >= 20 && !req.body.force) { res.status(429).json({ message: t(lang, 'request.limitReached'), code: 'LIMIT_EXCEEDED' }); return; }
     const loc = await pAny.location.create?.({ data: { name: location.name, lat: location.lat, lng: location.lng } });
     const wr = await pAny.workRequest.create({ data: { userId: user.id, service, locationId: loc?.id, tags: tags || [] } });
     // Notify eligible providers (service match + radius parity)

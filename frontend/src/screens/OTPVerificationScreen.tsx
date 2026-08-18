@@ -13,18 +13,15 @@ import {
 } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
-import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { languages } from '../data/languages';
 import { useI18n } from '../i18n';
 import { WebView } from 'react-native-webview';
 import Header from '../components/Header';
 import { spacing, colors, radius } from '../theme';
 
-const API = USE_MOCK_API ? mockApi : realApi;
+const API = realApi;
 
 const OTPVerificationScreen: React.FC = () => {
   const navigation = useNavigation<any>();

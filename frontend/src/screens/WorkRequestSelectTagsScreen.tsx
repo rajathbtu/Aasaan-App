@@ -2,16 +2,14 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, ImageBackground } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
-import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import { useI18n } from '../i18n';
 import BottomCTA from '../components/BottomCTA';
 
-const API = USE_MOCK_API ? mockApi : realApi;
+const API = realApi;
 
 /**
  * Screen for users to select tags for their work request.

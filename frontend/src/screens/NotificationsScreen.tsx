@@ -11,15 +11,13 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
-import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 
-const API = USE_MOCK_API ? mockApi : realApi;
+const API = realApi;
 
 // Relative time helper (localized)
 const buildTimeAgo = (t: ReturnType<typeof useI18n>['t']) => (value: any): string => {

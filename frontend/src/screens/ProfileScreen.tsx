@@ -4,7 +4,6 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
-import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
 import Header from '../components/Header';
@@ -138,7 +137,7 @@ const ProfileScreen: React.FC = () => {
   return (
     <View style={{ flex: 1, backgroundColor: colors.white }}>
       <Header title={t('profile.header')} showBackButton={false} showNotification={false} />
-      <View style={{ height: spacing.sm }} />
+      {/* <View style={{ height: spacing.sm }} /> */}
       <ScrollView style={{ flex: 1 }}>
         {/* Profile photo */}
         <View style={styles.photoSection}>

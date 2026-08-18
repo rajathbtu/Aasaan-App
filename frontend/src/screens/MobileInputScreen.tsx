@@ -17,16 +17,14 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { WebView } from 'react-native-webview';
 import { Image } from 'react-native';
 
-import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
-import * as mockApi from '../api/mock';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import { spacing, colors, radius } from '../theme';
 
-const API = USE_MOCK_API ? mockApi : realApi;
+const API = realApi;
 
 /**
  * Screen to collect the user's mobile number and send an OTP.

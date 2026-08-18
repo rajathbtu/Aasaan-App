@@ -1,8 +1,6 @@
 /**
  * Global application configuration.  
  */
-export const USE_MOCK_API = false;
-
 const PUBLIC_DEV_BASE_URL = 'https://crevice-drank-groggily.ngrok-free.dev';
 const PRODUCTION_BASE_URL = 'https://aasaan-backend-3v3u.onrender.com';
 

@@ -1,9 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { getProfile, updateProfile } from '../api';
-import { USE_MOCK_API } from '../config';
-import * as mock from '../api/mock';
-import { useNavigation } from '@react-navigation/native';
 import { AuthStackNavigationProp } from '../../App';
 
 interface User {
@@ -87,11 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!token) return;
     try {
       let updated: any;
-      if (USE_MOCK_API) {
-        updated = await mock.getProfile(token);
-      } else {
-        updated = await getProfile(token);
-      }
+      updated = await getProfile(token);
       setUser(updated);
       await SecureStore.setItemAsync('aasaan_user', JSON.stringify(updated));
     } catch (err) {
@@ -103,11 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!token || !user) return;
     try {
       let updated: any;
-      if (USE_MOCK_API) {
-        updated = await (mock as any).updateProfile(token, updates as any);
-      } else {
-        updated = await updateProfile(token, updates as any);
-      }
+      updated = await updateProfile(token, updates as any);
       setUser(updated);
       await SecureStore.setItemAsync('aasaan_user', JSON.stringify(updated));
     } catch (err) {

@@ -17,15 +17,13 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
-import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
-import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import { spacing, colors, radius } from '../theme';
 
-const API = USE_MOCK_API ? mockApi : realApi;
+const API = realApi;
 
 /**
  * Collects the user's full name after successful OTP verification.

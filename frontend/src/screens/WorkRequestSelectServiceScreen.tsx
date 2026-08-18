@@ -156,7 +156,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header title="Aasaan" showNotification={true} notificationCount={2} showBackButton={false} />
       {/* Spacer to ensure shadow visibility below header */}
-      <View style={{ height: spacing.sm }} />
+      <View style={{ height: spacing.xs }} />
       <ImageBackground
         source={require('../../assets/bckgnd_tile.png')}
         resizeMode="repeat"  // this makes it tile like WhatsApp

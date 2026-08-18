@@ -10,9 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
-import * as mockApi from '../api/mock';
 import { createSubscriptionPaymentOptions, verifySubscriptionPayment } from '../api/razorpay';
 import { RazorpayWebPaymentOptions, RazorpayWebResponse } from '../api/razorpayWeb';
 import RazorpayWebView from '../components/RazorpayWebView';
@@ -21,7 +19,7 @@ import { colors, spacing, radius, tints } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 
-const API = USE_MOCK_API ? mockApi : realApi;
+const API = realApi;
 
 // Pricing config
 const PLAN_PRICING: Record<'basic' | 'pro', { priceInr: number; points: number }> = {
