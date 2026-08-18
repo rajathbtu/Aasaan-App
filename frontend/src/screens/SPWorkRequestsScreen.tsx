@@ -9,6 +9,7 @@ import {
   Alert,
   RefreshControl,
   Linking,
+  Platform,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -151,6 +152,54 @@ const SPWorkRequestsScreen: React.FC = () => {
   };
 
   /**
+   * Open directions from SP's base location to the work request location.
+   * On iOS, tries Google Maps first, then falls back to Apple Maps.
+   * On Android, uses Google Maps.
+   */
+  const handleNavigate = (item: any) => {
+    try {
+      const destLat = item.locationLat;
+      const destLng = item.locationLng;
+      if (destLat == null || destLng == null) {
+        Alert.alert('Error', 'Work request location is not available.');
+        return;
+      }
+      // If SP has a base location, use it as origin
+      const originLat = user?.serviceProviderInfo?.location?.lat;
+      const originLng = user?.serviceProviderInfo?.location?.lng;
+      
+      if (Platform.OS === 'ios') {
+        // On iOS, try Google Maps first, then fall back to Apple Maps
+        const googleMapsUrl = originLat != null && originLng != null
+          ? `comgooglemaps://?saddr=${originLat},${originLng}&daddr=${destLat},${destLng}`
+          : `comgooglemaps://?daddr=${destLat},${destLng}`;
+        
+        const appleMapsUrl = originLat != null && originLng != null
+          ? `maps://maps.apple.com/?saddr=${originLat},${originLng}&daddr=${destLat},${destLng}&dirflg=d`
+          : `maps://maps.apple.com/?daddr=${destLat},${destLng}`;
+        
+        Linking.openURL(googleMapsUrl).catch(() => {
+          // If Google Maps not available, try Apple Maps
+          Linking.openURL(appleMapsUrl).catch(() => {
+            Alert.alert('Error', 'Unable to open maps application.');
+          });
+        });
+      } else {
+        // Use Google Maps on Android
+        const mapsUrl = originLat != null && originLng != null
+          ? `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&destination=${destLat},${destLng}&travelmode=driving`
+          : `https://maps.google.com/?daddr=${destLat},${destLng}`;
+        
+        Linking.openURL(mapsUrl).catch(() => {
+          Alert.alert('Error', 'Unable to open maps application.');
+        });
+      }
+    } catch (err: any) {
+      Alert.alert('Error', 'Failed to open directions.');
+    }
+  };
+
+  /**
    * Determine whether the current user has already accepted a given request.
    */
   const isAcceptedByUser = (item: any) => {
@@ -279,6 +328,12 @@ const SPWorkRequestsScreen: React.FC = () => {
               <Text style={styles.actionButtonText}>{t('spRequests.accept')}</Text>
             </TouchableOpacity>
           )}
+          <TouchableOpacity
+            style={[styles.actionButton, { backgroundColor: colors.secondary }]}
+            onPress={() => handleNavigate(item)}>
+            <Ionicons name="navigate" size={16} color="white" style={{ marginRight: 4 }} />
+            <Text style={styles.actionButtonText}>{t('spRequests.navigate') || 'Navigate'}</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: accepted ? colors.primary : colors.secondary }]}
             onPress={() => {

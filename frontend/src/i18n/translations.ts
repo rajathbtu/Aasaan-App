@@ -134,6 +134,7 @@ export const translations = {
       goPro: 'Go Pro',
       goProSubtitle: 'Get early access to work requests',
       perMonth: '{price}/mo',
+      navigate: 'Navigate',
     },
     notifications: {
       title: 'Notifications',
