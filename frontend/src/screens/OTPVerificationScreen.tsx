@@ -92,7 +92,7 @@ const OTPVerificationScreen: React.FC = () => {
             return;
           }
           if (!info.location) {
-            navigation.navigate('SPSelectLocation');
+            navigation.navigate('LocationSelect');
             return;
           }
         }

@@ -68,7 +68,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           if (v.next === 'services') {
             navigation.navigate('SPSelectServices', { mode: 'onboarding', initialSelected: user?.serviceProviderInfo?.services || [] });
           } else if (v.next === 'location') {
-            navigation.navigate('SPSelectLocation');
+            navigation.navigate('LocationSelect');
           }
           return;
         }
@@ -79,7 +79,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         }
         // If location/radius not defined
         if (/location or radius not defined/i.test(message)) {
-          navigation.navigate('SPSelectLocation');
+          navigation.navigate('LocationSelect');
           return;
         }
       }
@@ -109,7 +109,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         if (v.next === 'services') {
           navigation.navigate('SPSelectServices', { mode: 'onboarding', initialSelected: user?.serviceProviderInfo?.services || [] });
         } else if (v.next === 'location') {
-          navigation.navigate('SPSelectLocation');
+          navigation.navigate('LocationSelect');
         }
         return;
       }

@@ -324,7 +324,7 @@ const ProfileScreen: React.FC = () => {
                 </View>
 
                 <TouchableOpacity
-                  onPress={() => navigation.navigate('SPSelectLocation', { mode: 'edit' })}
+                  onPress={() => navigation.navigate('LocationSelect', { mode: 'edit' })}
                   style={styles.editButton}
                   activeOpacity={0.8}
                 >

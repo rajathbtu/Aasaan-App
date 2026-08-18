@@ -123,7 +123,7 @@ const SPSelectServicesScreen: React.FC = () => {
 
     try {
       await updateUser({ services: selected });
-      navigation.navigate('SPSelectLocation');
+      navigation.navigate('LocationSelect');
     } catch (err: any) {
       Alert.alert('Error', t('sp.selectServices.saveFailed'));
     }

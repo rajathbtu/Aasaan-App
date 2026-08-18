@@ -28,7 +28,7 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SPSelectServicesScreen from './src/screens/SPSelectServicesScreen';
-import SelectLocationScreen from './src/screens/SelectLocationScreen';
+import LocationSelectScreen from './src/screens/LocationSelectScreen';
 import SPWorkRequestsScreen from './src/screens/SPWorkRequestsScreen';
 
 // Define stack navigators
@@ -56,7 +56,7 @@ function RootNavigator() {
             <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
             {/* Allow SP onboarding steps directly after role selection */}
             <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
-            <Stack.Screen name="SPSelectLocation" component={SelectLocationScreen} />
+            <Stack.Screen name="LocationSelect" component={LocationSelectScreen} />
             {/* Language change if needed */}
             <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
           </>
@@ -66,7 +66,7 @@ function RootNavigator() {
             <Stack.Screen name="Main" component={MainTabs} />
             {/* Screens accessible post-auth */}
             <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
-            <Stack.Screen name="WorkRequestAddDetails" component={SelectLocationScreen} />
+            <Stack.Screen name="WorkRequestAddDetails" component={LocationSelectScreen} />
             <Stack.Screen name="WorkRequestSelectTags" component={WorkRequestSelectTagsScreen} />
             <Stack.Screen name="WorkRequestCreated" component={WorkRequestCreatedScreen} />
             <Stack.Screen name="BoostRequest" component={BoostRequestScreen} />
@@ -75,7 +75,7 @@ function RootNavigator() {
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
             {/* Provider tools */}
             <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
-            <Stack.Screen name="SPSelectLocation" component={SelectLocationScreen} />
+            <Stack.Screen name="LocationSelect" component={LocationSelectScreen} />
             {/* Language change from Profile */}
             <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
           </>
@@ -100,7 +100,7 @@ function AuthStack() {
       <Stack.Screen name="NameOTPValidation" component={NameOTPValidationScreen} />
       <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
       <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
-      <Stack.Screen name="SPSelectLocation" component={SelectLocationScreen} />
+      <Stack.Screen name="LocationSelect" component={LocationSelectScreen} />
     </Stack.Navigator>
   );
 }
@@ -152,7 +152,7 @@ type AuthStackParamList = {
   NameOTPValidation: undefined;
   RoleSelect: undefined;
   SPSelectServices: undefined;
-  SPSelectLocation: undefined;
+  LocationSelect: undefined;
 };
 
 type RootStackParamList = {
@@ -166,7 +166,7 @@ type RootStackParamList = {
   Notifications: undefined;
   Subscription: undefined;
   SPSelectServices: undefined;
-  SPSelectLocation: undefined;
+  LocationSelect: undefined;
   LanguageSelection: undefined;
   Auth: undefined;
 };
