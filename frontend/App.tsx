@@ -62,8 +62,15 @@ function RootNavigator() {
           </>
         ) : (
           <>
-            {/* Main tab navigator */}
-            <Stack.Screen name="Main" component={MainTabs} />
+            {/* Main tab navigator for regular users, direct screens for providers */}
+            {user.role === 'serviceProvider' ? (
+              <>
+                <Stack.Screen name="SPAvailable" component={SPWorkRequestsScreen} />
+                <Stack.Screen name="Profile" component={ProfileScreen} />
+              </>
+            ) : (
+              <Stack.Screen name="Main" component={MainTabs} />
+            )}
             {/* Screens accessible post-auth */}
             <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
             <Stack.Screen name="WorkRequestAddDetails" component={LocationSelectScreen} />
