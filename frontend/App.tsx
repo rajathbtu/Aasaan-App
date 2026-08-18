@@ -20,6 +20,7 @@ import NameOTPValidationScreen from './src/screens/NameOTPValidationScreen';
 import RoleSelectScreen from './src/screens/RoleSelectScreen';
 import WorkRequestSelectServiceScreen from './src/screens/WorkRequestSelectServiceScreen';
 import WorkRequestAddDetailsScreen from './src/screens/WorkRequestAddDetailsScreen';
+import WorkRequestSelectTagsScreen from './src/screens/WorkRequestSelectTagsScreen';
 import WorkRequestCreatedScreen from './src/screens/WorkRequestCreatedScreen';
 import BoostRequestScreen from './src/screens/BoostRequestScreen';
 import WorkRequestDetailsScreen from './src/screens/WorkRequestDetailsScreen';
@@ -67,6 +68,7 @@ function RootNavigator() {
             {/* Screens accessible post-auth */}
             <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
             <Stack.Screen name="WorkRequestAddDetails" component={WorkRequestAddDetailsScreen} />
+            <Stack.Screen name="WorkRequestSelectTags" component={WorkRequestSelectTagsScreen} />
             <Stack.Screen name="WorkRequestCreated" component={WorkRequestCreatedScreen} />
             <Stack.Screen name="BoostRequest" component={BoostRequestScreen} />
             <Stack.Screen name="WorkRequestDetails" component={WorkRequestDetailsScreen} />
@@ -158,6 +160,7 @@ type RootStackParamList = {
   Main: undefined;
   RoleSelect: undefined;
   WorkRequestAddDetails: undefined;
+  WorkRequestSelectTags: undefined;
   WorkRequestCreated: undefined;
   BoostRequest: undefined;
   WorkRequestDetails: undefined;

@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.light,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.sm,
   },
   loadingContainer: {
     flex: 1,
@@ -475,9 +475,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   pageTitle: {
-    margin: spacing.md,
-    fontSize: 20,
-    fontWeight: '700',
+    marginBottom: spacing.sm,
+    fontSize: 18,
+    fontWeight: '600',
     color: colors.dark,
   },
   segmentContainer: {
@@ -498,9 +498,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   segmentLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: colors.dark,
     fontWeight: '600',
+    textTransform: 'uppercase',
   },
   segmentLabelActive: {
     color: 'white',
@@ -510,9 +511,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   filterChip: {
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.greyLight,
     marginRight: spacing.sm,
@@ -611,7 +612,7 @@ const styles = StyleSheet.create({
   },
   proBanner: {
     position: 'absolute',
-    bottom: spacing.xl,
+    bottom: spacing.md,
     left: spacing.lg,
     right: spacing.lg,
     backgroundColor: colors.primarySoft,
