@@ -16,22 +16,48 @@ const SPSelectLocationScreen: React.FC = () => {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
 
-  // Mode: 'edit' when used for profile updates, 'onboarding' otherwise
-  const mode: 'edit' | 'onboarding' = (route.params?.mode as any) === 'edit' ? 'edit' : 'onboarding';
+  // Modes: 'edit' for profile updates, 'onboarding' for SP onboarding, 'requestcreation' for work request creation
+  const mode: 'edit' | 'onboarding' | 'requestcreation' =
+    (route.params?.mode as 'edit' | 'onboarding' | 'requestcreation') === 'edit'
+      ? 'edit' : (route.params?.mode as 'edit' | 'onboarding' | 'requestcreation') === 'requestcreation'
+        ? 'requestcreation' : 'onboarding';
 
-  // Initialize from user data to avoid hardcoding
-  const initialLoc = user?.serviceProviderInfo?.location || null;
+  const isRequestCreationMode = mode === 'requestcreation';
+  const serviceId = route.params?.serviceId as string | undefined;
+  const serviceName = route.params?.serviceName as string | undefined;
+  const serviceTags = (route.params?.serviceTags as string[] | undefined) || [];
+
+  const initialLoc = isRequestCreationMode
+    ? (route.params?.selectedLocation ?? null)
+    : user?.serviceProviderInfo?.location || null;
   const initialRadius = (user?.serviceProviderInfo?.radius as number | undefined) ?? 20;
 
   const [selectedLocation, setSelectedLocation] = useState<any>(initialLoc);
   const [radius, setRadius] = useState<number>(initialRadius);
   const [isRadiusExpanded, setIsRadiusExpanded] = useState(false);
 
+  if (isRequestCreationMode && (!serviceId || !serviceName)) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>{t('createRequest.addDetails.unknownService')}</Text>
+      </View>
+    );
+  }
+
   const handleSave = async () => {
-    if (!selectedLocation) {
-      Alert.alert(t('common.error'), t('sp.selectLocation.selectLocation'));
+    if (!selectedLocation || !selectedLocation.lat || !selectedLocation.lng) {
+      if (isRequestCreationMode) 
+          Alert.alert(t('createRequest.addDetails.locationRequiredTitle'), t('createRequest.addDetails.locationRequiredDesc'));
+      else 
+          Alert.alert(t('common.error'), t('sp.selectLocation.selectLocation'));
       return;
     }
+
+    if (isRequestCreationMode) {
+      navigation.navigate('WorkRequestSelectTags', {serviceId, serviceName, serviceTags, selectedLocation, });
+      return;
+    }
+
     try {
       const locPayload = selectedLocation?.place_id || selectedLocation?.placeId
         ? {
@@ -59,19 +85,23 @@ const SPSelectLocationScreen: React.FC = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
-      <Header title={t('sp.selectLocation.pageTitle') || 'Step 2 of 2'} showBackButton={true} showNotification={false} />
-      {/* <View style={{ height: spacing.sm }} /> */}
+      <Header title={isRequestCreationMode ? (serviceName || t('createRequest.addDetails.headerTitle')) : (t('sp.selectLocation.pageTitle') )}
+        subheader={isRequestCreationMode ? t('createRequest.addDetails.headerSubTitle') : undefined}
+        showBackButton={true}
+        showNotification={false}
+      />
       <View style={{ flex: 1 }}>
         <LocationSearch
-              onSelect={(loc) => {
-                setSelectedLocation((!loc)? null: { name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng });
-              }}
-              enableMap={true}
-              initialValue={selectedLocation?.name || selectedLocation?.description || ''}/>
+          onSelect={(loc) => {
+            setSelectedLocation(!loc ? null : { name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng });
+          }}
+          enableMap={true}
+          initialValue={selectedLocation?.name || selectedLocation?.description || ''}
+          initialLocation={selectedLocation}
+        />
       </View>
-      
-      
-      <View style={[styles.bottomCta, { paddingBottom: insets.bottom + spacing.sm }] }>
+
+      <View style={[styles.bottomCta, { paddingBottom: insets.bottom + spacing.sm }]}>
         {displayLocationName && displayLocationName !== t('sp.selectLocation.selectLocation') && (
             <View style={styles.locationCard}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flex: 1 }}>
@@ -87,7 +117,12 @@ const SPSelectLocationScreen: React.FC = () => {
             </View>
         )}
 
+        {isRequestCreationMode && (
+          <Text style={styles.locationNote}>{t('createRequest.addDetails.locationNote')}</Text>
+        )}
+
         {/* Radius */}
+        {!isRequestCreationMode && (
         <View style={{ paddingHorizontal: spacing.lg, padding: spacing.lg }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
             <Text style={[styles.radiusSummaryText, { flexShrink: 1 }]} numberOfLines={2} ellipsizeMode="tail">
@@ -116,10 +151,13 @@ const SPSelectLocationScreen: React.FC = () => {
               </View>
             </View>
           )}
-        </View>
+          </View>
+        )}
+
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Ionicons name="checkmark" size={18} color={colors.white} style={{ marginRight: spacing.xs }} />
-          <Text style={styles.saveText}>{t('sp.selectLocation.saveButton')}</Text>
+          <Text style={styles.saveText}>
+            {isRequestCreationMode ? t('createRequest.addDetails.confirmLocationButton') : t('sp.selectLocation.saveButton')}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -183,6 +221,20 @@ const styles = StyleSheet.create({
   locationNote: {
     fontSize: 12,
     color: colors.grey,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  emptyText: {
+    fontSize: 18,
+    color: colors.dark,
+    textAlign: 'center',
   },
   changeBtn: {
     backgroundColor: colors.primaryLight,

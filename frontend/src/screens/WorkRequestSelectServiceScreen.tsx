@@ -123,7 +123,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
         style={[styles.serviceCard, styles.shadow]}
         onPress={() => {
           updateRecentServices(service);
-          navigation.navigate('WorkRequestAddDetails', { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [] });
+          navigation.navigate('SPSelectLocation', { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [], mode: 'requestcreation', });
         }}
         activeOpacity={0.8}
       >
