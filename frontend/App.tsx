@@ -121,6 +121,10 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarLabelStyle: {
+          fontSize: 13,
+          fontWeight: '800',
+        },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
           if (route.name === 'Create') {
@@ -130,7 +134,7 @@ function MainTabs() {
           } else {
             iconName = focused ? 'person' : 'person-outline';
           }
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={20} color={color} />;
         },
       })}
     >
@@ -142,7 +146,7 @@ function MainTabs() {
       ) : (
         <>
           <Tab.Screen name="Create" component={WorkRequestSelectServiceScreen} />
-          <Tab.Screen name="MyRequests" component={WorkRequestsScreen} />
+          <Tab.Screen name="MyRequests" component={WorkRequestsScreen} options={{ title: 'My Requests' }} />
           <Tab.Screen name="Profile" component={ProfileScreen} />
         </>
       )}
