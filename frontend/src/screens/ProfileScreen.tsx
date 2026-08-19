@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView, Image, Switch, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
@@ -9,6 +9,7 @@ import { getLanguageDisplay } from '../data/languages';
 import Header from '../components/Header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
+import SafeBottomBanner from '../components/SafeBottomBanner';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users
@@ -20,6 +21,7 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user, updateUser, logout, setLanguage: setGlobalLanguage, refreshUser } = useAuth();
   const { t, lang } = useI18n();
+  const isBottomTabsDisplayed = useNavigationState(state => state.type === 'tab');
 
   // Shared services list to map ids -> display names
   type Service = { id: string; name: string; category: string; tags?: string[] };
@@ -132,11 +134,9 @@ const ProfileScreen: React.FC = () => {
     }
   };
 
-  const canGoBack = navigation.canGoBack?.() ?? false;
-
   return (
     <View style={{ flex: 1, backgroundColor: colors.white }}>
-      <Header title={t('profile.header')} showBackButton={false} showNotification={false} />
+      <Header title={t('profile.header')} showBackButton={true} showNotification={false} />
       {/* <View style={{ height: spacing.sm }} /> */}
       <ScrollView style={{ flex: 1 }}>
         {/* Profile photo */}
@@ -407,6 +407,7 @@ const ProfileScreen: React.FC = () => {
 
         <Text style={styles.versionText}>Version 1.2.0</Text>
       </ScrollView>
+      {!isBottomTabsDisplayed && <SafeBottomBanner />}
     </View>
   );
 };

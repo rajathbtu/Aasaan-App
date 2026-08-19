@@ -73,7 +73,7 @@ const LocationSelectScreen: React.FC = () => {
             placeId: selectedLocation.placeId,
           };
       await updateUser({ location: locPayload as any, radius });
-      navigation.navigate('Main');
+      navigation.navigate(user?.role === 'serviceProvider' ? 'SPAvailable' : 'Main');
     } catch (err: any) {
       Alert.alert(t('common.error'), t('sp.selectLocation.saveFailed'));
     }

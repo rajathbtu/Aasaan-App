@@ -96,7 +96,7 @@ const OTPVerificationScreen: React.FC = () => {
             return;
           }
         }
-        navigation.navigate('Main');
+        navigation.navigate(user.role === 'serviceProvider' ? 'SPAvailable' : 'Main');
       } else if (result.error) {
         Alert.alert(t('common.error'), result.message || t('common.invalidOtp'));
       }

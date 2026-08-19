@@ -18,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius, tints } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import SafeBottomBanner from '../components/SafeBottomBanner';
 
 const API = realApi;
 
@@ -480,6 +481,8 @@ const SPWorkRequestsScreen: React.FC = () => {
             </TouchableOpacity>
           </TouchableOpacity>
         )}
+        {/* Safe area overlay to prevent content overlap with device buttons */}
+        <SafeBottomBanner />
       </View>
     </View>
   );
@@ -664,10 +667,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   proBanner: {
-    position: 'absolute',
-    bottom: spacing.md,
-    left: spacing.lg,
-    right: spacing.lg,
+    zIndex: 10,
     backgroundColor: colors.primarySoft,
     borderRadius: radius.lg,
     flexDirection: 'row',
