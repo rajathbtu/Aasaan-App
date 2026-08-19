@@ -10,8 +10,9 @@ import {
   Platform,
   ScrollView,
   Modal,
+  Linking,
 } from 'react-native';
-import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { WebView } from 'react-native-webview';
@@ -23,6 +24,7 @@ import { getLanguageDisplay } from '../data/languages';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import { spacing, colors, radius } from '../theme';
+import { TRUECALLER_APP_KEY } from '../config';
 
 const API = realApi;
 
@@ -35,7 +37,7 @@ const MobileInputScreen: React.FC = () => {
   const route = useRoute<any>();
   const { language } = (route.params as any) || {};
   const { t } = useI18n(language);
-  const { setLanguage: setGlobalLanguage } = useAuth();
+  const { login } = useAuth();
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -45,14 +47,18 @@ const MobileInputScreen: React.FC = () => {
   const [webOpen, setWebOpen] = useState(false);
   const [webUrl, setWebUrl] = useState<string>('');
   const [webTitle, setWebTitle] = useState<string>('');
+  const [truecallerRequestId, setTruecallerRequestId] = useState<string | null>(null);
+  const [truecallerStarted, setTruecallerStarted] = useState(false);
+  const [truecallerWaiting, setTruecallerWaiting] = useState(false);
 
-  // Re-render when screen regains focus so useI18n picks up global language
-  useFocusEffect(
-    React.useCallback(() => {
-      // no-op; simply forces rerender on focus change via hook
-      return () => {};
-    }, [])
-  );
+  const truecallerHtml = (requestId: string) => `
+    <!doctype html>
+    <html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+    <body>
+      <script>
+        window.location.href = ${JSON.stringify(`truecallersdk://truesdk/web_verify?type=btmsheet&requestNonce=${requestId}&partnerKey=${TRUECALLER_APP_KEY}&partnerName=Aasaan&lang=en&privacyUrl=https%3A%2F%2Fwww.aasaanapp.in%2Fprivacy.html&termsUrl=https%3A%2F%2Fwww.aasaanapp.in%2Fterms.html&loginPrefix=continue&loginSuffix=login&ctaPrefix=continuewith&ctaColor=%232563eb&ctaTextColor=%23ffffff&btnShape=round&skipOption=useanothermethod&ttl=30000`)};
+      </script>
+    </body></html>`;
 
   const handleSendOtp = async () => {
     const trimmed = phone.trim();
@@ -109,9 +115,54 @@ const MobileInputScreen: React.FC = () => {
     setWebOpen(true);
   };
 
-  // purely for UI hint (do NOT change logic)
-  const showFormatHint =
-    phone.length > 0 && phone.replace(/\D/g, '').length !== 10;
+  const initiateTruecallerLogin = async () => {
+    setTruecallerStarted(false);
+    try {
+      const result = await API.startTruecallerLogin();
+      setTruecallerRequestId(result.requestId);
+    } catch {
+      // OTP remains available if the background Truecaller attempt cannot start.
+    }
+  };
+
+  React.useEffect(() => {
+    if (Platform.OS === 'android') void initiateTruecallerLogin();
+  }, []);
+
+  React.useEffect(() => {
+    if (!truecallerRequestId || !truecallerStarted) return;
+    let cancelled = false;
+
+    const poll = async () => {
+      const delays = [300, 700, 1200, 2000, 3000];
+
+      for (const delay of delays) {
+        if (cancelled) return;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        if (cancelled) return;
+        try {
+          const result = await API.getTruecallerLoginStatus(truecallerRequestId);
+          if (result.status === 'complete') {
+            await login(result.token, result.user);
+            setTruecallerWaiting(false);
+            return;
+          }
+          if (result.status === 'failed') {
+            setTruecallerWaiting(false);
+            return;
+          }
+        } catch (error: any) {
+          if (error?.response?.status === 404) continue;
+          setTruecallerWaiting(false);
+          return;
+        }
+      }
+      if (!cancelled) setTruecallerWaiting(false);
+    };
+
+    void poll();
+    return () => { cancelled = true; };
+  }, [truecallerRequestId, truecallerStarted, login]);
 
   return (
     <View style={{ flex: 1}}>
@@ -216,6 +267,35 @@ const MobileInputScreen: React.FC = () => {
             </Text>
           </View>
         </ScrollView>
+
+      {Platform.OS === 'android' && truecallerRequestId && (
+        <WebView
+          source={{ html: truecallerHtml(truecallerRequestId) }}
+          style={styles.hiddenTruecallerWebView}
+          javaScriptEnabled
+          originWhitelist={['*']}
+          setSupportMultipleWindows={false}
+          onShouldStartLoadWithRequest={(request) => {
+            if (request.url.startsWith('truecallersdk://')) {
+              setTruecallerStarted(true);
+              setTruecallerWaiting(true);
+              void Linking.openURL(request.url)
+                .catch(() => {
+                  setTruecallerStarted(false);
+                  setTruecallerWaiting(false);
+                });
+              return false;
+            }
+            return true;
+          }}
+        />
+      )}
+
+      {truecallerWaiting && (
+        <View style={styles.truecallerWaitingOverlay} pointerEvents="none">
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
 
       {/* In-app WebView Modal */}
       <Modal visible={webOpen} animationType="slide" onRequestClose={() => setWebOpen(false)}>
@@ -387,6 +467,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   motivationText: { color: colors.dark, fontSize: 13 },
+  hiddenTruecallerWebView: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
+  },
+  truecallerWaitingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
 
 export default MobileInputScreen;

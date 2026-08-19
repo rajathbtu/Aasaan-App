@@ -191,3 +191,13 @@ export async function checkUserRegistration(phone: string) {
   const res = await api.post('/auth/check-registration', { phone });
   return res.data;
 }
+
+export async function getTruecallerLoginStatus(requestId: string) {
+  const res = await api.get(`/auth/truecaller/status/${encodeURIComponent(requestId)}`);
+  return res.data;
+}
+
+export async function startTruecallerLogin() {
+  const res = await api.post('/auth/truecaller/start');
+  return res.data as { requestId: string };
+}
