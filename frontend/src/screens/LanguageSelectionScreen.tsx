@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { useAuth } from '../contexts/AuthContext';
 import { translations, SupportedLocale } from '../i18n/translations';
 import Header from '../components/Header';
+import BottomCTA from '../components/BottomCTA';
 import { spacing, colors, radius } from '../theme';
 
 const STICKY_HEIGHT = 72; // approx height of the bottom CTA area (padding + button)
@@ -114,23 +115,12 @@ const LanguageSelectionScreen: React.FC = () => {
           ))}
         </ScrollView>
 
-        {/* Sticky Continue Button */}
-        <View
-          style={[
-            styles.stickyButtonContainer,
-            { paddingBottom: 16 + insets.bottom }, // lift above system nav/gesture area
-          ]}
-        >
-          <TouchableOpacity
-            style={[styles.continueButton, !selectedLanguage && { opacity: 0.6 }]}
-            onPress={handleContinue}
-            disabled={!selectedLanguage}
-            accessibilityRole="button"
-          >
-            <Text style={styles.continueButtonText}>{t.common.continue}</Text>
-            <Icon name="arrow-right" size={16} color={colors.white} style={styles.iconSpacing} />
-          </TouchableOpacity>
-        </View>
+        <BottomCTA
+          buttonText={t.common.continue}
+          onPress={handleContinue}
+          isDisabled={!selectedLanguage}
+          showArrow={!!selectedLanguage}
+        />
       </View>
     </View>
   );
@@ -168,12 +158,6 @@ const styles = StyleSheet.create({
   },
   languageSelection: {
     padding: 16,
-  },
-  stickyButtonContainer: {
-    backgroundColor: colors.light,
-     paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.greyLight,
   },
   title: {
     fontSize: 20,
@@ -250,24 +234,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: colors.greyBorder,
-  },
-  continueButton: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: radius.lg,
-    marginTop: spacing.lg,
-  },
-  continueButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.white,
-    marginRight: 8,
-  },
-  iconSpacing: {
-    marginLeft: spacing.sm,
   },
 });
 
