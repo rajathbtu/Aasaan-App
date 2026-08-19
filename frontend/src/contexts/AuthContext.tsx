@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { getProfile, updateProfile } from '../api';
 import { AuthStackNavigationProp } from '../../App';
@@ -31,7 +31,7 @@ interface AuthContextProps {
   token: string | null;
   loading: boolean;
   login: (token: string, user: User) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateUser: (updates: UpdatePayload) => Promise<void>;
   setLanguage: (lang: string) => Promise<void>;
@@ -44,6 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const authVersion = useRef(0);
 
   // Attempt to load token/user from secure storage on mount
   useEffect(() => {
@@ -62,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (tok: string, usr: User, navigation?: AuthStackNavigationProp) => {
+    authVersion.current += 1;
     setToken(tok);
     setUser(usr);
     await SecureStore.setItemAsync('aasaan_token', tok);
@@ -74,6 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    authVersion.current += 1;
     setToken(null);
     setUser(null);
     await SecureStore.deleteItemAsync('aasaan_token');
@@ -82,9 +85,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = async () => {
     if (!token) return;
+    const requestVersion = authVersion.current;
+    const requestToken = token;
     try {
       let updated: any;
-      updated = await getProfile(token);
+      updated = await getProfile(requestToken);
+      if (requestVersion !== authVersion.current) return;
       setUser(updated);
       await SecureStore.setItemAsync('aasaan_user', JSON.stringify(updated));
     } catch (err) {
