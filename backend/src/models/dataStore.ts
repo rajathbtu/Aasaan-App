@@ -17,7 +17,9 @@ const pAny: any = prisma;
  * not exist.
  */
 export async function findUserByPhone(phoneNumber: string) {
-  return prisma.user.findUnique({ where: { phoneNumber } });
+  return prisma.user.findUnique({ where: { phoneNumber },
+    include: {serviceProviderInfo: { include: { location: true },},},
+  });
 }
 
 /**
