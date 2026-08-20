@@ -471,6 +471,11 @@ const LocationSearch: React.FC<Props> = ({
                 multiline={true} // Enable multiline to allow wrapping
                 numberOfLines={2} // Limit to 2 lines
                 autoFocus
+                onFocus={() => {
+                    setQuery('');
+                    setSuggestions([]);
+                    // onSelect(null);
+                }}
                 onChangeText={(text) => {
                   setQuery(text);
                   if (!text.trim()) {
@@ -495,7 +500,6 @@ const LocationSearch: React.FC<Props> = ({
                   onPress={() => {
                     setQuery('');
                     setSuggestions([]);
-                    setShowLocationSearchOverlay(false);
                     onSelect(null);
                   }}
                   style={styles.clearButton}
