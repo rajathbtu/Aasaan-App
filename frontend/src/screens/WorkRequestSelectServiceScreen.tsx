@@ -1,22 +1,17 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, LayoutAnimation, Platform, UIManager, ImageBackground } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colors, spacing, radius, tints } from '../theme';
+import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import { useI18n } from '../i18n';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
 import { useAuth } from '../contexts/AuthContext'; // Corrected import
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
 type Service = { id: string; name: string; category: string; tags?: string[]; icon?: string; color?: string };
 
 const CACHE_KEY = 'services_cache_v1';
-const CACHE_UPDATED_AT_KEY = 'services_cache_updatedAt_v1';
 const RECENT_SERVICES_KEY = (userId: string) => `recent_services_${userId}`;
 const MAX_RECENT_SERVICES = 3;
 
@@ -26,7 +21,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const { t } = useI18n();
 
   const [services, setServices] = useState<Service[] | null>(null);
-  const [loading, setLoading] = useState(false);
   const userId = useAuth()?.user?.id || 'guest'; // Fetch user ID from Auth or fallback to 'guest'
   const [recentServices, setRecentServices] = useState<Service[]>([]);
 
@@ -62,26 +56,13 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   const refreshInBackground = async () => {
     try {
-      setLoading(true);
       const data = await getServices();
       const incoming = data.services as Service[];
 
-      // Compare with current
-      const currentJson = JSON.stringify(services || []);
-      const incomingJson = JSON.stringify(incoming);
-      if (currentJson !== incomingJson) {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setServices(incoming);
-        await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(incoming));
-        await AsyncStorage.setItem(CACHE_UPDATED_AT_KEY, data.updatedAt);
-      } else {
-        // Still update updatedAt for staleness tracking
-        await AsyncStorage.setItem(CACHE_UPDATED_AT_KEY, data.updatedAt);
-      }
-    } catch (e) {
+      setServices(incoming);
+      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(incoming));
+    } catch {
       // Keep showing cache on error
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -128,7 +109,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
         activeOpacity={0.8}
       >
         <View style={[styles.iconCircle, { backgroundColor: service.color || colors.greyLight }]}>
-          <Ionicons name={service.icon as keyof typeof Ionicons.glyphMap || 'construct'} size={22} color={colors.white} />
+          <Ionicons name={service.icon as keyof typeof Ionicons.glyphMap || 'construct'} size={22} color={colors.violet} />
         </View>
         <Text style={styles.serviceLabel}>{service.name}</Text>
       </TouchableOpacity>
@@ -162,11 +143,10 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
         resizeMode="repeat"  // this makes it tile like WhatsApp
         style={{ flex: 1 }}>
           
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.lg }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
 
-          <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+          <View style={styles.introSection}>
             <Text style={styles.pageTitle}>{t('createRequest.selectService.title')}</Text>
-            {/* <Text style={styles.subtitle}>{t('createRequest.selectService.subtitle')}</Text> */}
 
             {/* Search bar (icon inside input) */}
             <View style={styles.searchWrapper}>
@@ -187,9 +167,9 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           </View>
 
           {!hasData && (
-            <View style={{ padding: spacing.lg, alignItems: 'center' }}>
-              <ActivityIndicator />
-              <Text style={{ color: colors.grey, marginTop: 8 }}>Loading services…</Text>
+            <View style={styles.loadingState}>
+              <ActivityIndicator color={colors.primary} />
+              <Text style={styles.loadingText}>Loading services...</Text>
             </View>
           )}
 
@@ -206,12 +186,13 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           {/* All Services */}
           {hasData && (
             <View style={styles.section}>
-              {query.trim() === '' && (
-                <Text style={styles.sectionTitle}>{t('createRequest.selectService.allServices')}</Text>
-              )}
+              {query.trim() === '' && <Text style={styles.sectionTitle}>{t('createRequest.selectService.allServices')}</Text>}
               {Object.keys(filtered).map((category) => (
                 <View key={category} style={styles.categorySection}>
-                  <Text style={styles.categoryTitle}>{category}</Text>
+                  <View style={styles.categoryHeading}>
+                    <View style={styles.categoryMarker} />
+                    <Text style={styles.categoryTitle}>{category}</Text>
+                  </View>
                   <View style={styles.gridRow}>{filtered[category].map((svc) => renderServiceCard(svc))}</View>
                 </View>
               ))}
@@ -219,8 +200,11 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           )}
 
           {hasData && Object.keys(filtered).length === 0 && (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.lg }}>
-              <Text style={{ color: colors.grey, fontSize: 16 }}>{t('No matching service found')}</Text>
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIcon}>
+                <Ionicons name="search-outline" size={24} color={colors.primary} />
+              </View>
+              <Text style={styles.emptyText}>{t('No matching service found')}</Text>
             </View>
           )}
 
@@ -231,67 +215,32 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.greyLight,
-  },
-  appTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.dark, // mock uses dark title
-  },
-  notificationButton: {
-    position: 'relative',
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -8,
-    backgroundColor: colors.error,
-    borderRadius: 8,
-    height: 16,
-    minWidth: 16,
-    paddingHorizontal: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  notificationBadgeText: {
-    color: colors.white,
-    fontSize: 10,
-    fontWeight: '700',
-  },
   pageTitle: {
-    fontSize: 24, // text-2xl
+    fontSize: 26,
     fontWeight: '700',
     color: colors.dark,
-    marginBottom: 4,
+    marginBottom: spacing.sm,
   },
-  subtitle: {
-    fontSize: 16, // text-base
-    color: colors.grey,
-    marginBottom: spacing.lg,
+  scrollContent: {
+    paddingBottom: spacing.xl,
   },
-
-  // Search
+  introSection: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
   searchWrapper: {
     position: 'relative',
-    borderWidth: 2,
-    borderColor: colors.primary, // approx primary/30 look
+    borderWidth: 1,
+    borderColor: colors.greyBorder,
     backgroundColor: colors.white,
-    borderRadius: radius.md,
-    // subtle shadow like shadow-sm
+    borderRadius: radius.lg,
     shadowColor: colors.black,
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   searchIcon: {
     position: 'absolute',
@@ -313,41 +262,50 @@ const styles = StyleSheet.create({
   },
 
   section: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 14, // text-lg
-    fontWeight: '500',
-    color: colors.grey,
-    marginBottom: spacing.md,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: spacing.lg,
     textTransform: 'uppercase',
   },
   categorySection: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  categoryHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  categoryMarker: {
+    width: 4,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+    marginRight: spacing.sm,
   },
   categoryTitle: {
-    fontSize: 16, // text-base
+    fontSize: 16,
     fontWeight: '700',
-    color: colors.dark, // text-gray-800
-    marginBottom: spacing.sm,
-    textTransform: 'uppercase',
+    color: colors.dark,
   },
 
-  // 3-column grid with tidy gaps
   gridRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
 
-  // Card-style tiles per mock
   serviceCard: {
     width: '31%',
+    minHeight: 90,
     marginBottom: spacing.md,
-    borderWidth: 0.2,
-    borderColor: colors.dark,
-    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.greyLight,
+    borderRadius: radius.lg,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.sm,
     alignItems: 'center',
@@ -355,24 +313,51 @@ const styles = StyleSheet.create({
   },
   shadow: {
     shadowColor: colors.black,
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   },
   iconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   serviceLabel: {
-    fontSize: 14, // text-base-ish
-    fontWeight: '500',
+    fontSize: 14,
+    lineHeight: 17,
+    fontWeight: '600',
     textAlign: 'center',
     color: colors.dark,
+  },
+  loadingState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+  },
+  loadingText: {
+    color: colors.grey,
+    marginTop: spacing.sm,
+    fontSize: 14,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xxl,
+  },
+  emptyIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primaryLight,
+    marginBottom: spacing.md,
+  },
+  emptyText: {
+    color: colors.grey,
+    fontSize: 15,
   },
 });
 
