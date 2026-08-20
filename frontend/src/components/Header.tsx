@@ -9,6 +9,7 @@ import DetectedLocationCard from './DetectedLocationCard';
 type HeaderProps = {
   title: string;
   showBackButton?: boolean;
+  onBackPress?: () => void;
   showNotification?: boolean;
   notificationCount?: number;
   showProfileButton?: boolean;
@@ -20,6 +21,7 @@ type HeaderProps = {
 const Header: React.FC<HeaderProps> = ({
   title,
   showBackButton = true,
+  onBackPress,
   showNotification = true,
   notificationCount = 0,
   showProfileButton = false,
@@ -35,7 +37,7 @@ const Header: React.FC<HeaderProps> = ({
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.headerRow}>
         {showBackButton && (
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <TouchableOpacity onPress={onBackPress ?? (() => navigation.goBack())} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color={colors.dark} />
           </TouchableOpacity>
         )}

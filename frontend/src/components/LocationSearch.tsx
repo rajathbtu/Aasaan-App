@@ -453,14 +453,14 @@ const LocationSearch: React.FC<Props> = ({
       )}
       <Modal
         visible={showLocationSearchOverlay}
-        animationType="fade"
+        animationType="slide"
         transparent
         statusBarTranslucent
         onRequestClose={() => setShowLocationSearchOverlay(false)}
       >
         <View style={styles.overlay}>
           <Header title={'Search Location'} showBackButton={true} showNotification={false}
-                  keepTitleCenterAligned={false} />
+                  keepTitleCenterAligned={false} onBackPress={() => setShowLocationSearchOverlay(false)} />
           <View id="location-search-input" style={styles.overlayContent}>
             <View style={styles.inputWrap}>
               <TextInput
