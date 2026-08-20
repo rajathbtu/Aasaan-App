@@ -15,3 +15,4 @@ console.log('API Base URL:', resolvedBaseUrl);
 
 export const BASE_URL = resolvedBaseUrl;
 export const TRUECALLER_APP_KEY = 'OlMQfa4db074ffe23444bbde45919a8c8e83b';
+export const GOOGLE_PLACES_API_KEY = 'AIzaSyC4n8PRgWHs34mn7Iyw8nkkU6aXMyJFj9g';

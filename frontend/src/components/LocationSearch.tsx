@@ -9,8 +9,8 @@ import { colors, spacing, radius, sizes } from '../theme';
 import { locationManager, useLocation } from '../services/LocationManager';
 import EdgeLoader from './EdgeLoader';
 import Header from './Header';
+import { GOOGLE_PLACES_API_KEY } from '../config';
 
-const GOOGLE_PLACES_API_KEY = 'AIzaSyC4n8PRgWHs34mn7Iyw8nkkU6aXMyJFj9g'; // Replace with your API key
 const MAX_SAVED_LOCATIONS = 3;
 const DEFAULT_LOCATION = {
   latitude: 28.613939,
@@ -73,6 +73,7 @@ const LocationSearch: React.FC<Props> = ({
   const [isMapInteracting, setIsMapInteracting] = useState(false);
   const [showLocationSearchOverlay, setShowLocationSearchOverlay] = useState(false);
   const [showEdgeLoader, setShowEdgeLoader] = useState(false);
+  const autoSelectedCurrentLocation = useRef(false);
   const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mapRef = useRef<MapView | null>(null);
 
@@ -277,6 +278,14 @@ const LocationSearch: React.FC<Props> = ({
     setShowEdgeLoader(false);
     return;
   };
+
+  useEffect(() => {
+    if (!enableMap || (initialLocation?.lat != null && initialLocation?.lng != null) || autoSelectedCurrentLocation.current) 
+      return;
+
+    autoSelectedCurrentLocation.current = true;
+    void detectLocation();
+  }, [enableMap, initialLocation]);
 
   const reverseGeocodeLocation = async (latitude: number, longitude: number) => {
     try {
