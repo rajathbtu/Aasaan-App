@@ -84,11 +84,11 @@ const WorkRequestsScreen: React.FC = () => {
       onPress={() => navigation.navigate('WorkRequestDetails', { id: item.id, request: item })}
     >
       <View style={styles.cardHeader}>
-        <View style={styles.iconContainer}>
-          <Ionicons name="construct" size={24} color={colors.primary} />
+        <View style={[styles.iconContainer, { backgroundColor: item.serviceColor || colors.infoLight }]}>
+          <Ionicons name={(item.serviceIcon) as keyof typeof Ionicons.glyphMap} size={20} color={item.serviceColor || colors.primary} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.cardTitle}>{item.service}</Text>
+          <Text style={styles.cardTitle}>{item.serviceName || item.service}</Text>
           <Text style={styles.cardSubtitle}>{timeAgo(item.createdAt)}</Text>
         </View>
         <View style={styles.statusBadge}>

@@ -116,18 +116,40 @@ export async function create(req: Request, res: Response): Promise<void> {
 export async function list(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
   if (user.role === 'endUser') {
-    const my = await pAny.workRequest.findMany({ where: { userId: user.id } });
-    // Enrich with location objects so clients can display location.name
+    const my = await pAny.workRequest.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    // Enrich requests with location and service metadata for client display.
     try {
       const locationIds = Array.from(new Set((my as any[]).map((r: any) => r.locationId).filter(Boolean)));
-      if (locationIds.length && pAny.location?.findMany) {
-        const locations = await pAny.location.findMany({ where: { id: { in: locationIds } } });
-        const locMap = new Map(locations.map((l: any) => [l.id, l]));
-        const enriched = (my as any[]).map((r: any) => ({ ...r, location: locMap.get(r.locationId) || null }));
-        res.json(enriched);
-        return;
-      }
-    } catch {}
+      const serviceIds = Array.from(new Set((my as any[]).map((r: any) => r.service).filter(Boolean)));
+      const [locations, serviceItems] = await Promise.all([
+        locationIds.length && pAny.location?.findMany
+          ? pAny.location.findMany({ where: { id: { in: locationIds } } })
+          : [],
+        serviceIds.length && pAny.service?.findMany
+          ? pAny.service.findMany({ where: { id: { in: serviceIds } } })
+          : [],
+      ]);
+      const locMap = new Map((locations || []).map((l: any) => [l.id, l]));
+      const serviceMap = new Map<string, any>((serviceItems || []).map((s: any) => [s.id, s]));
+      const enriched = (my as any[]).map((r: any) => {
+        const service = serviceMap.get(r.service);
+        return {
+          ...r,
+          location: locMap.get(r.locationId) || null,
+          serviceName: service?.name || r.service,
+          serviceIcon: service?.icon || null,
+          serviceColor: service?.color || null,
+        };
+      });
+      res.json(enriched);
+      return;
+    } catch (error) {
+      console.error('Failed to enrich work requests', error);
+    }
     res.json(my);
     return;
   }
