@@ -64,19 +64,16 @@ export async function createUser(params: Omit<User, 'id' | 'createdAt'>) {
 export async function createWorkRequest(
   params: Omit<WorkRequest, 'id' | 'createdAt' | 'status' | 'boosted' | 'acceptedProviders'>
 ) {
-  const { location, rating: _ignoreRating, ...rest } = params;
-
-  // Create Location first and use its id (matches pattern used elsewhere and avoids type mismatches)
-  const createdLocation = await pAny.location.create({
-    data: { name: location.name, lat: location.lat, lng: location.lng },
-  });
+  const { rating: _ignoreRating, ...rest } = params;
 
   // Create WorkRequest without `rating` on creation
   const wr = await pAny.workRequest.create({
     data: {
       userId: rest.userId,
       service: rest.service,
-      locationId: createdLocation.id,
+      locationName: rest.locationName,
+      locationLat: rest.locationLat,
+      locationLng: rest.locationLng,
       tags: rest.tags || [],
       createdAt: new Date(),
       status: 'active',

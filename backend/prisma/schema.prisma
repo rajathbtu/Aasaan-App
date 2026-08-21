@@ -45,7 +45,6 @@ model Location {
   lat       Float
   lng       Float
   serviceProviderInfo ServiceProviderInfo? @relation("ServiceProviderLocation")
-  workRequest         WorkRequest? @relation("WorkRequestLocation")
 }
 
 model WorkRequest {
@@ -53,8 +52,9 @@ model WorkRequest {
   user              User     @relation("UserWorkRequests", fields: [userId], references: [id])
   userId            String
   service           String
-  location          Location  @relation("WorkRequestLocation", fields: [locationId], references: [id])
-  locationId        String    @unique
+  locationName      String
+  locationLat       Float
+  locationLng       Float
   tags              String[]
   createdAt         DateTime @default(now())
   status            WorkRequestStatus @default(active)
@@ -62,6 +62,8 @@ model WorkRequest {
   acceptedProviders AcceptedProvider[]
   rating            Rating?
   closedAt          DateTime?
+
+  @@index([status, service, createdAt])
 }
 
 model AcceptedProvider {
@@ -70,6 +72,8 @@ model AcceptedProvider {
   acceptedAt   DateTime @default(now())
   workRequest  WorkRequest @relation(fields: [workRequestId], references: [id])
   workRequestId String
+
+  @@unique([providerId, workRequestId])
 }
 
 model Rating {

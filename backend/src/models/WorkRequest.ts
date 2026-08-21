@@ -1,5 +1,3 @@
-import { Location } from './User';
-
 /**
  * A work request is created by an end user and can be accepted by one or
  * more service providers.  Requests remain active for seven days (unless
@@ -11,7 +9,9 @@ export interface WorkRequest {
   id: string;
   userId: string;
   service: string;
-  location: Location;
+  locationName: string;
+  locationLat: number;
+  locationLng: number;
   tags: string[];
   createdAt: Date;
   status: 'active' | 'closed';

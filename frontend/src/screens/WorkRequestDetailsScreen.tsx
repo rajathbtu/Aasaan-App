@@ -62,20 +62,39 @@ const WorkRequestDetailsScreen: React.FC = () => {
   const [closeVisible, setCloseVisible] = useState(false);
   const [selectedProviderId, setSelectedProviderId] = useState<string | 'none' | null>(null);
   const [stars, setStars] = useState<number>(4);
-  const [isLoading, setIsLoading] = useState(false); // New state for loader
+  const [loadingStage, setLoadingStage] = useState<'initial' | 'details' | 'idle'>(
+    route.params?.request ? 'details' : 'initial'
+  );
 
   useEffect(() => {
     const id = route.params?.id || route.params?.request?.id;
-    if (id && token) {
-      setIsLoading(true); // Show loader when fetching starts
-      getWorkRequest(token, id)
-        .then(setRequest)
-        .catch(console.error)
-        .finally(() => setIsLoading(false)); // Hide loader when fetching ends
-    }
+    if (!id || !token) return;
+
+    let isMounted = true;
+    setLoadingStage('details');
+    getWorkRequest(token, id)
+      .then((data) => {
+        if (isMounted) {
+          setRequest((currentRequest: any) => ({
+            ...currentRequest,
+            ...data,
+            serviceName: data.serviceName || currentRequest?.serviceName,
+            serviceIcon: data.serviceIcon || currentRequest?.serviceIcon,
+            serviceColor: data.serviceColor || currentRequest?.serviceColor,
+          }));
+        }
+      })
+      .catch(console.error)
+      .finally(() => {
+        if (isMounted) setLoadingStage('idle');
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [route.params?.id, route.params?.request?.id, token]);
 
-  if (isLoading) {
+  if (loadingStage === 'initial') {
     return (
       <View style={styles.emptyContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -125,10 +144,11 @@ const WorkRequestDetailsScreen: React.FC = () => {
   const status = (request.status || 'active').toString().toLowerCase();
   const isActive = status === 'active';
   const isCompleted = status === 'completed' || status === 'closed';
+  const serviceName = request.serviceName || request.service;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
-      <Header title={request.service} showBackButton={true} showNotification={false} />
+      <Header title={serviceName} showBackButton={true} showNotification={false} />
       {/* Small spacer to avoid any overlap and keep consistent spacing */}
       <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
@@ -136,7 +156,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <Ionicons name="flash" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.summaryLabel}>{request.service}</Text>
+            <Text style={styles.summaryLabel}>{serviceName}</Text>
             {request.status !== undefined && (
               <View style={[styles.statusBadge, { backgroundColor: isActive ? colors.successLight : colors.greyLight }]}> 
                 <Text style={[styles.statusBadgeText, { color: isActive ? colors.success : colors.dark }]}>{isActive ? t('requestDetails.statusActive') : (request.status as any)}</Text>
@@ -149,7 +169,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
           </View>
           <View style={styles.summaryRow}>
             <Ionicons name="location" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.summaryValue} numberOfLines={2} ellipsizeMode="tail">{request.location?.name || t('userRequests.locationFallback')}</Text>
+            <Text style={styles.summaryValue} numberOfLines={2} ellipsizeMode="tail">{request.locationName || t('userRequests.locationFallback')}</Text>
           </View>
           {request.tags && request.tags.length > 0 && (
             <View style={styles.tagsRow}>
@@ -177,10 +197,14 @@ const WorkRequestDetailsScreen: React.FC = () => {
         )}
 
         {/* Accepted providers */}
-        {request.acceptedProviders && request.acceptedProviders.length > 0 && (
+        {(loadingStage === 'details' || (request.acceptedProviders && request.acceptedProviders.length > 0)) && (
           <View style={styles.acceptedSection}>
-            <Text style={styles.acceptedTitle}>{t('requestDetails.acceptedBy', { count: request.acceptedProviders.length })}</Text>
-            {request.acceptedProviders.map((p: any, index: number) => {
+            {loadingStage === 'details' ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <>
+                <Text style={styles.acceptedTitle}>{t('requestDetails.acceptedBy', { count: request.acceptedProviders.length })}</Text>
+                {request.acceptedProviders.map((p: any, index: number) => {
               const provider = p.provider || {};
               const displayName = provider.name || p.providerId || t('requestDetails.provider');
               const phone = provider.phoneNumber || '';
@@ -220,7 +244,9 @@ const WorkRequestDetailsScreen: React.FC = () => {
                   </View>
                 </View>
               );
-            })}
+                })}
+              </>
+            )}
           </View>
         )}
       </ScrollView>
@@ -245,7 +271,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
                   <Ionicons name="construct" size={18} color={colors.primary} />
                 </View>
                 <View>
-                  <Text style={{ fontWeight: '600', color: colors.dark }}>{request.service}</Text>
+                  <Text style={{ fontWeight: '600', color: colors.dark }}>{serviceName}</Text>
                   <Text style={{ fontSize: 12, color: colors.grey }}>{timeAgo(request.createdAt)}</Text>
                 </View>
               </View>
@@ -253,7 +279,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
                   <Ionicons name="location" size={14} color={colors.grey} style={{ marginRight: 6 }} />
                   <Text style={{ fontSize: 12, color: colors.grey }} numberOfLines={2}>
-                    {request.location?.name || t('userRequests.locationFallback')}
+                    {request.locationName || t('userRequests.locationFallback')}
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>

@@ -210,8 +210,8 @@ const BoostRequestScreen: React.FC = () => {
                 ))}
               </View>
             )}
-            {request.location?.name && (
-              <Text style={styles.summaryLocation}>{request.location.name}</Text>
+            {request.locationName && (
+              <Text style={styles.summaryLocation}>{request.locationName}</Text>
             )}
           </View>
           <Text style={styles.summaryTime}>{createdText}</Text>

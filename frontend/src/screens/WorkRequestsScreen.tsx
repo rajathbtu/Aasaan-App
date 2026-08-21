@@ -35,9 +35,9 @@ function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
   };
 }
 
-/** Helper: pick a location name if present */
+/** Helper: pick the request snapshot location name. */
 function getLocationName(item: any, t: ReturnType<typeof useI18n>['t']): string {
-  return item?.location?.name || item?.locationName || t('userRequests.locationFallback');
+  return item?.locationName || t('userRequests.locationFallback');
 }
 
 /**
@@ -81,7 +81,12 @@ const WorkRequestsScreen: React.FC = () => {
     <TouchableOpacity
       style={styles.requestCard}
       activeOpacity={0.8}
-      onPress={() => navigation.navigate('WorkRequestDetails', { id: item.id, request: item })}
+      onPress={() => navigation.navigate('WorkRequestDetails', {
+        id: item.id,
+        request: {
+          ...item,
+        },
+      })}
     >
       <View style={styles.cardHeader}>
         <View style={[styles.iconContainer, { backgroundColor: item.serviceColor || colors.infoLight }]}>

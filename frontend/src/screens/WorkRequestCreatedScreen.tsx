@@ -19,7 +19,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
   const { t } = useI18n();
   const { request, locationName: locationNameParam } = (route.params as any) || {};
   const serviceName = request?.service ?? 'Service';
-  const locationName = locationNameParam ?? request?.location?.name ?? request?.locationName ?? t('userRequests.locationFallback');
+  const locationName = locationNameParam ?? request?.locationName ?? t('userRequests.locationFallback');
   const tags = Array.isArray(request?.tags) ? request.tags.slice(0, 2) : [];
 
   const goToMyRequests = () => {
