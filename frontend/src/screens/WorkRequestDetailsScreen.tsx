@@ -19,6 +19,7 @@ import { getWorkRequest, closeWorkRequest } from '../api/index';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 // Helper: relative time (localized)
 function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
@@ -55,7 +56,7 @@ function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
 const WorkRequestDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { t } = useI18n();
   const timeAgo = buildTimeAgo(t);
   const [request, setRequest] = useState(route.params?.request || null);
@@ -65,15 +66,27 @@ const WorkRequestDetailsScreen: React.FC = () => {
   const [loadingStage, setLoadingStage] = useState<'initial' | 'details' | 'idle'>(
     route.params?.request ? 'details' : 'initial'
   );
+  const requestId = route.params?.id || route.params?.request?.id;
+  const cacheKey = requestId && user?.id ? offlineCacheKey('work-request', user.id, requestId) : null;
 
   useEffect(() => {
-    const id = route.params?.id || route.params?.request?.id;
-    if (!id || !token) return;
-
     let isMounted = true;
-    setLoadingStage('details');
-    getWorkRequest(token, id)
-      .then((data) => {
+    const loadRequest = async () => {
+      if (!requestId) return;
+      if (cacheKey && !route.params?.request) {
+        const cached = await readOfflineCache<any>(cacheKey);
+        if (cached && isMounted) {
+          setRequest(cached);
+          setLoadingStage('idle');
+        }
+      }
+      if (!token) {
+        if (isMounted) setLoadingStage('idle');
+        return;
+      }
+      setLoadingStage('details');
+      try {
+        const data = await getWorkRequest(token, requestId);
         if (isMounted) {
           setRequest((currentRequest: any) => ({
             ...currentRequest,
@@ -83,16 +96,19 @@ const WorkRequestDetailsScreen: React.FC = () => {
             serviceColor: data.serviceColor || currentRequest?.serviceColor,
           }));
         }
-      })
-      .catch(console.error)
-      .finally(() => {
+        if (cacheKey) await writeOfflineCache(cacheKey, data);
+      } catch (err) {
+        console.error(err);
+      } finally {
         if (isMounted) setLoadingStage('idle');
-      });
+      }
+    };
+    loadRequest();
 
     return () => {
       isMounted = false;
     };
-  }, [route.params?.id, route.params?.request?.id, token]);
+  }, [requestId, token, cacheKey, route.params?.request]);
 
   if (loadingStage === 'initial') {
     return (

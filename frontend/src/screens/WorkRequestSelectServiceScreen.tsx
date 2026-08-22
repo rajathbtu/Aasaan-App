@@ -5,13 +5,12 @@ import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import { useI18n } from '../i18n';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
 import { useAuth } from '../contexts/AuthContext'; // Corrected import
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 type Service = { id: string; name: string; category: string; tags?: string[]; icon?: string; color?: string };
 
-const CACHE_KEY = 'services_cache_v1';
 const RECENT_SERVICES_KEY = (userId: string) => `recent_services_${userId}`;
 const MAX_RECENT_SERVICES = 3;
 
@@ -21,32 +20,31 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const { t } = useI18n();
 
   const [services, setServices] = useState<Service[] | null>(null);
-  const userId = useAuth()?.user?.id || 'guest'; // Fetch user ID from Auth or fallback to 'guest'
+  const userId = useAuth()?.user?.id;
+  const servicesCacheKey = userId ? offlineCacheKey('services', userId) : null;
   const [recentServices, setRecentServices] = useState<Service[]>([]);
 
   useEffect(() => {
     // Load cached services immediately
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(CACHE_KEY);
-        if (raw) {
-          const cached: Service[] = JSON.parse(raw);
-          setServices(cached);
+        if (servicesCacheKey) {
+          const cached = await readOfflineCache<Service[]>(servicesCacheKey);
+          if (cached) setServices(cached);
         }
       } catch { }
       // Always refresh in background
       refreshInBackground();
     })();
-  }, []);
+  }, [servicesCacheKey]);
 
   useEffect(() => {
     // Load recently used services for the user
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(RECENT_SERVICES_KEY(userId));
-        if (raw) {
-          const recent: Service[] = JSON.parse(raw);
-          setRecentServices(recent);
+        if (userId) {
+          const recent = await readOfflineCache<Service[]>(RECENT_SERVICES_KEY(userId));
+          if (recent) setRecentServices(recent);
         }
       } catch {
         // Handle error silently
@@ -60,7 +58,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
       const incoming = data.services as Service[];
 
       setServices(incoming);
-      await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(incoming));
+      if (servicesCacheKey) await writeOfflineCache(servicesCacheKey, incoming);
     } catch {
       // Keep showing cache on error
     }
@@ -70,7 +68,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     try {
       const updatedRecent = [service, ...recentServices.filter((s) => s.id !== service.id)].slice(0, MAX_RECENT_SERVICES);
       setRecentServices(updatedRecent);
-      await AsyncStorage.setItem(RECENT_SERVICES_KEY(userId), JSON.stringify(updatedRecent));
+      if (userId) await writeOfflineCache(RECENT_SERVICES_KEY(userId), updatedRecent);
     } catch {
       // Handle error silently
     }

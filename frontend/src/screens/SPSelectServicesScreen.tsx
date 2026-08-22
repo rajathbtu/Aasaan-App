@@ -3,12 +3,12 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIn
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
 import Header from '../components/Header';
 import { colors, spacing, radius, tints } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -22,13 +22,10 @@ type Service = {
   icon?: string;
   color?: string;
 };
-const CACHE_KEY = 'services_cache_v1';
-const CACHE_UPDATED_AT_KEY = 'services_cache_updatedAt_v1';
-
 const SPSelectServicesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { updateUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
 
@@ -40,6 +37,7 @@ const SPSelectServicesScreen: React.FC = () => {
   const [services, setServices] = useState<Service[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
+  const servicesCacheKey = user?.id ? offlineCacheKey('services', user.id) : null;
 
   useEffect(() => {
     setSelected(initialSelected);
@@ -47,13 +45,13 @@ const SPSelectServicesScreen: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      try {
-        const raw = await AsyncStorage.getItem(CACHE_KEY);
-        if (raw) setServices(JSON.parse(raw));
-      } catch {}
+      if (servicesCacheKey) {
+        const cached = await readOfflineCache<Service[]>(servicesCacheKey);
+        if (cached) setServices(cached);
+      }
       refreshInBackground();
     })();
-  }, []);
+  }, [servicesCacheKey]);
 
   const refreshInBackground = async () => {
     try {
@@ -65,10 +63,7 @@ const SPSelectServicesScreen: React.FC = () => {
       if (cur !== inc) {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setServices(incoming);
-        await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(incoming));
-        if (data.updatedAt) await AsyncStorage.setItem(CACHE_UPDATED_AT_KEY, data.updatedAt);
-      } else {
-        if (data.updatedAt) await AsyncStorage.setItem(CACHE_UPDATED_AT_KEY, data.updatedAt);
+        if (servicesCacheKey) await writeOfflineCache(servicesCacheKey, incoming);
       }
     } catch (e) {
       // ignore and keep cache

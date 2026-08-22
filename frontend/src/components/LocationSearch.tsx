@@ -4,12 +4,13 @@ import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import locationMarkerIcon from '../../assets/location_marker.png';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, spacing, radius, sizes } from '../theme';
 import { locationManager, useLocation } from '../services/LocationManager';
 import EdgeLoader from './EdgeLoader';
 import Header from './Header';
 import { GOOGLE_PLACES_API_KEY } from '../config';
+import { useAuth } from '../contexts/AuthContext';
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 const MAX_SAVED_LOCATIONS = 3;
 const DEFAULT_LOCATION = {
@@ -50,6 +51,8 @@ const LocationSearch: React.FC<Props> = ({
   initialLocation,
   mapHeight,
 }) => {
+  const { user } = useAuth();
+  const savedLocationsCacheKey = user?.id ? offlineCacheKey('saved-locations', user.id) : null;
   const { gpsLocation, ipLocation } = useLocation();
   const liveDefaultRegion = useMemo(() => 
     getRegionFromLocation(gpsLocation ?? ipLocation),[gpsLocation, ipLocation]);
@@ -329,18 +332,20 @@ const LocationSearch: React.FC<Props> = ({
   }, []);
 
   const saveLocation = async (location: Location) => {
+    if (!savedLocationsCacheKey) return;
     try {
-      const savedLocations: Location[] = JSON.parse((await AsyncStorage.getItem('savedLocations')) || '[]');
+      const savedLocations = (await readOfflineCache<Location[]>(savedLocationsCacheKey)) || [];
       const updatedLocations = [location, ...savedLocations.filter((loc) => loc.place_id !== location.place_id)].slice(0, MAX_SAVED_LOCATIONS);
-      await AsyncStorage.setItem('savedLocations', JSON.stringify(updatedLocations));
+      await writeOfflineCache(savedLocationsCacheKey, updatedLocations);
     } catch (error) {
       console.error('Error saving location:', error);
     }
   };
 
   const getSavedLocations = async (): Promise<Location[]> => {
+    if (!savedLocationsCacheKey) return [];
     try {
-      return JSON.parse((await AsyncStorage.getItem('savedLocations')) || '[]');
+      return (await readOfflineCache<Location[]>(savedLocationsCacheKey)) || [];
     } catch (error) {
       console.error('Error retrieving saved locations:', error);
       return [];

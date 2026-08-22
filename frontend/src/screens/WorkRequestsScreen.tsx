@@ -10,10 +10,12 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
+import ErrorBanner from '../components/ErrorBanner';
 import * as realApi from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import { colors, spacing } from '../theme';
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 const API = realApi;
 type RequestTab = 'active' | 'completed';
@@ -48,7 +50,7 @@ function getLocationName(item: any, t: ReturnType<typeof useI18n>['t']): string 
  * request optionally prompts for a rating in the backend.
  */
 const WorkRequestsScreen: React.FC = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const navigation = useNavigation<any>();
   const { t } = useI18n();
   const timeAgo = buildTimeAgo(t);
@@ -59,33 +61,49 @@ const WorkRequestsScreen: React.FC = () => {
   const [counts, setCounts] = useState({ active: 0, completed: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [requestError, setRequestError] = useState<unknown | null>(null);
   const [activeTab, setActiveTab] = useState<RequestTab>('active');
   const loadedTabs = React.useRef<Record<RequestTab, boolean>>({
     active: false,
     completed: false,
   });
   const requests = requestsByTab[activeTab];
+  const userId = user?.id;
 
   const fetchRequests = useCallback(async (isRefresh = false) => {
-    if (!token) return;
+    if (!token || !userId) return;
     const status = activeTab === 'active' ? 'active' : 'closed';
+    const cacheKey = offlineCacheKey('user-requests', userId, status);
     try {
       if (isRefresh) setRefreshing(true);
       else if (!loadedTabs.current[activeTab]) setLoading(true);
+      if (!loadedTabs.current[activeTab]) {
+        const cached = await readOfflineCache<{ requests: any[]; counts?: typeof counts }>(cacheKey);
+        if (cached) {
+          setRequestsByTab((current) => ({ ...current, [activeTab]: cached.requests || [] }));
+          if (cached.counts) setCounts(cached.counts);
+          loadedTabs.current[activeTab] = true;
+          setLoading(false);
+        }
+      }
       const result = await API.listWorkRequests(token, status);
+      const nextRequests = result.requests || result;
+      setRequestError(null);
       setRequestsByTab((current) => ({
         ...current,
-        [activeTab]: result.requests || result,
+        [activeTab]: nextRequests,
       }));
       if (result.counts) setCounts(result.counts);
+      await writeOfflineCache(cacheKey, { requests: nextRequests, counts: result.counts });
       loadedTabs.current[activeTab] = true;
-    } catch (err) {
-      console.error(err);
+    } 
+    catch (error) {
+      setRequestError(error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token, activeTab]);
+  }, [token, activeTab, userId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -188,6 +206,9 @@ const WorkRequestsScreen: React.FC = () => {
         contentContainerStyle={requests.length === 0 ? styles.emptyContainer : undefined}
         ListEmptyComponent={<Text style={styles.emptyText}>{t('userRequests.empty')}</Text>}
       />
+      <ErrorBanner
+        error={requestError}
+        onRetry={() => fetchRequests(true)} />
     </View>
   );
 };

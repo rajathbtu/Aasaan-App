@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 const API = realApi;
 
@@ -42,20 +43,29 @@ const buildTimeAgo = (t: ReturnType<typeof useI18n>['t']) => (value: any): strin
  */
 
 const NotificationsScreen: React.FC = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const navigation = useNavigation<any>();
   const { t } = useI18n();
   const timeAgo = buildTimeAgo(t);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const cacheKey = user?.id ? offlineCacheKey('notifications', user.id) : null;
 
   const fetchNotifications = async () => {
-    if (!token) return;
+    if (!token || !cacheKey) return;
     try {
       setLoading(true);
+      const cached = await readOfflineCache<any[]>(cacheKey);
+      if (cached) {
+        setNotifications(cached);
+        setLoading(false);
+      }
       const list = await API.getNotifications(token);
       setNotifications(list);
+      await writeOfflineCache(cacheKey, list);
     } catch (err) {
+      const cached = await readOfflineCache<any[]>(cacheKey);
+      if (cached) setNotifications(cached);
       console.error(err);
     } finally {
       setLoading(false);
@@ -65,7 +75,7 @@ const NotificationsScreen: React.FC = () => {
   useFocusEffect(
     useCallback(() => {
       fetchNotifications();
-    }, [token])
+    }, [token, cacheKey])
   );
 
   const markAllRead = async () => {

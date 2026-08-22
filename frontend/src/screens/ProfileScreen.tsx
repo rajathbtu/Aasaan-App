@@ -7,9 +7,9 @@ import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
 import Header from '../components/Header';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServices } from '../api';
 import SafeBottomBanner from '../components/SafeBottomBanner';
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users
@@ -25,25 +25,25 @@ const ProfileScreen: React.FC = () => {
 
   // Shared services list to map ids -> display names
   type Service = { id: string; name: string; category: string; tags?: string[] };
-  const SERVICES_CACHE_KEY = 'services_cache_v1';
   const [allServices, setAllServices] = useState<Service[] | null>(null);
+  const servicesCacheKey = user?.id ? offlineCacheKey('services', user.id) : null;
 
   useEffect(() => {
     (async () => {
-      try {
-        const raw = await AsyncStorage.getItem(SERVICES_CACHE_KEY);
-        if (raw) setAllServices(JSON.parse(raw));
-      } catch {}
+      if (servicesCacheKey) {
+        const cached = await readOfflineCache<Service[]>(servicesCacheKey);
+        if (cached) setAllServices(cached);
+      }
       try {
         const data = await getServices();
         const incoming = data.services as Service[];
         setAllServices(incoming);
-        await AsyncStorage.setItem(SERVICES_CACHE_KEY, JSON.stringify(incoming));
+        if (servicesCacheKey) await writeOfflineCache(servicesCacheKey, incoming);
       } catch {
         // keep cache on failure
       }
     })();
-  }, []);
+  }, [servicesCacheKey]);
 
   const serviceNameMap = useMemo(() => {
     const map: Record<string, string> = {};

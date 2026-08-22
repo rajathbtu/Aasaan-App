@@ -29,6 +29,17 @@ export const translations = {
         dayAgo: '{count} d ago',
       },
     },
+    errorBanner: {
+      titles: {
+        network: 'No internet connection',
+        api: 'Unable to load requests',
+      },
+      messages: {
+        network: 'You\'re offline. Please check your internet connection.',
+        api: 'Something went wrong at our side',
+      },
+      retry: 'Retry',
+    },
     language: {
       title: 'Choose language',
       subtitle: 'अपनी भाषा चुनें',

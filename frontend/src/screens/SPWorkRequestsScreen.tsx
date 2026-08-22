@@ -19,6 +19,7 @@ import { colors, spacing, radius, tints } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import SafeBottomBanner from '../components/SafeBottomBanner';
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 const API = realApi;
 
@@ -52,14 +53,24 @@ const SPWorkRequestsScreen: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [refreshing, setRefreshing] = useState(false);
   const [showProBanner, setShowProBanner] = useState(true);
+  const userId = user?.id;
+  const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
+  const notificationsCacheKey = userId ? offlineCacheKey('notifications', userId) : null;
 
   // Fetch work requests from the API
   const fetchRequests = async () => {
-    if (!token) return;
+    if (!token || !requestsCacheKey) return;
     try {
       setLoading(true);
+      const cached = await readOfflineCache<any[]>(requestsCacheKey);
+      if (cached) {
+        setRequests(cached);
+        setLoading(false);
+      }
       const list = await API.listWorkRequests(token);
-      setRequests(list);
+      const nextRequests = Array.isArray(list) ? list : list.requests || [];
+      setRequests(nextRequests);
+      await writeOfflineCache(requestsCacheKey, nextRequests);
     } catch (err: any) {
       // If backend indicates incomplete profile, route to the appropriate step
       const status = err?.response?.status;
@@ -93,12 +104,15 @@ const SPWorkRequestsScreen: React.FC = () => {
 
   // Fetch unread notifications to display in badge
   const fetchNotifications = async () => {
-    if (!token) return;
+    if (!token || !notificationsCacheKey) return;
     try {
       // Only get unread notifications
       const list = await API.getNotifications(token, true as any);
       setUnreadCount(list.length);
+      await writeOfflineCache(notificationsCacheKey, list);
     } catch (err) {
+      const cached = await readOfflineCache<any[]>(notificationsCacheKey);
+      if (cached) setUnreadCount(cached.filter((notification) => !notification.read).length);
       console.error(err);
     }
   };
@@ -117,7 +131,7 @@ const SPWorkRequestsScreen: React.FC = () => {
       }
       fetchRequests();
       fetchNotifications();
-    }, [token, user])
+    }, [token, user, requestsCacheKey, notificationsCacheKey])
   );
 
   /**
@@ -355,16 +369,18 @@ const SPWorkRequestsScreen: React.FC = () => {
 
   // Pull-to-refresh handler
   const onRefresh = async () => {
-    if (!token) return;
+    if (!token || !requestsCacheKey) return;
     try {
       setRefreshing(true);
       const latestRequests = await API.listWorkRequests(token);
+      const latest = Array.isArray(latestRequests) ? latestRequests : latestRequests.requests || [];
       setRequests(prevRequests => {
-        const newRequests = latestRequests.filter(
+        const newRequests = latest.filter(
           (newReq: any) => !prevRequests.some((prevReq: any) => prevReq.id === newReq.id)
         );
         return [...newRequests, ...prevRequests];
       });
+      await writeOfflineCache(requestsCacheKey, latest);
     } catch (err) {
       console.error(err);
     } finally {
