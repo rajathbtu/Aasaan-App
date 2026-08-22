@@ -5,7 +5,6 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -16,7 +15,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import { colors, spacing } from '../theme';
 
-const API =  realApi;
+const API = realApi;
+type RequestTab = 'active' | 'completed';
+type RequestsByTab = Record<RequestTab, any[]>;
 
 /** Helper: relative "time ago" for createdAt (localized) */
 function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
@@ -51,31 +52,46 @@ const WorkRequestsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t } = useI18n();
   const timeAgo = buildTimeAgo(t);
-  const [requests, setRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
+  const [requestsByTab, setRequestsByTab] = useState<RequestsByTab>({
+    active: [],
+    completed: [],
+  });
+  const [counts, setCounts] = useState({ active: 0, completed: 0 });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<RequestTab>('active');
+  const loadedTabs = React.useRef<Record<RequestTab, boolean>>({
+    active: false,
+    completed: false,
+  });
+  const requests = requestsByTab[activeTab];
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async (isRefresh = false) => {
     if (!token) return;
+    const status = activeTab === 'active' ? 'active' : 'closed';
     try {
-      setLoading(true);
-      const list = await API.listWorkRequests(token);
-      setRequests(list);
+      if (isRefresh) setRefreshing(true);
+      else if (!loadedTabs.current[activeTab]) setLoading(true);
+      const result = await API.listWorkRequests(token, status);
+      setRequestsByTab((current) => ({
+        ...current,
+        [activeTab]: result.requests || result,
+      }));
+      if (result.counts) setCounts(result.counts);
+      loadedTabs.current[activeTab] = true;
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [token, activeTab]);
 
   useFocusEffect(
     useCallback(() => {
       fetchRequests();
-    }, [token])
+    }, [fetchRequests])
   );
-
-  const activeRequests = requests.filter(req => req.status !== 'closed');
-  const completedRequests = requests.filter(req => req.status === 'closed');
 
   const renderRequestCard = (item: any) => (
     <TouchableOpacity
@@ -113,21 +129,13 @@ const WorkRequestsScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
-  if (loading) {
+  if (loading && requests.length === 0) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
-
-  const data = activeTab === 'active' ? activeRequests : completedRequests;
-  // Sort recent first (createdAt descending)
-  const list = [...data].sort((a, b) => {
-    const aTime = new Date(a?.createdAt || 0).getTime();
-    const bTime = new Date(b?.createdAt || 0).getTime();
-    return bTime - aTime;
-  });
 
   return (
     <View style={styles.container}>
@@ -138,23 +146,29 @@ const WorkRequestsScreen: React.FC = () => {
       <View style={styles.filterTabs}>
         <TouchableOpacity
           style={[styles.filterTab, activeTab === 'active' && styles.activeTab]}
-          onPress={() => setActiveTab('active')}
+          onPress={() => {
+            setActiveTab('active');
+            setLoading(!loadedTabs.current.active);
+          }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={[styles.filterTabText, activeTab === 'active' && styles.activeTabText]}>{t('userRequests.tabActive')}</Text>
             <View style={[styles.countBadge, activeTab === 'active' ? styles.countBadgeActive : styles.countBadgeInactive]}>
-              <Text style={[styles.countBadgeText, activeTab === 'active' && styles.countBadgeTextActive]}>{activeRequests.length}</Text>
+              <Text style={[styles.countBadgeText, activeTab === 'active' && styles.countBadgeTextActive]}>{counts.active}</Text>
             </View>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.filterTab, activeTab === 'completed' && styles.activeTab]}
-          onPress={() => setActiveTab('completed')}
+          onPress={() => {
+            setActiveTab('completed');
+            setLoading(!loadedTabs.current.completed);
+          }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={[styles.filterTabText, activeTab === 'completed' && styles.activeTabText]}>{t('userRequests.tabCompleted')}</Text>
             <View style={[styles.countBadge, activeTab === 'completed' ? styles.countBadgeActive : styles.countBadgeInactive]}>
-              <Text style={[styles.countBadgeText, activeTab === 'completed' && styles.countBadgeTextActive]}>{completedRequests.length}</Text>
+              <Text style={[styles.countBadgeText, activeTab === 'completed' && styles.countBadgeTextActive]}>{counts.completed}</Text>
             </View>
           </View>
         </TouchableOpacity>
@@ -162,9 +176,15 @@ const WorkRequestsScreen: React.FC = () => {
 
       {/* Request List */}
       <FlatList
-        data={list}
+        data={requests}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => renderRequestCard(item)}
+        refreshing={refreshing}
+        onRefresh={() => fetchRequests(true)}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        removeClippedSubviews
         contentContainerStyle={requests.length === 0 ? styles.emptyContainer : undefined}
         ListEmptyComponent={<Text style={styles.emptyText}>{t('userRequests.empty')}</Text>}
       />

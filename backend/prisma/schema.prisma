@@ -64,6 +64,7 @@ model WorkRequest {
   closedAt          DateTime?
 
   @@index([status, service, createdAt])
+  @@index([userId, createdAt])
 }
 
 model AcceptedProvider {

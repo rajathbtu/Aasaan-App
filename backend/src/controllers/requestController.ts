@@ -3,6 +3,7 @@ import prisma from '../utils/prisma';
 import { areValidTags } from '../utils/validation';
 import { pushNotification } from '../models/dataStore';
 import { getReqLang, t, notifyUser } from '../utils/i18n';
+import { getCachedServices } from '../utils/serviceCache';
 
 const pAny: any = prisma;
 
@@ -39,8 +40,11 @@ export interface FullWorkRequest {
 
 async function getServiceMap(serviceIds: string[]): Promise<Map<string, any>> {
   if (!serviceIds.length || !pAny.service?.findMany) return new Map();
-  const services = await pAny.service.findMany({ where: { id: { in: serviceIds } } });
-  return new Map((services || []).map((service: any) => [service.id, service]));
+  const services = await getCachedServices(() => pAny.service.findMany({
+    orderBy: [{ category: 'asc' }, { name: 'asc' }],
+  }));
+  const serviceMap = new Map(services.map((service) => [service.id, service]));
+  return new Map(serviceIds.map((id) => [id, serviceMap.get(id)]));
 }
 
 // Build a full work request object with related entities via separate queries (avoids problematic includes)
@@ -135,29 +139,54 @@ export async function create(req: Request, res: Response): Promise<void> {
 export async function list(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
   if (user.role === 'endUser') {
-    const my = await pAny.workRequest.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
+    const requestedStatus = req.query.status;
+    const status = requestedStatus === 'active' || requestedStatus === 'closed'
+      ? requestedStatus
+      : undefined;
+    const [requests, activeCount, completedCount] = await Promise.all([
+      pAny.workRequest.findMany({
+        where: { userId: user.id, ...(status ? { status } : {}) },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        select: {
+          id: true,
+          service: true,
+          locationName: true,
+          tags: true,
+          createdAt: true,
+          status: true,
+          boosted: true,
+        },
+      }),
+      pAny.workRequest.count({ where: { userId: user.id, status: 'active' } }),
+      pAny.workRequest.count({ where: { userId: user.id, status: 'closed' } }),
+    ]);
+    const counts = { active: activeCount, completed: completedCount };
     // Enrich requests with location and service metadata for client display.
     try {
-      const serviceItems = await getServiceMap(Array.from(new Set((my as any[]).map((r: any) => r.service).filter(Boolean))));
-      const enriched = (my as any[]).map((r: any) => {
-        const service = serviceItems.get(r.service);
+      const serviceIds = Array.from(new Set((requests as any[]).map((request: any) => request.service).filter(Boolean)));
+      const serviceItems = await getServiceMap(serviceIds);
+      const enriched = (requests as any[]).map((request: any) => {
+        const service = serviceItems.get(request.service);
         return {
-          ...r,
-          serviceName: service?.name || r.service,
+          ...request,
+          serviceName: service?.name || request.service,
           serviceIcon: service?.icon || null,
           serviceColor: service?.color || null,
         };
       });
-      res.json(enriched);
+      res.json({
+        requests: enriched,
+        counts,
+      });
       return;
     } catch (error) {
       console.error('Failed to enrich work requests', error);
     }
-    res.json(my);
+    res.json({
+      requests,
+      counts,
+    });
     return;
   }
 

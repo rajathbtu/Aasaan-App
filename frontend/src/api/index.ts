@@ -80,8 +80,9 @@ export async function createWorkRequest(
  * List work requests relevant to the authenticated user.  End users see
  * their own requests and service providers see eligible requests.
  */
-export async function listWorkRequests(token: string) {
+export async function listWorkRequests(token: string, status?: 'active' | 'closed') {
   const res = await api.get('/work-requests', {
+    params: status ? { status } : undefined,
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;
