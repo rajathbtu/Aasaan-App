@@ -48,14 +48,13 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
 
 const styles = StyleSheet.create({
   errorBanner: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 16,
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: colors.white,
+    marginHorizontal: 12,
+    marginBottom: 5,
+    backgroundColor: '#fcebeb',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#fecaca',
@@ -64,6 +63,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
     elevation: 5,
+    zIndex: 100,
   },
   errorIconContainer: {
     width: 38,
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: colors.primary,
+    backgroundColor: '#fd7b7b',
     marginLeft: 8,
   },
   retryButtonText: {

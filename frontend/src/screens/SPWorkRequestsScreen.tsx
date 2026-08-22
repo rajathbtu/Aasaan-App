@@ -18,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius, tints } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import ErrorBanner from '../components/ErrorBanner';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
@@ -52,6 +53,7 @@ const SPWorkRequestsScreen: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'today' | 'within3'>('all');
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [requestError, setRequestError] = useState<unknown | null>(null);
   const [showProBanner, setShowProBanner] = useState(true);
   const userId = user?.id;
   const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
@@ -71,6 +73,7 @@ const SPWorkRequestsScreen: React.FC = () => {
       const nextRequests = Array.isArray(list) ? list : list.requests || [];
       setRequests(nextRequests);
       await writeOfflineCache(requestsCacheKey, nextRequests);
+      setRequestError(null);
     } catch (err: any) {
       // If backend indicates incomplete profile, route to the appropriate step
       const status = err?.response?.status;
@@ -83,20 +86,23 @@ const SPWorkRequestsScreen: React.FC = () => {
           } else if (v.next === 'location') {
             navigation.navigate('LocationSelect');
           }
+          setRequestError(err);
           return;
         }
         // If provider profile not found, start services step
         if (/provider profile not found/i.test(message)) {
           navigation.navigate('SPSelectServices', { mode: 'onboarding' });
+          setRequestError(err);
           return;
         }
         // If location/radius not defined
         if (/location or radius not defined/i.test(message)) {
           navigation.navigate('LocationSelect');
+          setRequestError(err);
           return;
         }
       }
-      console.error(err);
+      setRequestError(err);
     } finally {
       setLoading(false);
     }
@@ -110,10 +116,11 @@ const SPWorkRequestsScreen: React.FC = () => {
       const list = await API.getNotifications(token, true as any);
       setUnreadCount(list.length);
       await writeOfflineCache(notificationsCacheKey, list);
+      setRequestError(null);
     } catch (err) {
       const cached = await readOfflineCache<any[]>(notificationsCacheKey);
       if (cached) setUnreadCount(cached.filter((notification) => !notification.read).length);
-      console.error(err);
+      setRequestError(err);
     }
   };
 
@@ -159,10 +166,11 @@ const SPWorkRequestsScreen: React.FC = () => {
     if (!token) return;
     try {
       await API.acceptWorkRequest(token, item.id);
+      setRequestError(null);
       Alert.alert(t('common.success'), t('spRequests.accept'));
       fetchRequests();
     } catch (err: any) {
-      Alert.alert(t('common.error'), err.message || 'Failed to accept request');
+      setRequestError(err);
     }
   };
 
@@ -381,8 +389,9 @@ const SPWorkRequestsScreen: React.FC = () => {
         return [...newRequests, ...prevRequests];
       });
       await writeOfflineCache(requestsCacheKey, latest);
+      setRequestError(null);
     } catch (err) {
-      console.error(err);
+      setRequestError(err);
     } finally {
       setRefreshing(false);
     }
@@ -497,6 +506,7 @@ const SPWorkRequestsScreen: React.FC = () => {
             </TouchableOpacity>
           </TouchableOpacity>
         )}
+        <ErrorBanner error={requestError} onRetry={fetchRequests} />
         {/* Safe area overlay to prevent content overlap with device buttons */}
         <SafeBottomBanner />
       </View>

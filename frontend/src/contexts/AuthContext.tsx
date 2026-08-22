@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(updated);
       await SecureStore.setItemAsync('aasaan_user', JSON.stringify(updated));
     } catch (err) {
-      console.error(err);
+      throw err;
     }
   };
 
@@ -106,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(updated);
       await SecureStore.setItemAsync('aasaan_user', JSON.stringify(updated));
     } catch (err) {
-      console.error(err);
+      throw err;
     }
   };
 

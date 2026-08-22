@@ -8,6 +8,7 @@ import { colors, spacing, radius, sizes } from '../theme';
 import { locationManager, useLocation } from '../services/LocationManager';
 import EdgeLoader from './EdgeLoader';
 import Header from './Header';
+import ErrorBanner from './ErrorBanner';
 import { GOOGLE_PLACES_API_KEY } from '../config';
 import { useAuth } from '../contexts/AuthContext';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
@@ -76,6 +77,7 @@ const LocationSearch: React.FC<Props> = ({
   const [isMapInteracting, setIsMapInteracting] = useState(false);
   const [showLocationSearchOverlay, setShowLocationSearchOverlay] = useState(false);
   const [showEdgeLoader, setShowEdgeLoader] = useState(false);
+  const [locationError, setLocationError] = useState<unknown | null>(null);
   const autoSelectedCurrentLocation = useRef(false);
   const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mapRef = useRef<MapView | null>(null);
@@ -132,6 +134,7 @@ const LocationSearch: React.FC<Props> = ({
       return;
     }
 
+    setLocationError(null);
     const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&components=country:in&key=${GOOGLE_PLACES_API_KEY}`;
     try {
       const response = await axios.get(url);
@@ -145,8 +148,9 @@ const LocationSearch: React.FC<Props> = ({
         description: removeStateAndCountry(suggestion),
       }));
       setSuggestions(processedSuggestions as Array<{ place_id: string; description: string }>);
+      // setLocationError(null);
     } catch (error) {
-      console.error('Error fetching suggestions:', error);
+      setLocationError(error);
     }
   };
 
@@ -197,6 +201,7 @@ const LocationSearch: React.FC<Props> = ({
     }
 
     const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&key=${GOOGLE_PLACES_API_KEY}`;
+    setLocationError(null);
     try {
       const response = await axios.get(detailsUrl);
       const location = response.data?.result?.geometry?.location;
@@ -221,9 +226,10 @@ const LocationSearch: React.FC<Props> = ({
       });
       await saveLocation(selectedLocation);
       setSavedLocations(await getSavedLocations());
+      // setLocationError(null);
       setShowEdgeLoader(false);
     } catch (error) {
-      console.error('Error fetching place details:', error);
+      setLocationError(error);
       onSelect({ ...place, description: cleanedPlaceName });
       setShowEdgeLoader(false);
     }
@@ -231,6 +237,7 @@ const LocationSearch: React.FC<Props> = ({
 
   const detectLocation = async () => {
     setShowEdgeLoader(true);
+    setLocationError(null);
     let detectedLocation = cachedLocation; // Use cached location if available
     if (!detectedLocation) {
       try {
@@ -251,7 +258,7 @@ const LocationSearch: React.FC<Props> = ({
           || message.includes('LOCATION_SERVICES_DISABLED')
           || message.includes('permissions');
         if (!isExpectedFailure) {
-          console.error('Error detecting location:', error);
+          setLocationError(error);
         }
       } finally {
         setLocating(false);
@@ -291,13 +298,15 @@ const LocationSearch: React.FC<Props> = ({
   }, [enableMap, initialLocation]);
 
   const reverseGeocodeLocation = async (latitude: number, longitude: number) => {
+    setLocationError(null);
     try {
       const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_PLACES_API_KEY}`;
       const response = await axios.get(geocodeUrl);
+      // setLocationError(null);
       if (response.data.results && response.data.results.length > 0) 
         return removeStateCountryAndPostalCode(response.data.results[0]);
     } catch (error) {
-      console.error('Error reverse geocoding location:', error);
+      setLocationError(error);
     }
     return 'Selected location';
   };
@@ -347,7 +356,7 @@ const LocationSearch: React.FC<Props> = ({
     try {
       return (await readOfflineCache<Location[]>(savedLocationsCacheKey)) || [];
     } catch (error) {
-      console.error('Error retrieving saved locations:', error);
+      // console.error('Error retrieving saved locations:', error);
       return [];
     }
   };
@@ -531,6 +540,7 @@ const LocationSearch: React.FC<Props> = ({
           </View>
         </View>
       </Modal>
+      <ErrorBanner error={locationError} />
     </View>
   );
 };

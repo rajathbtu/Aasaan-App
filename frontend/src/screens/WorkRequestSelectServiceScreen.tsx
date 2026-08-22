@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
+import ErrorBanner from '../components/ErrorBanner';
 import { useI18n } from '../i18n';
 import { getServices } from '../api';
 import { useAuth } from '../contexts/AuthContext'; // Corrected import
@@ -23,6 +24,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const userId = useAuth()?.user?.id;
   const servicesCacheKey = userId ? offlineCacheKey('services', userId) : null;
   const [recentServices, setRecentServices] = useState<Service[]>([]);
+  const [servicesError, setServicesError] = useState<unknown | null>(null);
 
   useEffect(() => {
     // Load cached services immediately
@@ -58,9 +60,11 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
       const incoming = data.services as Service[];
 
       setServices(incoming);
+      setServicesError(null);
       if (servicesCacheKey) await writeOfflineCache(servicesCacheKey, incoming);
-    } catch {
+    } catch (error) {
       // Keep showing cache on error
+      setServicesError(error);
     }
   };
 
@@ -208,6 +212,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
         </ScrollView>
       </ImageBackground>
+      <ErrorBanner error={servicesError} onRetry={refreshInBackground} />
     </View>
   );
 };

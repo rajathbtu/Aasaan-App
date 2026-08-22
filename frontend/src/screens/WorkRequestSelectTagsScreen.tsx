@@ -8,6 +8,7 @@ import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import { useI18n } from '../i18n';
 import BottomCTA from '../components/BottomCTA';
+import ErrorBanner from '../components/ErrorBanner';
 
 const API = realApi;
 
@@ -25,6 +26,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
   const { token } = useAuth();
   const { t } = useI18n();
   const [requestInProgress, setRequestInProgress] = useState(false);
+  const [requestError, setRequestError] = useState<unknown | null>(null);
 
   if (!serviceId || !serviceName) {
     return (
@@ -61,9 +63,9 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
         tags: selectedTags,
       });
       navigation.navigate('WorkRequestCreated', { request: wr, locationName: locName });
+      setRequestError(null);
     } catch (err: any) {
-      const message = err?.response?.data?.message || err.message || t('createRequest.addDetails.createFailed');
-      Alert.alert(t('common.error'), message);
+      setRequestError(err);
     } finally {
       setRequestInProgress(false);
     }
@@ -110,15 +112,14 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
 
         </ScrollView>
       </ImageBackground>
-      <View style={styles.actionsSection}>
-        <BottomCTA
+      <ErrorBanner error={requestError} onRetry={handleConfirm} />
+      <BottomCTA
           buttonText={t('createRequest.selectTags.confirmButton')}
           onPress={handleConfirm}
           isSticky={true}
           isLoading={requestInProgress}
           isDisabled={requestInProgress}
         />
-      </View>
     </View>
   );
 };

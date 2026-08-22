@@ -16,7 +16,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import ErrorBanner from '../components/ErrorBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
+import SafeBottomBanner from '../components/SafeBottomBanner';
 
 const API = realApi;
 
@@ -49,6 +51,7 @@ const NotificationsScreen: React.FC = () => {
   const timeAgo = buildTimeAgo(t);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [notificationError, setNotificationError] = useState<unknown | null>(null);
   const cacheKey = user?.id ? offlineCacheKey('notifications', user.id) : null;
 
   const fetchNotifications = async () => {
@@ -63,10 +66,11 @@ const NotificationsScreen: React.FC = () => {
       const list = await API.getNotifications(token);
       setNotifications(list);
       await writeOfflineCache(cacheKey, list);
+      setNotificationError(null);
     } catch (err) {
       const cached = await readOfflineCache<any[]>(cacheKey);
       if (cached) setNotifications(cached);
-      console.error(err);
+      setNotificationError(err);
     } finally {
       setLoading(false);
     }
@@ -82,9 +86,10 @@ const NotificationsScreen: React.FC = () => {
     if (!token) return;
     try {
       await API.markAllNotificationsRead(token);
+      setNotificationError(null);
       fetchNotifications();
     } catch (err) {
-      console.error(err);
+      setNotificationError(err);
     }
   };
 
@@ -200,6 +205,8 @@ const NotificationsScreen: React.FC = () => {
         contentContainerStyle={{ paddingBottom: spacing.xl + 80 }}
         showsVerticalScrollIndicator={false}
       />
+      <ErrorBanner error={notificationError} onRetry={fetchNotifications} />
+      <SafeBottomBanner/>
     </View>
   );
 };

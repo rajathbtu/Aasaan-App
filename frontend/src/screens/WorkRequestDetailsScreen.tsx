@@ -19,7 +19,9 @@ import { getWorkRequest, closeWorkRequest } from '../api/index';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import ErrorBanner from '../components/ErrorBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
+import SafeBottomBanner from '../components/SafeBottomBanner';
 
 // Helper: relative time (localized)
 function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
@@ -66,6 +68,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
   const [loadingStage, setLoadingStage] = useState<'initial' | 'details' | 'idle'>(
     route.params?.request ? 'details' : 'initial'
   );
+  const [requestError, setRequestError] = useState<unknown | null>(null);
   const requestId = route.params?.id || route.params?.request?.id;
   const cacheKey = requestId && user?.id ? offlineCacheKey('work-request', user.id, requestId) : null;
 
@@ -97,8 +100,9 @@ const WorkRequestDetailsScreen: React.FC = () => {
           }));
         }
         if (cacheKey) await writeOfflineCache(cacheKey, data);
+        setRequestError(null);
       } catch (err) {
-        console.error(err);
+        setRequestError(err);
       } finally {
         if (isMounted) setLoadingStage('idle');
       }
@@ -114,6 +118,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
     return (
       <View style={styles.emptyContainer}>
         <ActivityIndicator size="large" color={colors.primary} />
+        <ErrorBanner error={requestError} />
       </View>
     );
   }
@@ -122,6 +127,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>{t('requestDetails.notFound')}</Text>
+        <ErrorBanner error={requestError} />
       </View>
     );
   }
@@ -153,7 +159,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
         { text: t('requestDetails.ok'), onPress: () => navigation.goBack() },
       ]);
     } catch (e: any) {
-      Alert.alert(t('common.error'), e?.message || 'Failed to close request');
+      setRequestError(e);
     }
   };
 
@@ -382,6 +388,8 @@ const WorkRequestDetailsScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+      <ErrorBanner error={requestError} />
+      <SafeBottomBanner/>
     </View>
   );
 };

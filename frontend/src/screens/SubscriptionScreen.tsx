@@ -18,6 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius, tints } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import SafeBottomBanner from '../components/SafeBottomBanner';
 
 const API = realApi;
 
@@ -335,6 +336,7 @@ const SubscriptionScreen: React.FC = () => {
           )}
         </>
       )}
+      <SafeBottomBanner />
     </View>
   );
 };

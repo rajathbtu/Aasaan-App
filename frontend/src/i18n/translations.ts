@@ -32,7 +32,7 @@ export const translations = {
     errorBanner: {
       titles: {
         network: 'No internet connection',
-        api: 'Unable to load requests',
+        api: 'Unable to complete Request',
       },
       messages: {
         network: 'You\'re offline. Please check your internet connection.',

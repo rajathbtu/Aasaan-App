@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import ErrorBanner from '../components/ErrorBanner';
 import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -35,6 +36,7 @@ const LocationSelectScreen: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<any>(initialLoc);
   const [radius, setRadius] = useState<number>(initialRadius);
   const [isRadiusExpanded, setIsRadiusExpanded] = useState(false);
+  const [saveError, setSaveError] = useState<unknown | null>(null);
 
   if (isRequestCreationMode && (!serviceId || !serviceName)) {
     return (
@@ -73,9 +75,10 @@ const LocationSelectScreen: React.FC = () => {
             placeId: selectedLocation.placeId,
           };
       await updateUser({ location: locPayload as any, radius });
+      setSaveError(null);
       navigation.navigate(user?.role === 'serviceProvider' ? 'SPAvailable' : 'Main');
     } catch (err: any) {
-      Alert.alert(t('common.error'), t('sp.selectLocation.saveFailed'));
+      setSaveError(err);
     }
   };
 

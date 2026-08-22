@@ -7,6 +7,7 @@ import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
 import Header from '../components/Header';
+import ErrorBanner from '../components/ErrorBanner';
 import { getServices } from '../api';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
@@ -26,6 +27,7 @@ const ProfileScreen: React.FC = () => {
   // Shared services list to map ids -> display names
   type Service = { id: string; name: string; category: string; tags?: string[] };
   const [allServices, setAllServices] = useState<Service[] | null>(null);
+  const [profileError, setProfileError] = useState<unknown | null>(null);
   const servicesCacheKey = user?.id ? offlineCacheKey('services', user.id) : null;
 
   useEffect(() => {
@@ -38,9 +40,11 @@ const ProfileScreen: React.FC = () => {
         const data = await getServices();
         const incoming = data.services as Service[];
         setAllServices(incoming);
+        setProfileError(null);
         if (servicesCacheKey) await writeOfflineCache(servicesCacheKey, incoming);
-      } catch {
+      } catch (error) {
         // keep cache on failure
+        setProfileError(error);
       }
     })();
   }, [servicesCacheKey]);
@@ -82,8 +86,12 @@ const ProfileScreen: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      await refreshUser();
-      console.log('User refreshed', user);
+      try {
+        await refreshUser();
+        setProfileError(null);
+      } catch (error) {
+        setProfileError(error);
+      }
     })();
   }, []);
 
@@ -127,10 +135,11 @@ const ProfileScreen: React.FC = () => {
 
     try {
       await updateUser(updates);
+      setProfileError(null);
       setEditing(false);
       Alert.alert(t('common.updated'), t('common.updatedDesc'));
     } catch (err: any) {
-      Alert.alert(t('common.error'), err.message || 'Failed to save changes');
+      setProfileError(err);
     }
   };
 
@@ -156,7 +165,7 @@ const ProfileScreen: React.FC = () => {
               onPress={async () => {
                 Alert.prompt?.(t('profile.changePhotoTitle'), t('profile.changePhotoDesc'), [
                   { text: t('common.cancel'), style: 'cancel' },
-                  { text: t('common.save'), onPress: async (value?: string) => { if (!value) return; try { await updateUser({ avatarUrl: value }); } catch (e:any) { Alert.alert(t('common.error'), e.message || 'Failed to update photo'); } } },
+                  { text: t('common.save'), onPress: async (value?: string) => { if (!value) return; try { await updateUser({ avatarUrl: value }); setProfileError(null); } catch (error) { setProfileError(error); } } },
                 ], 'plain-text');
               }}
             >
@@ -293,8 +302,9 @@ const ProfileScreen: React.FC = () => {
                         setPendingServices(sel);
                         try {
                           await updateUser({ services: sel });
-                        } catch (err: any) {
-                          Alert.alert(t('common.error'), err?.message || 'Failed to update services');
+                          setProfileError(null);
+                        } catch (error) {
+                          setProfileError(error);
                         }
                       },
                     })
@@ -407,6 +417,7 @@ const ProfileScreen: React.FC = () => {
 
         <Text style={styles.versionText}>Version 1.2.0</Text>
       </ScrollView>
+      <ErrorBanner error={profileError} onRetry={refreshUser} />
       {!isBottomTabsDisplayed && <SafeBottomBanner />}
     </View>
   );
