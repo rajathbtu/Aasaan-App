@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { locationManager } from './src/services/LocationManager';
+import { colors, radius, spacing } from './src/theme';
 
 // Import screens
 import LaunchScreen from './src/screens/LaunchScreen';
@@ -121,20 +122,49 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.grey,
+        tabBarStyle: {
+          backgroundColor: colors.white,
+          borderTopColor: colors.greyLight,
+          borderTopWidth: 1,
+          elevation: 8,
+          shadowColor: colors.dark,
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          paddingTop: spacing.xs,
+          // paddingBottom: spacing.sm,
+        },
+        tabBarItemStyle: {
+          minHeight: 48,
+        },
         tabBarLabelStyle: {
-          fontSize: 13,
-          fontWeight: '800',
+          fontSize: 12,
+          fontWeight: '700',
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
           if (route.name === 'Create') {
             iconName = focused ? 'add-circle' : 'add-circle-outline';
-          } else if (route.name === 'MyRequests' || route.name === 'Available') {
-            iconName = focused ? 'list' : 'list-outline';
+          } else if (route.name === 'MyRequests') {
+            iconName = focused ? 'reader' : 'reader-outline';
+          } else if (route.name === 'Available') {
+            iconName = focused ? 'briefcase' : 'briefcase-outline';
           } else {
-            iconName = focused ? 'person' : 'person-outline';
+            iconName = focused ? 'person-circle' : 'person-circle-outline';
           }
-          return <Ionicons name={iconName} size={20} color={color} />;
+          return (
+          <View style={{
+                width: 50,
+                height: 28,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: radius.lg,
+                backgroundColor: focused ? colors.primaryLight : 'transparent',}}>
+              <Ionicons name={iconName} size={size} color={color} />
+            </View>
+          );
         },
       })}
     >
