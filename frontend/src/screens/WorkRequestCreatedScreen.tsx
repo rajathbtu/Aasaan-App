@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
-import Header from '../components/Header';
 import { useI18n } from '../i18n';
 
 /**
@@ -17,8 +16,8 @@ const WorkRequestCreatedScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { t } = useI18n();
-  const { request, locationName: locationNameParam } = (route.params as any) || {};
-  const serviceName = request?.service ?? 'Service';
+  const { request, locationName: locationNameParam, serviceName: serviceNameParam } = (route.params as any) || {};
+  const serviceName = request?.serviceName || serviceNameParam || 'Service';
   const locationName = locationNameParam ?? request?.locationName ?? t('userRequests.locationFallback');
   const tags = Array.isArray(request?.tags) ? request.tags.slice(0, 2) : [];
 
@@ -43,10 +42,8 @@ const WorkRequestCreatedScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: colors.light }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
-      {/* <Header title="Aasaan" showNotification={false} showBackButton={true} /> */}
-      <View style={{ height: spacing.sm }} />
-
+    <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      
       <View style={styles.successIconContainer}>
         <Ionicons name="checkmark-circle" size={64} color={colors.success} />
       </View>
@@ -116,6 +113,14 @@ const WorkRequestCreatedScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+    backgroundColor: colors.light,
+    marginTop: spacing.xl,
+  },
+  scrollContent: {
+    paddingBottom: spacing.xl,
+  },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
@@ -143,7 +148,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   successIconContainer: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.successLight,
     alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
     marginTop: spacing.lg,
     marginBottom: spacing.md,
   },
@@ -162,11 +173,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   summaryCard: {
-    backgroundColor: colors.primarySoft,
-    padding: spacing.md,
-    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    shadowColor: colors.dark,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -201,8 +219,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   stepsList: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+    marginHorizontal: 32,
+    marginVertical: spacing.md,
   },
   stepItem: {
     flexDirection: 'row',
@@ -226,18 +244,21 @@ const styles = StyleSheet.create({
   stepPrimary: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.dark,
+    color: colors.grey,
   },
   stepSecondary: {
     fontSize: 12,
     color: colors.grey,
+    display: 'none',
   },
   boostCard: {
     backgroundColor: colors.infoLight,
-    padding: spacing.md,
-    borderRadius: radius.md,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
   },
   boostTitle: {
     fontSize: 14,

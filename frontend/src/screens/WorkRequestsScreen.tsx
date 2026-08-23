@@ -14,29 +14,13 @@ import ErrorBanner from '../components/ErrorBanner';
 import * as realApi from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
-import { colors, spacing } from '../theme';
+import { colors, radius, spacing } from '../theme';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
+import { buildTimeAgo } from '../utils/time';
 
 const API = realApi;
 type RequestTab = 'active' | 'completed';
 type RequestsByTab = Record<RequestTab, any[]>;
-
-/** Helper: relative "time ago" for createdAt (localized) */
-function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
-  return (value: any): string => {
-    if (!value) return t('common.relative.justNow');
-    const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
-    const diffMs = Date.now() - (d?.getTime?.() || 0);
-    if (!Number.isFinite(diffMs) || diffMs < 0) return t('common.relative.justNow');
-    const mins = Math.floor(diffMs / 60000);
-    if (mins < 1) return t('common.relative.justNow');
-    if (mins < 60) return t('common.relative.minAgo', { count: mins });
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return t('common.relative.hourAgo', { count: hours });
-    const days = Math.floor(hours / 24);
-    return t('common.relative.dayAgo', { count: days });
-  };
-}
 
 /** Helper: pick the request snapshot location name. */
 function getLocationName(item: any, t: ReturnType<typeof useI18n>['t']): string {
@@ -124,15 +108,15 @@ const WorkRequestsScreen: React.FC = () => {
     >
       <View style={styles.cardHeader}>
         <View style={[styles.iconContainer, { backgroundColor: item.serviceColor || colors.infoLight }]}>
-          <Ionicons name={(item.serviceIcon) as keyof typeof Ionicons.glyphMap} size={20} color={item.serviceColor || colors.primary} />
+          <Ionicons name={(item.serviceIcon) as keyof typeof Ionicons.glyphMap} size={20} className={item.serviceColor || colors.primary} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.cardTitle}>{item.serviceName || item.service}</Text>
           <Text style={styles.cardSubtitle}>{timeAgo(item.createdAt)}</Text>
         </View>
-        <View style={styles.statusBadge}>
-          <Ionicons name={item.status === 'closed' ? 'checkmark-circle' : 'ellipse'} size={10} color={colors.success} style={{ marginRight: 4 }} />
-          <Text style={styles.statusText}>{item.status === 'closed' ? t('userRequests.statusCompleted') : t('userRequests.statusActive')}</Text>
+        <View style={[styles.statusBadge, item.status === 'closed' ? styles.statusBadgeCompleted : styles.statusBadgeActive]}>
+          <Ionicons name={item.status === 'closed' ? 'checkmark-circle' : 'ellipse'} size={10} color={item.status === 'closed' ? colors.success : colors.accent} style={{ marginRight: 4 }} />
+          <Text style={[styles.statusText, item.status === 'closed' ? styles.statusTextCompleted : styles.statusTextActive]}>{item.status === 'closed' ? t('userRequests.statusCompleted') : t('userRequests.statusActive')}</Text>
         </View>
       </View>
       <View style={styles.cardBody}>
@@ -158,7 +142,7 @@ const WorkRequestsScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Header title={t('userRequests.title')} showNotification={true} notificationCount={3} showBackButton={false} />
-      <View style={{ height: spacing.sm }} />
+      {/* <View style={{ height: spacing.sm }} /> */}
 
       {/* Filter Tabs */}
       <View style={styles.filterTabs}>
@@ -203,7 +187,8 @@ const WorkRequestsScreen: React.FC = () => {
         maxToRenderPerBatch={8}
         windowSize={5}
         removeClippedSubviews
-        contentContainerStyle={requests.length === 0 ? styles.emptyContainer : undefined}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={requests.length === 0 ? styles.emptyContainer : styles.listContent}
         ListEmptyComponent={<Text style={styles.emptyText}>{t('userRequests.empty')}</Text>}
       />
       <ErrorBanner
@@ -225,21 +210,31 @@ const styles = StyleSheet.create({
   },
   filterTabs: {
     flexDirection: 'row',
-    backgroundColor: colors.surface,
-    margin: 16,
-    borderRadius: 12,
+    backgroundColor: colors.paper,
+    marginHorizontal: spacing.lg,
+    marginVertical: spacing.sm,
+    padding: spacing.xs,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.greyLight,
     overflow: 'hidden',
   },
   filterTab: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 11,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: radius.md,
   },
   activeTab: {
-    backgroundColor: colors.white,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    shadowColor: colors.black,
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+    elevation: 2,
   },
   filterTabText: {
     fontSize: 14,
@@ -251,19 +246,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   countBadge: {
+    minWidth: 26,
+    alignItems: 'center',
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingVertical: 3,
+    borderRadius: radius.xl,
   },
   countBadgeActive: {
     backgroundColor: colors.primary,
   },
   countBadgeInactive: {
-    backgroundColor: colors.greyBorder,
+    backgroundColor: colors.greyLight,
   },
   countBadgeText: {
     fontSize: 12,
     color: colors.dark,
+    fontWeight: '600',
   },
   countBadgeTextActive: {
     color: colors.white,
@@ -271,36 +269,37 @@ const styles = StyleSheet.create({
   },
   requestCard: {
     backgroundColor: colors.white,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 12,
-    padding: 16,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.surface,
+    borderColor: colors.greyLight,
     shadowColor: colors.black,
-    shadowOpacity: 0.06,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.07,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 7,
+    elevation: 3,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.md,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
+    width: 46,
+    height: 46,
     backgroundColor: colors.infoLight,
-    borderRadius: 12,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.dark,
+    marginBottom: 3,
   },
   cardSubtitle: {
     fontSize: 12,
@@ -309,22 +308,37 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.successLight,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: radius.xl,
+  },
+  statusBadgeActive: {
+    backgroundColor: '#fff7ed',
+  },
+  statusBadgeCompleted: {
+    backgroundColor: colors.successLight,
   },
   statusText: {
     fontSize: 12,
-    color: colors.success,
     fontWeight: '600',
   },
+  statusTextActive: {
+    color: colors.accent,
+  },
+  statusTextCompleted: {
+    color: colors.success,
+  },
   cardBody: {
-    marginBottom: 8,
+    paddingTop: spacing.lg,
+    marginBottom: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.greyLight,
   },
   locationText: {
     fontSize: 12,
     color: colors.grey,
+    lineHeight: 18,
+    marginBottom: spacing.md,
   },
   tagContainer: {
     flexDirection: 'row',
@@ -332,12 +346,12 @@ const styles = StyleSheet.create({
     gap: 6 as any,
   },
   tag: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.primarySoft,
     color: colors.dark,
     fontSize: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: radius.xl,
     marginRight: 4,
     marginBottom: 4,
   },
@@ -360,6 +374,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: spacing.xxl,
+  },
+  listContent: {
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xxl,
   },
   emptyText: {
     fontSize: 16,

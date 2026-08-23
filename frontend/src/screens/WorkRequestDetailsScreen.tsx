@@ -9,7 +9,6 @@ import {
   // SafeAreaView, // removed to avoid double safe-area with shared Header
   Linking,
   Image,
-  Modal,
   ActivityIndicator, // Import loader component
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -21,46 +20,16 @@ import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
+import { buildTimeAgo } from '../utils/time';
 import SafeBottomBanner from '../components/SafeBottomBanner';
-
-// Helper: relative time (localized)
-function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
-  return (value: any): string => {
-    if (!value) return t('common.relative.justNow');
-    const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
-    const time = d?.getTime?.() || 0;
-    const diff = Date.now() - time;
-    if (!Number.isFinite(diff) || diff < 0) return t('common.relative.justNow');
-
-    // If older than a week, show absolute date with time
-    const weekMs = 7 * 24 * 60 * 60 * 1000;
-    if (diff >= weekMs) {
-      const options: Intl.DateTimeFormatOptions = {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-      };
-      return new Date(time).toLocaleString(undefined, options);
-    }
-
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return t('common.relative.justNow');
-    if (m < 60) return t('common.relative.minAgo', { count: m });
-    const h = Math.floor(m / 60);
-    if (h < 24) return t('common.relative.hourAgo', { count: h });
-    const dny = Math.floor(h / 24);
-    return t('common.relative.dayAgo', { count: dny });
-  };
-}
+import ReviewRatingModal from '../components/ReviewRatingModal';
 
 const WorkRequestDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { token, user } = useAuth();
   const { t } = useI18n();
-  const timeAgo = buildTimeAgo(t);
+  const timeAgo = buildTimeAgo(t, { absoluteAfterDays: 7 });
   const [request, setRequest] = useState(route.params?.request || null);
   const [closeVisible, setCloseVisible] = useState(false);
   const [selectedProviderId, setSelectedProviderId] = useState<string | 'none' | null>(null);
@@ -137,10 +106,8 @@ const WorkRequestDetailsScreen: React.FC = () => {
   };
 
   const handleClose = () => {
-    // Open close modal with default selection (first provider if any)
-    const first = request?.acceptedProviders?.[0]?.providerId as string | undefined;
-    setSelectedProviderId(first || 'none');
-    setStars(4);
+    setSelectedProviderId(null);
+    setStars(0);
     setCloseVisible(true);
   };
 
@@ -167,30 +134,30 @@ const WorkRequestDetailsScreen: React.FC = () => {
   const isActive = status === 'active';
   const isCompleted = status === 'completed' || status === 'closed';
   const serviceName = request.serviceName || request.service;
+  const acceptedCount = request.acceptedProviders?.length || 0;
+  const acceptedLabel = t('requestDetails.acceptedBy', { count: acceptedCount }).replace(/\s*\([^)]*\)\s*:?[\s]*$/, '');
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.light }}>
+      <View style={styles.screen}>
       <Header title={serviceName} showBackButton={true} showNotification={false} />
-      {/* Small spacer to avoid any overlap and keep consistent spacing */}
-      <View style={{ height: spacing.sm }} />
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
-        {/* Summary card */}
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <Ionicons name="flash" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.summaryLabel}>{serviceName}</Text>
+          <View style={styles.summaryHeader}>
+            <View style={styles.summaryIcon}>
+              <Ionicons name={request.serviceIcon || 'construct'} size={22} color={colors.primary} />
+            </View>
+            <View style={styles.summaryTitleContainer}>
+              <Text style={styles.summaryLabel}>{serviceName}</Text>
+              <Text style={styles.summaryCaption}>{timeAgo(request.createdAt)}</Text>
+            </View>
             {request.status !== undefined && (
-              <View style={[styles.statusBadge, { backgroundColor: isActive ? colors.successLight : colors.greyLight }]}> 
-                <Text style={[styles.statusBadgeText, { color: isActive ? colors.success : colors.dark }]}>{isActive ? t('requestDetails.statusActive') : (request.status as any)}</Text>
+              <View style={[styles.statusBadge, isActive ? styles.statusBadgeActive : styles.statusBadgeInactive]}>
+                <Text style={[styles.statusBadgeText, isActive ? styles.statusTextActive : styles.statusTextInactive]}>{isActive ? t('requestDetails.statusActive') : (request.status as any)}</Text>
               </View>
             )}
           </View>
-          <View style={styles.summaryRow}>
-            <Ionicons name="time" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-            <Text style={styles.summaryValue}>{timeAgo(request.createdAt)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Ionicons name="location" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
+          <View style={styles.detailRow}>
+            <Ionicons name="location-outline" size={18} color={colors.grey} />
             <Text style={styles.summaryValue} numberOfLines={2} ellipsizeMode="tail">{request.locationName || t('userRequests.locationFallback')}</Text>
           </View>
           {request.tags && request.tags.length > 0 && (
@@ -204,28 +171,32 @@ const WorkRequestDetailsScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Action buttons (hidden for completed/closed requests) */}
         {!isCompleted && (
           <View style={styles.actionButtonsRow}>
-            <TouchableOpacity style={styles.boostButton} onPress={handleBoost}>
-              <Ionicons name="flash" size={16} color={colors.white} style={{ marginRight: spacing.sm }} />
+            <TouchableOpacity style={[styles.actionButton, styles.boostButton]} onPress={handleBoost}>
+              <Ionicons name="flash" size={17} color={colors.white} style={styles.actionIcon} />
               <Text style={styles.boostButtonText}>{t('requestDetails.boost')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-              <Ionicons name="close-circle" size={16} color={colors.dark} style={{ marginRight: spacing.sm }} />
+            <TouchableOpacity style={[styles.actionButton, styles.closeButton]} onPress={handleClose}>
+              <Ionicons name="close-circle-outline" size={17} color={colors.dark} style={styles.actionIcon} />
               <Text style={styles.closeButtonText}>{t('requestDetails.close')}</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Accepted providers */}
         {(loadingStage === 'details' || (request.acceptedProviders && request.acceptedProviders.length > 0)) && (
           <View style={styles.acceptedSection}>
             {loadingStage === 'details' ? (
               <ActivityIndicator size="small" color={colors.primary} />
             ) : (
               <>
-                <Text style={styles.acceptedTitle}>{t('requestDetails.acceptedBy', { count: request.acceptedProviders.length })}</Text>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.acceptedTitle}>{acceptedLabel}</Text>
+                  <View style={styles.acceptedCountBadge} accessibilityLabel={`${acceptedCount} service providers`}>
+                    <Ionicons name="people-outline" size={16} color={colors.primary} />
+                    <Text style={styles.acceptedCount}>{acceptedCount}</Text>
+                  </View>
+                </View>
                 {request.acceptedProviders.map((p: any, index: number) => {
               const provider = p.provider || {};
               const displayName = provider.name || p.providerId || t('requestDetails.provider');
@@ -242,25 +213,33 @@ const WorkRequestDetailsScreen: React.FC = () => {
                       <Text style={styles.providerAvatarText}>{String(displayName).charAt(0).toUpperCase()}</Text>
                     </View>
                   )}
-                  <View style={{ flex: 1 }}>
+                  <View style={styles.providerDetails}>
                     <Text style={styles.providerName}>{displayName}</Text>
                     <View style={styles.ratingRow}>
-                      <Ionicons name="star" size={12} color={colors.secondary} />
-                      <Text style={styles.ratingText}> 4.5 (20)</Text>
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Ionicons key={i} name={i <= 4 ? 'star' : 'star-outline'} size={12} color={i <= 4 ? colors.secondary : colors.greyMuted} style={{ marginRight: 2 }} />
+                      ))}
+                      <Text style={styles.ratingText}> (20)</Text>
                     </View>
                   </View>
-                  <View style={{ flexDirection: 'row' }}>
+                  <View style={styles.providerActions}>
                     <TouchableOpacity
                       style={styles.callButton}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('requestDetails.call')}
                       onPress={() => {
                         if (!phone) { Alert.alert(t('requestDetails.callUnavailableTitle'), t('requestDetails.callUnavailableDesc')); return; }
                         Linking.openURL(`tel:${phone}`).catch(() => Alert.alert(t('requestDetails.callFailedTitle'), t('requestDetails.callFailedDesc')));
                       }}
                     >
-                      <Ionicons name="call" size={16} color={colors.primary} style={{ marginRight: spacing.sm }} />
-                      <Text style={styles.callButtonText}>{t('requestDetails.call')}</Text>
+                      <Ionicons name="call" size={18} color={colors.white} />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.infoButton} onPress={() => Alert.alert(t('requestDetails.provider'), displayName)}>
+                    <TouchableOpacity
+                      style={styles.infoButton}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('requestDetails.provider')}
+                      onPress={() => Alert.alert(t('requestDetails.provider'), displayName)}
+                    >
                       <Ionicons name="information-circle" size={18} color={colors.dark} />
                     </TouchableOpacity>
                   </View>
@@ -273,121 +252,17 @@ const WorkRequestDetailsScreen: React.FC = () => {
         )}
       </ScrollView>
 
-      {/* Close Modal */}
-      <Modal visible={closeVisible} transparent animationType="slide" onRequestClose={() => setCloseVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            {/* Header */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-              <TouchableOpacity onPress={() => setCloseVisible(false)} style={{ padding: spacing.xs }}>
-                <Ionicons name="arrow-back" size={18} color={colors.dark} />
-              </TouchableOpacity>
-              <Text style={{ flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700', color: colors.primary }}>{t('requestDetails.ratingTitle')}</Text>
-              <View style={{ width: 24 }} />
-            </View>
-
-            {/* Request Summary */}
-            <View style={styles.modalSummary}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={styles.modalIconBox}>
-                  <Ionicons name="construct" size={18} color={colors.primary} />
-                </View>
-                <View>
-                  <Text style={{ fontWeight: '600', color: colors.dark }}>{serviceName}</Text>
-                  <Text style={{ fontSize: 12, color: colors.grey }}>{timeAgo(request.createdAt)}</Text>
-                </View>
-              </View>
-              <View style={{ marginTop: spacing.sm }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                  <Ionicons name="location" size={14} color={colors.grey} style={{ marginRight: 6 }} />
-                  <Text style={{ fontSize: 12, color: colors.grey }} numberOfLines={2}>
-                    {request.locationName || t('userRequests.locationFallback')}
-                  </Text>
-                </View>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                  {(request.tags || []).slice(0, 3).map((tag: string) => (
-                    <Text key={tag} style={styles.modalTag}>{tag}</Text>
-                  ))}
-                </View>
-              </View>
-            </View>
-
-            {/* Providers list */}
-            <ScrollView style={{ maxHeight: 280 }}>
-              {request.acceptedProviders && request.acceptedProviders.length > 0 ? (
-                request.acceptedProviders.map((p: any, idx: number) => {
-                  const provider = p.provider || {};
-                  const name = provider.name || p.providerId || t('requestDetails.provider');
-                  const isSelected = selectedProviderId === p.providerId;
-                  return (
-                    <TouchableOpacity
-                      key={p.id || p.providerId || idx}
-                      style={[styles.providerCard, isSelected ? styles.providerCardSelected : styles.providerCardUnselected]}
-                      onPress={() => setSelectedProviderId(p.providerId)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <View style={styles.modalAvatar}>
-                          <Text style={{ fontWeight: '700', color: colors.primary }}>{String(name).charAt(0).toUpperCase()}</Text>
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ fontWeight: '600', color: colors.dark }}>{name}</Text>
-                          <Text style={{ fontSize: 12, color: colors.grey }}>{t('requestDetails.acceptedRecently')}</Text>
-                        </View>
-                        <Ionicons name={isSelected ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={isSelected ? colors.primary : colors.greyBorder} />
-                      </View>
-                      {isSelected && (
-                        <View style={styles.ratingSection}>
-                          <Text style={{ textAlign: 'center', color: colors.dark, fontWeight: '600', marginBottom: spacing.sm }}>{t('requestDetails.ratePrompt')}</Text>
-                          <View style={{ flexDirection: 'row', alignSelf: 'center' }}>
-                            {[1,2,3,4,5].map(n => (
-                              <TouchableOpacity key={n} onPress={() => setStars(n)} style={[styles.starBtn, n <= stars ? styles.starBtnActive : styles.starBtnInactive]}>
-                                <Ionicons name="star" size={16} color={n <= stars ? colors.white : colors.greyMuted} />
-                              </TouchableOpacity>
-                            ))}
-                          </View>
-                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                            <Text style={styles.ratingHint}>{t('requestDetails.poor')}</Text>
-                            <Text style={styles.ratingHint}>{t('requestDetails.excellent')}</Text>
-                          </View>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })
-              ) : null}
-
-              {/* None option */}
-              <TouchableOpacity
-                style={[styles.providerCard, selectedProviderId === 'none' ? styles.providerCardSelected : styles.providerCardUnselected]}
-                onPress={() => setSelectedProviderId('none')}
-                activeOpacity={0.8}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={[styles.modalAvatar, { backgroundColor: colors.greyLight }] }>
-                    <Ionicons name="help" size={16} color={colors.grey} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: '600', color: colors.dark }}>{t('requestDetails.noneHelpedTitle')}</Text>
-                    <Text style={{ fontSize: 12, color: colors.grey }}>{t('requestDetails.noneHelpedSubtitle')}</Text>
-                  </View>
-                  <Ionicons name={selectedProviderId === 'none' ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={selectedProviderId === 'none' ? colors.primary : colors.greyBorder} />
-                </View>
-              </TouchableOpacity>
-            </ScrollView>
-
-            {/* Bottom actions */}
-            <View style={{ flexDirection: 'row', marginTop: spacing.md }}>
-              <TouchableOpacity style={[styles.bottomBtn, styles.bottomBtnOutline]} onPress={() => confirmClose(true)}>
-                <Text style={[styles.bottomBtnText, { color: colors.dark }]}>{t('requestDetails.skip')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.bottomBtn, styles.bottomBtnPrimary]} onPress={() => confirmClose(false)}>
-                <Text style={[styles.bottomBtnText, { color: colors.white }]}>{t('requestDetails.confirmClose')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <ReviewRatingModal
+        visible={closeVisible}
+        acceptedProviders={request.acceptedProviders || []}
+        selectedProviderId={selectedProviderId}
+        stars={stars}
+        onClose={() => setCloseVisible(false)}
+        onSelectProvider={setSelectedProviderId}
+        onRate={setStars}
+        onSkip={() => confirmClose(true)}
+        onConfirm={() => confirmClose(false)}
+      />
       <ErrorBanner error={requestError} />
       <SafeBottomBanner/>
     </View>
@@ -395,6 +270,17 @@ const WorkRequestDetailsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.light,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xxl,
+  },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
@@ -408,38 +294,68 @@ const styles = StyleSheet.create({
   summaryCard: {
     marginHorizontal: spacing.lg,
     backgroundColor: colors.white,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     padding: spacing.lg,
-    shadowColor: colors.black,
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.greyLight,
   },
-  summaryRow: {
+  summaryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  summaryIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.lg,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  summaryTitleContainer: {
+    flex: 1,
   },
   summaryLabel: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.dark,
-    marginRight: spacing.sm,
+  },
+  summaryCaption: {
+    color: colors.grey,
+    fontSize: 12,
+    marginTop: 3,
   },
   statusBadge: {
-    marginLeft: 'auto',
     paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: 999,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.xl,
+  },
+  statusBadgeActive: {
+    backgroundColor: colors.successLight,
+  },
+  statusBadgeInactive: {
+    backgroundColor: colors.greyLight,
   },
   statusBadgeText: {
     fontSize: 12,
     fontWeight: '600',
   },
+  statusTextActive: {
+    color: colors.success,
+  },
+  statusTextInactive: {
+    color: colors.dark,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   summaryValue: {
     fontSize: 14,
-    color: colors.dark,
+    color: colors.grey,
+    flex: 1,
   },
   tagsRow: {
     flexDirection: 'row',
@@ -447,43 +363,46 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   tagPill: {
-    backgroundColor: colors.greyLight,
-    borderRadius: 999,
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
-    paddingVertical: 6,
+    paddingVertical: spacing.xs,
     marginRight: spacing.sm,
     marginBottom: spacing.sm,
   },
   tagPillText: {
     fontSize: 12,
     color: colors.dark,
+    fontWeight: '500',
   },
   actionButtonsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
+    gap: spacing.md,
+    marginTop: spacing.md,
   },
-  boostButton: {
+  actionButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    justifyContent: 'center',
+    minHeight: 48,
     borderRadius: radius.md,
+  },
+  actionIcon: {
+    marginRight: spacing.sm,
+  },
+  boostButton: {
+    backgroundColor: colors.primary,
   },
   boostButtonText: {
     color: colors.white,
     fontWeight: '600',
   },
   closeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.greyLight,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.greyBorder,
   },
   closeButtonText: {
     color: colors.dark,
@@ -491,27 +410,43 @@ const styles = StyleSheet.create({
   },
   acceptedSection: {
     marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
+    marginTop: spacing.xl,
     marginBottom: spacing.xl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
   },
   acceptedTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.dark,
-    marginBottom: spacing.md,
+  },
+  acceptedCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.xl,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  acceptedCount: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: '700',
   },
   providerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.white,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
-    shadowColor: colors.black,
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: colors.greyLight,
   },
   providerAvatar: {
     width: 48,
@@ -534,6 +469,14 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
     backgroundColor: colors.greyLight,
   },
+  providerDetails: {
+    flex: 1,
+  },
+  providerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   avatarImage: {
     width: '100%',
     height: '100%',
@@ -546,141 +489,28 @@ const styles = StyleSheet.create({
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: 4,
   },
   ratingText: {
     fontSize: 12,
     color: colors.grey,
+    marginLeft: 4,
   },
   callButton: {
-    flexDirection: 'row',
+    width: 38,
+    height: 38,
+    borderRadius: radius.xl,
+    backgroundColor: colors.primary,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.md,
-    marginRight: spacing.sm,
-  },
-  callButtonText: {
-    color: colors.primary,
-    fontWeight: '600',
+    justifyContent: 'center',
   },
   infoButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: radius.xl,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.greyLight,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  modalCard: {
-    backgroundColor: colors.white,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: spacing.lg,
-    maxHeight: '90%',
-  },
-  modalSummary: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.surface,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-  },
-  modalIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: colors.infoLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm,
-  },
-  modalTag: {
-    backgroundColor: colors.surface,
-    color: colors.dark,
-    fontSize: 11,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    marginRight: 4,
-    marginBottom: 4,
-  },
-  providerCard: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-  },
-  providerCardSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
-  },
-  providerCardUnselected: {
-    borderColor: colors.greyLight,
-    backgroundColor: colors.white,
-  },
-  modalAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  ratingSection: {
-    marginTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.primaryBorder,
-    paddingTop: spacing.md,
-  },
-  starBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 4,
-  },
-  starBtnActive: {
-    backgroundColor: colors.accent,
-  },
-  starBtnInactive: {
-    backgroundColor: colors.greyLight,
-  },
-  ratingHint: {
-    fontSize: 10,
-    color: colors.grey,
-  },
-  bottomBtn: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bottomBtnOutline: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    marginRight: spacing.sm,
-  },
-  bottomBtnPrimary: {
-    backgroundColor: colors.primary,
-    marginLeft: spacing.sm,
-  },
-  bottomBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
   },
 });
 

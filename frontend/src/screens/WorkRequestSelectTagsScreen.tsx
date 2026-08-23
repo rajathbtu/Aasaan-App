@@ -62,7 +62,10 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
         location: { name: locName, lat: selectedLocation.lat, lng: selectedLocation.lng, placeId },
         tags: selectedTags,
       });
-      navigation.navigate('WorkRequestCreated', { request: wr, locationName: locName });
+      navigation.navigate('WorkRequestCreated', {
+        request: { ...wr, serviceName: service.name },
+        locationName: locName,
+      });
       setRequestError(null);
     } catch (err: any) {
       setRequestError(err);

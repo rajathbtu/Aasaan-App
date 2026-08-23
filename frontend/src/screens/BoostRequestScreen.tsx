@@ -10,27 +10,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import { buildTimeAgo } from '../utils/time';
 
 const API = realApi;
 
 const MONEY_PRICE_INR = 100;
 const CREDIT_COST = 100;
-
-function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
-  return (value: any): string => {
-    if (!value) return t('common.relative.justNow');
-    const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
-    const diff = Date.now() - (d?.getTime?.() || 0);
-    if (!Number.isFinite(diff) || diff < 0) return t('common.relative.justNow');
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return t('common.relative.justNow');
-    if (m < 60) return t('common.relative.minAgo', { count: m });
-    const h = Math.floor(m / 60);
-    if (h < 24) return t('common.relative.hourAgo', { count: h });
-    const days = Math.floor(h / 24);
-    return t('common.relative.dayAgo', { count: days });
-  };
-}
 
 const BoostRequestScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -200,7 +185,7 @@ const BoostRequestScreen: React.FC = () => {
             <Ionicons name="flash" size={20} color="white" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.summaryService}>{request.service}</Text>
+            <Text style={styles.summaryService}>{request.serviceName}</Text>
             {request.tags && request.tags.length > 0 && (
               <View style={styles.summaryTagsRow}>
                 {request.tags.slice(0, 2).map((t: string) => (
