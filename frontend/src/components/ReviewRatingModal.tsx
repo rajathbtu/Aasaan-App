@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   Modal,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,36 +13,66 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing } from '../theme';
 import { useI18n } from '../i18n';
+import { closeWorkRequest } from '../api/index';
+import ErrorBanner from './ErrorBanner';
+
+const ratingStarColor = '#ffd91d';
+const ratingStarOutlineColor = '#ffe043';
 
 interface ReviewRatingModalProps {
   visible: boolean;
-  acceptedProviders: any[];
-  selectedProviderId: string | 'none' | null;
-  stars: number;
+  request: any;
+  token: string | null;
   onClose: () => void;
-  onSelectProvider: (providerId: string | 'none') => void;
-  onRate: (rating: number) => void;
-  onSkip: () => void;
-  onConfirm: () => void;
+  onSuccess: (closedRequest: any) => void;
 }
 
 const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
   visible,
-  acceptedProviders,
-  selectedProviderId,
-  stars,
+  request,
+  token,
   onClose,
-  onSelectProvider,
-  onRate,
-  onSkip,
-  onConfirm,
+  onSuccess,
 }) => {
   const { t } = useI18n();
+  const [selectedProviderId, setSelectedProviderId] = useState<string | 'none' | null>(null);
+  const [stars, setStars] = useState(0);
+  const [error, setError] = useState<unknown | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const acceptedProviders = request.acceptedProviders || [];
+
+  useEffect(() => {
+    if (visible) {
+      setSelectedProviderId(null);
+      setStars(0);
+      setError(null);
+    }
+  }, [visible]);
+
+  const submitClose = async (skipRating: boolean) => {
+    if (!token || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const payload: { providerId?: string; stars?: number } = {};
+      if (!skipRating) {
+        if (selectedProviderId && selectedProviderId !== 'none') payload.providerId = selectedProviderId;
+        if (stars) payload.stars = stars;
+      }
+      const closedRequest = await closeWorkRequest(token, request.id, payload);
+      onSuccess(closedRequest);
+    } catch (submissionError) {
+      setError(submissionError);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.card}>
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <View style={styles.card} onStartShouldSetResponder={() => true}>
           <View style={styles.handle} />
           <View style={styles.header}>
             <View style={styles.headerIcon}>
@@ -67,7 +99,7 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
                 <TouchableOpacity
                   key={item.id || item.providerId || index}
                   style={[styles.providerCard, isSelected && styles.providerCardSelected]}
-                  onPress={() => onSelectProvider(item.providerId)}
+                  onPress={() => setSelectedProviderId(item.providerId)}
                   activeOpacity={0.8}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: isSelected }}
@@ -100,12 +132,16 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
                         {[1, 2, 3, 4, 5].map((rating) => (
                           <TouchableOpacity
                             key={rating}
-                            onPress={() => onRate(rating)}
+                            onPress={() => setStars(rating)}
                             style={styles.starButton}
                             accessibilityRole="button"
                             accessibilityLabel={`${rating} / 5`}
                           >
-                            <Ionicons name={rating <= stars ? 'star' : 'star-outline'} size={22} color={rating <= stars ? colors.accent : colors.greyMuted} />
+                            <Ionicons
+                              name={rating <= stars ? 'star' : 'star-outline'}
+                              size={32}
+                              color={rating <= stars ? ratingStarColor : ratingStarOutlineColor}
+                            />
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -121,7 +157,7 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
 
             <TouchableOpacity
               style={[styles.providerCard, selectedProviderId === 'none' && styles.providerCardSelected]}
-              onPress={() => onSelectProvider('none')}
+              onPress={() => setSelectedProviderId('none')}
               activeOpacity={0.8}
               accessibilityRole="radio"
               accessibilityState={{ selected: selectedProviderId === 'none' }}
@@ -139,16 +175,26 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
             </TouchableOpacity>
           </ScrollView>
 
+          <ErrorBanner error={error} />
+
           <View style={styles.actions}>
-            <TouchableOpacity style={[styles.actionButton, styles.outlineButton]} onPress={onSkip}>
-              <Text style={[styles.actionText, { color: colors.dark }]}>{t('requestDetails.skip')}</Text>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.outlineButton, isSubmitting && styles.actionButtonDisabled]}
+              onPress={() => submitClose(true)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? <ActivityIndicator color={colors.dark} /> : <Text style={[styles.actionText, { color: colors.dark }]}>{t('requestDetails.skip')}</Text>}
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionButton, styles.primaryButton]} onPress={onConfirm}>
-              <Text style={[styles.actionText, { color: colors.white }]}>{t('requestDetails.confirmClose')}</Text>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.primaryButton, isSubmitting && styles.actionButtonDisabled]}
+              onPress={() => submitClose(false)}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? <ActivityIndicator color={colors.white} /> : <Text style={[styles.actionText, { color: colors.white }]}>{t('requestDetails.confirmClose')}</Text>}
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </Pressable>
     </Modal>
   );
 };
@@ -233,12 +279,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.mdPlus,
     marginBottom: spacing.md,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: colors.greyLight,
   },
   providerCardSelected: {
     borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
+    // backgroundColor: colors.primarySoft,
   },
   providerCardHeader: {
     flexDirection: 'row',
@@ -317,7 +363,7 @@ const styles = StyleSheet.create({
   ratingTitle: {
     color: colors.dark,
     fontWeight: '700',
-    fontSize: 13,
+    fontSize: 15,
   },
   ratingValue: {
     flexDirection: 'row',
@@ -362,6 +408,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  actionButtonDisabled: {
+    opacity: 0.7,
   },
   outlineButton: {
     backgroundColor: colors.white,

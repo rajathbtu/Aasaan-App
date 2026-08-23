@@ -14,7 +14,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
-import { getWorkRequest, closeWorkRequest } from '../api/index';
+import { getWorkRequest } from '../api/index';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
@@ -32,8 +32,6 @@ const WorkRequestDetailsScreen: React.FC = () => {
   const timeAgo = buildTimeAgo(t, { absoluteAfterDays: 7 });
   const [request, setRequest] = useState(route.params?.request || null);
   const [closeVisible, setCloseVisible] = useState(false);
-  const [selectedProviderId, setSelectedProviderId] = useState<string | 'none' | null>(null);
-  const [stars, setStars] = useState<number>(4);
   const [loadingStage, setLoadingStage] = useState<'initial' | 'details' | 'idle'>(
     route.params?.request ? 'details' : 'initial'
   );
@@ -106,28 +104,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
   };
 
   const handleClose = () => {
-    setSelectedProviderId(null);
-    setStars(0);
     setCloseVisible(true);
-  };
-
-  const confirmClose = async (skipRating?: boolean) => {
-    if (!token) return;
-    try {
-      const payload: any = {};
-      if (!skipRating) {
-        if (selectedProviderId && selectedProviderId !== 'none') payload.providerId = selectedProviderId;
-        if (stars) payload.stars = stars;
-      }
-      await closeWorkRequest(token, request.id, payload);
-      setCloseVisible(false);
-      setRequest({ ...request, status: 'closed' });
-      Alert.alert(t('requestDetails.closedTitle'), t('requestDetails.closedDesc'), [
-        { text: t('requestDetails.ok'), onPress: () => navigation.goBack() },
-      ]);
-    } catch (e: any) {
-      setRequestError(e);
-    }
   };
 
   const status = (request.status || 'active').toString().toLowerCase();
@@ -254,16 +231,18 @@ const WorkRequestDetailsScreen: React.FC = () => {
 
       <ReviewRatingModal
         visible={closeVisible}
-        acceptedProviders={request.acceptedProviders || []}
-        selectedProviderId={selectedProviderId}
-        stars={stars}
+        request={request}
+        token={token}
         onClose={() => setCloseVisible(false)}
-        onSelectProvider={setSelectedProviderId}
-        onRate={setStars}
-        onSkip={() => confirmClose(true)}
-        onConfirm={() => confirmClose(false)}
+        onSuccess={(closedRequest) => {
+          setCloseVisible(false);
+          setRequest(closedRequest);
+          Alert.alert(t('requestDetails.closedTitle'), t('requestDetails.closedDesc'), [
+            { text: t('requestDetails.ok'), onPress: () => navigation.goBack() },
+          ]);
+        }}
       />
-      <ErrorBanner error={requestError} />
+      {!closeVisible && <ErrorBanner error={requestError} />}
       <SafeBottomBanner/>
     </View>
   );
