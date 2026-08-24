@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Linking,
   Platform,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as realApi from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -46,6 +46,7 @@ function validateProviderProfile(user: any): { ok: boolean; next: 'services' | '
 const SPWorkRequestsScreen: React.FC = () => {
   const { token, user } = useAuth();
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { t } = useI18n();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,6 +56,9 @@ const SPWorkRequestsScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [requestError, setRequestError] = useState<unknown | null>(null);
   const [showProBanner, setShowProBanner] = useState(true);
+  const [highlightedRequestId, setHighlightedRequestId] = useState<string | null>(
+            route.params?.highlightedRequestId || null );
+  const listRef = useRef<FlatList<any>>(null);
   const userId = user?.id;
   const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
   const notificationsCacheKey = userId ? offlineCacheKey('notifications', userId) : null;
@@ -267,6 +271,22 @@ const SPWorkRequestsScreen: React.FC = () => {
     return list;
   }, [requests, tab, filter, user]);
 
+  useEffect(() => {
+    const requestId = route.params?.highlightedRequestId;
+    if (!requestId) return;
+    setHighlightedRequestId(requestId);
+  }, [route.params?.highlightedRequestId]);
+
+  useEffect(() => {
+    if (!highlightedRequestId || !filteredRequests.length) return;
+    const index = filteredRequests.findIndex((item) => item.id === highlightedRequestId);
+    if (index < 0) return;
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.25 });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [highlightedRequestId, filteredRequests]);
+
   /**
    * Renders a single work request card.  The card appearance and
    * available actions depend on whether the request has been accepted
@@ -276,6 +296,7 @@ const SPWorkRequestsScreen: React.FC = () => {
    */
   const renderRequest = ({ item }: { item: any }) => {
     const accepted = isAcceptedByUser(item);
+    const highlighted = item.id === highlightedRequestId;
     // Format time string (e.g. "2 hrs ago")
     const now = new Date();
     const created = new Date(item.createdAt);
@@ -308,8 +329,9 @@ const SPWorkRequestsScreen: React.FC = () => {
         style={[
           styles.card,
           {
-            backgroundColor: accepted ? colors.successLight : colors.light,
-            borderColor: accepted ? colors.success : colors.greyLight,
+            backgroundColor: highlighted ? `${colors.warning}33` : accepted ? colors.successLight : colors.light,
+            borderColor: highlighted ? colors.warning : accepted ? colors.success : colors.greyLight,
+            borderWidth: highlighted ? 2 : 1,
           },
         ]}
       >
@@ -465,6 +487,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           </View>
         ) : (
           <FlatList
+            ref={listRef}
             data={filteredRequests}
             keyExtractor={(item: any) => item.id}
             renderItem={renderRequest}

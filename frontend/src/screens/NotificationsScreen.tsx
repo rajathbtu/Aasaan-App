@@ -20,6 +20,7 @@ import ErrorBanner from '../components/ErrorBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo } from '../utils/time';
 import SafeBottomBanner from '../components/SafeBottomBanner';
+import { getNotificationNavigationTarget } from '../utils/notificationNavigation';
 
 const API = realApi;
 
@@ -114,18 +115,20 @@ const NotificationsScreen: React.FC = () => {
     }
   };
 
+  const handleNotificationPress = (item: any) => {
+    const requestId = item?.data?.requestId || item?.request?.id;
+    if (!user?.role || typeof requestId !== 'string') return;
+    const target = getNotificationNavigationTarget(user.role, item.type, requestId);
+    if (target) navigation.navigate(target.screen, target.params);
+  };
+
   const renderItem = ({ item }: { item: any }) => {
     const accent = getAccentByType(item.type || '');
     const iconName = getIconForType(item.type || '');
-    const requestId = item?.data?.requestId || item?.request?.id;
     return (
       <TouchableOpacity
         activeOpacity={0.9}
-        onPress={() => {
-          if (requestId) {
-            navigation.navigate('WorkRequestDetails', { id: requestId });
-          }
-        }}
+        onPress={() => handleNotificationPress(item)}
         style={[styles.card]}
       >
         {/* Left coloured bar */}
@@ -143,11 +146,11 @@ const NotificationsScreen: React.FC = () => {
           <Text style={styles.cardMessage}>{item.message}</Text>
           <View style={styles.cardFooter}>
             <Text style={styles.cardTime}>{timeAgo(item.createdAt)}</Text>
-            {requestId ? (
+            {(item?.data?.requestId || item?.request?.id) ? (
               <View style={styles.actionsRow}>
                 <TouchableOpacity
                   style={styles.actionButton}
-                  onPress={() => navigation.navigate('WorkRequestDetails', { id: requestId })}
+                  onPress={() => handleNotificationPress(item)}
                 >
                   <Text style={styles.actionButtonText}>{t('notifications.viewDetails')}</Text>
                 </TouchableOpacity>

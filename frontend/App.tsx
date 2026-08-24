@@ -32,12 +32,60 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import SPSelectServicesScreen from './src/screens/SPSelectServicesScreen';
 import LocationSelectScreen from './src/screens/LocationSelectScreen';
 import SPWorkRequestsScreen from './src/screens/SPWorkRequestsScreen';
+import { getNotificationNavigationTarget, NotificationUserRole } from './src/utils/notificationNavigation';
 
 // Define stack navigators
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const navigationRef = React.createRef<any>();
-const pendingNotificationRequestId = { value: null as string | null };
+const pendingNotification = { value: null as { type: string; requestId: string } | null };
+
+function navigateToNotificationTarget(role: NotificationUserRole, type: string, requestId: string): boolean {
+  const target = getNotificationNavigationTarget(role, type, requestId);
+  if (!target) return true;
+  navigationRef.current?.navigate(target.screen, target.params);
+  return true;
+}
+
+function NotificationHandler({ navigationReady }: { navigationReady: boolean }) {
+  const { user } = useAuth();
+  const responseListener = useRef<Notifications.EventSubscription | null>(null);
+  const navigationReadyRef = useRef(navigationReady);
+
+  navigationReadyRef.current = navigationReady;
+
+  useEffect(() => {
+    void locationManager.initialize();
+    const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
+      const data = response.notification.request.content.data;
+      const requestId = data?.requestId;
+      const type = data?.type;
+      if (typeof requestId !== 'string' || typeof type !== 'string') return;
+      if (!user?.role || !navigationReadyRef.current || !navigationRef.current?.isReady()) {
+        pendingNotification.value = { type, requestId };
+        return;
+      }
+      navigateToNotificationTarget(user.role, type, requestId);
+      pendingNotification.value = null;
+    };
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) handleNotificationResponse(response);
+    });
+    return () => responseListener.current?.remove();
+  }, [user?.role]);
+
+  useEffect(() => {
+    const pending = pendingNotification.value;
+    if (!pending || !user?.role || !navigationReady || !navigationRef.current?.isReady()) return;
+    if (navigateToNotificationTarget(user.role, pending.type, pending.requestId)) {
+      pendingNotification.value = null;
+    }
+  }, [user?.role, navigationReady]);
+
+  return null;
+}
 
 // Splash/launch screen wrapper.  We show a spinner while the auth context
 // finishes loading the current user from secure storage.
@@ -219,35 +267,13 @@ export type AuthStackNavigationProp = NativeStackNavigationProp<AuthStackParamLi
 export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function App() {
-  const responseListener = useRef<Notifications.EventSubscription | null>(null);
-  useEffect(() => {
-    void locationManager.initialize();
-    const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
-      const requestId = response.notification.request.content.data?.requestId;
-      if (typeof requestId !== 'string') return;
-      if (navigationRef.current?.isReady()) {
-        navigationRef.current.navigate('WorkRequestDetails', { id: requestId });
-      } else {
-        pendingNotificationRequestId.value = requestId;
-      }
-    };
-
-    responseListener.current = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
-    void Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) handleNotificationResponse(response);
-    });
-    return () => responseListener.current?.remove();
-  }, []);
+  const [navigationReady, setNavigationReady] = React.useState(false);
 
   return (
     <AuthProvider>
+      <NotificationHandler navigationReady={navigationReady} />
       <SafeAreaProvider>
-        <NavigationContainer ref={navigationRef} onReady={() => {
-          if (pendingNotificationRequestId.value) {
-            navigationRef.current.navigate('WorkRequestDetails', { id: pendingNotificationRequestId.value });
-            pendingNotificationRequestId.value = null;
-          }
-        }}>
+        <NavigationContainer ref={navigationRef} onReady={() => setNavigationReady(true)}>
           <StatusBar style="dark" />
           <RootNavigator />
         </NavigationContainer>
