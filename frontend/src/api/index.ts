@@ -202,3 +202,17 @@ export async function startTruecallerLogin() {
   const res = await api.post('/auth/truecaller/start');
   return res.data as { requestId: string };
 }
+
+export async function registerPushToken(token: string, pushToken: string, platform: 'android' | 'ios') {
+  const res = await api.post('/users/me/push-token', { token: pushToken, platform }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
+
+export async function removePushToken(token: string, pushToken?: string) {
+  await api.delete('/users/me/push-token', {
+    data: pushToken ? { token: pushToken } : undefined,
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}

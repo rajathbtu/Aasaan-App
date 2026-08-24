@@ -97,7 +97,7 @@ export async function create(req: Request, res: Response): Promise<void> {
   try {
     const since = new Date(Date.now() - 24*60*60*1000);
     const recent = await prisma.workRequest.count({ where: { userId: user.id, createdAt: { gt: since } } });
-    if (recent >= 20 && !req.body.force) { res.status(429).json({ message: t(lang, 'request.limitReached'), code: 'LIMIT_EXCEEDED' }); return; }
+    if (recent >= 40 && !req.body.force) { res.status(429).json({ message: t(lang, 'request.limitReached'), code: 'LIMIT_EXCEEDED' }); return; }
     const wr = await pAny.workRequest.create({
       data: {
         userId: user.id,
@@ -109,7 +109,7 @@ export async function create(req: Request, res: Response): Promise<void> {
       },
     });
     // Notify eligible providers (service match + radius parity)
-    const providers = await pAny.serviceProviderInfo?.findMany?.({ where: { services: { has: service } }, include: { location: true } }) || [];
+    const providers = await pAny.serviceProviderInfo?.findMany?.({ where: { services: { has: service }, user: { role: 'serviceProvider' }, }, include: { location: true }, }) || [];
     for (const p of providers) {
       let notify = true;
       if (p.location && p.radius > 0) {
@@ -122,9 +122,9 @@ export async function create(req: Request, res: Response): Promise<void> {
           type: 'newRequest',
           titleKey: 'notifications.newRequest.title',
           messageKey: 'notifications.newRequest.message',
-          params: { name: user.name, service },
+          params: { name: user.name, service, location: location.name },
           data: { requestId: wr.id }
-        });
+        }).catch((error) => console.error('Failed to create provider notification:', error));
       }
     }
     res.status(201).json(wr);

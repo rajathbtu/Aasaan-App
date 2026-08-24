@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Expo } from 'expo-server-sdk';
 import { isValidName, isValidRadius } from '../utils/validation';
 import prisma from '../utils/prisma';
 import { Role } from '../models/User';
@@ -106,5 +107,42 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
   } catch (e) {
     console.error('Error updating profile:', e);
     res.status(500).json({ message: t(lang, 'user.updateFailed') });
+  }
+}
+
+export async function registerPushToken(req: Request, res: Response): Promise<void> {
+  const authUser = (req as any).user as { id: string };
+  const { token, platform } = req.body as { token?: string; platform?: string };
+  if (!token || !Expo.isExpoPushToken(token)) {
+    res.status(400).json({ message: 'Invalid Expo push token' });
+    return;
+  }
+  if (platform !== 'android' && platform !== 'ios') {
+    res.status(400).json({ message: 'Invalid push token platform' });
+    return;
+  }
+  try {
+    const user = await prisma.user.update({
+      where: { id: authUser.id },
+      data: { pushToken: token, pushTokenPlatform: platform, pushTokenUpdatedAt: new Date() },
+      select: { id: true, pushTokenUpdatedAt: true },
+    });
+    res.json(user);
+  } catch {
+    res.status(500).json({ message: 'Failed to register push token' });
+  }
+}
+
+export async function removePushToken(req: Request, res: Response): Promise<void> {
+  const authUser = (req as any).user as { id: string };
+  const token = typeof req.body?.token === 'string' ? req.body.token : undefined;
+  try {
+    await prisma.user.updateMany({
+      where: { id: authUser.id, ...(token ? { pushToken: token } : {}) },
+      data: { pushToken: null, pushTokenPlatform: null, pushTokenUpdatedAt: null },
+    });
+    res.status(204).send();
+  } catch {
+    res.status(500).json({ message: 'Failed to remove push token' });
   }
 }

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { getProfile, updateProfile } from '../api';
+import { getProfile, updateProfile, registerPushToken, removePushToken } from '../api';
+import { getPushToken } from '../services/pushNotifications';
 import { AuthStackNavigationProp } from '../../App';
 
 interface User {
@@ -62,6 +63,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     })();
   }, []);
 
+  useEffect(() => {
+    if (!token || !user) return;
+
+    void getPushToken().then((pushToken) => {
+      if (!pushToken) {
+        return undefined;
+      }
+      return registerPushToken(token, pushToken.token, pushToken.platform);
+    }).catch((error) => console.warn('Push notification registration failed:', error));
+  }, [token, user?.id]);
+
   const login = async (tok: string, usr: User, navigation?: AuthStackNavigationProp) => {
     authVersion.current += 1;
     setToken(tok);
@@ -76,7 +88,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    const currentToken = token;
     authVersion.current += 1;
+    if (currentToken) {
+      try {
+        await removePushToken(currentToken);
+      } catch (error) {
+        console.warn('Push notification cleanup failed:', error);
+      }
+    }
     setToken(null);
     setUser(null);
     await SecureStore.deleteItemAsync('aasaan_token');

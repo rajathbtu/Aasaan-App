@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import 'react-native-get-random-values'; 
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { locationManager } from './src/services/LocationManager';
 import { colors, radius, spacing } from './src/theme';
+import * as Notifications from 'expo-notifications';
 
 // Import screens
 import LaunchScreen from './src/screens/LaunchScreen';
@@ -35,6 +36,8 @@ import SPWorkRequestsScreen from './src/screens/SPWorkRequestsScreen';
 // Define stack navigators
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const navigationRef = React.createRef<any>();
+const pendingNotificationRequestId = { value: null as string | null };
 
 // Splash/launch screen wrapper.  We show a spinner while the auth context
 // finishes loading the current user from secure storage.
@@ -216,14 +219,35 @@ export type AuthStackNavigationProp = NativeStackNavigationProp<AuthStackParamLi
 export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function App() {
+  const responseListener = useRef<Notifications.EventSubscription | null>(null);
   useEffect(() => {
     void locationManager.initialize();
+    const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
+      const requestId = response.notification.request.content.data?.requestId;
+      if (typeof requestId !== 'string') return;
+      if (navigationRef.current?.isReady()) {
+        navigationRef.current.navigate('WorkRequestDetails', { id: requestId });
+      } else {
+        pendingNotificationRequestId.value = requestId;
+      }
+    };
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) handleNotificationResponse(response);
+    });
+    return () => responseListener.current?.remove();
   }, []);
 
   return (
     <AuthProvider>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef} onReady={() => {
+          if (pendingNotificationRequestId.value) {
+            navigationRef.current.navigate('WorkRequestDetails', { id: pendingNotificationRequestId.value });
+            pendingNotificationRequestId.value = null;
+          }
+        }}>
           <StatusBar style="dark" />
           <RootNavigator />
         </NavigationContainer>

@@ -159,7 +159,7 @@ To generate a distributable `.ipa`, add the following GitHub repository secrets:
 - `IOS_CERT_PASSWORD`: Password for that `.p12`
 - `IOS_PROVISIONING_PROFILE_BASE64`: Base64 of the `.mobileprovision`
 - `IOS_TEAM_ID`: Your Apple Developer Team ID
-- `IOS_BUNDLE_IDENTIFIER`: e.g., `com.rajathbtu.aasaan`
+- `IOS_BUNDLE_IDENTIFIER`: e.g., `com.arrrv.aasaan`
 
 If these secrets are not provided, the workflow still builds the iOS Simulator `.app` for testing.
 

@@ -1,6 +1,7 @@
 // Backend i18n utilities: translations, translator, and helpers to localize API responses
 import prisma from './prisma';
 import { pushNotification } from '../models/dataStore';
+import { sendPushToUser } from './pushNotifications';
 
 export type Locale = 'en' | 'hi' | 'gu' | 'mr' | 'ta' | 'te' | 'kn';
 
@@ -45,15 +46,15 @@ const translations: Record<Locale, Record<string, any>> = {
     },
     notifications: {
       newRequest: {
-        title: 'New Work Opportunity Nearby!',
-        message: '{name} is looking for your service ({service}). Don\'t miss out!'
+        title: 'New Work near {location}!',
+        message: '{name} is looking for {service}. \nDon\'t miss out!'
       },
       providerAccepted: {
         title: 'Provider Accepted Your Request',
         message: '{name} ({service}) has accepted your work request. You can now contact them directly.'
       },
       boosted: {
-        title: 'Your request has been boosted',
+        title: 'Your Request has been boosted',
         message: 'Your work request will now appear at the top of provider feeds.'
       },
       subscriptionSuccess: {
@@ -127,7 +128,7 @@ const translations: Record<Locale, Record<string, any>> = {
     services: { fetchFailed: 'सेवाएँ प्राप्त करने में विफल' },
     notifications: {
       newRequest: {
-        title: 'पास में नया काम अवसर!',
+        title: '{location} के पास नया काम अवसर!',
         message: '{name} को आपकी सेवा ({service}) चाहिए। मौका न चूकें!'
       },
       providerAccepted: {
@@ -204,7 +205,7 @@ const translations: Record<Locale, Record<string, any>> = {
     services: { fetchFailed: 'સેવાઓ મેળવવામાં નિષ્ફળ' },
     notifications: {
       newRequest: {
-        title: 'નજીકમાં નવી કામ તક!',
+        title: '{location} નજીકમાં નવી કામ તક!',
         message: '{name} ને તમારી સેવા ({service}) જોઈએ છે. તક ચૂકી ન જશો!'
       },
       providerAccepted: {
@@ -281,7 +282,7 @@ const translations: Record<Locale, Record<string, any>> = {
     services: { fetchFailed: 'सेवा मिळवणे अयशस्वी' },
     notifications: {
       newRequest: {
-        title: 'जवळ नवीन कामाची संधी!',
+        title: '{location} जवळ नवीन कामाची संधी!',
         message: '{name} ला तुमची सेवा ({service}) हवी आहे. संधी चुकवू नका!'
       },
       providerAccepted: {
@@ -358,7 +359,7 @@ const translations: Record<Locale, Record<string, any>> = {
     services: { fetchFailed: 'சேவைகளை பெற முடியவில்லை' },
     notifications: {
       newRequest: {
-        title: 'அருகில் புதிய வேலை வாய்ப்பு!',
+        title: '{location} அருகில் புதிய வேலை வாய்ப்பு!',
         message: '{name} உங்கள் சேவை ({service}) தேடுகிறார். வாய்ப்பை தவறவிடாதீர்கள்!'
       },
       providerAccepted: {
@@ -435,7 +436,7 @@ const translations: Record<Locale, Record<string, any>> = {
     services: { fetchFailed: 'సేవలను తీసుకురావడంలో వైఫల్యం' },
     notifications: {
       newRequest: {
-        title: 'సమీపంలో కొత్త పనివకాశం!',
+        title: '{location} సమీపంలో కొత్త పనివకాశం!',
         message: '{name} మీ సేవ ({service}) కోసం వెతుకుతున్నారు. అవకాశాన్ని కోల్పోవద్దు!'
       },
       providerAccepted: {
@@ -512,7 +513,7 @@ const translations: Record<Locale, Record<string, any>> = {
     services: { fetchFailed: 'ಸೇವೆಗಳು ಪಡೆಯುವಲ್ಲಿ ವಿಫಲ' },
     notifications: {
       newRequest: {
-        title: 'ಹತ್ತಿರದಲ್ಲಿ ಹೊಸ ಕೆಲಸದ ಅವಕಾಶ!',
+        title: '{location} ಹತ್ತಿರದಲ್ಲಿ ಹೊಸ ಕೆಲಸದ ಅವಕಾಶ!',
         message: '{name} ಅವರಿಗೆ ನಿಮ್ಮ ಸೇವೆ ({service}) ಬೇಕಾಗಿದೆ. ಅವಕಾಶ ತಪ್ಪಿಸಿಕೊಳ್ಳಬೇಡಿ!'
       },
       providerAccepted: {
@@ -606,11 +607,17 @@ export async function notifyUser(options: {
   const lang = ensureLocale(u?.language);
   const title = t(lang, options.titleKey, options.params);
   const message = t(lang, options.messageKey, options.params);
-  return pushNotification({
+  const notification = await pushNotification({
     userId: options.userId,
     type: options.type as any,
     title,
     message,
     data: options.data,
   } as any);
+  await sendPushToUser(options.userId, {
+    title,
+    body: message,
+    data: { notificationId: notification.id, type: options.type, ...(options.data || {}) },
+  });
+  return notification;
 }

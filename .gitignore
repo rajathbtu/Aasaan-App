@@ -1,3 +1,5 @@
 # Ignore node_modules folders
 node_modules/
 .expo/
+package-lock.json
+backend/Firebase-service-account-credentials.json

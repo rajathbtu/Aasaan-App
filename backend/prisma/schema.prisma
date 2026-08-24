@@ -27,6 +27,9 @@ model User {
   notifications       Notification[]
   payments            Payment[] @relation("UserPayments")
   avatarUrl           String?
+  pushToken           String?
+  pushTokenPlatform   String?
+  pushTokenUpdatedAt  DateTime?
 }
 
 model ServiceProviderInfo {
