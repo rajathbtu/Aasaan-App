@@ -12,8 +12,6 @@ type HeaderProps = {
   showBackButton?: boolean;
   onBackPress?: () => void;
   showNotification?: boolean;
-  /** Optional override; defaults to the live unseen-notifications count. */
-  notificationCount?: number;
   showProfileButton?: boolean;
   customRightComponent?: React.ReactNode;
   keepTitleCenterAligned?: boolean;
@@ -25,7 +23,6 @@ const Header: React.FC<HeaderProps> = ({
   showBackButton = true,
   onBackPress,
   showNotification = true,
-  notificationCount,
   showProfileButton = false,
   customRightComponent,
   keepTitleCenterAligned = false,
@@ -33,9 +30,6 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const navigation = useNavigation<any>();
   const { unreadCount } = useNotificationCount();
-  // Screens may override the badge explicitly; otherwise show the live count.
-  const badgeCount = notificationCount ?? unreadCount;
-
   const handleProfilePress = () => navigation.navigate('Profile');
 
   return (
@@ -74,9 +68,9 @@ const Header: React.FC<HeaderProps> = ({
                 style={styles.notificationButton} 
                 onPress={() => navigation.navigate('Notifications')}>
                 <Ionicons name="notifications-outline" size={20} color={colors.dark} />
-                {badgeCount > 0 && (
+                {unreadCount > 0 && (
                   <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationBadgeText}>{badgeCount}</Text>
+                    <Text style={styles.notificationBadgeText}>{unreadCount}</Text>
                   </View>
                 )}
               </TouchableOpacity>

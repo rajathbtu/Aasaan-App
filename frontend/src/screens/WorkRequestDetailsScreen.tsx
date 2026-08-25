@@ -81,16 +81,18 @@ const WorkRequestDetailsScreen: React.FC = () => {
     };
   }, [requestId, token, cacheKey, route.params?.request]);
 
-  if (loadingStage === 'initial') {
-    return (
-      <View style={styles.emptyContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <ErrorBanner error={requestError} />
-      </View>
-    );
-  }
-
   if (!request) {
+    // While the details are still loading, keep the spinner up instead of
+    // briefly flashing "Request not found" (e.g. deep-link from a push or
+    // in-app notification, where no cached/request payload exists yet).
+    if (loadingStage !== 'idle') {
+      return (
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <ErrorBanner error={requestError} />
+        </View>
+      );
+    }
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>{t('requestDetails.notFound')}</Text>
