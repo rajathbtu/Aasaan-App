@@ -50,7 +50,14 @@
     "scheme": "aasaan",
     "plugins": [
       "expo-dev-client",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/new_request.wav"
+          ]
+        }
+      ],
       "expo-secure-store",
       "expo-font"
     ],

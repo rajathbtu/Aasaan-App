@@ -16,6 +16,11 @@ export async function getPushToken(): Promise<{ token: string; platform: 'androi
     return null;
   }
   if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('new-work-requests', {
+      name: 'New work requests',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'new_request.wav',
+    });
     await Notifications.setNotificationChannelAsync('work-requests', {
       name: 'Work requests',
       importance: Notifications.AndroidImportance.HIGH,

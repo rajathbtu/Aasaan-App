@@ -18,10 +18,11 @@ export async function sendPushToUser(
       console.warn(`Push notification skipped for user ${userId}: invalid Expo push token`);
       return false;
     }
+    const isNewRequest = notification.data?.type === 'newRequest';
     const tickets = await expo.sendPushNotificationsAsync([{
       to: token,
-      sound: 'default',
-      channelId: 'work-requests',
+      sound: isNewRequest ? 'new_request.wav' : 'default',
+      channelId: isNewRequest ? 'new-work-requests' : 'work-requests',
       title: notification.title,
       body: notification.body,
       data: notification.data,

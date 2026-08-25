@@ -56,8 +56,9 @@ const SPWorkRequestsScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [requestError, setRequestError] = useState<unknown | null>(null);
   const [showProBanner, setShowProBanner] = useState(true);
+  const notificationRequestId = route.params?.highlightedRequestId as string | undefined;
   const [highlightedRequestId, setHighlightedRequestId] = useState<string | null>(
-            route.params?.highlightedRequestId || null );
+    notificationRequestId || null);
   const listRef = useRef<FlatList<any>>(null);
   const userId = user?.id;
   const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
@@ -272,20 +273,16 @@ const SPWorkRequestsScreen: React.FC = () => {
   }, [requests, tab, filter, user]);
 
   useEffect(() => {
-    const requestId = route.params?.highlightedRequestId;
-    if (!requestId) return;
-    setHighlightedRequestId(requestId);
-  }, [route.params?.highlightedRequestId]);
-
-  useEffect(() => {
-    if (!highlightedRequestId || !filteredRequests.length) return;
-    const index = filteredRequests.findIndex((item) => item.id === highlightedRequestId);
+    if (!notificationRequestId) return;
+    setHighlightedRequestId(notificationRequestId);
+    const index = filteredRequests.findIndex((item) => item.id === notificationRequestId);
     if (index < 0) return;
     const timer = setTimeout(() => {
       listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.25 });
+      navigation.setParams({ highlightedRequestId: undefined });
     }, 0);
     return () => clearTimeout(timer);
-  }, [highlightedRequestId, filteredRequests]);
+  }, [notificationRequestId, filteredRequests, navigation]);
 
   /**
    * Renders a single work request card.  The card appearance and
