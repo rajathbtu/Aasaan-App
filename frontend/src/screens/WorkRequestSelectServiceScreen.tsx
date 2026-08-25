@@ -8,7 +8,6 @@ import ErrorBanner from '../components/ErrorBanner';
 import { useI18n } from '../i18n';
 import { getServices } from '../api';
 import { useAuth } from '../contexts/AuthContext'; // Corrected import
-import { useNotificationCount } from '../contexts/NotificationCountContext';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 type Service = { id: string; name: string; category: string; tags?: string[]; icon?: string; color?: string };
@@ -23,7 +22,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   const [services, setServices] = useState<Service[] | null>(null);
   const userId = useAuth()?.user?.id;
-  const { unreadCount } = useNotificationCount();
   const servicesCacheKey = userId ? offlineCacheKey('services', userId) : null;
   const [recentServices, setRecentServices] = useState<Service[]>([]);
   const [servicesError, setServicesError] = useState<unknown | null>(null);
@@ -139,7 +137,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
-      <Header title="Aasaan" showNotification={true} notificationCount={unreadCount} showBackButton={false} />
+      <Header title="Aasaan" showNotification={true} showBackButton={false} />
       {/* Spacer to ensure shadow visibility below header */}
       <View style={{ height: spacing.xs }} />
       <ImageBackground

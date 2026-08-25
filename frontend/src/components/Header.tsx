@@ -5,12 +5,14 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
 import DetectedLocationCard from './DetectedLocationCard';
+import { useNotificationCount } from '../contexts/NotificationCountContext';
 
 type HeaderProps = {
   title: string;
   showBackButton?: boolean;
   onBackPress?: () => void;
   showNotification?: boolean;
+  /** Optional override; defaults to the live unseen-notifications count. */
   notificationCount?: number;
   showProfileButton?: boolean;
   customRightComponent?: React.ReactNode;
@@ -23,13 +25,16 @@ const Header: React.FC<HeaderProps> = ({
   showBackButton = true,
   onBackPress,
   showNotification = true,
-  notificationCount = 0,
+  notificationCount,
   showProfileButton = false,
   customRightComponent,
   keepTitleCenterAligned = false,
   subheader,
 }) => {
   const navigation = useNavigation<any>();
+  const { unreadCount } = useNotificationCount();
+  // Screens may override the badge explicitly; otherwise show the live count.
+  const badgeCount = notificationCount ?? unreadCount;
 
   const handleProfilePress = () => navigation.navigate('Profile');
 
@@ -69,9 +74,9 @@ const Header: React.FC<HeaderProps> = ({
                 style={styles.notificationButton} 
                 onPress={() => navigation.navigate('Notifications')}>
                 <Ionicons name="notifications-outline" size={20} color={colors.dark} />
-                {notificationCount > 0 && (
+                {badgeCount > 0 && (
                   <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
+                    <Text style={styles.notificationBadgeText}>{badgeCount}</Text>
                   </View>
                 )}
               </TouchableOpacity>
