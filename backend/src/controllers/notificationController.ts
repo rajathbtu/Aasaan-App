@@ -36,3 +36,23 @@ export async function markAllRead(req: Request, res: Response): Promise<void> {
     res.status(500).json({ message: t(lang, 'common.internalError') });
   }
 }
+/**
+ * Mark a single notification as read.  Scoped to the authenticated user
+ * so a caller can never touch another user's notifications.  Idempotent:
+ * marking an already-read (or missing) notification simply reports a
+ * count of 0 instead of failing.
+ */
+export async function markRead(req: Request, res: Response): Promise<void> {
+  const user = (req as any).user;
+  const { id } = req.params;
+  try {
+    const result = await prisma.notification.updateMany({
+      where: { id, userId: user.id },
+      data: { read: true }
+    });
+    res.json({ count: result.count });
+  } catch {
+    const lang = getReqLang(req);
+    res.status(500).json({ message: t(lang, 'common.internalError') });
+  }
+}

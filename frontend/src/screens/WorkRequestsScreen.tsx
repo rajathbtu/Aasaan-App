@@ -13,6 +13,7 @@ import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import * as realApi from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotificationCount } from '../contexts/NotificationCountContext';
 import { useI18n } from '../i18n';
 import { colors, radius, spacing } from '../theme';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
@@ -38,6 +39,7 @@ const WorkRequestsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t } = useI18n();
   const timeAgo = buildTimeAgo(t);
+  const { unreadCount } = useNotificationCount();
   const [requestsByTab, setRequestsByTab] = useState<RequestsByTab>({
     active: [],
     completed: [],
@@ -141,7 +143,7 @@ const WorkRequestsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Header title={t('userRequests.title')} showNotification={true} notificationCount={3} showBackButton={false} />
+      <Header title={t('userRequests.title')} showNotification={true} notificationCount={unreadCount} showBackButton={false} />
       {/* <View style={{ height: spacing.sm }} /> */}
 
       {/* Filter Tabs */}

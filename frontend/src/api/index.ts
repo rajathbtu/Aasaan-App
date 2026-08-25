@@ -216,3 +216,12 @@ export async function removePushToken(token: string, pushToken?: string) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+/**
+ * Mark a single notification as read.
+ */
+export async function markNotificationRead(token: string, id: string) {
+  await api.put(`/notifications/${id}/read`, {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}

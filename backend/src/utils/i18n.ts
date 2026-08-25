@@ -50,8 +50,8 @@ const translations: Record<Locale, Record<string, any>> = {
         message: '{name} is looking for {service}. \nDon\'t miss out!'
       },
       providerAccepted: {
-        title: 'Provider Accepted Your Request',
-        message: '{name} ({service}) has accepted your work request. You can now contact them directly.'
+        title: '{name} responded to your request for {service}',
+        message: 'Contact them directly now & discuss the work details'
       },
       boosted: {
         title: 'Your Request has been boosted',

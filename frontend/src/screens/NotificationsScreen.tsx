@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import { useNotificationCount } from '../contexts/NotificationCountContext';
 import ErrorBanner from '../components/ErrorBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo } from '../utils/time';
@@ -35,6 +36,7 @@ const NotificationsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t } = useI18n();
   const timeAgo = buildTimeAgo(t);
+  const { refresh: refreshUnreadCount } = useNotificationCount();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [notificationError, setNotificationError] = useState<unknown | null>(null);
@@ -53,6 +55,7 @@ const NotificationsScreen: React.FC = () => {
       setNotifications(list);
       await writeOfflineCache(cacheKey, list);
       setNotificationError(null);
+      refreshUnreadCount();
     } catch (err) {
       const cached = await readOfflineCache<any[]>(cacheKey);
       if (cached) setNotifications(cached);
@@ -64,7 +67,8 @@ const NotificationsScreen: React.FC = () => {
 
   useFocusEffect(
     useCallback(() => {
-      fetchNotifications();
+      void fetchNotifications();
+      return () => { refreshUnreadCount(); };
     }, [token, cacheKey])
   );
 
@@ -73,6 +77,7 @@ const NotificationsScreen: React.FC = () => {
     try {
       await API.markAllNotificationsRead(token);
       setNotificationError(null);
+      refreshUnreadCount();
       fetchNotifications();
     } catch (err) {
       setNotificationError(err);
@@ -117,6 +122,14 @@ const NotificationsScreen: React.FC = () => {
 
   const handleNotificationPress = (item: any) => {
     const requestId = item?.data?.requestId || item?.request?.id;
+    // Optimistically mark as read so the unread dot clears instantly, then
+    // persist to the backend and schedule a low-priority badge refresh.
+    if (!item.read && token) {
+      setNotifications((current) => current.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
+      void API.markNotificationRead(token, item.id)
+        .then(() => refreshUnreadCount())
+        .catch(() => {});
+    }
     if (!user?.role || typeof requestId !== 'string') return;
     const target = getNotificationNavigationTarget(user.role, item.type, requestId);
     if (target) navigation.navigate(target.screen, target.params);

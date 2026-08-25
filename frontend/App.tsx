@@ -10,6 +10,8 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { locationManager } from './src/services/LocationManager';
+import { NotificationCountProvider, useNotificationCount } from './src/contexts/NotificationCountContext';
+import { markNotificationRead } from './src/api';
 import { colors, radius, spacing } from './src/theme';
 import * as Notifications from 'expo-notifications';
 
@@ -48,7 +50,8 @@ function navigateToNotificationTarget(role: NotificationUserRole, type: string, 
 }
 
 function NotificationHandler({ navigationReady }: { navigationReady: boolean }) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  const { refresh: refreshUnreadCount } = useNotificationCount();
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
   const navigationReadyRef = useRef(navigationReady);
 
@@ -60,6 +63,14 @@ function NotificationHandler({ navigationReady }: { navigationReady: boolean }) 
       const data = response.notification.request.content.data;
       const requestId = data?.requestId;
       const type = data?.type;
+      // Opening a push from the system tray counts as seeing it: mark the
+      // underlying notification read and schedule a low-priority badge refresh.
+      const notificationId = data?.notificationId;
+      if (typeof notificationId === 'string' && token) {
+        void markNotificationRead(token, notificationId)
+          .then(() => refreshUnreadCount())
+          .catch(() => {});
+      }
       if (typeof requestId !== 'string' || typeof type !== 'string') return;
       if (!user?.role || !navigationReadyRef.current || !navigationRef.current?.isReady()) {
         pendingNotification.value = { type, requestId };
@@ -74,7 +85,7 @@ function NotificationHandler({ navigationReady }: { navigationReady: boolean }) 
       if (response) handleNotificationResponse(response);
     });
     return () => responseListener.current?.remove();
-  }, [user?.role]);
+  }, [user?.role, token, refreshUnreadCount]);
 
   useEffect(() => {
     const pending = pendingNotification.value;
@@ -271,13 +282,15 @@ export default function App() {
 
   return (
     <AuthProvider>
-      <NotificationHandler navigationReady={navigationReady} />
-      <SafeAreaProvider>
-        <NavigationContainer ref={navigationRef} onReady={() => setNavigationReady(true)}>
-          <StatusBar style="dark" />
-          <RootNavigator />
-        </NavigationContainer>
-      </SafeAreaProvider>
+      <NotificationCountProvider>
+        <NotificationHandler navigationReady={navigationReady} />
+        <SafeAreaProvider>
+          <NavigationContainer ref={navigationRef} onReady={() => setNavigationReady(true)}>
+            <StatusBar style="dark" />
+            <RootNavigator />
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </NotificationCountProvider>
     </AuthProvider>
   );
 }
