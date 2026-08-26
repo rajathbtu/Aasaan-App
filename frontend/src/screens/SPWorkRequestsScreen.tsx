@@ -311,7 +311,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         {/* Service label and time/distance */}
         <View style={styles.cardHeader}>
           <View style={[styles.iconCircle, { backgroundColor: item.color }]}>
-            <Ionicons name={item.icon || 'construct'} size={20} color={colors.primary} />
+            <Ionicons name={item.serviceIcon} size={20} color={colors.primary} />
           </View>
           <View style={{ flex: 1, marginLeft: spacing.md }}>
             <Text style={styles.serviceName} numberOfLines={1}>{item.serviceName}</Text>
