@@ -21,6 +21,7 @@ import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import SkeletonLoader from '../components/SkeletonLoader';
+import UpgradeProBanner from '../components/UpgradeProBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo } from '../utils/time';
 
@@ -576,27 +577,11 @@ const SPWorkRequestsScreen: React.FC = () => {
         )}
         {/* Pro banner */}
         {showProBanner && (
-          <TouchableOpacity
-            style={styles.proBanner}
+          <UpgradeProBanner
+            variant="compact"
             onPress={() => navigation.navigate('Subscription')}
-          >
-            <View style={styles.proIconWrapper}>
-              <Ionicons name="trophy" size={20} color={colors.violetStrong} />
-            </View>
-            <View style={{ flex: 1, marginLeft: spacing.sm }}>
-              <Text style={styles.proTitle}>{t('spRequests.goPro')}</Text>
-              <Text style={styles.proSubtitle}>{t('spRequests.goProSubtitle')}</Text>
-            </View>
-            <View style={styles.proPriceWrapper}>
-              <Text style={styles.proPrice}>{t('spRequests.perMonth', { price: '₹100' })}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowProBanner(false)}
-            >
-              <Ionicons name="close" size={16} color={colors.dark} />
-            </TouchableOpacity>
-          </TouchableOpacity>
+            onClose={() => setShowProBanner(false)}
+          />
         )}
         <ErrorBanner error={requestError} onRetry={fetchRequests} />
         {/* Safe area overlay to prevent content overlap with device buttons */}
@@ -720,8 +705,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardAccepted: {
-    backgroundColor: colors.successLight,
-    borderColor: colors.success,
+    backgroundColor: '#f0fdf4',
+    borderColor: '#bbf7d0',
   },
   cardHighlighted: {
     borderColor: colors.warning,
@@ -863,54 +848,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: '700',
-  },
-  proBanner: {
-    zIndex: 10,
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  proIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  proTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  proSubtitle: {
-    fontSize: 12,
-    color: colors.primary,
-    marginTop: 2,
-  },
-  proPriceWrapper: {
-    backgroundColor: colors.violetStrong,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.md,
-  },
-  proPrice: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  closeButton: {
-    marginLeft: spacing.md,
-    padding: 4,
-    borderRadius: 12,
-    backgroundColor: colors.greyLight,
   },
 });
 

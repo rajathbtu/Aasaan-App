@@ -10,6 +10,7 @@ import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import { getServices } from '../api';
 import SafeBottomBanner from '../components/SafeBottomBanner';
+import UpgradeProBanner from '../components/UpgradeProBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 /**
@@ -363,43 +364,10 @@ const ProfileScreen: React.FC = () => {
         {/* Professional Plans Promotion */}
         {user.role === 'serviceProvider' && (
           <View style={styles.section}>
-            <View style={styles.proCard}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-                <View style={styles.proIconCircle}>
-                  <Ionicons name="trophy" size={16} color={colors.white} />
-                </View>
-                <View style={{ marginLeft: spacing.sm }}>
-                  <Text style={styles.proTitle}>{t('profile.upgradeTitle')}</Text>
-                  <Text style={styles.proSubtitle}>{t('profile.upgradeSubtitle')}</Text>
-                </View>
-              </View>
-
-              <View style={{ marginBottom: spacing.sm }}>
-                <View style={styles.proFeatRow}>
-                  <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
-                  <Text style={styles.proFeatText}>{t('profile.featEarly')}</Text>
-                </View>
-                <View style={styles.proFeatRow}>
-                  <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
-                  <Text style={styles.proFeatText}>{t('profile.featMultiLoc')}</Text>
-                </View>
-                <View style={styles.proFeatRow}>
-                  <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
-                  <Text style={styles.proFeatText}>{t('profile.featRadius')}</Text>
-                </View>
-                <View style={styles.proFeatRow}>
-                  <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
-                  <Text style={styles.proFeatText}>{t('profile.featPriority')}</Text>
-                </View>
-              </View>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={styles.proPrice}>{t('profile.startingFrom', { price: '₹100' })}</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Subscription')} style={styles.proBtn}>
-                  <Text style={styles.proBtnText}>{t('profile.viewPlans')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <UpgradeProBanner
+              variant="card"
+              onPress={() => navigation.navigate('Subscription')}
+            />
           </View>
         )}
 
@@ -650,51 +618,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-  },
-  proCard: {
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
-    backgroundColor: colors.primaryLight,
-    borderRadius: radius.md,
-    padding: spacing.md,
-  },
-  proIconCircle: {
-    backgroundColor: colors.primary,
-    borderRadius: 999,
-    padding: spacing.xs,
-  },
-  proTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.dark,
-  },
-  proSubtitle: {
-    fontSize: 12,
-    color: colors.grey,
-  },
-  proFeatRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  proFeatText: {
-    fontSize: 12,
-    color: colors.dark,
-  },
-  proPrice: {
-    fontSize: 12,
-    color: colors.grey,
-  },
-  proBtn: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-  },
-  proBtnText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '600',
   },
   logoutRow: {
     flexDirection: 'row',

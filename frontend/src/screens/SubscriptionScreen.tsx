@@ -28,6 +28,12 @@ const PLAN_PRICING: Record<'basic' | 'pro', { priceInr: number; points: number }
   pro: { priceInr: 200, points: 200 },
 };
 
+// Premium violet palette — matches the Go Professional promos used on the
+// profile & work requests screens so the whole upgrade journey feels cohesive.
+const VIOLET_DEEP = '#7c3aed';
+const VIOLET_INK = '#5b21b6';
+const VIOLET_BORDER = '#ddd6fe';
+
 /**
  * Allows service providers to subscribe to a professional plan (basic or
  * pro).  Users can pay with cash or use their credit points.  After
@@ -199,11 +205,12 @@ const SubscriptionScreen: React.FC = () => {
       key: 'basic' as const,
       title: t('subscription.plan.basic'),
       price: PLAN_PRICING.basic.priceInr,
+      tagline: t('subscription.taglineBasic'),
       features: [
-        t('subscription.features.early'),
-        t('subscription.features.standardRadius'),
-        t('subscription.features.multiLoc'),
-        t('subscription.features.priority'),
+        { label: t('subscription.features.early'), included: true },
+        { label: t('subscription.features.standardRadius'), included: true },
+        { label: t('subscription.features.multiLoc'), included: false },
+        { label: t('subscription.features.priority'), included: false },
       ],
       badge: t('subscription.badge.popular'),
     },
@@ -211,11 +218,12 @@ const SubscriptionScreen: React.FC = () => {
       key: 'pro' as const,
       title: t('subscription.plan.pro'),
       price: PLAN_PRICING.pro.priceInr,
+      tagline: t('subscription.taglinePro'),
       features: [
-        t('subscription.features.early'),
-        t('subscription.features.increasedRadius'),
-        t('subscription.features.multiLoc'),
-        t('subscription.features.priority'),
+        { label: t('subscription.features.early'), included: true },
+        { label: t('subscription.features.increasedRadius'), included: true },
+        { label: t('subscription.features.multiLoc'), included: true },
+        { label: t('subscription.features.priority'), included: true },
       ],
       badge: t('subscription.badge.bestValue'),
     },
@@ -229,14 +237,24 @@ const SubscriptionScreen: React.FC = () => {
           <Header title={t('subscription.headerTitle')} showBackButton={true} />
           <View style={{ height: spacing.sm }} />
           <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl + 80 }} showsVerticalScrollIndicator={false}>
-            {/* Upgrade copy */}
-            <Text style={styles.pageTitle}>{t('subscription.pageTitle')}</Text>
-            <Text style={styles.subtitle}>{t('subscription.subtitle')}</Text>
+            {/* Hero — benefit-led opening that sells the upgrade */}
+            <View style={styles.hero}>
+              <View pointerEvents="none" style={styles.heroGlowLg} />
+              <View pointerEvents="none" style={styles.heroGlowSm} />
+              <View style={styles.heroTile}>
+                <Ionicons name="trophy" size={26} color={colors.white} />
+              </View>
+              <Text style={styles.heroTitle}>{t('subscription.heroTitle')}</Text>
+              <Text style={styles.heroSubtitle}>{t('subscription.heroSubtitle')}</Text>
+            </View>
 
             {/* Current Plan */}
             <View style={styles.currentPlanCard}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={styles.currentPlanIcon}>
+                  <Ionicons name="person" size={17} color={colors.white} />
+                </View>
+                <View style={{ flex: 1, marginLeft: spacing.md }}>
                   <Text style={styles.currentPlanLabel}>{t('subscription.currentPlan')}</Text>
                   <Text style={styles.currentPlanName}>
                     {currentPlan === 'basic' ? t('subscription.plan.basic') : currentPlan === 'pro' ? t('subscription.plan.pro') : t('subscription.plan.free')}
@@ -245,6 +263,10 @@ const SubscriptionScreen: React.FC = () => {
                 <View style={styles.activeBadge}>
                   <Text style={styles.activeBadgeText}>{t('subscription.active')}</Text>
                 </View>
+              </View>
+              <View style={styles.creditsRow}>
+                <Ionicons name="diamond-outline" size={13} color={VIOLET_DEEP} />
+                <Text style={styles.creditsText}>{t('subscription.creditBalance', { points: credits })}</Text>
               </View>
             </View>
 
@@ -256,72 +278,122 @@ const SubscriptionScreen: React.FC = () => {
               </View>
             )}
 
-            {/* Plan options */}
-            {plans.map(plan => (
-              <View key={plan.key} style={[styles.planCard, selectedPlan === plan.key && { borderColor: colors.primary }] }>
-                {/* Badge */}
-                <View style={[styles.planBadge, plan.key === 'basic' ? styles.popularBadge : styles.bestValueBadge]}>
-                  <Text style={styles.planBadgeText}>{plan.badge}</Text>
-                </View>
-                <Text style={styles.planTitle}>{plan.title}</Text>
-                <Text style={styles.planPrice}>₹{plan.price} <Text style={{ fontSize: 12 }}> /month</Text></Text>
-                {plan.features.map((feat, idx) => (
-                  <View key={idx} style={styles.featureRow}>
-                    <Ionicons
-                      name={idx < (plan.key === 'basic' ? 3 : 4) ? 'checkmark-circle' : 'checkmark-circle-outline'}
-                      size={16}
-                      color={idx < (plan.key === 'basic' ? 3 : 4) ? colors.secondary : colors.greyLight}
-                      style={{ marginRight: spacing.sm }}
-                    />
-                    <Text
-                      style={[styles.featureText, idx < (plan.key === 'basic' ? 3 : 4) ? {} : { color: colors.grey }]}
-                    >
-                      {feat}
-                    </Text>
-                  </View>
-                ))}
-                <TouchableOpacity
-                  style={styles.selectButton}
-                  onPress={() => setSelectedPlan(plan.key)}
-                >
-                  <Text style={styles.selectButtonText}>{t('subscription.selectPlan')}</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
+            {/* Plan cards */}
+            {plans.map(plan => {
+              const selected = selectedPlan === plan.key;
+              const isPro = plan.key === 'pro';
+              const hasEnoughCredits = credits >= PLAN_PRICING[plan.key].points;
+              return (
+                <View key={plan.key}>
+                  <View
+                    style={[
+                      styles.planCard,
+                      isPro ? styles.planCardPro : null,
+                      selected && (isPro ? styles.planCardSelectedPro : styles.planCardSelectedBasic),
+                    ]}
+                  >
+                    {/* Highlight badge */}
+                    <View style={[styles.planBadge, isPro ? styles.planRibbon : styles.planBadgeBasic]}>
+                      <Text style={[styles.planBadgeText, isPro && styles.planRibbonText]}>{plan.badge}</Text>
+                    </View>
 
-            {/* Payment actions for selected plan */}
-            {selectedPlan && (
-              <View style={styles.actionsBar}>
-                <View style={{ flex: 1, marginRight: spacing.sm }}>
-                  <TouchableOpacity
-                    style={[styles.payBtn, { backgroundColor: colors.primary }]}
-                    onPress={() => subscribe(selectedPlan, false)}
-                    disabled={loading}
-                    activeOpacity={0.8}
-                  >
-                    {loading ? <ActivityIndicator color={colors.white} /> : (
-                      <Text style={styles.payBtnText}>{t('subscription.payMoney', { price: PLAN_PRICING[selectedPlan].priceInr })}</Text>
+                    <Text style={[styles.planTitle, isPro && { color: VIOLET_INK }]}>{plan.title}</Text>
+
+                    {/* Price */}
+                    <View style={styles.priceRow}>
+                      <Text style={[styles.priceAmount, { color: isPro ? VIOLET_INK : colors.primary }]}>₹{plan.price}</Text>
+                      <Text style={styles.pricePeriod}>{t('subscription.month')}</Text>
+                    </View>
+
+                    <Text style={styles.planTagline}>{plan.tagline}</Text>
+
+                    {/* Features — clear ✓ included / ✕ excluded comparison */}
+                    <View style={styles.featureList}>
+                      {plan.features.map((feat, idx) => (
+                        <View key={idx} style={styles.featureRow}>
+                          <Ionicons
+                            name={feat.included ? 'checkmark-circle' : 'close-circle'}
+                            size={18}
+                            color={feat.included ? colors.success : colors.greyMuted}
+                            style={{ marginRight: spacing.sm }}
+                          />
+                          <Text style={[styles.featureText, !feat.included && styles.featureTextExcluded]}>
+                            {feat.label}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+
+                    {!selected && (
+                      <TouchableOpacity
+                        style={[styles.selectButton, isPro && styles.selectButtonPro]}
+                        onPress={() => setSelectedPlan(plan.key)}
+                        disabled={loading}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={styles.selectButtonText}>{t('subscription.selectPlan')}</Text>
+                      </TouchableOpacity>
                     )}
-                  </TouchableOpacity>
+                  </View>
+
+                  {/* Inline payment options right under the selected card */}
+                  {selected && (
+                    <View style={styles.payPanel}>
+                      <View style={styles.payPanelHeader}>
+                        <Ionicons name="wallet-outline" size={16} color={colors.dark} />
+                        <Text style={styles.payPanelTitle}>{t('subscription.paymentMethodTitle')}</Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.payPrimaryBtn}
+                        onPress={() => subscribe(plan.key, false)}
+                        disabled={loading}
+                        activeOpacity={0.85}
+                      >
+                        {loading ? <ActivityIndicator color={colors.white} /> : (
+                          <>
+                            <Ionicons name="lock-closed" size={16} color={colors.white} style={{ marginRight: spacing.sm }} />
+                            <Text style={styles.payPrimaryText}>
+                              {t('subscription.payMoney', { price: PLAN_PRICING[plan.key].priceInr })}
+                            </Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.payCreditsBtn, !hasEnoughCredits && styles.payBtnDisabled]}
+                        onPress={() => subscribe(plan.key, true)}
+                        disabled={loading || !hasEnoughCredits}
+                        activeOpacity={0.85}
+                      >
+                        <Ionicons
+                          name={hasEnoughCredits ? 'diamond' : 'diamond-outline'}
+                          size={16}
+                          color={hasEnoughCredits ? colors.success : colors.greyMuted}
+                          style={{ marginRight: spacing.sm }}
+                        />
+                        <Text style={[styles.payCreditsText, !hasEnoughCredits && styles.payCreditsTextDisabled]}>
+                          {hasEnoughCredits
+                            ? t('subscription.useCredits', { points: PLAN_PRICING[plan.key].points })
+                            : t('subscription.needMore', { diff: PLAN_PRICING[plan.key].points - credits })}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <View style={styles.creditNoteRow}>
+                        <Ionicons name="information-circle" size={12} color={colors.greyMuted} />
+                        <Text style={styles.creditNoteText}>{t('subscription.creditBalance', { points: credits })}</Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
-                <View style={{ flex: 1, marginLeft: spacing.sm }}>
-                  <TouchableOpacity
-                    style={[styles.payBtn, { backgroundColor: credits >= PLAN_PRICING[selectedPlan].points ? colors.secondary : colors.greyLight }]}
-                    onPress={() => subscribe(selectedPlan, true)}
-                    disabled={loading || credits < PLAN_PRICING[selectedPlan].points}
-                    activeOpacity={0.8}
-                  >
-                    {loading ? <ActivityIndicator color={colors.white} /> : (
-                      <Text style={styles.payBtnText}>
-                        {credits >= PLAN_PRICING[selectedPlan].points
-                          ? t('subscription.useCredits', { points: PLAN_PRICING[selectedPlan].points })
-                          : t('subscription.needMore', { diff: PLAN_PRICING[selectedPlan].points - credits })}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
+              );
+            })}
+
+            {/* Trust footer */}
+            <View style={styles.trustRow}>
+              <Ionicons name="shield-checkmark" size={14} color={colors.success} style={{ marginRight: 6 }} />
+              <Text style={styles.trustText}>{t('subscription.securePayments')}</Text>
+            </View>
           </ScrollView>
 
           {/* Razorpay WebView for payments */}
@@ -361,47 +433,124 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
   },
-  pageTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.dark,
+  hero: {
+    backgroundColor: colors.violetStrong,
+    borderRadius: radius.xl,
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
     marginHorizontal: spacing.lg,
-    marginBottom: 2,
     marginTop: spacing.md,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.grey,
-    marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
+    overflow: 'hidden',
+    shadowColor: VIOLET_DEEP,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  heroGlowLg: {
+    position: 'absolute',
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    backgroundColor: 'rgba(255,255,255,0.13)',
+    top: -80,
+    right: -50,
+  },
+  heroGlowSm: {
+    position: 'absolute',
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: 'rgba(255,255,255,0.09)',
+    bottom: -50,
+    left: -30,
+  },
+  heroTile: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  heroTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.white,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255,255,255,0.88)',
+    textAlign: 'center',
   },
   currentPlanCard: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.md,
-    padding: spacing.md,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.greyLight,
+    borderRadius: radius.lg,
+    padding: spacing.mdPlus,
     marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.sm,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  currentPlanIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: colors.violetStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   currentPlanLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.grey,
     marginBottom: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   currentPlanName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: colors.dark,
   },
+  creditsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: colors.greyLight,
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+  },
+  creditsText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.grey,
+    marginLeft: 6,
+  },
   activeBadge: {
-    backgroundColor: colors.secondary,
+    backgroundColor: colors.success,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: radius.lg,
   },
   activeBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.white,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   infoBanner: {
     flexDirection: 'row',
@@ -421,42 +570,101 @@ const styles = StyleSheet.create({
   },
   planCard: {
     backgroundColor: colors.white,
-    borderRadius: radius.md,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: colors.greyLight,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
-    padding: spacing.md,
+    padding: spacing.lg,
+    paddingTop: spacing.lg + 4,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  // Pro card carries the premium violet identity
+  planCardPro: {
+    borderWidth: 2,
+    borderColor: VIOLET_BORDER,
+  },
+  planCardSelectedBasic: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: colors.paper,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  planCardSelectedPro: {
+    borderColor: VIOLET_DEEP,
+    backgroundColor: tints.purpleSoft,
+    shadowColor: VIOLET_DEEP,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 3,
   },
   planBadge: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.lg,
-    marginBottom: spacing.sm,
+    position: 'absolute',
+    top: -10,
+    right: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 3,
+    borderRadius: 999,
+    zIndex: 10,
   },
-  popularBadge: {
-    backgroundColor: tints.amber,
+  planBadgeBasic: {
+    backgroundColor: colors.primaryLight,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
   },
-  bestValueBadge: {
-    backgroundColor: tints.cyanSoft,
+  planRibbon: {
+    backgroundColor: colors.accent,
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 2,
   },
   planBadgeText: {
     fontSize: 10,
-    fontWeight: '600',
-    color: colors.dark,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: colors.primary,
+  },
+  planRibbonText: {
+    color: colors.white,
   },
   planTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: colors.dark,
     marginBottom: 2,
   },
-  planPrice: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.primary,
-    marginBottom: spacing.sm,
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: spacing.xs,
+  },
+  priceAmount: {
+    fontSize: 26,
+    fontWeight: '800',
+  },
+  pricePeriod: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.grey,
+    marginLeft: 4,
+  },
+  planTagline: {
+    fontSize: 12.5,
+    lineHeight: 17,
+    color: colors.grey,
+    marginBottom: spacing.md,
+  },
+  featureList: {
+    marginBottom: spacing.xs,
   },
   featureRow: {
     flexDirection: 'row',
@@ -464,39 +672,124 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   featureText: {
-    fontSize: 12,
+    fontSize: 13.5,
+    lineHeight: 18,
     color: colors.dark,
+    fontWeight: '500',
     flex: 1,
+  },
+  featureTextExcluded: {
+    color: colors.greyMuted,
+    fontWeight: '400',
   },
   selectButton: {
     backgroundColor: colors.primary,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    borderRadius: radius.lg,
     alignItems: 'center',
-    marginTop: spacing.sm,
+    justifyContent: 'center',
+    marginTop: spacing.md,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  selectButtonPro: {
+    backgroundColor: colors.violetStrong,
+    shadowColor: VIOLET_DEEP,
   },
   selectButtonText: {
     color: colors.white,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  actionsBar: {
+  payPanel: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: VIOLET_BORDER,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.lg,
+    shadowColor: VIOLET_DEEP,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  payPanelHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  payPanelTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.dark,
+    marginLeft: 6,
+  },
+  payPrimaryBtn: {
+    backgroundColor: colors.violetStrong,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.mdPlus,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    shadowColor: VIOLET_DEEP,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  payPrimaryText: {
+    color: colors.white,
+    fontSize: 14.5,
+    fontWeight: '700',
+  },
+  payCreditsBtn: {
+    backgroundColor: colors.successLight,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.mdPlus,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    marginTop: spacing.sm,
+  },
+  payBtnDisabled: {
+    backgroundColor: colors.surface,
+  },
+  payCreditsText: {
+    color: '#047857',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  payCreditsTextDisabled: {
+    color: colors.greyMuted,
+  },
+  creditNoteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.md,
+  },
+  creditNoteText: {
+    fontSize: 11.5,
+    color: colors.greyMuted,
+    marginLeft: 4,
+  },
+  trustRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginHorizontal: spacing.lg,
     marginBottom: spacing.xl,
   },
-  payBtn: {
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  payBtnText: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: '700',
+  trustText: {
+    fontSize: 12,
+    color: colors.grey,
+    fontWeight: '500',
   },
 });
 
