@@ -28,24 +28,28 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
   const [requestInProgress, setRequestInProgress] = useState(false);
   const [requestError, setRequestError] = useState<unknown | null>(null);
 
-  if (!serviceId || !serviceName) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>{t('createRequest.addDetails.unknownService')}</Text>
-      </View>
-    );
-  }
+  // Missing params/location fallback so the user is never stuck on this screen.
+  let guardMessage: string | null = null;
+  if (!serviceId || !serviceName) guardMessage = t('createRequest.addDetails.unknownService');
+  else if (!selectedLocation || !selectedLocation.lat || !selectedLocation.lng)
+    guardMessage = t('createRequest.addDetails.locationRequiredTitle');
 
-  if (!selectedLocation || !selectedLocation.lat || !selectedLocation.lng) {
+  if (guardMessage) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>{t('createRequest.addDetails.locationRequiredTitle')}</Text>
+      <View style={styles.screen}>
+        <Header title={t('createRequest.selectTags.title')} showNotification={false} showBackButton={true} />
+        <View style={styles.guardBody}>
+          <View style={styles.guardIconWrap}>
+            <Ionicons name="alert-circle-outline" size={28} color={colors.primary} />
+          </View>
+          <Text style={styles.guardText}>{guardMessage}</Text>
+        </View>
       </View>
     );
   }
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => (prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]));
+    setSelectedTags(prev => (prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]));
   };
 
   const handleConfirm = async () => {
@@ -75,94 +79,151 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.screen}>
       <Header title={t('createRequest.selectTags.title')} showNotification={false} showBackButton={true} />
-      {/* Spacer to prevent overlap and add small bottom margin below header */}
-      <View style={{ height: spacing.xs }} />
 
       <ImageBackground
         source={require('../../assets/bckgnd_tile.png')}
         resizeMode="repeat"
-        style={{ flex: 1 }}>
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: spacing.xl }}>
-
-          {service.tags && service.tags.length > 0 ? (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="pricetags" size={18} color={colors.primary} style={{ marginRight: spacing.sm }} />
-                <Text style={styles.sectionTitle}>{t('createRequest.selectTags.tagsTitle')}</Text>
+        style={styles.flex}
+      >
+        <ScrollView style={styles.flex} contentContainerStyle={styles.scrollContent}>
+          <View style={[styles.sectionCard, styles.cardShadow]}>
+            {/* Section header with live selection count */}
+            <View style={styles.sectionHeader}>
+              <View style={styles.iconBadge}>
+                <Ionicons name="pricetags" size={15} color={colors.primary} />
               </View>
-              {/* <Text style={styles.tagHint}>{t('createRequest.selectTags.tagHint')}</Text> */}
-              <View style={styles.tagsRow}>
-                {service.tags.map(tag => {
-                  const selected = selectedTags.includes(tag);
-                  return (
-                    <TouchableOpacity key={tag} style={[styles.tagChip, selected && styles.tagChipSelected]} onPress={() => toggleTag(tag)}>
-                      <Text style={[styles.tagText, selected && styles.tagTextSelected]}>
-                        {tag}
-                        {selected && <Ionicons name="checkmark" size={12} color={colors.white} />}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <Text style={styles.sectionTitle}>{t('createRequest.selectTags.tagsTitle')}</Text>
+              {selectedTags.length > 0 && (
+                <View style={styles.countPill}>
+                  <Text style={styles.countPillText}>{selectedTags.length}</Text>
+                </View>
+              )}
             </View>
-          ) : (
-            <View style={styles.section}>
-              <Text style={styles.noTagsText}>{t('createRequest.selectTags.noTagsAvailable')}</Text>
-            </View>
-          )}
 
+            {service.tags && service.tags.length > 0 ? (
+              <>
+                <Text style={styles.tagHint}>{t('createRequest.selectTags.tagHint')}</Text>
+                <View style={styles.tagsRow}>
+                  {service.tags.map(tag => {
+                    const selected = selectedTags.includes(tag);
+                    return (
+                      <TouchableOpacity
+                        key={tag}
+                        style={[styles.tagChip, selected && styles.tagChipSelected]}
+                        onPress={() => toggleTag(tag)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{tag}</Text>
+                        <Ionicons
+                          name={selected ? 'checkmark' : 'add'}
+                          size={13}
+                          color={selected ? colors.primary : colors.greyMuted}
+                          style={styles.tagIcon}
+                        />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
+            ) : (
+              <View style={styles.noTagsRow}>
+                <Ionicons name="information-circle-outline" size={18} color={colors.grey} />
+                <Text style={styles.noTagsText}>{t('createRequest.selectTags.noTagsAvailable')}</Text>
+              </View>
+            )}
+          </View>
         </ScrollView>
       </ImageBackground>
+
       <ErrorBanner error={requestError} onRetry={handleConfirm} />
       <BottomCTA
-          buttonText={t('createRequest.selectTags.confirmButton')}
-          onPress={handleConfirm}
-          isSticky={true}
-          isLoading={requestInProgress}
-          isDisabled={requestInProgress}
-        />
+        buttonText={t('createRequest.selectTags.confirmButton')}
+        onPress={handleConfirm}
+        isSticky={true}
+        isLoading={requestInProgress}
+        isDisabled={requestInProgress}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  emptyContainer: {
+  screen: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.light,
   },
-  emptyText: {
-    fontSize: 18,
-    color: colors.dark,
+  flex: {
+    flex: 1,
   },
-  section: {
+  scrollContent: {
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+  },
+  cardShadow: {
+    shadowColor: colors.black,
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  sectionCard: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.greyLight,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.sm,
-    marginTop: spacing.lg,
+  },
+  iconBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.dark,
+  },
+  countPill: {
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 6,
+    borderRadius: 11,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.xs,
+  },
+  countPillText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: '700',
   },
   tagHint: {
     fontSize: 12,
+    lineHeight: 17,
     color: colors.grey,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   tagsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
   },
   tagChip: {
-    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
     paddingHorizontal: spacing.md,
     borderRadius: radius.lg,
     borderWidth: 1,
@@ -172,26 +233,53 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   tagChipSelected: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primarySoft,
     borderColor: colors.primary,
   },
   tagText: {
     fontSize: 14,
+    lineHeight: 18,
     color: colors.dark,
   },
   tagTextSelected: {
-    color: colors.white,
+    color: colors.primary,
     fontWeight: '600',
+  },
+  tagIcon: {
+    marginLeft: spacing.xs,
+  },
+  noTagsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.lg,
   },
   noTagsText: {
     fontSize: 14,
     color: colors.grey,
+    marginLeft: spacing.sm,
     textAlign: 'center',
-    marginTop: spacing.lg,
   },
-  actionsSection: {
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.lg,
+  guardBody: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xxl,
+  },
+  guardIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  guardText: {
+    fontSize: 15,
+    lineHeight: 21,
+    color: colors.grey,
+    textAlign: 'center',
   },
 });
 

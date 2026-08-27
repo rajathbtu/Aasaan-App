@@ -15,6 +15,7 @@ import { colors, radius, spacing } from '../theme';
 import { useI18n } from '../i18n';
 import { closeWorkRequest } from '../api/index';
 import ErrorBanner from './ErrorBanner';
+import SafeBottomBanner from './SafeBottomBanner';
 
 const ratingStarColor = '#ffd91d';
 const ratingStarOutlineColor = '#ffe043';
@@ -195,6 +196,7 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
           </View>
         </View>
       </Pressable>
+      <SafeBottomBanner />
     </Modal>
   );
 };
