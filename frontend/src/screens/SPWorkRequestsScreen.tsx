@@ -561,6 +561,12 @@ const SPWorkRequestsScreen: React.FC = () => {
             data={filteredRequests}
             keyExtractor={(item: any) => item.id}
             renderItem={renderRequest}
+            onScrollToIndexFailed={({ index, averageItemLength }) => {
+              listRef.current?.scrollToOffset({
+                offset: Math.max(0, averageItemLength * index),
+                animated: true,
+              });
+            }}
             contentContainerStyle={{ paddingBottom: spacing.xl * 3 }}
             showsVerticalScrollIndicator={false}
             refreshControl={
