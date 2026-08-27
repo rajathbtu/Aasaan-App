@@ -547,8 +547,12 @@ const SPWorkRequestsScreen: React.FC = () => {
             <View style={styles.emptyIconWrap}>
               <Ionicons name="briefcase-outline" size={34} color={colors.primary} />
             </View>
-            <Text style={styles.emptyTitle}>{t('spRequests.empty')}</Text>
-            <Text style={styles.emptyHint}>{t('spRequests.emptyHint')}</Text>
+            <Text style={styles.emptyTitle}>
+              {t(tab === 'accepted' ? 'spRequests.emptyAccepted' : 'spRequests.empty')}
+            </Text>
+            <Text style={styles.emptyHint}>
+              {t(tab === 'accepted' ? 'spRequests.emptyHintAccepted' : 'spRequests.emptyHint')}
+            </Text>
           </View>
         ) : (
           <FlatList
