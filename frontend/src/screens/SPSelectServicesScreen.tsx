@@ -83,9 +83,12 @@ const SPSelectServicesScreen: React.FC = () => {
     const list: Record<string, Service[]> = grouped;
     if (!query.trim()) return list;
     const lower = query.trim().toLowerCase();
+    const matchesQuery = (s: Service) =>
+      s.name.toLowerCase().includes(lower) ||
+      (Array.isArray(s.tags) && s.tags.some((tag) => tag.toLowerCase().includes(lower)));
     const map: Record<string, Service[]> = {};
     Object.keys(list).forEach(cat => {
-      const arr = list[cat].filter(s => s.name.toLowerCase().includes(lower));
+      const arr = list[cat].filter(matchesQuery);
       if (arr.length) map[cat] = arr;
     });
     return map;

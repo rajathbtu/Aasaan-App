@@ -91,9 +91,12 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const filtered = useMemo(() => {
     if (!query.trim()) return grouped;
     const lower = query.trim().toLowerCase();
+    const matchesQuery = (s: Service) =>
+      s.name.toLowerCase().includes(lower) ||
+      (Array.isArray(s.tags) && s.tags.some((tag) => tag.toLowerCase().includes(lower)));
     const map: Record<string, Service[]> = {};
     Object.keys(grouped).forEach((cat) => {
-      const list = grouped[cat].filter((s) => s.name.toLowerCase().includes(lower));
+      const list = grouped[cat].filter(matchesQuery);
       if (list.length > 0) map[cat] = list;
     });
     return map;
