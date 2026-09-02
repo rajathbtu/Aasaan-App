@@ -5,7 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import { getServices } from '../api';
 import Header from '../components/Header';
-import { colors, spacing, radius, tints } from '../theme';
+import ServiceIcon from '../components/ServiceIcon';
+import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
@@ -192,35 +193,36 @@ const SPSelectServicesScreen: React.FC = () => {
           <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
             {Object.keys(filtered).map(category => (
               <View key={category} style={styles.categorySection}>
-                <Text style={styles.categoryTitle}>{category}</Text>
+                <View style={styles.categoryHeading}>
+                  <View style={styles.categoryMarker} />
+                  <Text style={styles.categoryTitle}>{category}</Text>
+                </View>
                 <View style={styles.gridRow}>
                   {filtered[category].map(service => {
                     const isSelected = selected.includes(service.id);
-                    const iconConfig = {
-                      icon: service.icon || 'construct',
-                      color: service.color || colors.greyLight,
-                      cardBg: colors.white,
-                    };
                     return (
                       <TouchableOpacity
                         key={service.id}
                         style={[
                           styles.serviceCard,
                           isSelected && styles.serviceCardSelected,
-                          isSelected && { borderColor: colors.primary },
                         ]}
                         onPress={() => toggleService(service.id)}
                         activeOpacity={0.85}
                       >
                         {isSelected && (
                           <View style={styles.checkBadge}>
-                            <Ionicons name="checkmark" size={12} color={colors.white} />
+                            <Ionicons name="checkmark" size={13} color={colors.white} />
                           </View>
                         )}
-                        <View style={[styles.iconCircle, { backgroundColor: iconConfig.color }]}>
-                          <Ionicons name={(iconConfig.icon as keyof typeof Ionicons.glyphMap) || 'construct'} size={22} color={colors.primary} />
-                        </View>
-                        <Text style={[styles.serviceName, isSelected && styles.serviceNameSelected]}>{service.name}</Text>
+                        <ServiceIcon
+                          icon={service.icon}
+                          color={service.color}
+                          circleSize={48}
+                          iconSize={26}
+                          style={styles.iconGap}
+                        />
+                        <Text style={[styles.serviceName, isSelected && styles.serviceNameSelected]} numberOfLines={2}>{service.name}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -281,10 +283,21 @@ const styles = StyleSheet.create({
   categorySection: {
     marginBottom: 20,
   },
+  categoryHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  categoryMarker: {
+    width: 4,
+    height: 18,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+    marginRight: spacing.sm,
+  },
   categoryTitle: {
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: 8,
     color: colors.dark,
   },
   gridRow: {
@@ -294,58 +307,63 @@ const styles = StyleSheet.create({
   },
   serviceCard: {
     width: '31%',
-    marginBottom: spacing.md,
+    minHeight: 104,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.greyBorder,
-    borderRadius: radius.md,
+    borderRadius: radius.xl,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.xs,
     backgroundColor: colors.white,
     alignItems: 'center',
+    justifyContent: 'flex-start',
     shadowColor: colors.black,
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   serviceCardSelected: {
     borderWidth: 2,
-    shadowOpacity: 0.12,
-    elevation: 2,
-  },
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+    shadowOpacity: 0.14,
+    elevation: 3,
   },
   serviceName: {
-    fontSize: 14,
+    fontSize: 12.5,
+    lineHeight: 16,
+    fontWeight: '600',
+    letterSpacing: 0.1,
     color: colors.dark,
     textAlign: 'center',
+    minHeight: 32,
   },
   serviceNameSelected: {
     color: colors.primary,
     fontWeight: '700',
   },
+  iconGap: {
+    marginBottom: spacing.sm,
+  },
   checkBadge: {
     position: 'absolute',
-    top: -6,
-    right: -6,
+    top: -7,
+    right: -7,
     backgroundColor: colors.primary,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
     shadowColor: colors.black,
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.18,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    elevation: 3,
   },
   // Search
   stickySearchContainer: {

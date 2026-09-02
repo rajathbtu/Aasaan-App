@@ -49,6 +49,12 @@ to a remote server, update the base URL in `frontend/src/config.ts`.
    npm run dev
    ```
 
+  To create the database tables on an empty database without adding any application data, run:
+
+  ```bash
+  npm run db:create-tables
+  ```
+
    If you need the backend to be reachable from a mobile device or remote
    emulator, run the tunnel-enabled backend instead:
 

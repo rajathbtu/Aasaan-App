@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
+import ServiceIcon from '../components/ServiceIcon';
 import { useI18n } from '../i18n';
 import { getServices } from '../api';
 import { useAuth } from '../contexts/AuthContext'; // Corrected import
@@ -112,12 +113,16 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           updateRecentServices(service);
           navigation.navigate('LocationSelect', { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [], mode: 'requestcreation', });
         }}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
       >
-        <View style={[styles.iconCircle, { backgroundColor: service.color || colors.greyLight }]}>
-          <Ionicons name={service.icon as keyof typeof Ionicons.glyphMap || 'construct'} size={22} color={colors.violet} />
-        </View>
-        <Text style={styles.serviceLabel}>{service.name}</Text>
+        <ServiceIcon
+          icon={service.icon}
+          color={service.color}
+          circleSize={48}
+          iconSize={26}
+          style={styles.iconGap}
+        />
+        <Text style={styles.serviceLabel} numberOfLines={2}>{service.name}</Text>
       </TouchableOpacity>
     );
   };
@@ -308,37 +313,35 @@ const styles = StyleSheet.create({
 
   serviceCard: {
     width: '31%',
-    minHeight: 90,
-    marginBottom: spacing.md,
+    minHeight: 100,
+    marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.greyLight,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    borderColor: colors.greyBorder,
+    borderRadius: radius.xl,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
     alignItems: 'center',
+    justifyContent: 'flex-start',
     backgroundColor: colors.white,
   },
   shadow: {
     shadowColor: colors.black,
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 1,
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+  iconGap: {
     marginBottom: spacing.sm,
   },
   serviceLabel: {
-    fontSize: 14,
-    lineHeight: 17,
+    fontSize: 12.5,
+    lineHeight: 16,
     fontWeight: '600',
+    letterSpacing: 0.1,
     textAlign: 'center',
     color: colors.dark,
+    minHeight: 32,
   },
   loadingState: {
     alignItems: 'center',

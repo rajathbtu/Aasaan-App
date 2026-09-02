@@ -18,6 +18,33 @@ const splitList = (value = '') =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const parseCsvLine = (line: string): string[] => {
+  const values: string[] = [];
+  let value = '';
+  let isQuoted = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+
+    if (character === '"') {
+      if (isQuoted && line[index + 1] === '"') {
+        value += '"';
+        index += 1;
+      } else {
+        isQuoted = !isQuoted;
+      }
+    } else if (character === ',' && !isQuoted) {
+      values.push(value.trim());
+      value = '';
+    } else {
+      value += character;
+    }
+  }
+
+  values.push(value.trim());
+  return values;
+};
+
 const findCsvPath = () => {
   const candidates = [
     path.resolve(__dirname, 'Aasaan_Services_Master.csv'),
@@ -37,15 +64,14 @@ const readDefaultServices = (): DefaultService[] => {
 
   const text = fs.readFileSync(csvPath, 'utf8');
   const [headerLine, ...rowLines] = text.split(/\r?\n/).filter(Boolean);
-  const headers = headerLine.split(',').map((header) => header.trim());
+  const headers = parseCsvLine(headerLine);
 
   return rowLines.map((line) => {
-    const values = line.match(/("[^"]*(?:""[^"]*)*"|[^,]+)/g) ?? [];
+    const values = parseCsvLine(line);
     const record: Record<string, string> = {};
 
     headers.forEach((header, index) => {
-      const raw = (values[index] ?? '').trim();
-      record[header] = raw.replace(/^"|"$/g, '').replace(/""/g, '"');
+      record[header] = values[index] ?? '';
     });
 
     return {
@@ -65,18 +91,18 @@ export const defaultServices: DefaultService[] = readDefaultServices();
 export async function syncServices(): Promise<void> {
   const pAny = prisma as any;
 
-  const hasServices = (await pAny.service.count()) > 0;
-  if (hasServices) {
-    return;
-  }
-
   const services = readDefaultServices();
   if (services.length === 0) {
     return;
   }
 
-  await pAny.service.createMany({
-    data: services,
-    skipDuplicates: true,
-  });
+  await pAny.$transaction(
+    services.map((service) =>
+      pAny.service.upsert({
+        where: { id: service.id },
+        create: service,
+        update: service,
+      }),
+    ),
+  );
 }
