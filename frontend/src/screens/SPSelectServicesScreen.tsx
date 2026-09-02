@@ -18,6 +18,7 @@ type Service = {
   id: string;
   name: string;
   category: string;
+  alias?: string[];
   tags?: string[];
   icon?: string;
   color?: string;
@@ -85,6 +86,7 @@ const SPSelectServicesScreen: React.FC = () => {
     const lower = query.trim().toLowerCase();
     const matchesQuery = (s: Service) =>
       s.name.toLowerCase().includes(lower) ||
+      (Array.isArray(s.alias) && s.alias.some((alias) => alias.toLowerCase().includes(lower))) ||
       (Array.isArray(s.tags) && s.tags.some((tag) => tag.toLowerCase().includes(lower)));
     const map: Record<string, Service[]> = {};
     Object.keys(list).forEach(cat => {

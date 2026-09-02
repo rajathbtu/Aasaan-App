@@ -105,6 +105,7 @@ model Service {
   id       String   @id
   name     String
   category String
+  alias    String[] @default([]) // Alternate/local names for the service (e.g. "Safai", "Khana")
   tags     String[]
   icon     String   // Icon name for the service
   color    String   // Color code for the service

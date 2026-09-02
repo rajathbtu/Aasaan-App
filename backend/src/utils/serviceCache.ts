@@ -2,6 +2,7 @@ export interface CachedService {
   id: string;
   name: string;
   category: string;
+  alias: string[];
   tags: string[];
   icon: string;
   color: string;

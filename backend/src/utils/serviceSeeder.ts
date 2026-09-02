@@ -1,68 +1,82 @@
+import fs from 'fs';
+import path from 'path';
 import prisma from './prisma';
 
 export type DefaultService = {
   id: string;
   name: string;
   category: string;
+  alias: string[];
   tags: string[];
   icon: string;
   color: string;
 };
 
-export const defaultServices: DefaultService[] = [
-  // Daily Help
-  { id: 'maid', name: 'Maid', category: 'Daily Help', tags: ['Cleaning', 'Sweeping'], icon: 'construct', color: 'tints.purple' },
-  { id: 'cook', name: 'Cook', category: 'Daily Help', tags: ['Meal prep'], icon: 'restaurant', color: 'tints.emeraldSoft' },
-  { id: 'babysitter', name: 'Babysitter', category: 'Daily Help', tags: ['Child care'], icon: 'person', color: 'tints.amber' },
-  { id: 'cleaner', name: 'Cleaner', category: 'Daily Help', tags: ['Deep cleaning', 'Kitchen', 'Bathroom', 'Bedroom'], icon: 'sparkles', color: 'tints.sky' },
-  { id: 'servant', name: 'Home Servant', category: 'Daily Help', tags: ['General help', 'Elderly care', 'Groceries'], icon: 'people', color: 'tints.purple' },
-  { id: 'carCleaner', name: 'Car Cleaner', category: 'Daily Help', tags: ['Interior clean', 'Exterior wash', 'Wax'], icon: 'car', color: 'tints.rose' },
-  // Home Repairs
-  { id: 'electrician', name: 'Electrician', category: 'Home Repairs', tags: ['Fan repair', 'Switch board', 'Light fixture', 'Wiring issue', 'MCB', 'Urgent', 'Home visit'], icon: 'flash', color: 'tints.blue' },
-  { id: 'plumber', name: 'Plumber', category: 'Home Repairs', tags: ['Leaky tap', 'Pipe burst', 'Blockage', 'Water heater', 'Toilet'], icon: 'water', color: 'tints.sky' },
-  { id: 'carpenter', name: 'Carpenter', category: 'Home Repairs', tags: ['Furniture repair', 'Woodwork', 'Door hinge', 'Custom shelves'], icon: 'hammer', color: 'tints.amber' },
-  { id: 'painter', name: 'Painter', category: 'Home Repairs', tags: ['Interior painting', 'Exterior painting', 'Primer', 'Texture'], icon: 'color-palette', color: 'tints.rose' },
-  { id: 'acRepair', name: 'AC Repair', category: 'Home Repairs', tags: ['Air conditioning', 'Gas refill', 'Maintenance', 'Compressor'], icon: 'snow', color: 'tints.sky' },
-  { id: 'pestControl', name: 'Pest Control', category: 'Home Repairs', tags: ['Termites', 'Cockroaches', 'Mosquitoes', 'Rodents'], icon: 'bug', color: 'tints.orange' },
-  { id: 'geyserRepair', name: 'Geyser Repair', category: 'Home Repairs', tags: ['No heating', 'Leaking', 'Installation'], icon: 'flame', color: 'tints.amber' },
-  { id: 'washingMachineRepair', name: 'Washing Machine Repair', category: 'Home Repairs', tags: ['Not spinning', 'Water leak', 'Noise'], icon: 'refresh-circle', color: 'tints.sky' },
-  { id: 'refrigeratorRepair', name: 'Refrigerator Repair', category: 'Home Repairs', tags: ['Not cooling', 'Gas refill', 'Noise'], icon: 'snow', color: 'tints.blue' },
-  { id: 'microwaveRepair', name: 'Microwave Repair', category: 'Home Repairs', tags: ['No heating', 'Turntable', 'Sparking'], icon: 'flash', color: 'tints.roseSoft' },
-  { id: 'waterPurifier', name: 'Water Purifier Service', category: 'Home Repairs', tags: ['Filter change', 'Installation', 'No flow'], icon: 'water', color: 'tints.sky' },
-  { id: 'cctv', name: 'CCTV Installation', category: 'Home Repairs', tags: ['New install', 'DVR', 'Camera not working'], icon: 'videocam', color: 'tints.purple' },
-  { id: 'chimneyCleaning', name: 'Kitchen Chimney Service', category: 'Home Repairs', tags: ['Deep cleaning', 'Noise', 'Oil leak'], icon: 'flame', color: 'tints.orange' },
-  // Professional Services
-  { id: 'photographer', name: 'Photographer', category: 'Professional Services', tags: ['Wedding', 'Portrait', 'Product', 'Outdoor'], icon: 'camera', color: 'tints.purple' },
-  { id: 'yogaTrainer', name: 'Yoga Trainer', category: 'Professional Services', tags: ['Power yoga', 'Hatha', 'Beginner', 'Meditation'], icon: 'heart', color: 'tints.green' },
-  { id: 'tutor', name: 'Tutor', category: 'Professional Services', tags: ['Maths', 'Science', 'English', 'Exam prep'], icon: 'book', color: 'tints.indigo' },
-  { id: 'dietician', name: 'Dietician', category: 'Professional Services', tags: ['Weight loss', 'Diabetes', 'Child nutrition', 'Sports'], icon: 'leaf', color: 'tints.lime' },
-  { id: 'makeupArtist', name: 'Makeup Artist', category: 'Professional Services', tags: ['Bridal', 'Party', 'Photo shoot', 'Fashion'], icon: 'brush', color: 'tints.purple' },
-  { id: 'eventPlanner', name: 'Event Planner', category: 'Professional Services', tags: ['Wedding', 'Corporate', 'Birthday', 'Decoration'], icon: 'calendar', color: 'tints.amber' },
-  { id: 'laptopRepair', name: 'Laptop Repair', category: 'Professional Services', tags: ['Screen', 'Battery', 'Slow performance'], icon: 'laptop', color: 'tints.indigo' },
-  { id: 'mobileRepair', name: 'Mobile Repair', category: 'Professional Services', tags: ['Screen', 'Battery', 'Charging port'], icon: 'phone-portrait', color: 'tints.indigo' },
-  // More Services
-  { id: 'gardener', name: 'Gardener', category: 'More Services', tags: ['Lawn care', 'Planting', 'Trimming', 'Landscaping'], icon: 'flower', color: 'tints.green' },
-  { id: 'caterer', name: 'Caterer', category: 'More Services', tags: ['Buffet', 'Veg', 'Non-veg', 'Custom menu'], icon: 'fast-food', color: 'tints.amber' },
-  { id: 'interiorDesigner', name: 'Interior Designer', category: 'More Services', tags: ['Living room', 'Bedroom', 'Kitchen', 'Consultation'], icon: 'home', color: 'tints.indigo' },
-  { id: 'sofaCleaning', name: 'Sofa Cleaning', category: 'More Services', tags: ['Shampoo', 'Stain removal', 'Fabric care'], icon: 'construct', color: 'tints.purple' },
-  { id: 'carpetCleaning', name: 'Carpet Cleaning', category: 'More Services', tags: ['Deep clean', 'Stain removal', 'Deodorize'], icon: 'sparkles', color: 'tints.greenSoft' },
-  { id: 'packersMovers', name: 'Packers & Movers', category: 'More Services', tags: ['House shifting', 'Local', 'Intercity'], icon: 'cube', color: 'tints.indigo' },
-  { id: 'salonAtHome', name: 'Salon at Home', category: 'More Services', tags: ['Waxing', 'Facial', 'Haircut', 'Threading'], icon: 'cut', color: 'tints.pink' },
-];
+const splitList = (value = '') =>
+  value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
 
-export async function seedServicesIfEmpty(): Promise<void> {
-  const pAny = prisma as any;
-  const count = await pAny.service.count();
+const findCsvPath = () => {
+  const candidates = [
+    path.resolve(__dirname, 'Aasaan_Services_Master.csv'),
+    path.resolve(__dirname, '..', 'src', 'utils', 'Aasaan_Services_Master.csv'),
+    path.resolve(process.cwd(), 'src', 'utils', 'Aasaan_Services_Master.csv'),
+    path.resolve(process.cwd(), 'Aasaan_Services_Master.csv'),
+  ];
 
-  if (count === 0) {
-    await pAny.$transaction(
-      defaultServices.map((service) =>
-        pAny.service.upsert({
-          where: { id: service.id },
-          update: {},
-          create: service,
-        }),
-      ),
-    );
+  return candidates.find((candidate) => fs.existsSync(candidate));
+};
+
+const readDefaultServices = (): DefaultService[] => {
+  const csvPath = findCsvPath();
+  if (!csvPath) {
+    return [];
   }
+
+  const text = fs.readFileSync(csvPath, 'utf8');
+  const [headerLine, ...rowLines] = text.split(/\r?\n/).filter(Boolean);
+  const headers = headerLine.split(',').map((header) => header.trim());
+
+  return rowLines.map((line) => {
+    const values = line.match(/("[^"]*(?:""[^"]*)*"|[^,]+)/g) ?? [];
+    const record: Record<string, string> = {};
+
+    headers.forEach((header, index) => {
+      const raw = (values[index] ?? '').trim();
+      record[header] = raw.replace(/^"|"$/g, '').replace(/""/g, '"');
+    });
+
+    return {
+      id: record.Service_id,
+      name: record.Service_name,
+      category: record.Category_name || record.Category || '',
+      alias: splitList(record.Alias),
+      tags: splitList(record.Tags),
+      icon: record.Icon || 'construct',
+      color: record.Icon_color || '#4CAF50',
+    };
+  });
+};
+
+export const defaultServices: DefaultService[] = readDefaultServices();
+
+export async function syncServices(): Promise<void> {
+  const pAny = prisma as any;
+
+  const hasServices = (await pAny.service.count()) > 0;
+  if (hasServices) {
+    return;
+  }
+
+  const services = readDefaultServices();
+  if (services.length === 0) {
+    return;
+  }
+
+  await pAny.service.createMany({
+    data: services,
+    skipDuplicates: true,
+  });
 }

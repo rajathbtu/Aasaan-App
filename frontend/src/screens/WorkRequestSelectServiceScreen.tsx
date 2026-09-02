@@ -10,7 +10,7 @@ import { getServices } from '../api';
 import { useAuth } from '../contexts/AuthContext'; // Corrected import
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
-type Service = { id: string; name: string; category: string; tags?: string[]; icon?: string; color?: string };
+type Service = { id: string; name: string; category: string; alias?: string[]; tags?: string[]; icon?: string; color?: string };
 
 const RECENT_SERVICES_KEY = (userId: string) => `recent_services_${userId}`;
 const MAX_RECENT_SERVICES = 3;
@@ -93,6 +93,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     const lower = query.trim().toLowerCase();
     const matchesQuery = (s: Service) =>
       s.name.toLowerCase().includes(lower) ||
+      (Array.isArray(s.alias) && s.alias.some((alias) => alias.toLowerCase().includes(lower))) ||
       (Array.isArray(s.tags) && s.tags.some((tag) => tag.toLowerCase().includes(lower)));
     const map: Record<string, Service[]> = {};
     Object.keys(grouped).forEach((cat) => {

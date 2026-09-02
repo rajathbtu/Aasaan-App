@@ -182,7 +182,7 @@ export async function markAllNotificationsRead(token: string) {
  */
 export async function getServices() {
   const res = await api.get('/services');
-  return res.data as { services: Array<{ id: string; name: string; category: string; tags: string[] }>; updatedAt: string };
+  return res.data as { services: Array<{ id: string; name: string; category: string; alias: string[]; tags: string[] }>; updatedAt: string };
 }
 
 /**
