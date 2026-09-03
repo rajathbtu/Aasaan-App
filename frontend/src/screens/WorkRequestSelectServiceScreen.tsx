@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, ImageBackground } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, radius } from '../theme';
@@ -8,7 +8,7 @@ import ErrorBanner from '../components/ErrorBanner';
 import ServiceIcon from '../components/ServiceIcon';
 import { useI18n } from '../i18n';
 import { getServices } from '../api';
-import { useAuth } from '../contexts/AuthContext'; // Corrected import
+import { useAuth } from '../contexts/AuthContext';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 type Service = { id: string; name: string; category: string; alias?: string[]; tags?: string[]; icon?: string; color?: string };
@@ -88,7 +88,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     });
     return map;
   }, [services]);
-  
+
   const filtered = useMemo(() => {
     if (!query.trim()) return grouped;
     const lower = query.trim().toLowerCase();
@@ -118,9 +118,9 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
         <ServiceIcon
           icon={service.icon}
           color={service.color}
-          circleSize={48}
-          iconSize={26}
-          style={styles.iconGap}
+          circleSize={72}
+          iconSize={34}
+          style={[styles.iconGap, styles.iconNoBorder]}
         />
         <Text style={styles.serviceLabel} numberOfLines={2}>{service.name}</Text>
       </TouchableOpacity>
@@ -146,32 +146,41 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
+      {/* Top bar */}
       <Header title="Aasaan" showNotification={true} showBackButton={false} />
-      {/* Spacer to ensure shadow visibility below header */}
-      <View style={{ height: spacing.xs }} />
-      <ImageBackground
-        source={require('../../assets/bckgnd_tile.png')}
-        resizeMode="repeat"  // this makes it tile like WhatsApp
-        style={{ flex: 1 }}>
-          
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
 
-          <View style={styles.introSection}>
-            <Text style={styles.pageTitle}>{t('createRequest.selectService.title')}</Text>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-            {/* Search bar (icon inside input) */}
-            <View style={styles.searchWrapper}>
-              <Ionicons name="search" size={18} color={colors.grey} style={styles.searchIcon} />
+          {/* Hero: title + illustration */}
+          <View style={styles.heroSection}>
+            <View style={styles.heroTextWrap}>
+              <Text style={styles.heroTitle}>
+                Get your work{'\n'}
+                <Text style={styles.heroTitleAccent}>done, easily.</Text>
+              </Text>
+              <Text style={styles.heroSubtitle}>Trusted professionals, at your service</Text>
+            </View>
+            <Image
+              source={require('../../assets/sofa_graphic_banner.png')}
+              style={styles.heroArt}
+              resizeMode="contain"
+            />
+          </View>
+
+          {/* Search bar (icon inside input) */}
+          <View style={styles.searchSection}>
+            <View style={[styles.searchWrapper, styles.shadow]}>
+              <Ionicons name="search" size={20} color={colors.greyMuted} style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
                 placeholder={placeholderTexts[placeholderIndex]}
-                placeholderTextColor={colors.grey}
+                placeholderTextColor={colors.greyMuted}
                 value={query}
                 onChangeText={setQuery}
               />
               {query.trim() !== '' && (
-                <TouchableOpacity style={styles.resetButton} onPress={() => setQuery('')}>
-                  <Ionicons name="close-circle" size={18} color={colors.grey} />
+                <TouchableOpacity style={styles.resetButton} hitSlop={10} onPress={() => setQuery('')} >
+                  <Ionicons name="close-circle" size={20} color={colors.greyMuted} />
                 </TouchableOpacity>
               )}
             </View>
@@ -187,7 +196,9 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           {/* Recently Used */}
           {hasData && query.trim() === '' && recentServices.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('createRequest.selectService.recentlyUsed')}</Text>
+              <Text style={[styles.sectionTitle, { marginBottom: spacing.lg }]}>
+                {t('createRequest.selectService.recentlyUsed')}
+              </Text>
               <View style={styles.gridRow}>
                 {recentServices.map((svc) => renderServiceCard(svc))}
               </View>
@@ -219,45 +230,72 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
             </View>
           )}
 
+          {/* Trust banner */}
+          {hasData && query.trim() === '' && (
+            <View style={[styles.trustBanner, styles.shadow]}>
+              <View style={styles.trustIconWrap}>
+                <Ionicons name="sparkles-outline" size={26} color={colors.primary} />
+              </View>
+              <View style={styles.trustTextWrap}>
+                <Text style={styles.trustTitle}>Find the right help, easily</Text>
+                <Text style={styles.trustSubtitle}>Explore services & choose what works for you</Text>
+              </View>
+            </View>
+          )}
+
         </ScrollView>
-      </ImageBackground>
       <ErrorBanner error={servicesError} onRetry={refreshInBackground} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  pageTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: colors.dark,
-    marginBottom: spacing.sm,
-  },
-  scrollContent: {
-    paddingBottom: spacing.xl,
-  },
-  introSection: {
+  // -- Hero --
+  heroSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
+    paddingTop: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  heroTextWrap: {
+    flex: 1,
+    paddingRight: spacing.xs,
+  },
+  heroTitle: {
+    fontSize: 30,
+    lineHeight: 38,
+    fontWeight: '800',
+    color: colors.dark,
+  },
+  heroTitleAccent: {
+    color: colors.primary,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    color: colors.grey,
+    marginTop: spacing.sm,
+  },
+  heroArt: {
+    width: 132,
+    height: 120,
+  },
+
+  // -- Search --
+  searchSection: {
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.xs,
+    marginBottom: spacing.lg,
   },
   searchWrapper: {
     position: 'relative',
-    borderWidth: 1,
-    borderColor: colors.greyBorder,
     backgroundColor: colors.white,
-    borderRadius: radius.lg,
-    shadowColor: colors.black,
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-    marginBottom: spacing.md,
+    borderRadius: radius.xl,
   },
   searchIcon: {
     position: 'absolute',
     left: spacing.md,
-    top: 14,
+    top: 12,
   },
   searchInput: {
     paddingHorizontal: spacing.md,
@@ -273,6 +311,10 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
+  // -- Sections --
+  scrollContent: {
+    paddingBottom: spacing.xl,
+  },
   section: {
     marginBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
@@ -308,41 +350,79 @@ const styles = StyleSheet.create({
   gridRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    columnGap: spacing.lg,
   },
 
   serviceCard: {
-    width: '31%',
-    minHeight: 100,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.greyBorder,
-    borderRadius: radius.xl,
-    paddingVertical: spacing.md,
+    width: '30%',
+    marginBottom: 10,
+    borderRadius: 18,
     paddingHorizontal: spacing.xs,
+    paddingTop: 12,
+    paddingBottom: 8,
     alignItems: 'center',
     justifyContent: 'flex-start',
     backgroundColor: colors.white,
   },
   shadow: {
     shadowColor: colors.black,
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
   },
   iconGap: {
-    marginBottom: spacing.sm,
+    marginBottom: 10,
+  },
+  iconNoBorder: {
+    borderWidth: 0,
   },
   serviceLabel: {
-    fontSize: 12.5,
+    fontSize: 13,
     lineHeight: 16,
     fontWeight: '600',
     letterSpacing: 0.1,
     textAlign: 'center',
     color: colors.dark,
-    minHeight: 32,
+    minHeight: 36,
   },
+
+  // -- Trust banner --
+  trustBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  trustIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.lg,
+  },
+  trustTextWrap: {
+    flex: 1,
+    paddingRight: spacing.sm,
+  },
+  trustTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.dark,
+  },
+  trustSubtitle: {
+    fontSize: 13,
+    color: colors.grey,
+    marginTop: 2,
+  },
+
+  // -- States --
   loadingState: {
     alignItems: 'center',
     paddingVertical: spacing.xxl,
