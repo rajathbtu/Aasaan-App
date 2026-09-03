@@ -37,7 +37,7 @@ type ServiceIconProps = {
   circleSize?: number;
   /** Size of the glyph inside the circle. */
   iconSize?: number;
-  /** Optional extra styling (e.g. margins) applied to the circle. */
+  /** Optional extra styles for the circular chip wrapper. */
   style?: StyleProp<ViewStyle>;
 };
 
@@ -65,6 +65,7 @@ const ServiceIcon: React.FC<ServiceIconProps> = ({
           backgroundColor: hexWithAlpha(tint, 0.1),
           borderColor: hexWithAlpha(tint, 0.4),
           borderWidth: 0.5,
+          marginBottom: 10,
         },
         style,
       ]}

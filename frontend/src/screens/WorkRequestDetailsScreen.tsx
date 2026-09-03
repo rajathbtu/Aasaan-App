@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
+import ServiceIcon from '../components/ServiceIcon';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo } from '../utils/time';
 import SafeBottomBanner from '../components/SafeBottomBanner';
@@ -122,9 +123,12 @@ const WorkRequestDetailsScreen: React.FC = () => {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.summaryCard}>
           <View style={styles.summaryHeader}>
-            <View style={styles.summaryIcon}>
-              <Ionicons name={request.serviceIcon || 'construct'} size={22} color={colors.primary} />
-            </View>
+            <ServiceIcon
+              icon={request.serviceIcon}
+              color={request.serviceColor}
+              circleSize={46}
+              iconSize={22}
+            />
             <View style={styles.summaryTitleContainer}>
               <Text style={styles.summaryLabel}>{serviceName}</Text>
               <Text style={styles.summaryCaption}>{timeAgo(request.createdAt)}</Text>
@@ -284,15 +288,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.lg,
-  },
-  summaryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.lg,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
   },
   summaryTitleContainer: {
     flex: 1,

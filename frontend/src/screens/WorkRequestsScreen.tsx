@@ -11,6 +11,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
+import ServiceIcon from '../components/ServiceIcon';
 import * as realApi from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
@@ -107,9 +108,12 @@ const WorkRequestsScreen: React.FC = () => {
       })}
     >
       <View style={styles.cardHeader}>
-        <View style={[styles.iconContainer, { backgroundColor: item.serviceColor || colors.infoLight }]}>
-          <Ionicons name={(item.serviceIcon) as keyof typeof Ionicons.glyphMap} size={20} className={item.serviceColor || colors.primary} />
-        </View>
+        <ServiceIcon
+          icon={item.serviceIcon}
+          color={item.serviceColor}
+          circleSize={46}
+          iconSize={20}
+        />
         <View style={{ flex: 1 }}>
           <Text style={styles.cardTitle}>{item.serviceName || item.service}</Text>
           <Text style={styles.cardSubtitle}>{timeAgo(item.createdAt)}</Text>

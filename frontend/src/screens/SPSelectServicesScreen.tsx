@@ -220,7 +220,6 @@ const SPSelectServicesScreen: React.FC = () => {
                           color={service.color}
                           circleSize={48}
                           iconSize={26}
-                          style={styles.iconGap}
                         />
                         <Text style={[styles.serviceName, isSelected && styles.serviceNameSelected]} numberOfLines={2}>{service.name}</Text>
                       </TouchableOpacity>
@@ -342,9 +341,6 @@ const styles = StyleSheet.create({
   serviceNameSelected: {
     color: colors.primary,
     fontWeight: '700',
-  },
-  iconGap: {
-    marginBottom: spacing.sm,
   },
   checkBadge: {
     position: 'absolute',

@@ -120,7 +120,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           color={service.color}
           circleSize={72}
           iconSize={34}
-          style={[styles.iconGap, styles.iconNoBorder]}
         />
         <Text style={styles.serviceLabel} numberOfLines={2}>{service.name}</Text>
       </TouchableOpacity>
@@ -371,12 +370,6 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 3,
-  },
-  iconGap: {
-    marginBottom: 10,
-  },
-  iconNoBorder: {
-    borderWidth: 0,
   },
   serviceLabel: {
     fontSize: 13,
