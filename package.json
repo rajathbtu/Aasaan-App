@@ -3,6 +3,8 @@
     "react-native": "^0.80.2"
   },
   "devDependencies": {
-    "@react-native-community/cli": "^19.1.1"
+    "@react-native-community/cli": "^19.1.1",
+    "@types/react": "~19.2.4",
+    "typescript": "~6.0.3"
   }
 }

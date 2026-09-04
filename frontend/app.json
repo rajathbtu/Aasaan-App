@@ -7,7 +7,7 @@
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -35,7 +35,7 @@
         "ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
       "config": {
@@ -63,7 +63,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "30a58cf2-a668-45d2-81a8-130261a7a756"
+        "projectId": "c1796e30-6945-429f-a7ad-ee17b6908e06"
       }
     }
   }

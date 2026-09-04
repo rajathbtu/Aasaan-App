@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, ImageBackground } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as realApi from '../api';
@@ -82,60 +82,54 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
     <View style={styles.screen}>
       <Header title={t('createRequest.selectTags.title')} showNotification={false} showBackButton={true} />
 
-      <ImageBackground
-        source={require('../../assets/bckgnd_tile.png')}
-        resizeMode="repeat"
-        style={styles.flex}
-      >
-        <ScrollView style={styles.flex} contentContainerStyle={styles.scrollContent}>
-          <View style={[styles.sectionCard, styles.cardShadow]}>
-            {/* Section header with live selection count */}
-            <View style={styles.sectionHeader}>
-              <View style={styles.iconBadge}>
-                <Ionicons name="pricetags" size={15} color={colors.primary} />
-              </View>
-              <Text style={styles.sectionTitle}>{t('createRequest.selectTags.tagsTitle')}</Text>
-              {selectedTags.length > 0 && (
-                <View style={styles.countPill}>
-                  <Text style={styles.countPillText}>{selectedTags.length}</Text>
-                </View>
-              )}
+      <ScrollView style={styles.flex} contentContainerStyle={styles.scrollContent}>
+        <View style={[styles.sectionCard, styles.cardShadow]}>
+          {/* Section header with live selection count */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.iconBadge}>
+              <Ionicons name="pricetags" size={15} color={colors.primary} />
             </View>
-
-            {service.tags && service.tags.length > 0 ? (
-              <>
-                <Text style={styles.tagHint}>{t('createRequest.selectTags.tagHint')}</Text>
-                <View style={styles.tagsRow}>
-                  {service.tags.map(tag => {
-                    const selected = selectedTags.includes(tag);
-                    return (
-                      <TouchableOpacity
-                        key={tag}
-                        style={[styles.tagChip, selected && styles.tagChipSelected]}
-                        onPress={() => toggleTag(tag)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{tag}</Text>
-                        <Ionicons
-                          name={selected ? 'checkmark' : 'add'}
-                          size={13}
-                          color={selected ? colors.primary : colors.greyMuted}
-                          style={styles.tagIcon}
-                        />
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </>
-            ) : (
-              <View style={styles.noTagsRow}>
-                <Ionicons name="information-circle-outline" size={18} color={colors.grey} />
-                <Text style={styles.noTagsText}>{t('createRequest.selectTags.noTagsAvailable')}</Text>
+            <Text style={styles.sectionTitle}>{t('createRequest.selectTags.tagsTitle')}</Text>
+            {selectedTags.length > 0 && (
+              <View style={styles.countPill}>
+                <Text style={styles.countPillText}>{selectedTags.length}</Text>
               </View>
             )}
           </View>
-        </ScrollView>
-      </ImageBackground>
+
+          {service.tags && service.tags.length > 0 ? (
+            <>
+              <Text style={styles.tagHint}>{t('createRequest.selectTags.tagHint')}</Text>
+              <View style={styles.tagsRow}>
+                {service.tags.map(tag => {
+                  const selected = selectedTags.includes(tag);
+                  return (
+                    <TouchableOpacity
+                      key={tag}
+                      style={[styles.tagChip, selected && styles.tagChipSelected]}
+                      onPress={() => toggleTag(tag)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{tag}</Text>
+                      <Ionicons
+                        name={selected ? 'checkmark' : 'add'}
+                        size={13}
+                        color={selected ? colors.primary : colors.greyMuted}
+                        style={styles.tagIcon}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </>
+          ) : (
+            <View style={styles.noTagsRow}>
+              <Ionicons name="information-circle-outline" size={18} color={colors.grey} />
+              <Text style={styles.noTagsText}>{t('createRequest.selectTags.noTagsAvailable')}</Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
 
       <ErrorBanner error={requestError} onRetry={handleConfirm} />
       <BottomCTA
