@@ -2,16 +2,15 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Modal } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, type MapViewType, type Region } from './AppMapView';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
 import locationMarkerIcon from '../../assets/location_marker.png';
 import { colors, spacing, radius, sizes } from '../theme';
 import { locationManager, useLocation } from '../services/LocationManager';
 import EdgeLoader from './EdgeLoader';
 import Header from './Header';
 import ErrorBanner from './ErrorBanner';
-import { GOOGLE_PLACES_API_KEY } from '../config';
 import { useAuth } from '../contexts/AuthContext';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
+import { placesAutocomplete, placeDetails, reverseGeocode } from '../services/googlePlacesApi';
 
 const MAX_SAVED_LOCATIONS = 3;
 const DEFAULT_LOCATION = {
@@ -135,10 +134,14 @@ const LocationSearch: React.FC<Props> = ({
     }
 
     setLocationError(null);
-    const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&components=country:in&key=${GOOGLE_PLACES_API_KEY}`;
     try {
-      const response = await axios.get(url);
-      const filteredSuggestions = response.data.predictions.filter((prediction: any) => {
+      // On web this routes through the backend /google-places proxy to
+      // avoid CORS; on native it calls Google directly.
+      const data = await placesAutocomplete({
+        input: text,
+        components: 'country:in',
+      });
+      const filteredSuggestions = (data.predictions || []).filter((prediction: any) => {
         const types = prediction.types || [];
         // Exclude suggestions that are cities, states, or countries
         return !types.includes('locality') && !types.includes('administrative_area_level_1') && !types.includes('country');
@@ -147,7 +150,7 @@ const LocationSearch: React.FC<Props> = ({
         ...suggestion,
         description: removeStateAndCountry(suggestion),
       }));
-      setSuggestions(processedSuggestions as Array<{ place_id: string; description: string }>);
+      setSuggestions(processedSuggestions as unknown as Array<{ place_id: string; description: string }>);
       // setLocationError(null);
     } catch (error) {
       setLocationError(error);
@@ -200,11 +203,10 @@ const LocationSearch: React.FC<Props> = ({
       return;
     }
 
-    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&key=${GOOGLE_PLACES_API_KEY}`;
     setLocationError(null);
     try {
-      const response = await axios.get(detailsUrl);
-      const location = response.data?.result?.geometry?.location;
+      const data = await placeDetails({ place_id: place.place_id });
+      const location = data?.result?.geometry?.location;
       if (!location) {
         throw new Error('Place details missing geometry');
       }
@@ -300,11 +302,10 @@ const LocationSearch: React.FC<Props> = ({
   const reverseGeocodeLocation = async (latitude: number, longitude: number) => {
     setLocationError(null);
     try {
-      const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_PLACES_API_KEY}`;
-      const response = await axios.get(geocodeUrl);
+      const data = await reverseGeocode({ latlng: `${latitude},${longitude}` });
       // setLocationError(null);
-      if (response.data.results && response.data.results.length > 0) 
-        return removeStateCountryAndPostalCode(response.data.results[0]);
+      if (data.results && data.results.length > 0)
+        return removeStateCountryAndPostalCode(data.results[0]);
     } catch (error) {
       setLocationError(error);
     }
