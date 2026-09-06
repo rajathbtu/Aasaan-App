@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Platform } from 'react-native';
 import { BASE_URL } from '../config';
 
 // Create an Axios instance with a base URL.  The instance will be used
@@ -7,6 +8,15 @@ import { BASE_URL } from '../config';
 export const api = axios.create({
   baseURL: BASE_URL,
 });
+
+// ngrok's free tier serves an HTML "browser warning" interstitial
+// (ERR_NGROK_6024) to browser requests that lack this header. The
+// interstitial response carries no CORS headers, so every API call from the
+// web app through the dev tunnel fails. Native apps use non-browser user
+// agents and are unaffected, so the header is only needed on web.
+if (Platform.OS === 'web') {
+  api.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
+}
 
 /**
  * Sends an OTP to the specified phone number.

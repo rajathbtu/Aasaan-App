@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -81,9 +81,14 @@ function NotificationHandler({ navigationReady }: { navigationReady: boolean }) 
     };
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
-    void Notifications.getLastNotificationResponseAsync().then((response) => {
-      if (response) handleNotificationResponse(response);
-    });
+    // getLastNotificationResponseAsync is not implemented on web (throws
+    // UnavailabilityError); it is only needed to pick up cold-start push taps
+    // on native platforms.
+    if (Platform.OS !== 'web') {
+      void Notifications.getLastNotificationResponseAsync().then((response) => {
+        if (response) handleNotificationResponse(response);
+      });
+    }
     return () => responseListener.current?.remove();
   }, [user?.role, token, refreshUnreadCount]);
 

@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getProfile, updateProfile, registerPushToken, removePushToken } from '../api';
 import { getPushToken } from '../services/pushNotifications';
 import { AuthStackNavigationProp } from '../../App';
@@ -40,6 +42,18 @@ interface AuthContextProps {
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
+const authStorage = {
+  getItem: (key: string) => Platform.OS === 'web'
+    ? AsyncStorage.getItem(key)
+    : SecureStore.getItemAsync(key),
+  setItem: (key: string, value: string) => Platform.OS === 'web'
+    ? AsyncStorage.setItem(key, value)
+    : SecureStore.setItemAsync(key, value),
+  deleteItem: (key: string) => Platform.OS === 'web'
+    ? AsyncStorage.removeItem(key)
+    : SecureStore.deleteItemAsync(key),
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // const navigation = useNavigation<AuthStackNavigationProp>();
   const [user, setUser] = useState<User | null>(null);
@@ -51,8 +65,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     (async () => {
       try {
-        const storedToken = await SecureStore.getItemAsync('aasaan_token');
-        const storedUser = await SecureStore.getItemAsync('aasaan_user');
+        const storedToken = await authStorage.getItem('aasaan_token');
+        const storedUser = await authStorage.getItem('aasaan_user');
         if (storedToken && storedUser) {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
@@ -78,8 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     authVersion.current += 1;
     setToken(tok);
     setUser(usr);
-    await SecureStore.setItemAsync('aasaan_token', tok);
-    await SecureStore.setItemAsync('aasaan_user', JSON.stringify(usr));
+    await authStorage.setItem('aasaan_token', tok);
+    await authStorage.setItem('aasaan_user', JSON.stringify(usr));
 
     // Redirect to role selection page if role is null
     if (!usr.role && navigation) {
@@ -99,8 +113,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setToken(null);
     setUser(null);
-    await SecureStore.deleteItemAsync('aasaan_token');
-    await SecureStore.deleteItemAsync('aasaan_user');
+    await authStorage.deleteItem('aasaan_token');
+    await authStorage.deleteItem('aasaan_user');
   };
 
   const refreshUser = async () => {
@@ -112,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updated = await getProfile(requestToken);
       if (requestVersion !== authVersion.current) return;
       setUser(updated);
-      await SecureStore.setItemAsync('aasaan_user', JSON.stringify(updated));
+      await authStorage.setItem('aasaan_user', JSON.stringify(updated));
     } catch (err) {
       throw err;
     }
@@ -124,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let updated: any;
       updated = await updateProfile(token, updates as any);
       setUser(updated);
-      await SecureStore.setItemAsync('aasaan_user', JSON.stringify(updated));
+      await authStorage.setItem('aasaan_user', JSON.stringify(updated));
     } catch (err) {
       throw err;
     }
@@ -135,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // optimistic local update
     const next = { ...user, language: lang } as User;
     setUser(next);
-    await SecureStore.setItemAsync('aasaan_user', JSON.stringify(next));
+    await authStorage.setItem('aasaan_user', JSON.stringify(next));
     // persist to backend when token is present
     if (token) {
       try {

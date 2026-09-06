@@ -163,7 +163,7 @@ const RoleSelectScreen: React.FC = () => {
       {/* Sticky bottom confirm CTA */}
       <BottomCTA
         isSticky={true}
-        noteText={mode !== 'edit' ? t('roleSelect.changeRoleNote') : ''}
+        noteText={mode !== 'edit' ? t('roleSelect.changeRoleNote') : undefined}
         buttonText={t('roleSelect.confirmButton')}
         onPress={confirmSelection}
         isLoading={saving}

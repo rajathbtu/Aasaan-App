@@ -40,9 +40,14 @@ const allowedOrigins = new Set([
   'http://192.168.32.1:3000',
 ]);
 
+// Origin patterns for Expo dev tooling (web previews served through the
+// Expo dev-server tunnel, e.g. https://<id>-<port>.exp.direct).
+const allowedOriginPatterns = [/\.exp\.direct$/];
+
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    if (!origin || origin === 'null' || isDevelopment || allowedOrigins.has(origin)) {
+    const allowedByPattern = !!origin && allowedOriginPatterns.some((pattern) => pattern.test(origin));
+    if (!origin || origin === 'null' || isDevelopment || allowedByPattern || allowedOrigins.has(origin)) {
       callback(null, true);
       return;
     }
@@ -51,7 +56,7 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'ngrok-skip-browser-warning'],
 };
 
 app.options('*', cors(corsOptions));

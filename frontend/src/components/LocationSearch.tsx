@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Modal } from 'react-native';
-import MapView, { PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, type MapViewType, type Region } from './AppMapView';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import locationMarkerIcon from '../../assets/location_marker.png';
@@ -80,7 +80,7 @@ const LocationSearch: React.FC<Props> = ({
   const [locationError, setLocationError] = useState<unknown | null>(null);
   const autoSelectedCurrentLocation = useRef(false);
   const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mapRef = useRef<MapView | null>(null);
+  const mapRef = useRef<MapViewType | null>(null);
 
   const animateToRegion = (region: Region) => {
     if (mapRef.current) {

@@ -54,7 +54,6 @@ const UpgradeProBanner: React.FC<Props> = ({ variant = 'card', onPress, onClose 
         activeOpacity={0.9}
         style={styles.compactBanner}
         onPress={onPress}
-        accessibilityRole="button"
         accessibilityHint={t('subscription.goProSubtitle')}
       >
         {/* Decorative glow layers that fake a soft gradient */}

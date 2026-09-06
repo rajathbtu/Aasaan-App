@@ -6,9 +6,8 @@ const PRODUCTION_BASE_URL = 'https://aasaan-backend-3v3u.onrender.com';
 
 const isDevelopment = true;
 
-const resolvedBaseUrl = isDevelopment
-  ? PUBLIC_DEV_BASE_URL
-  : PRODUCTION_BASE_URL;
+const resolvedBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL
+  || (isDevelopment ? PUBLIC_DEV_BASE_URL : PRODUCTION_BASE_URL);
 
 // Log helpful info in development
 console.log('API Base URL:', resolvedBaseUrl);
