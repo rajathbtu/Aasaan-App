@@ -1,3 +1,6 @@
+import prisma from './prisma';
+import { syncServices } from './serviceSeeder';
+
 export interface CachedService {
   id: string;
   name: string;
@@ -31,6 +34,18 @@ export async function getCachedServices(
     });
 
   return loadingServices;
+}
+
+/** Loads the canonical service catalog through the shared cache. */
+export async function getServices(): Promise<CachedService[]> {
+  const pAny = prisma as any;
+
+  return getCachedServices(async () => {
+    await syncServices();
+    return pAny.service.findMany({
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
+    }) as Promise<CachedService[]>;
+  });
 }
 
 export function invalidateServiceCache(): void {

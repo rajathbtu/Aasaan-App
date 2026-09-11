@@ -3,7 +3,7 @@ import prisma from '../utils/prisma';
 import { areValidTags } from '../utils/validation';
 import { pushNotification } from '../models/dataStore';
 import { getReqLang, t, notifyUser } from '../utils/i18n';
-import { getCachedServices } from '../utils/serviceCache';
+import { getServices } from '../utils/serviceCache';
 
 const pAny: any = prisma;
 
@@ -40,9 +40,7 @@ export interface FullWorkRequest {
 
 async function getServiceMap(serviceIds: string[]): Promise<Map<string, any>> {
   if (!serviceIds.length || !pAny.service?.findMany) return new Map();
-  const services = await getCachedServices(() => pAny.service.findMany({
-    orderBy: [{ category: 'asc' }, { name: 'asc' }],
-  }));
+  const services = await getServices();
   const serviceMap = new Map(services.map((service) => [service.id, service]));
   return new Map(serviceIds.map((id) => [id, serviceMap.get(id)]));
 }
