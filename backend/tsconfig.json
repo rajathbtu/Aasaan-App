@@ -3,7 +3,7 @@
     "target": "ES2019",
     "module": "CommonJS",
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": ".",
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true,
@@ -11,6 +11,6 @@
     "sourceMap": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "whatsapp/**/*"],
   "exclude": ["node_modules", "dist"]
 }

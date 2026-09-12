@@ -7,6 +7,7 @@ import notificationRoutes from './routes/notificationRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import serviceRoutes from './routes/serviceRoutes';
 import googlePlacesRoutes from './routes/googlePlacesRoutes';
+import whatsappRoutes from '../whatsapp/routes';
 import { errorHandler } from './middleware/errorHandler';
 
 // Create and configure the Express application.  All middleware and routes are
@@ -15,23 +16,6 @@ const app = express();
 
 // Middlewares
 const isDevelopment = process.env.NODE_ENV !== 'production';
-
-app.use((req, res, next) => {
-  const time = new Date().toLocaleTimeString('en-GB');
-  try {
-    // Log request & response for debugging
-    const bodyPreview = req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : '{}';
-    console.log(`# # # REQUEST  # # #   ${time} ${req.method} ${req.originalUrl} body=${bodyPreview}`);
-  } catch (err) {
-    console.log(`# # # REQUEST  # # #   ${time} ${req.method} ${req.originalUrl} body=<unserializable>`);
-  }
-
-  res.on('finish', () => {
-    console.log(`# # # RESPONSE # # #   ${time} ${req.method} ${req.originalUrl} status=${res.statusCode}`);
-  });
-
-  next();
-});
 
 const allowedOrigins = new Set([
   'https://crevice-drank-groggily.ngrok-free.dev',
@@ -62,7 +46,37 @@ const corsOptions = {
 
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
+
+// Capture the exact payload only for Meta's webhook signature verification.
+const webhookJsonParser = express.json({
+  verify: (req, _res, buf) => {(req as any).rawBody = buf;},
+});
+app.use('/whatsapp/webhook', (req, res, next) => {
+  if (req.method === 'POST') {
+    webhookJsonParser(req, res, next);
+    return;
+  }
+  next();
+});
+
 app.use(express.json());
+
+app.use((req, res, next) => {
+  const time = new Date().toLocaleTimeString('en-GB');
+  try {
+    // Log request & response for debugging
+    const bodyPreview = req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : '{}';
+    console.log(`# # # REQUEST  # # #   ${time} ${req.method} ${req.originalUrl} body=${bodyPreview}`);
+  } catch (err) {
+    console.log(`# # # REQUEST  # # #   ${time} ${req.method} ${req.originalUrl} body=<unserializable>`);
+  }
+
+  res.on('finish', () => {
+    console.log(`# # # RESPONSE # # #   ${time} ${req.method} ${req.originalUrl} status=${res.statusCode}`);
+  });
+
+  next();
+});
 
 
 // Routes
@@ -73,6 +87,7 @@ app.use('/notifications', notificationRoutes);
 app.use('/payments', paymentRoutes);
 app.use('/services', serviceRoutes);
 app.use('/google-places', googlePlacesRoutes); // Web-only proxy for Google Places Web Service endpoints (see googlePlacesProxyController). Native apps call Google directly.
+app.use('/whatsapp', whatsappRoutes); // WhatsApp Cloud API (Meta): conversation triggers + webhooks (see backend/whatsapp/README.md)
 
 // Catch‑all for unknown routes
 app.use((req, res, next) => {
