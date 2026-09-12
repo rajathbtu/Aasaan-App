@@ -13,5 +13,5 @@ const resolvedBaseUrl = process.env.EXPO_PUBLIC_API_BASE_URL
 console.log('API Base URL:', resolvedBaseUrl);
 
 export const BASE_URL = resolvedBaseUrl;
-export const TRUECALLER_APP_KEY = 'OlMQfa4db074ffe23444bbde45919a8c8e83b';
-export const GOOGLE_PLACES_API_KEY = 'AIzaSyBFotGFTxQhwTd8kdd0QTBBpCouBlz-508';
+export const TRUECALLER_APP_KEY = process.env.EXPO_PUBLIC_TRUECALLER_APP_KEY || '';
+export const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY || '';
