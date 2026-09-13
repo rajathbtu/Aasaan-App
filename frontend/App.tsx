@@ -35,6 +35,7 @@ import SPSelectServicesScreen from './src/screens/SPSelectServicesScreen';
 import LocationSelectScreen from './src/screens/LocationSelectScreen';
 import SPWorkRequestsScreen from './src/screens/SPWorkRequestsScreen';
 import { getNotificationNavigationTarget, NotificationUserRole } from './src/utils/notificationNavigation';
+import { linking, documentTitle} from './src/navigation/linking';
 
 // Define stack navigators
 const Stack = createNativeStackNavigator();
@@ -290,7 +291,12 @@ export default function App() {
       <NotificationCountProvider>
         <NotificationHandler navigationReady={navigationReady} />
         <SafeAreaProvider>
-          <NavigationContainer ref={navigationRef} onReady={() => setNavigationReady(true)}>
+          <NavigationContainer
+            ref={navigationRef}
+            onReady={() => setNavigationReady(true)}
+            linking={linking as any}
+            documentTitle={documentTitle as any}
+          >
             <StatusBar style="dark" />
             <RootNavigator />
           </NavigationContainer>
