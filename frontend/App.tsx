@@ -32,6 +32,7 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SPSelectServicesScreen from './src/screens/SPSelectServicesScreen';
+import SPOnboardSimpleScreen from './src/screens/SPOnboardSimpleScreen';
 import LocationSelectScreen from './src/screens/LocationSelectScreen';
 import SPWorkRequestsScreen from './src/screens/SPWorkRequestsScreen';
 import { getNotificationNavigationTarget, NotificationUserRole } from './src/utils/notificationNavigation';
@@ -125,6 +126,7 @@ function RootNavigator() {
             <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
             {/* Allow SP onboarding steps directly after role selection */}
             <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
+            <Stack.Screen name="SPOnboardSimple" component={SPOnboardSimpleScreen} />
             <Stack.Screen name="LocationSelect" component={LocationSelectScreen} />
             {/* Language change if needed */}
             <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
@@ -151,6 +153,7 @@ function RootNavigator() {
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
             {/* Provider tools */}
             <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
+            <Stack.Screen name="SPOnboardSimple" component={SPOnboardSimpleScreen} />
             <Stack.Screen name="LocationSelect" component={LocationSelectScreen} />
             {/* Language change from Profile */}
             <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
@@ -159,6 +162,8 @@ function RootNavigator() {
       ) : (
         <>
           <Stack.Screen name="Auth" component={AuthStack} />
+          <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
+          <Stack.Screen name="SPOnboardSimple" component={SPOnboardSimpleScreen} />
         </>
       )}
     </Stack.Navigator>
@@ -261,6 +266,7 @@ type AuthStackParamList = {
   NameOTPValidation: undefined;
   RoleSelect: undefined;
   SPSelectServices: undefined;
+  SPOnboardSimple: undefined;
   LocationSelect: undefined;
 };
 

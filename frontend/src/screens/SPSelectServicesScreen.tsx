@@ -57,7 +57,6 @@ const SPSelectServicesScreen: React.FC = () => {
 
   const refreshInBackground = async () => {
     try {
-      setLoading(true);
       const data = await getServices();
       const incoming = data.services as Service[];
       const cur = JSON.stringify(services || []);
@@ -69,8 +68,6 @@ const SPSelectServicesScreen: React.FC = () => {
       }
     } catch (e) {
       // ignore and keep cache
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -267,18 +264,6 @@ const SPSelectServicesScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.light,
-    padding: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: colors.dark,
-    textAlign: 'center',
-  },
   categorySection: {
     marginBottom: 20,
   },

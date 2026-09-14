@@ -72,12 +72,6 @@ const screens: Record<string, unknown> = {
       MobileInput: 'mobile-input',
       OTPVerification: 'verify-otp',
       NameOTPValidation: 'name-otp-validation',
-      RoleSelect: 'select-role',
-      // Service selection accepts deep-link params so a user can land here
-      // directly with ?phone=...&otp=...&name=...&language=... — the screen
-      // then ensures profile creation / login before continuing.
-      SPSelectServices: 'select-services',
-      LocationSelect: 'select-location',
     },
   },
   // ---- Main bottom tabs (end users) ----
@@ -91,11 +85,9 @@ const screens: Record<string, unknown> = {
   },
   // ---- Root-level screens (also registered post-auth in App.tsx) ----
   RoleSelect: 'select-role',
+  SPOnboardSimple: 'sp-onboard-simple',
   SPSelectServices: 'select-services',
   LocationSelect: 'select-location',
-  LanguageSelection: 'select-language',
-  Profile: 'profile',
-  SPAvailable: 'available-requests',
   // Work-request creation funnel. Workflow params remain in navigation state
   // and are intentionally excluded from browser/native deep-link URLs.
   WorkRequestAddDetails: 'request/location',
@@ -127,6 +119,7 @@ const SCREEN_TITLES: Record<string, string> = {
   OTPVerification: 'Verify OTP',
   NameOTPValidation: 'Create Account',
   RoleSelect: 'Choose your Role',
+  SPOnboardSimple: 'Service Provider Onboarding',
   SPSelectServices: 'Select Services',
   LocationSelect: 'Select Location',
   WorkRequestAddDetails: 'Select Location',
