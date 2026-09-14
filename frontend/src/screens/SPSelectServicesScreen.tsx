@@ -37,7 +37,6 @@ const SPSelectServicesScreen: React.FC = () => {
 
   const [selected, setSelected] = useState<string[]>(initialSelected);
   const [services, setServices] = useState<Service[] | null>(null);
-  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
   const servicesCacheKey = user?.id ? offlineCacheKey('services', user.id) : null;
 
@@ -141,7 +140,7 @@ const SPSelectServicesScreen: React.FC = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
-      <Header title={mode === 'onboarding' ? t('sp.selectServices.stepLabel') || 'Step 1 of 2' : t('sp.selectServices.title')} showBackButton={true} showNotification={false} />
+      <Header title={t('sp.selectServices.title')} showBackButton={true} showNotification={false} />
       <View style={{ height: spacing.sm }} />
 
       <ScrollView
@@ -151,10 +150,7 @@ const SPSelectServicesScreen: React.FC = () => {
       >
         {/* Main heading */}
         <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm, backgroundColor: colors.white }}>
-          {mode === 'onboarding' && (
-            <Text style={styles.stepText}>{t('sp.selectServices.stepLabel') || 'Step 1 of 2'}</Text>
-          )}
-          <Text style={styles.pageTitle}>{t('sp.selectServices.heading') || 'Select services you offer'}</Text>
+          {/* <Text style={styles.pageTitle}>{t('sp.selectServices.heading') || 'Select services you offer'}</Text> */}
           <Text style={styles.subtitle}>{t('sp.selectServices.subheading') || 'You can select multiple services (up to 3)'}</Text>
         </View>
 

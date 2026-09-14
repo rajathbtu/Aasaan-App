@@ -271,7 +271,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  if (!name || !isValidName(name)) {
+  if (!name || (!isValidName(name) && !name.includes('user_'))) {
     res.status(400).json({ message: t(lang, 'auth.invalidName') });
     return;
   }

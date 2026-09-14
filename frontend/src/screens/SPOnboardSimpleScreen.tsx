@@ -69,16 +69,9 @@ const SPOnboardSimpleScreen: React.FC = () => {
         }
 
         if (!authenticationResult || authenticationResult.needsRegistration) {
-          if (!name) {
-            navigation.replace('Auth', {
-              screen: 'NameOTPValidation',
-              params: { phone, language },
-            });
-            return;
-          }
           authenticationResult = await registerUser(
             phone,
-            name,
+            name?.trim() || 'user_' + phone, // allow profile creation with default name if not provided
             language || 'en',
             'serviceProvider',
             otp
