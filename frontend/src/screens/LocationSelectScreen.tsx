@@ -101,6 +101,7 @@ const LocationSelectScreen: React.FC = () => {
         subheader={isRequestCreationMode ? t('createRequest.addDetails.headerSubTitle') : undefined}
         showBackButton={true}
         showNotification={false}
+        extraLargeTitle={mode=== 'onboarding' }
       />
 
       <View style={styles.flex}>

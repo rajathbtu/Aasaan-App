@@ -14,7 +14,9 @@ type HeaderProps = {
   showProfileButton?: boolean;
   customRightComponent?: React.ReactNode;
   keepTitleCenterAligned?: boolean;
+  extraLargeTitle?: boolean;
   subheader?: string;
+  titleStyle?: React.ComponentProps<typeof Text>['style'];
 };
 
 /** Max unread count rendered inside the badge before capping to "20+". */
@@ -31,7 +33,9 @@ const Header: React.FC<HeaderProps> = ({
   showProfileButton = false,
   customRightComponent,
   keepTitleCenterAligned = false,
+  extraLargeTitle = false,
   subheader,
+  titleStyle,
 }) => {
   const navigation = useNavigation<any>();
   const { unreadCount } = useNotificationCount();
@@ -61,7 +65,12 @@ const Header: React.FC<HeaderProps> = ({
         <View style={[styles.titleContainer, keepTitleCenterAligned && styles.centeredTitleContainer]}>
           {subheader ? <Text style={styles.subHeaderText}>{subheader}</Text> : null}
           <Text
-            style={[styles.headerTitle, keepTitleCenterAligned && styles.centerAlignedTitle]}
+            style={[
+              styles.headerTitle,
+              keepTitleCenterAligned && styles.centerAlignedTitle,
+              extraLargeTitle && styles.extraLargeTitle,
+              titleStyle,
+            ]}
             numberOfLines={1}
             ellipsizeMode="tail"
           >
@@ -125,6 +134,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
+    minHeight: 56, // Ensure a minimum height for the header row
   },
   iconButton: {
     width: ICON_BUTTON_SIZE,
@@ -182,6 +192,9 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 10,
     fontWeight: '700',
+  },
+  extraLargeTitle: {
+    fontSize: 22,
   },
 });
 

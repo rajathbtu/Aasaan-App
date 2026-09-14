@@ -71,7 +71,12 @@ const LanguageSelectionScreen: React.FC = () => {
     <View style={{ flex: 1}}>
       <View style={styles.container}>
         {/* Header */}
-        <Header title={t.language.title} showBackButton={mode === 'edit'} showNotification={false} keepTitleCenterAligned={mode!== 'edit'} />
+        <Header 
+          title={t.language.title} 
+          showBackButton={mode === 'edit'} 
+          showNotification={false}
+          extraLargeTitle={mode=== 'onboarding' } 
+          keepTitleCenterAligned={mode!== 'edit'} />
         <View style={{ height: spacing.sm }} />
 
         {/* Language Selection Content */}

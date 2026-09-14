@@ -140,7 +140,12 @@ const SPSelectServicesScreen: React.FC = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
-      <Header title={t('sp.selectServices.title')} showBackButton={true} showNotification={false} />
+      <Header 
+        title={t('sp.selectServices.heading')} 
+        keepTitleCenterAligned={true} 
+        // showBackButton={mode=== 'edit'} 
+        showNotification={false} 
+        extraLargeTitle={mode=== 'onboarding' } />
       <View style={{ height: spacing.sm }} />
 
       <ScrollView
@@ -148,12 +153,8 @@ const SPSelectServicesScreen: React.FC = () => {
         contentContainerStyle={{ paddingBottom: bottomCtaPadding }}
         stickyHeaderIndices={[1]}
       >
-        {/* Main heading */}
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm, backgroundColor: colors.white }}>
-          {/* <Text style={styles.pageTitle}>{t('sp.selectServices.heading') || 'Select services you offer'}</Text> */}
-          <Text style={styles.subtitle}>{t('sp.selectServices.subheading') || 'You can select multiple services (up to 3)'}</Text>
-        </View>
-
+        <Text style={styles.subtitle}>{t('sp.selectServices.subheading') || 'You can select multiple services (up to 3)'}</Text>
+        
         {/* Sticky search bar */}
         <View style={styles.stickySearchContainer}>
           <View style={styles.searchWrapper}>
@@ -383,21 +384,12 @@ const styles = StyleSheet.create({
     padding: 4,
   },
 
-  // Page titles
-  stepText: {
-    color: colors.primary,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  pageTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.dark,
-    marginBottom: 4,
-  },
   subtitle: {
     fontSize: 14,
     color: colors.grey,
+    marginLeft: spacing.lg,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xs,
   },
 
   // Bottom CTA
