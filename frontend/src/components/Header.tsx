@@ -52,7 +52,7 @@ const Header: React.FC<HeaderProps> = ({
       <View style={styles.headerRow}>
         {showBackButton && (
           <TouchableOpacity
-            style={styles.iconButton}
+            style={[styles.iconButton, { marginRight: spacing.md }]}
             onPress={handleBackPress}
             activeOpacity={0.7}
             accessibilityRole="button"
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     flex: 1,
-    marginLeft: spacing.md,
+    // marginLeft: spacing.md,
     justifyContent: 'center',
   },
   centeredTitleContainer: {
