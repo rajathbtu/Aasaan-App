@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import { Service, ServiceCard, ServiceCategoryGrid, useServiceCatalog } from '../components/ServiceSelection';
+import ServicesSearchBar from '../components/ServicesSearchBar';
 import { useI18n } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
@@ -57,15 +58,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     t('createRequest.selectService.searchPlaceholder1'),
     t('createRequest.selectService.searchPlaceholder2')
   ];
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPlaceholderIndex((prevIndex) => (prevIndex + 1) % placeholderTexts.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
@@ -90,23 +82,13 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
             />
           </View>
 
-          {/* Search bar (icon inside input) */}
+          {/* Search bar */}
           <View style={styles.searchSection}>
-            <View style={[styles.searchWrapper, styles.shadow]}>
-              <Ionicons name="search" size={20} color={colors.greyMuted} style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder={placeholderTexts[placeholderIndex]}
-                placeholderTextColor={colors.greyMuted}
-                value={query}
-                onChangeText={setQuery}
-              />
-              {query.trim() !== '' && (
-                <TouchableOpacity style={styles.resetButton} hitSlop={10} onPress={() => setQuery('')} >
-                  <Ionicons name="close-circle" size={20} color={colors.greyMuted} />
-                </TouchableOpacity>
-              )}
-            </View>
+            <ServicesSearchBar
+              placeholders={placeholderTexts}
+              value={query}
+              onChangeText={setQuery}
+            />
           </View>
 
           {!hasData && (
@@ -202,29 +184,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     marginBottom: spacing.lg,
   },
-  searchWrapper: {
-    position: 'relative',
-    backgroundColor: colors.white,
-    borderRadius: radius.xl,
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: spacing.md,
-    top: 12,
-  },
-  searchInput: {
-    paddingHorizontal: spacing.md,
-    paddingLeft: spacing.xl * 1.5, // Adjusted padding to ensure proper spacing
-    paddingVertical: spacing.md,
-    fontSize: 16,
-    color: colors.dark,
-  },
-  resetButton: {
-    position: 'absolute',
-    right: spacing.md,
-    top: 10,
-    padding: 4,
-  },
 
   // -- Sections --
   scrollContent: {
@@ -255,6 +214,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 3,
   },
+
   // -- Trust banner --
   trustBanner: {
     flexDirection: 'row',

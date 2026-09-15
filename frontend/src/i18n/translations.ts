@@ -5,6 +5,7 @@ export const translations = {
   en: {
     common: {
       continue: 'Continue',
+      confirm: 'Confirm',
       change: 'Change',
       save: 'Save',
       saveChanges: 'Save Changes',
@@ -281,8 +282,8 @@ export const translations = {
     sp: {
       selectServices: {
         title: 'Select Services you offer',
-        limitTitle: 'Limit reached',
-        limitDesc: 'You can select up to 3 services',
+        limitDesc: 'You may select up to 3 services',
+        limitTitle: 'Maximum 3 services allowed',
         selectTitle: 'Select services',
         selectDesc: 'Please choose at least one service',
         saveFailed: 'Failed to save services',
@@ -358,6 +359,7 @@ export const translations = {
   hi: {
     common: {
       continue: 'जारी रखें',
+      confirm: 'पुष्टि करें',
       change: 'बदलें',
       save: 'सहेजें',
       saveChanges: 'परिवर्तन सहेजें',

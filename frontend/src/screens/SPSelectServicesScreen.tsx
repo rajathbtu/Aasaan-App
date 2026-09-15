@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import { Service, ServiceCategoryGrid, useServiceCatalog } from '../components/ServiceSelection';
 import InfoBanner from '../components/InfoBanner';
+import ServicesSearchBar from '../components/ServicesSearchBar';
 import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -71,8 +72,18 @@ const SPSelectServicesScreen: React.FC = () => {
     return selected.map(id => map[id]).filter(Boolean) as Service[];
   }, [selected, services]);
 
+  const selectionBannerMessage = showLimitHint ? 
+    t('sp.selectServices.limitTitle') : t('sp.selectServices.limitDesc');
+
   // Height of bottom CTA for padding bottom
   const bottomCtaPadding = 120 + insets.bottom; // approx height including chips; adjust as needed
+  
+  const placeholderTexts = [
+    t('createRequest.selectService.searchPlaceholder'),
+    t('createRequest.selectService.searchPlaceholder1'),
+    t('createRequest.selectService.searchPlaceholder2')
+  ];
+
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
@@ -89,25 +100,14 @@ const SPSelectServicesScreen: React.FC = () => {
         contentContainerStyle={{ paddingBottom: bottomCtaPadding }}
         stickyHeaderIndices={[1]}
       >
-        <Text style={styles.subtitle}>{t('sp.selectServices.subheading') || 'You can select multiple services (up to 3)'}</Text>
-        
+
         {/* Sticky search bar */}
         <View style={styles.stickySearchContainer}>
-          <View style={styles.searchWrapper}>
-            <Ionicons name="search" size={18} color={colors.grey} style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder={t('sp.selectServices.searchPlaceholder') || 'Search services...'}
-              placeholderTextColor={colors.grey}
-              value={query}
-              onChangeText={setQuery}
-            />
-            {query.trim() !== '' && (
-              <TouchableOpacity style={styles.resetButton} onPress={() => setQuery('')}>
-                <Ionicons name="close-circle" size={18} color={colors.grey} />
-              </TouchableOpacity>
-            )}
-          </View>
+          <ServicesSearchBar
+            placeholders={placeholderTexts}
+            value={query}
+            onChangeText={setQuery}
+          />
         </View>
 
         {/* Loading */}
@@ -139,14 +139,17 @@ const SPSelectServicesScreen: React.FC = () => {
       {/* Bottom CTA sticky */}
       <View style={[styles.bottomCta, { paddingBottom: insets.bottom + spacing.sm }] }>
         <View style={{ marginBottom: spacing.sm }}>
-          {showLimitHint && (
-            <InfoBanner
-              message={t('sp.selectServices.limitDesc') || 'You can select up to 3 services'}
-              autoDismissMs={2500}
-              onDismiss={() => setShowLimitHint(false)}
-              style={{ marginBottom: spacing.sm }}
-            />
+          {selectionBannerMessage && (
+            <View style={styles.selectionBannerWrap}>
+              <InfoBanner
+                message={selectionBannerMessage}
+                autoDismissMs={showLimitHint ? 2500 : undefined}
+                onDismiss={() => setShowLimitHint(false)}
+                style={styles.selectionBanner}
+              />
+            </View>
           )}
+        
           <View style={styles.selectedChipsRow}>
             {selectedServices.map(svc => (
               <View key={svc.id} style={styles.chip}>
@@ -163,7 +166,7 @@ const SPSelectServicesScreen: React.FC = () => {
           onPress={handleContinue}
           disabled={selected.length === 0}
         >
-          <Text style={styles.continueText}>{mode === 'edit' ? (t('sp.selectServices.done') || 'Done') : (t('common.continue') || 'Continue')}</Text>
+          <Text style={styles.continueText}>{t('common.confirm')}</Text>
           <Ionicons name="arrow-forward" size={18} color={colors.white} style={{ marginLeft: 8 }} />
         </TouchableOpacity>
       </View>
@@ -182,43 +185,19 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.greyLight,
     zIndex: 5,
   },
-  searchWrapper: {
-    position: 'relative',
-    borderWidth: 2,
-    borderColor: colors.primary,
-    backgroundColor: colors.white,
-    borderRadius: radius.md,
-    shadowColor: colors.black,
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: spacing.md,
-    top: 14,
-  },
-  searchInput: {
-    paddingHorizontal: spacing.md,
-    paddingLeft: spacing.xl * 1.5,
-    paddingVertical: spacing.md,
-    fontSize: 16,
-    color: colors.dark,
-  },
-  resetButton: {
-    position: 'absolute',
-    right: spacing.md,
-    top: 10,
-    padding: 4,
-  },
-
   subtitle: {
     fontSize: 14,
     color: colors.grey,
     marginLeft: spacing.lg,
     marginTop: spacing.sm,
     marginBottom: spacing.xs,
+  },
+  selectionBannerWrap: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
+  },
+  selectionBanner: {
+    marginBottom: 0,
   },
 
   // Bottom CTA
