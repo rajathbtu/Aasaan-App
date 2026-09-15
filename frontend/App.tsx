@@ -109,6 +109,18 @@ function NotificationHandler({ navigationReady }: { navigationReady: boolean }) 
 // finishes loading the current user from secure storage.
 function RootNavigator() {
   const { user, loading } = useAuth();
+  const wasAuthenticated = useRef(false);
+
+  // On logout, stale onboarding routes (e.g. SPSelectServices) can survive the
+  // conditional screen swap.  Reset the root stack to the auth flow so the
+  // user lands on the launch screen.
+  useEffect(() => {
+    if (wasAuthenticated.current && !user) {
+      navigationRef.current?.reset({ index: 0, routes: [{ name: 'Auth' }] });
+    }
+    wasAuthenticated.current = !!user;
+  }, [user]);
+
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
