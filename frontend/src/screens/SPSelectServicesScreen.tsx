@@ -1,30 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, LayoutAnimation, Platform, UIManager, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, TextInput } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
-import { getServices } from '../api';
 import Header from '../components/Header';
-import ServiceIcon from '../components/ServiceIcon';
+import { Service, ServiceCategoryGrid, useServiceCatalog } from '../components/ServiceSelection';
 import InfoBanner from '../components/InfoBanner';
 import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
-type Service = {
-  id: string;
-  name: string;
-  category: string;
-  alias?: string[];
-  tags?: string[];
-  icon?: string;
-  color?: string;
-};
 const SPSelectServicesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -38,62 +23,11 @@ const SPSelectServicesScreen: React.FC = () => {
 
   const [selected, setSelected] = useState<string[]>(initialSelected);
   const [showLimitHint, setShowLimitHint] = useState(false);
-  const [services, setServices] = useState<Service[] | null>(null);
-  const [query, setQuery] = useState('');
-  const servicesCacheKey = user?.id ? offlineCacheKey('services', user.id) : null;
+  const { services, query, setQuery, filtered } = useServiceCatalog(user?.id, true);
 
   useEffect(() => {
     setSelected(initialSelected);
   }, [initialSelected.join(',')]);
-
-  useEffect(() => {
-    (async () => {
-      if (servicesCacheKey) {
-        const cached = await readOfflineCache<Service[]>(servicesCacheKey);
-        if (cached) setServices(cached);
-      }
-      refreshInBackground();
-    })();
-  }, [servicesCacheKey]);
-
-  const refreshInBackground = async () => {
-    try {
-      const data = await getServices();
-      const incoming = data.services as Service[];
-      const cur = JSON.stringify(services || []);
-      const inc = JSON.stringify(incoming);
-      if (cur !== inc) {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setServices(incoming);
-        if (servicesCacheKey) await writeOfflineCache(servicesCacheKey, incoming);
-      }
-    } catch (e) {
-      // ignore and keep cache
-    }
-  };
-
-  const grouped = useMemo(() => {
-    const list = services || [];
-    const map: Record<string, Service[]> = {};
-    list.forEach(s => { if (!map[s.category]) map[s.category] = []; map[s.category].push(s); });
-    return map;
-  }, [services]);
-
-  const filtered = useMemo(() => {
-    const list: Record<string, Service[]> = grouped;
-    if (!query.trim()) return list;
-    const lower = query.trim().toLowerCase();
-    const matchesQuery = (s: Service) =>
-      s.name.toLowerCase().includes(lower) ||
-      (Array.isArray(s.alias) && s.alias.some((alias) => alias.toLowerCase().includes(lower))) ||
-      (Array.isArray(s.tags) && s.tags.some((tag) => tag.toLowerCase().includes(lower)));
-    const map: Record<string, Service[]> = {};
-    Object.keys(list).forEach(cat => {
-      const arr = list[cat].filter(matchesQuery);
-      if (arr.length) map[cat] = arr;
-    });
-    return map;
-  }, [grouped, query]);
 
   const toggleService = (id: string) => {
     setSelected(prev => {
@@ -187,43 +121,11 @@ const SPSelectServicesScreen: React.FC = () => {
         {/* Categories and services grid */}
         {hasData && (
           <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
-            {Object.keys(filtered).map(category => (
-              <View key={category} style={styles.categorySection}>
-                <View style={styles.categoryHeading}>
-                  <View style={styles.categoryMarker} />
-                  <Text style={styles.categoryTitle}>{category}</Text>
-                </View>
-                <View style={styles.gridRow}>
-                  {filtered[category].map(service => {
-                    const isSelected = selected.includes(service.id);
-                    return (
-                      <TouchableOpacity
-                        key={service.id}
-                        style={[
-                          styles.serviceCard,
-                          isSelected && styles.serviceCardSelected,
-                        ]}
-                        onPress={() => toggleService(service.id)}
-                        activeOpacity={0.85}
-                      >
-                        {isSelected && (
-                          <View style={styles.checkBadge}>
-                            <Ionicons name="checkmark" size={13} color={colors.white} />
-                          </View>
-                        )}
-                        <ServiceIcon
-                          icon={service.icon}
-                          color={service.color}
-                          circleSize={48}
-                          iconSize={26}
-                        />
-                        <Text style={[styles.serviceName, isSelected && styles.serviceNameSelected]} numberOfLines={2}>{service.name}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            ))}
+            <ServiceCategoryGrid
+              servicesByCategory={filtered}
+              selectedIds={selected}
+              onServicePress={(service) => toggleService(service.id)}
+            />
 
             {Object.keys(filtered).length === 0 && (
               <View style={{ paddingVertical: spacing.xl, alignItems: 'center' }}>
@@ -270,88 +172,6 @@ const SPSelectServicesScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  categorySection: {
-    marginBottom: 20,
-  },
-  categoryHeading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  categoryMarker: {
-    width: 4,
-    height: 18,
-    borderRadius: 2,
-    backgroundColor: colors.primary,
-    marginRight: spacing.sm,
-  },
-  categoryTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.dark,
-  },
-  gridRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  serviceCard: {
-    width: '31%',
-    minHeight: 104,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.greyBorder,
-    borderRadius: radius.xl,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xs,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    shadowColor: colors.black,
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  serviceCardSelected: {
-    borderWidth: 2,
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-    shadowOpacity: 0.14,
-    elevation: 3,
-  },
-  serviceName: {
-    fontSize: 12.5,
-    lineHeight: 16,
-    fontWeight: '600',
-    letterSpacing: 0.1,
-    color: colors.dark,
-    textAlign: 'center',
-    minHeight: 32,
-  },
-  serviceNameSelected: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
-  checkBadge: {
-    position: 'absolute',
-    top: -7,
-    right: -7,
-    backgroundColor: colors.primary,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
-    shadowColor: colors.black,
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
   // Search
   stickySearchContainer: {
     backgroundColor: colors.white,
