@@ -6,6 +6,7 @@ import { useI18n } from '../i18n';
 import { getServices } from '../api';
 import Header from '../components/Header';
 import ServiceIcon from '../components/ServiceIcon';
+import InfoBanner from '../components/InfoBanner';
 import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,6 +37,7 @@ const SPSelectServicesScreen: React.FC = () => {
   const onDone: undefined | ((sel: string[]) => void) = route.params?.onDone;
 
   const [selected, setSelected] = useState<string[]>(initialSelected);
+  const [showLimitHint, setShowLimitHint] = useState(false);
   const [services, setServices] = useState<Service[] | null>(null);
   const [query, setQuery] = useState('');
   const servicesCacheKey = user?.id ? offlineCacheKey('services', user.id) : null;
@@ -99,7 +101,7 @@ const SPSelectServicesScreen: React.FC = () => {
         return prev.filter(sid => sid !== id);
       }
       if (prev.length >= 3) {
-        Alert.alert(t('sp.selectServices.limitTitle'), t('sp.selectServices.limitDesc'));
+        setShowLimitHint(true);
         return prev;
       }
       return [...prev, id];
@@ -143,7 +145,7 @@ const SPSelectServicesScreen: React.FC = () => {
       <Header 
         title={t('sp.selectServices.heading')} 
         keepTitleCenterAligned={true} 
-        // showBackButton={mode=== 'edit'} 
+        showBackButton={navigation.canGoBack()}
         showNotification={false} 
         extraLargeTitle={mode=== 'onboarding' } />
       <View style={{ height: spacing.sm }} />
@@ -235,6 +237,14 @@ const SPSelectServicesScreen: React.FC = () => {
       {/* Bottom CTA sticky */}
       <View style={[styles.bottomCta, { paddingBottom: insets.bottom + spacing.sm }] }>
         <View style={{ marginBottom: spacing.sm }}>
+          {showLimitHint && (
+            <InfoBanner
+              message={t('sp.selectServices.limitDesc') || 'You can select up to 3 services'}
+              autoDismissMs={2500}
+              onDismiss={() => setShowLimitHint(false)}
+              style={{ marginBottom: spacing.sm }}
+            />
+          )}
           <View style={styles.selectedChipsRow}>
             {selectedServices.map(svc => (
               <View key={svc.id} style={styles.chip}>
@@ -245,7 +255,6 @@ const SPSelectServicesScreen: React.FC = () => {
               </View>
             ))}
           </View>
-          <Text style={styles.selectionMeta}>{`${selected.length} of 3 services selected`}</Text>
         </View>
         <TouchableOpacity
           style={[styles.continueButton, selected.length === 0 && { opacity: 0.6 } ]}
@@ -429,7 +438,6 @@ const styles = StyleSheet.create({
     color: colors.grey,
   },
   continueButton: {
-    marginTop: spacing.sm,
     backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: radius.md,

@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import InfoBanner from '../components/InfoBanner';
 import { buildTimeAgo } from '../utils/time';
 
 const API = realApi;
@@ -217,10 +218,10 @@ const BoostRequestScreen: React.FC = () => {
 
         {/* Already boosted banner */}
         {alreadyBoosted && (
-          <View style={styles.infoBanner}>
-            <Ionicons name="information-circle" size={16} color={colors.primary} style={{ marginRight: 6 }} />
-            <Text style={styles.infoBannerText}>{t('boostRequest.alreadyBoosted')}</Text>
-          </View>
+          <InfoBanner
+            message={t('boostRequest.alreadyBoosted')}
+            style={{ marginBottom: spacing.lg }}
+          />
         )}
 
         {/* Boost Benefits */}
@@ -435,21 +436,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
-  },
-  infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  infoBannerText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '600',
   },
   ctaButton: {
     backgroundColor: colors.primary,

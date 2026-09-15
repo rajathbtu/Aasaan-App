@@ -19,6 +19,7 @@ import { colors, spacing, radius, tints } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import SafeBottomBanner from '../components/SafeBottomBanner';
+import InfoBanner from '../components/InfoBanner';
 
 const API = realApi;
 
@@ -272,10 +273,10 @@ const SubscriptionScreen: React.FC = () => {
 
             {/* Info banner when already on paid plan */}
             {currentPlan !== 'free' && (
-              <View style={styles.infoBanner}>
-                <Ionicons name="information-circle" size={16} color={colors.primary} style={{ marginRight: 6 }} />
-                <Text style={styles.infoBannerText}>{t('subscription.currentPlanInfo', { plan: t(`subscription.plan.${currentPlan}`) })}</Text>
-              </View>
+              <InfoBanner
+                message={t('subscription.currentPlanInfo', { plan: t(`subscription.plan.${currentPlan}`) })}
+                style={{ marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.primaryLight }}
+              />
             )}
 
             {/* Plan cards */}
@@ -551,22 +552,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.white,
     fontWeight: '700',
-  },
-  infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primaryLight,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  infoBannerText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '600',
   },
   planCard: {
     backgroundColor: colors.white,
