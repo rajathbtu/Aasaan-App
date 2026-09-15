@@ -1,4 +1,7 @@
 {
-  "compilerOptions": {},
-  "extends": "expo/tsconfig.base"
+  "extends": "./frontend/tsconfig.json",
+  "include": [
+    "frontend/**/*.ts",
+    "frontend/**/*.tsx"
+  ]
 }

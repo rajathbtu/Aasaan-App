@@ -47,6 +47,7 @@
     "@types/react": "~19.1.10",
     "@types/react-native-vector-icons": "^6.4.18",
     "@types/uuid": "^10.0.0",
+    "expo-module-scripts": "^5.0.8",
     "typescript": "~5.9.2"
   }
 }

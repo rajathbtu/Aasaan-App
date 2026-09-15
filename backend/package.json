@@ -9,6 +9,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "dev:tunnel": "ts-node-dev --respawn --transpile-only src/server-with-ngrok.ts",
     "whatsapp:send-test": "ts-node whatsapp/sendTestMessage.ts",
+    "push:send-test": "ts-node src/scripts/sendTestPush.ts",
     "db:create-tables": "prisma migrate deploy",
     "postinstall": "prisma migrate deploy"
   },
