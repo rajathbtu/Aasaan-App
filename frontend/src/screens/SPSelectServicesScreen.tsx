@@ -33,12 +33,14 @@ const SPSelectServicesScreen: React.FC = () => {
   const toggleService = (id: string) => {
     setSelected(prev => {
       if (prev.includes(id)) {
+        setShowLimitHint(false);
         return prev.filter(sid => sid !== id);
       }
       if (prev.length >= 3) {
         setShowLimitHint(true);
         return prev;
       }
+      setShowLimitHint(false);
       return [...prev, id];
     });
   };
@@ -72,8 +74,11 @@ const SPSelectServicesScreen: React.FC = () => {
     return selected.map(id => map[id]).filter(Boolean) as Service[];
   }, [selected, services]);
 
-  const selectionBannerMessage = showLimitHint ? 
-    t('sp.selectServices.limitTitle') : t('sp.selectServices.limitDesc');
+  const selectionBannerMessage = showLimitHint
+    ? t('sp.selectServices.limitTitle')
+    : selected.length > 0 && selected.length < 3
+      ? t('sp.selectServices.limitDesc')
+      : '';
 
   // Height of bottom CTA for padding bottom
   const bottomCtaPadding = 120 + insets.bottom; // approx height including chips; adjust as needed
@@ -138,7 +143,6 @@ const SPSelectServicesScreen: React.FC = () => {
 
       {/* Bottom CTA sticky */}
       <View style={[styles.bottomCta, { paddingBottom: insets.bottom + spacing.sm }] }>
-        <View style={{ marginBottom: spacing.sm }}>
           {selectionBannerMessage && (
             <View style={styles.selectionBannerWrap}>
               <InfoBanner
@@ -160,7 +164,6 @@ const SPSelectServicesScreen: React.FC = () => {
               </View>
             ))}
           </View>
-        </View>
         <TouchableOpacity
           style={[styles.continueButton, selected.length === 0 && { opacity: 0.6 } ]}
           onPress={handleContinue}
@@ -193,7 +196,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   selectionBannerWrap: {
-    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.sm,
   },
   selectionBanner: {

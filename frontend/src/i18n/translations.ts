@@ -282,7 +282,7 @@ export const translations = {
     sp: {
       selectServices: {
         title: 'Select Services you offer',
-        limitDesc: 'You may select up to 3 services',
+        limitDesc: 'You may select upto 3 services',
         limitTitle: 'Maximum 3 services allowed',
         selectTitle: 'Select services',
         selectDesc: 'Please choose at least one service',

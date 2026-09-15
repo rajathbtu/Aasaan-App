@@ -69,6 +69,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     fontSize: 16,
     color: colors.dark,
+    outlineStyle: 'none' as any,
   },
   resetButton: {
     position: 'absolute',
