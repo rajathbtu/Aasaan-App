@@ -9,6 +9,7 @@ import ErrorBanner from '../components/ErrorBanner';
 import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SafeBottomBanner from '../components/SafeBottomBanner';
 
 const LocationSelectScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -118,7 +119,7 @@ const LocationSelectScreen: React.FC = () => {
       </View>
 
       {/* Bottom panel: selection summary, service radius and CTA */}
-      <View style={[styles.bottomPanel, { paddingBottom: insets.bottom + spacing.md }]}>
+      <View style={[styles.bottomPanel, ]}>
         {hasSelection && (
           <View style={[styles.locationCard, styles.cardShadow]}>
             <View style={styles.locIconCircle}>
@@ -146,16 +147,16 @@ const LocationSelectScreen: React.FC = () => {
             >
               <Ionicons name="compass-outline" size={18} color={colors.primary} />
               <Text style={styles.radiusSummaryText} numberOfLines={2} ellipsizeMode="tail">
-                {`You'll see work requests within ${radius} kms of ${selectedLocation?.name || selectedLocation?.description || 'your selected location'}`}
+                {`You'll see Work Requests within ${radius} kms ${!isRadiusExpanded? '': 'of ' + selectedLocation?.name || selectedLocation?.description || 'your selected location'}`}
               </Text>
               <Ionicons name={isRadiusExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.grey} />
             </TouchableOpacity>
 
             {isRadiusExpanded && (
               <>
-                <Text style={styles.radiusQuestion}>
-                  {t('sp.selectLocation.radiusQuestion') || 'How far can you travel for work?'}
-                </Text>
+                {/* <Text style={styles.radiusQuestion}>
+                  {t('sp.selectLocation.changeRadius')}
+                </Text> */}
                 <View style={styles.radiusGrid}>
                   {radiusOptions.map((value) => {
                     const active = radius === value;
@@ -185,6 +186,7 @@ const LocationSelectScreen: React.FC = () => {
           <Ionicons name="arrow-forward" size={18} color={colors.white} style={{ marginLeft: spacing.sm }} />
         </TouchableOpacity>
       </View>
+      <SafeBottomBanner/>
     </View>
   );
 };
@@ -292,6 +294,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   radiusGrid: {
+    marginTop: spacing.sm,
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12 as any,
@@ -334,7 +337,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     // marginTop: spacing.xs,
-    // marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   ctaShadow: {
     shadowColor: colors.black,
