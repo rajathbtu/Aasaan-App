@@ -6,6 +6,7 @@ import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import { Service, ServiceCategoryGrid, useServiceCatalog } from '../components/ServiceSelection';
 import InfoBanner from '../components/InfoBanner';
+import ErrorBanner from '../components/ErrorBanner';
 import ServicesSearchBar from '../components/ServicesSearchBar';
 import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +26,7 @@ const SPSelectServicesScreen: React.FC = () => {
 
   const [selected, setSelected] = useState<string[]>(initialSelected);
   const [showLimitHint, setShowLimitHint] = useState(false);
+  const [saveError, setSaveError] = useState<unknown | null>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const searchTranslateY = Animated.diffClamp(scrollY, 0, 70).interpolate({
     inputRange: [0, 70],
@@ -66,9 +68,10 @@ const SPSelectServicesScreen: React.FC = () => {
 
     try {
       await updateUser({ services: selected });
+      setSaveError(null);
       navigation.navigate('LocationSelect');
     } catch (err: any) {
-      Alert.alert('Error', t('sp.selectServices.saveFailed'));
+      setSaveError(err);
     }
   };
 
@@ -176,6 +179,7 @@ const SPSelectServicesScreen: React.FC = () => {
             </View>
           ))}
         </View>
+        <ErrorBanner error={saveError} onRetry={handleContinue} />
         <TouchableOpacity
           style={[styles.continueButton, selected.length === 0 && { opacity: 0.6 } ]}
           onPress={handleContinue}

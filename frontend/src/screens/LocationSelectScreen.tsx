@@ -110,6 +110,8 @@ const LocationSelectScreen: React.FC = () => {
             setSelectedLocation(!loc ? null : { name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng });
           }}
           enableMap={true}
+          isServiceArea={!isRequestCreationMode}
+          serviceAreaRadiusKm={radius}
           initialValue={displayLocationName || ''}
           initialLocation={selectedLocation}
         />
@@ -173,6 +175,8 @@ const LocationSelectScreen: React.FC = () => {
             )}
           </View>
         )}
+
+        <ErrorBanner error={saveError} onRetry={handleSave} />
 
         <TouchableOpacity style={[styles.saveButton, styles.ctaShadow]} onPress={handleSave} activeOpacity={0.85}>
           <Text style={styles.saveText}>
@@ -264,8 +268,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.greyLight,
     borderRadius: radius.lg,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    padding: spacing.md,
     marginBottom: spacing.md,
   },
   radiusSummaryRow: {
@@ -291,10 +294,11 @@ const styles = StyleSheet.create({
   radiusGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12 as any,
   },
   radiusCell: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: radius.md,
     borderWidth: 1,
     alignItems: 'center',
@@ -314,8 +318,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   radiusCellText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '700',
     color: colors.dark,
   },
   radiusCellTextActive: {
@@ -329,8 +333,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    marginTop: spacing.xs,
-    marginBottom: spacing.xs,
+    // marginTop: spacing.xs,
+    // marginBottom: spacing.xs,
   },
   ctaShadow: {
     shadowColor: colors.black,

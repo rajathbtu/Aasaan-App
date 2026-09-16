@@ -13,6 +13,8 @@ import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/o
 import { placesAutocomplete, placeDetails, reverseGeocode } from '../services/googlePlacesApi';
 
 const MAX_SAVED_LOCATIONS = 3;
+const CITY_LEVEL_DELTA = 0.4;
+const DEFAULT_SERVICE_AREA_RADIUS_KM = 20;
 const DEFAULT_LOCATION = {
   latitude: 28.613939,
   longitude: 77.209021,
@@ -20,11 +22,11 @@ const DEFAULT_LOCATION = {
   longitudeDelta: 0.01,
 };
 
-const getRegionFromLocation = (location?: { latitude: number; longitude: number } | null): Region => ({
+const getRegionFromLocation = (location?: { latitude: number; longitude: number } | null, isServiceArea = false,): Region => ({
   latitude: location?.latitude ?? DEFAULT_LOCATION.latitude,
   longitude: location?.longitude ?? DEFAULT_LOCATION.longitude,
-  latitudeDelta: 0.01,
-  longitudeDelta: 0.01,
+  latitudeDelta: isServiceArea ? CITY_LEVEL_DELTA : 0.01,
+  longitudeDelta: isServiceArea ? CITY_LEVEL_DELTA : 0.01,
 });
 
 type Location = {
@@ -41,6 +43,8 @@ type Props = {
   enableMap?: boolean;
   initialLocation?: { lat?: number; lng?: number; description?: string; name?: string; place_id?: string; placeId?: string };
   mapHeight?: number;
+  isServiceArea?: boolean;
+  serviceAreaRadiusKm?: number;
 };
 
 const LocationSearch: React.FC<Props> = ({
@@ -50,12 +54,14 @@ const LocationSearch: React.FC<Props> = ({
   enableMap = false,
   initialLocation,
   mapHeight,
+  isServiceArea = false,
+  serviceAreaRadiusKm = DEFAULT_SERVICE_AREA_RADIUS_KM,
 }) => {
   const { user } = useAuth();
   const savedLocationsCacheKey = user?.id ? offlineCacheKey('saved-locations', user.id) : null;
   const { gpsLocation, ipLocation } = useLocation();
   const liveDefaultRegion = useMemo(() => 
-    getRegionFromLocation(gpsLocation ?? ipLocation),[gpsLocation, ipLocation]);
+    getRegionFromLocation(gpsLocation ?? ipLocation, isServiceArea),[gpsLocation, ipLocation, isServiceArea]);
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<Array<{ place_id: string; description: string }>>([]);
   const [savedLocations, setSavedLocations] = useState<Array<{ place_id: string; description: string }>>([]);
@@ -64,12 +70,7 @@ const LocationSearch: React.FC<Props> = ({
   const [currentLocationRegion, setCurrentLocationRegion] = useState<{ latitude: number; longitude: number } | null>(null);
   const [mapRegion, setMapRegion] = useState<Region | null>(
     initialLocation?.lat && initialLocation?.lng
-      ? {
-          latitude: initialLocation.lat,
-          longitude: initialLocation.lng,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }
+      ? getRegionFromLocation({ latitude: initialLocation.lat, longitude: initialLocation.lng }, isServiceArea)
       : liveDefaultRegion
   );
   const [mapLoading, setMapLoading] = useState(enableMap);
@@ -107,12 +108,7 @@ const LocationSearch: React.FC<Props> = ({
     }
 
     const region = initialLocation?.lat && initialLocation?.lng
-      ? {
-          latitude: initialLocation.lat,
-          longitude: initialLocation.lng,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }
+      ? getRegionFromLocation({ latitude: initialLocation.lat, longitude: initialLocation.lng }, isServiceArea)
       : liveDefaultRegion;
 
     setMapRegion((currentRegion) => {
@@ -125,7 +121,7 @@ const LocationSearch: React.FC<Props> = ({
     if (mapRef.current) {
       animateToRegion(region);
     }
-  }, [enableMap, initialLocation, liveDefaultRegion]);
+  }, [enableMap, initialLocation, liveDefaultRegion, isServiceArea]);
 
   const fetchSuggestions = async (text: string) => {
     if (!text) {
@@ -214,18 +210,9 @@ const LocationSearch: React.FC<Props> = ({
       place.description = cleanedPlaceName;
       const selectedLocation = { ...place, lat, lng };
       onSelect(selectedLocation);
-      setMapRegion({
-        latitude: lat,
-        longitude: lng,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
-      animateToRegion({
-        latitude: lat,
-        longitude: lng,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
+      const region = getRegionFromLocation({ latitude: lat, longitude: lng }, isServiceArea);
+      setMapRegion(region);
+      animateToRegion(region);
       await saveLocation(selectedLocation);
       setSavedLocations(await getSavedLocations());
       // setLocationError(null);
@@ -282,8 +269,8 @@ const LocationSearch: React.FC<Props> = ({
     const region = {
       latitude: detectedLocation.lat,
       longitude: detectedLocation.lng,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
+      latitudeDelta: isServiceArea ? CITY_LEVEL_DELTA : 0.01,
+      longitudeDelta: isServiceArea ? CITY_LEVEL_DELTA : 0.01,
     };
     setMapRegion(region);
     animateToRegion(region);
@@ -297,7 +284,7 @@ const LocationSearch: React.FC<Props> = ({
 
     autoSelectedCurrentLocation.current = true;
     void detectLocation();
-  }, [enableMap, initialLocation]);
+  }, [enableMap, initialLocation, isServiceArea]);
 
   const reverseGeocodeLocation = async (latitude: number, longitude: number) => {
     setLocationError(null);
@@ -406,6 +393,10 @@ const LocationSearch: React.FC<Props> = ({
                 provider={PROVIDER_GOOGLE}
                 style={styles.map}
                 initialRegion={mapRegion || DEFAULT_LOCATION}
+                serviceArea={isServiceArea && mapRegion ? {
+                  center: { latitude: mapRegion.latitude, longitude: mapRegion.longitude },
+                  radius: serviceAreaRadiusKm * 1000,
+                } : undefined}
                 onPanDrag={() => {
                   setIsMapInteracting(true);
                   setShowEdgeLoader(true);

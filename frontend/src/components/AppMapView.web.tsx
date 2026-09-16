@@ -19,6 +19,10 @@ type MapViewProps = {
   provider?: string;
   style?: any;
   initialRegion?: Region | null;
+  serviceArea?: {
+    center: { latitude: number; longitude: number };
+    radius: number;
+  };
   onPanDrag?: () => void;
   onRegionChangeComplete?: (region: Region) => void;
   onMapReady?: () => void;
@@ -35,9 +39,16 @@ type GoogleMap = {
   addListener: (eventName: string, handler: () => void) => { remove: () => void };
 };
 
+type GoogleCircle = {
+  setMap: (map: GoogleMap | null) => void;
+  setCenter: (center: { lat: number; lng: number }) => void;
+  setRadius: (radius: number) => void;
+};
+
 type GoogleMapsApi = {
   maps: {
     Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMap;
+    Circle: new (options: Record<string, unknown>) => GoogleCircle;
     event: { trigger: (instance: GoogleMap, eventName: string) => void };
   };
 };
@@ -108,9 +119,10 @@ declare global {
 }
 
 const AppMapView = forwardRef<MapViewType, MapViewProps>((props, ref) => {
-  const { initialRegion, onMapReady, onPanDrag, onRegionChangeComplete } = props;
+  const { initialRegion, serviceArea, onMapReady, onPanDrag, onRegionChangeComplete } = props;
   const mapElementRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GoogleMap | null>(null);
+  const circleRef = useRef<GoogleCircle | null>(null);
   const regionCallbackRef = useRef(onRegionChangeComplete);
   const [error, setError] = useState(false);
 
@@ -134,6 +146,18 @@ const AppMapView = forwardRef<MapViewType, MapViewProps>((props, ref) => {
           clickableIcons: false,
         });
         mapRef.current = map;
+        if (serviceArea) {
+          circleRef.current = new google.maps.Circle({
+            map,
+            center: { lat: serviceArea.center.latitude, lng: serviceArea.center.longitude },
+            radius: serviceArea.radius,
+            fillColor: '#2563eb',
+            fillOpacity: 0.12,
+            strokeColor: '#2563eb',
+            strokeOpacity: 0.7,
+            strokeWeight: 2,
+          });
+        }
         map.addListener('dragstart', () => onPanDrag?.());
         map.addListener('idle', () => {
           const region = zoomToRegion(map);
@@ -148,12 +172,23 @@ const AppMapView = forwardRef<MapViewType, MapViewProps>((props, ref) => {
     };
   }, [initialRegion, onMapReady, onPanDrag]);
 
+  useEffect(() => () => {
+    circleRef.current?.setMap(null);
+    circleRef.current = null;
+  }, []);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !initialRegion) return;
     map.setCenter({ lat: initialRegion.latitude, lng: initialRegion.longitude });
     map.setZoom(regionToZoom(initialRegion));
   }, [initialRegion]);
+
+  useEffect(() => {
+    if (!serviceArea || !circleRef.current) return;
+    circleRef.current.setCenter({ lat: serviceArea.center.latitude, lng: serviceArea.center.longitude });
+    circleRef.current.setRadius(serviceArea.radius);
+  }, [serviceArea]);
 
   useImperativeHandle(
     ref,
