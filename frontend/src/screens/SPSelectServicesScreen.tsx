@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, Animated } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
@@ -24,6 +24,11 @@ const SPSelectServicesScreen: React.FC = () => {
 
   const [selected, setSelected] = useState<string[]>(initialSelected);
   const [showLimitHint, setShowLimitHint] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const searchTranslateY = Animated.diffClamp(scrollY, 0, 70).interpolate({
+    inputRange: [0, 70],
+    outputRange: [0, -70],
+  });
   const { services, query, setQuery, filtered } = useServiceCatalog(user?.id, true);
 
   useEffect(() => {
@@ -98,22 +103,23 @@ const SPSelectServicesScreen: React.FC = () => {
         showBackButton={navigation.canGoBack()}
         showNotification={false} 
         extraLargeTitle={mode=== 'onboarding' } />
-      <View style={{ height: spacing.sm }} />
+      {/* <View style={{ height: spacing.sm }} /> */}
 
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: bottomCtaPadding }}
-        stickyHeaderIndices={[1]}
-      >
-
-        {/* Sticky search bar */}
-        <View style={styles.stickySearchContainer}>
+        stickyHeaderIndices={[0]}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true },)}
+        scrollEventThrottle={16}>
+        <Animated.View style={[styles.stickySearchContainer, { transform: [{ translateY: searchTranslateY }] }]}>
           <ServicesSearchBar
             placeholders={placeholderTexts}
             value={query}
             onChangeText={setQuery}
           />
-        </View>
+        </Animated.View>
 
         {/* Loading */}
         {!hasData && (
@@ -142,7 +148,7 @@ const SPSelectServicesScreen: React.FC = () => {
       </ScrollView>
 
       {/* Bottom CTA sticky */}
-      <View style={[styles.bottomCta, { paddingBottom: insets.bottom + spacing.sm }] }>
+      <View style={[styles.bottomCta] }>
           {selectionBannerMessage && (
             <View style={styles.selectionBannerWrap}>
               <InfoBanner
@@ -150,20 +156,21 @@ const SPSelectServicesScreen: React.FC = () => {
                 autoDismissMs={showLimitHint ? 2500 : undefined}
                 onDismiss={() => setShowLimitHint(false)}
                 style={styles.selectionBanner}
+                theme="grey"
               />
             </View>
           )}
         
-          <View style={styles.selectedChipsRow}>
-            {selectedServices.map(svc => (
-              <View key={svc.id} style={styles.chip}>
-                <Text style={styles.chipText}>{svc.name}</Text>
-                <TouchableOpacity onPress={() => toggleService(svc.id)}>
-                  <Ionicons name="close" size={14} color={colors.white} style={{ marginLeft: 6 }} />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
+        <View style={styles.selectedChipsRow}>
+          {selectedServices.map(svc => (
+            <View key={svc.id} style={styles.chip}>
+              <Text style={styles.chipText}>{svc.name}</Text>
+              <TouchableOpacity onPress={() => toggleService(svc.id)}>
+                <Ionicons name="close" size={14} color={colors.primary} style={{ marginLeft: 6, borderRadius: 999, borderColor: colors.primary, borderWidth: 1 }} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
         <TouchableOpacity
           style={[styles.continueButton, selected.length === 0 && { opacity: 0.6 } ]}
           onPress={handleContinue}
@@ -180,10 +187,10 @@ const SPSelectServicesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   // Search
   stickySearchContainer: {
-    backgroundColor: colors.white,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
+    backgroundColor: colors.light,
     borderBottomWidth: 1,
     borderBottomColor: colors.greyLight,
     zIndex: 5,
@@ -200,6 +207,7 @@ const styles = StyleSheet.create({
   },
   selectionBanner: {
     marginBottom: 0,
+    justifyContent: 'center',
   },
 
   // Bottom CTA
@@ -211,28 +219,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.greyLight,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
   },
   selectedChipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8 as any,
+    gap: 10 as any,
+    marginBottom: spacing.lg,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryLight,
     borderRadius: 999,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
     marginRight: 8,
-    marginBottom: 8,
+    // marginBottom: 8,
   },
   chipText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '600',
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '700',
   },
   selectionMeta: {
     fontSize: 12,
