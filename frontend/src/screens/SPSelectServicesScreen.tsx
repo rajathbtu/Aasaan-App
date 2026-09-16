@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Animated } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
@@ -10,6 +10,7 @@ import ServicesSearchBar from '../components/ServicesSearchBar';
 import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SafeBottomBanner from '../components/SafeBottomBanner';
 
 const SPSelectServicesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -30,6 +31,7 @@ const SPSelectServicesScreen: React.FC = () => {
     outputRange: [0, -70],
   });
   const { services, query, setQuery, filtered } = useServiceCatalog(user?.id, true);
+  const searchContainerHeight = 70;
 
   useEffect(() => {
     setSelected(initialSelected);
@@ -105,47 +107,50 @@ const SPSelectServicesScreen: React.FC = () => {
         extraLargeTitle={mode=== 'onboarding' } />
       {/* <View style={{ height: spacing.sm }} /> */}
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: bottomCtaPadding }}
-        stickyHeaderIndices={[0]}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true },)}
-        scrollEventThrottle={16}>
-        <Animated.View style={[styles.stickySearchContainer, { transform: [{ translateY: searchTranslateY }] }]}>
+      <View style={styles.scrollArea}>
+        <Animated.ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingTop: searchContainerHeight, paddingBottom: bottomCtaPadding }}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true },
+          )}
+          scrollEventThrottle={16}>
+
+          {/* Loading */}
+          {!hasData && (
+            <View style={{ padding: spacing.lg, alignItems: 'center' }}>
+              <ActivityIndicator />
+              <Text style={{ color: colors.grey, marginTop: 8 }}>{t('common.fetchingCurrentLocation') || 'Loading...'}</Text>
+            </View>
+          )}
+
+          {/* Categories and services grid */}
+          {hasData && (
+            <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+              <ServiceCategoryGrid
+                servicesByCategory={filtered}
+                selectedIds={selected}
+                onServicePress={(service) => toggleService(service.id)}
+              />
+
+              {Object.keys(filtered).length === 0 && (
+                <View style={{ paddingVertical: spacing.xl, alignItems: 'center' }}>
+                  <Text style={{ color: colors.grey }}>{t('sp.selectServices.noResults') || 'No matching services'}</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </Animated.ScrollView>
+        <Animated.View style={[styles.searchOverlay, { transform: [{ translateY: searchTranslateY }] }]}>
           <ServicesSearchBar
             placeholders={placeholderTexts}
             value={query}
             onChangeText={setQuery}
+            style={{ marginTop: 10 }}
           />
         </Animated.View>
-
-        {/* Loading */}
-        {!hasData && (
-          <View style={{ padding: spacing.lg, alignItems: 'center' }}>
-            <ActivityIndicator />
-            <Text style={{ color: colors.grey, marginTop: 8 }}>{t('common.fetchingCurrentLocation') || 'Loading…'}</Text>
-          </View>
-        )}
-
-        {/* Categories and services grid */}
-        {hasData && (
-          <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
-            <ServiceCategoryGrid
-              servicesByCategory={filtered}
-              selectedIds={selected}
-              onServicePress={(service) => toggleService(service.id)}
-            />
-
-            {Object.keys(filtered).length === 0 && (
-              <View style={{ paddingVertical: spacing.xl, alignItems: 'center' }}>
-                <Text style={{ color: colors.grey }}>{t('sp.selectServices.noResults') || 'No matching services'}</Text>
-              </View>
-            )}
-          </View>
-        )}
-      </ScrollView>
+      </View>
 
       {/* Bottom CTA sticky */}
       <View style={[styles.bottomCta] }>
@@ -180,13 +185,20 @@ const SPSelectServicesScreen: React.FC = () => {
           <Ionicons name="arrow-forward" size={18} color={colors.white} style={{ marginLeft: 8 }} />
         </TouchableOpacity>
       </View>
+      <SafeBottomBanner />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  // Search
-  stickySearchContainer: {
+  scrollArea: {
+    flex: 1,
+  },
+  searchOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
@@ -212,7 +224,7 @@ const styles = StyleSheet.create({
 
   // Bottom CTA
   bottomCta: {
-    position: 'absolute',
+    position: 'relative',
     left: 0,
     right: 0,
     bottom: 0,
@@ -221,6 +233,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.greyLight,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
+    marginBottom: 5,
   },
   selectedChipsRow: {
     flexDirection: 'row',

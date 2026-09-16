@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleProp, StyleSheet, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing } from '../theme';
 
@@ -8,6 +8,7 @@ type ServicesSearchBarProps = {
   onChangeText: (value: string) => void;
   placeholder?: string;
   placeholders?: string[];
+  style?: StyleProp<ViewStyle>;
 };
 
 const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
@@ -15,6 +16,7 @@ const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
   onChangeText,
   placeholder,
   placeholders = [],
+  style,
 }) => {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const hasRotatingPlaceholders = placeholders.length > 0;
@@ -34,7 +36,7 @@ const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
     : placeholder;
 
   return (
-    <View style={[styles.wrapper, styles.shadow]}>
+    <View style={[styles.wrapper, styles.shadow, style]}>
       <Ionicons name="search" size={20} color={colors.greyMuted} style={styles.searchIcon} />
       <TextInput
         style={styles.input}
