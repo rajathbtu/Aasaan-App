@@ -3,3 +3,4 @@ node_modules/
 .expo/
 package-lock.json
 backend/Firebase-service-account-credentials.json
+package-lock.json
