@@ -12,6 +12,7 @@ import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SafeBottomBanner from '../components/SafeBottomBanner';
+import BlockingLoader from '../components/BlockingLoader';
 
 const SPSelectServicesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -27,6 +28,7 @@ const SPSelectServicesScreen: React.FC = () => {
   const [selected, setSelected] = useState<string[]>(initialSelected);
   const [showLimitHint, setShowLimitHint] = useState(false);
   const [saveError, setSaveError] = useState<unknown | null>(null);
+  const [saving, setSaving] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const searchTranslateY = Animated.diffClamp(scrollY, 0, 70).interpolate({
     inputRange: [0, 70],
@@ -55,6 +57,7 @@ const SPSelectServicesScreen: React.FC = () => {
   };
 
   const handleContinue = async () => {
+    if (saving) return;
     if (selected.length === 0) {
       Alert.alert(t('sp.selectServices.selectTitle'), t('sp.selectServices.selectDesc'));
       return;
@@ -67,11 +70,14 @@ const SPSelectServicesScreen: React.FC = () => {
     }
 
     try {
+      setSaving(true);
       await updateUser({ services: selected });
       setSaveError(null);
       navigation.navigate('LocationSelect');
     } catch (err: any) {
       setSaveError(err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -190,6 +196,7 @@ const SPSelectServicesScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
       <SafeBottomBanner />
+      <BlockingLoader visible={saving} />
     </View>
   );
 };

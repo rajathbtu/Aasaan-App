@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations, SupportedLocale } from '../i18n/translations';
 import Header from '../components/Header';
 import BottomCTA from '../components/BottomCTA';
+import BlockingLoader from '../components/BlockingLoader';
 import { spacing, colors, radius } from '../theme';
 
 const STICKY_HEIGHT = 72; // approx height of the bottom CTA area (padding + button)
@@ -29,6 +30,7 @@ const LanguageSelectionScreen: React.FC = () => {
   // Mode: 'edit' used when opened for profile-update flows, 'onboarding' otherwise
   const mode: 'edit' | 'onboarding' = (route.params?.mode as any) === 'edit' ? 'edit' : 'onboarding';
   const [canLeave, setCanLeave] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(
     preferred || user?.language || null
@@ -54,17 +56,22 @@ const LanguageSelectionScreen: React.FC = () => {
 
   const handleContinue = async () => {
     if (!selectedLanguage) return;
-    await setLanguage(selectedLanguage);
+    setSaving(true);
+    try {
+      await setLanguage(selectedLanguage);
 
-    // allow this screen to be popped/navigated away
-    setCanLeave(true);
+      // allow this screen to be popped/navigated away
+      setCanLeave(true);
 
-    if (user) {
-      navigation.goBack();
-      return;
+      if (user) {
+        navigation.goBack();
+        return;
+      }
+
+      navigation.navigate('MobileInput', { language: selectedLanguage });
+    } finally {
+      setSaving(false);
     }
-
-    navigation.navigate('MobileInput', { language: selectedLanguage });
   };
 
   return (
@@ -126,6 +133,7 @@ const LanguageSelectionScreen: React.FC = () => {
           isDisabled={!selectedLanguage}
           showArrow={!!selectedLanguage}
         />
+        <BlockingLoader visible={saving} />
       </View>
     </View>
   );

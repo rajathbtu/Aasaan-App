@@ -8,6 +8,7 @@ import { colors, spacing, radius } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
+import BlockingLoader from '../components/BlockingLoader';
 
 const STICKY_HEIGHT = 96; // approx height of the bottom CTA area (padding + button + note)
 
@@ -170,6 +171,7 @@ const RoleSelectScreen: React.FC = () => {
         isDisabled={!selectedRole || saving}
         showArrow={!!selectedRole}
       />
+      <BlockingLoader visible={saving} />
     </View>
   );
 };

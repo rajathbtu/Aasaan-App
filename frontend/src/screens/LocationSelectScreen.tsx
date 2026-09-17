@@ -10,6 +10,7 @@ import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SafeBottomBanner from '../components/SafeBottomBanner';
+import BlockingLoader from '../components/BlockingLoader';
 
 const LocationSelectScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -38,6 +39,7 @@ const LocationSelectScreen: React.FC = () => {
   const [radius, setRadius] = useState<number>(initialRadius);
   const [isRadiusExpanded, setIsRadiusExpanded] = useState(false);
   const [saveError, setSaveError] = useState<unknown | null>(null);
+  const [saving, setSaving] = useState(false);
 
   if (isRequestCreationMode && (!serviceId || !serviceName)) {
     return (
@@ -54,6 +56,7 @@ const LocationSelectScreen: React.FC = () => {
   }
 
   const handleSave = async () => {
+    if (saving) return;
     if (!selectedLocation || !selectedLocation.lat || !selectedLocation.lng) {
       if (isRequestCreationMode) 
           Alert.alert(t('createRequest.addDetails.locationRequiredTitle'), t('createRequest.addDetails.locationRequiredDesc'));
@@ -68,6 +71,7 @@ const LocationSelectScreen: React.FC = () => {
     }
 
     try {
+      setSaving(true);
       const locPayload = selectedLocation?.place_id || selectedLocation?.placeId
         ? {
             name: selectedLocation.description || selectedLocation.name,
@@ -86,6 +90,8 @@ const LocationSelectScreen: React.FC = () => {
       navigation.navigate(user?.role === 'serviceProvider' ? 'SPAvailable' : 'Main');
     } catch (err: any) {
       setSaveError(err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -187,6 +193,7 @@ const LocationSelectScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
       <SafeBottomBanner/>
+      <BlockingLoader visible={saving} />
     </View>
   );
 };

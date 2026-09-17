@@ -23,6 +23,7 @@ import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
+import BlockingLoader from '../components/BlockingLoader';
 import { spacing, colors, radius } from '../theme';
 import { TRUECALLER_APP_KEY } from '../config';
 
@@ -296,7 +297,7 @@ const MobileInputScreen: React.FC = () => {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       )}
-
+      <BlockingLoader visible={loading} />
       {/* In-app WebView Modal */}
       <Modal visible={webOpen} animationType="slide" onRequestClose={() => setWebOpen(false)}>
         <SafeAreaProvider>
