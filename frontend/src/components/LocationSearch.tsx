@@ -11,6 +11,7 @@ import ErrorBanner from './ErrorBanner';
 import { useAuth } from '../contexts/AuthContext';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { placesAutocomplete, placeDetails, reverseGeocode } from '../services/googlePlacesApi';
+import { useToast } from '../contexts/ToastContext';
 
 const MAX_SAVED_LOCATIONS = 3;
 const CITY_LEVEL_DELTA = 0.4;
@@ -58,6 +59,7 @@ const LocationSearch: React.FC<Props> = ({
   serviceAreaRadiusKm = DEFAULT_SERVICE_AREA_RADIUS_KM,
 }) => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const savedLocationsCacheKey = user?.id ? offlineCacheKey('saved-locations', user.id) : null;
   const { gpsLocation, ipLocation } = useLocation();
   const liveDefaultRegion = useMemo(() => 
@@ -80,6 +82,7 @@ const LocationSearch: React.FC<Props> = ({
   const [locationError, setLocationError] = useState<unknown | null>(null);
   const autoSelectedCurrentLocation = useRef(false);
   const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestMapSelectionRequest = useRef(0);
   const mapRef = useRef<MapViewType | null>(null);
 
   const animateToRegion = (region: Region) => {
@@ -91,7 +94,6 @@ const LocationSearch: React.FC<Props> = ({
   };
 
   useEffect(() => {
-    setQuery(initialValue || '');
     (async () => {
       const locations = await getSavedLocations();
       setSavedLocations(locations);
@@ -189,7 +191,6 @@ const LocationSearch: React.FC<Props> = ({
 
     setShowEdgeLoader(true);
     const cleanedPlaceName = removeStateAndCountry(place);
-    setQuery(cleanedPlaceName);
     setSuggestions([]);
     setShowLocationSearchOverlay(false);
 
@@ -225,6 +226,9 @@ const LocationSearch: React.FC<Props> = ({
   };
 
   const detectLocation = async () => {
+    if (regionChangeTimeout.current) 
+      clearTimeout(regionChangeTimeout.current);
+    latestMapSelectionRequest.current += 1;
     setShowEdgeLoader(true);
     setLocationError(null);
     let detectedLocation = cachedLocation; // Use cached location if available
@@ -259,7 +263,6 @@ const LocationSearch: React.FC<Props> = ({
       return;
     }
 
-    setQuery(detectedLocation.description);
     setCurrentLocationRegion({
       latitude: detectedLocation.lat,
       longitude: detectedLocation.lng,
@@ -312,9 +315,10 @@ const LocationSearch: React.FC<Props> = ({
       clearTimeout(regionChangeTimeout.current);
     }
 
+    const requestId = ++latestMapSelectionRequest.current;
     regionChangeTimeout.current = setTimeout(async () => {
       const description = await reverseGeocodeLocation(region.latitude, region.longitude);
-      setQuery(description);
+      if (requestId !== latestMapSelectionRequest.current) return;
       onSelect({ lat: region.latitude, lng: region.longitude, description });
       setShowEdgeLoader(false);
     }, 3000);
@@ -448,9 +452,14 @@ const LocationSearch: React.FC<Props> = ({
           )}
           <TouchableOpacity
             style={[styles.mapButton, isCurrentLocationSelected && styles.mapButtonDisabled]}
-            onPress={detectLocation}
+            onPress={() => {
+              if (isCurrentLocationSelected) {
+                showToast('Current location already selected');
+                return;
+              }
+              void detectLocation();
+            }}
             accessibilityLabel="Center map on current location"
-            disabled={isCurrentLocationSelected || false}
           >
             <Ionicons name="locate" size={18} color={colors.white} />
             <Text style={styles.mapButtonText}>PICK MY CURRENT LOCATION</Text>
@@ -519,13 +528,11 @@ const LocationSearch: React.FC<Props> = ({
             </View>
             {query.trim() === '' && savedLocations.length > 0 && (
               <View style={styles.suggestionsContainer}>
-                {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Current Location' }, true, 'navigate-outline')}
                 {savedLocations.map((item) => renderLocationOption(item, false, 'time-outline'))}
               </View>
             )}
             {query.trim() !== '' && suggestions.length > 0 && (
               <View style={styles.suggestionsContainer}>
-                {renderLocationOption({ place_id: 'current_location', description: cachedLocation ? cachedLocation.description : 'Current Location' }, true, 'navigate-outline')}
                 {suggestions.map((item) => renderLocationOption(item, false, 'location-outline'))}
               </View>
             )}
@@ -664,17 +671,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primary,
     borderRadius: 999,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    elevation: 3,
+    borderWidth: 2,
+    borderColor: colors.white,
+    paddingHorizontal: 50,
+    paddingVertical: spacing.md,
+    minHeight: 52,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
   },
   mapButtonDisabled: {
     backgroundColor: colors.grey,
-    opacity: 0.5,
+    opacity: 0.85,
   },
   mapButtonText: {
     color: colors.white,
