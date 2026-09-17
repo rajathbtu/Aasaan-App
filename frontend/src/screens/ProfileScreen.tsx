@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView,
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
@@ -24,6 +25,7 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user, updateUser, logout, setLanguage: setGlobalLanguage, refreshUser } = useAuth();
   const { t, lang } = useI18n();
+  const { showToast } = useToast();
   const isBottomTabsDisplayed = useNavigationState(state => state.type === 'tab');
 
   // Shared services list to map ids -> display names
@@ -140,7 +142,7 @@ const ProfileScreen: React.FC = () => {
       await updateUser(updates);
       setProfileError(null);
       setEditing(false);
-      Alert.alert(t('common.updated'), t('common.updatedDesc'));
+      showToast(t('common.updatedDesc'));
     } catch (err: any) {
       setProfileError(err);
     }
@@ -307,6 +309,7 @@ const ProfileScreen: React.FC = () => {
                         try {
                           await updateUser({ services: sel });
                           setProfileError(null);
+                          showToast(t('common.updatedDesc'));
                         } catch (error) {
                           setProfileError(error);
                         } finally {

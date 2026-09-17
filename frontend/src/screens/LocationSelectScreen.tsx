@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
@@ -17,6 +18,7 @@ const LocationSelectScreen: React.FC = () => {
   const route = useRoute<any>();
   const { user, updateUser } = useAuth();
   const { t } = useI18n();
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
 
   // Modes: 'edit' for profile updates, 'onboarding' for SP onboarding, 'requestcreation' for work request creation
@@ -87,7 +89,13 @@ const LocationSelectScreen: React.FC = () => {
           };
       await updateUser({ location: locPayload as any, radius });
       setSaveError(null);
-      navigation.navigate(user?.role === 'serviceProvider' ? 'SPAvailable' : 'Main');
+      if (mode === 'edit') {
+        showToast(t('common.updatedDesc'));
+        navigation.popTo('Profile');
+      } else {
+        navigation.navigate(user?.role === 'serviceProvider' ? 'SPAvailable' : 'Main');
+      }
+      
     } catch (err: any) {
       setSaveError(err);
     } finally {
