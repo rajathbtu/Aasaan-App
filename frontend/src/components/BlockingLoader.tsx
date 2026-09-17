@@ -1,5 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, Modal, StyleSheet, View } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
+import Spinner from './Spinner';
 import { colors } from '../theme';
 
 type BlockingLoaderProps = {
@@ -19,7 +20,7 @@ const BlockingLoader: React.FC<BlockingLoaderProps> = ({ visible }) => {
     >
       <View style={styles.overlay} pointerEvents="auto">
         <View style={styles.loader}>
-          <ActivityIndicator size="small" color={colors.primary} />
+          <Spinner size="small" color={colors.primary} />
         </View>
       </View>
     </Modal>
