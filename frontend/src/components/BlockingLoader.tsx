@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Modal, StyleSheet, View } from 'react-native';
 import { colors } from '../theme';
 
 type BlockingLoaderProps = {
@@ -10,22 +10,28 @@ const BlockingLoader: React.FC<BlockingLoaderProps> = ({ visible }) => {
   if (!visible) return null;
 
   return (
-    <View style={styles.overlay} pointerEvents="auto">
-      <View style={styles.loader}>
-        <ActivityIndicator size="small" color={colors.primary} />
+    <Modal
+      visible
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={() => {}}
+    >
+      <View style={styles.overlay} pointerEvents="auto">
+        <View style={styles.loader}>
+          <ActivityIndicator size="small" color={colors.primary} />
+        </View>
       </View>
-    </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.35)',
-    zIndex: 20,
-    elevation: 20,
   },
   loader: {
     width: 48,
