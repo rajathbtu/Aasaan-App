@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { locationManager } from './src/services/LocationManager';
 import { NotificationCountProvider, useNotificationCount } from './src/contexts/NotificationCountContext';
+import { ToastProvider } from './src/contexts/ToastContext';
 import { markNotificationRead } from './src/api';
 import { colors, radius, spacing } from './src/theme';
 import * as Notifications from 'expo-notifications';
@@ -309,15 +310,17 @@ export default function App() {
       <NotificationCountProvider>
         <NotificationHandler navigationReady={navigationReady} />
         <SafeAreaProvider>
-          <NavigationContainer
-            ref={navigationRef}
-            onReady={() => setNavigationReady(true)}
-            linking={linking as any}
-            documentTitle={documentTitle as any}
-          >
-            <StatusBar style="dark" />
-            <RootNavigator />
-          </NavigationContainer>
+          <ToastProvider>
+            <NavigationContainer
+              ref={navigationRef}
+              onReady={() => setNavigationReady(true)}
+              linking={linking as any}
+              documentTitle={documentTitle as any}
+            >
+              <StatusBar style="dark" />
+              <RootNavigator />
+            </NavigationContainer>
+          </ToastProvider>
         </SafeAreaProvider>
       </NotificationCountProvider>
     </AuthProvider>
