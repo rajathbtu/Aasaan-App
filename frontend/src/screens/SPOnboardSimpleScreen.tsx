@@ -3,15 +3,13 @@ import { ActivityIndicator, Alert, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
-import { registerUser, verifyOtp } from '../api';
+import { completeOnboarding } from '../api';
 import Header from '../components/Header';
 import { colors, spacing } from '../theme';
 
 type DeepLinkParams = {
-  phone?: string;
-  otp?: string;
-  name?: string;
-  language?: string;
+  data?: string;
+  token?: string;
 };
 
 const getDeepLinkParams = (params: Record<string, unknown> | undefined): DeepLinkParams => {
@@ -22,10 +20,8 @@ const getDeepLinkParams = (params: Record<string, unknown> | undefined): DeepLin
   };
 
   return {
-    phone: toString(params?.phone),
-    otp: toString(params?.otp),
-    name: toString(params?.name),
-    language: toString(params?.language),
+    data: toString(params?.data),
+    token: toString(params?.token),
   };
 };
 
@@ -36,14 +32,15 @@ const SPOnboardSimpleScreen: React.FC = () => {
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const attemptedRef = useRef(false);
-  const { phone, otp, name, language } = getDeepLinkParams(route.params);
+  const { data, token: routeToken } = getDeepLinkParams(route.params);
+  const onboardingToken = data || routeToken;
 
   useEffect(() => {
     if (authLoading || attemptedRef.current) return;
 
     attemptedRef.current = true;
     const clearParams = () => {
-      navigation.setParams({ phone: undefined, otp: undefined, name: undefined, language: undefined });
+      navigation.setParams({ data: undefined, token: undefined });
     };
 
     if (user && token) {
@@ -52,44 +49,28 @@ const SPOnboardSimpleScreen: React.FC = () => {
       return;
     }
 
-    if (!phone || !otp) {
+    if (!onboardingToken) {
       setLoading(false);
-      Alert.alert(t('common.error'), 'This onboarding link is missing phone or OTP details.');
-      navigation.replace('Auth', { screen: 'MobileInput', params: { language } });
+      Alert.alert(t('common.error'), 'This onboarding link is missing its token.');
+      navigation.replace('Auth', { screen: 'MobileInput' });
       return;
     }
 
     (async () => {
       try {
-        let authenticationResult: any = null;
-        try {
-          authenticationResult = await verifyOtp(phone, Number(otp));
-        } catch {
-          authenticationResult = null;
-        }
-
-        if (!authenticationResult || authenticationResult.needsRegistration) {
-          authenticationResult = await registerUser(
-            phone,
-            name?.trim() || 'user_' + phone, // allow profile creation with default name if not provided
-            language || 'en',
-            'serviceProvider',
-            otp
-          );
-        }
-
+        const authenticationResult = await completeOnboarding(onboardingToken);
         if (!authenticationResult?.token) throw new Error(t('common.invalidOtp'));
         await login(authenticationResult.token, authenticationResult.user);
         clearParams();
         navigation.replace('SPSelectServices');
       } catch (error: any) {
         Alert.alert(t('common.error'), error?.message || 'Failed to sign in');
-        navigation.replace('Auth', { screen: 'MobileInput', params: { language } });
+        navigation.replace('Auth', { screen: 'MobileInput' });
       } finally {
         setLoading(false);
       }
     })();
-  }, [authLoading, language, login, name, navigation, otp, phone, t, token, user]);
+  }, [authLoading, login, navigation, onboardingToken, t, token, user]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>

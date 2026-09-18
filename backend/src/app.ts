@@ -87,7 +87,7 @@ app.use('/notifications', notificationRoutes);
 app.use('/payments', paymentRoutes);
 app.use('/services', serviceRoutes);
 app.use('/google-places', googlePlacesRoutes); // Web-only proxy for Google Places Web Service endpoints (see googlePlacesProxyController). Native apps call Google directly.
-app.use('/whatsapp', whatsappRoutes); // WhatsApp Cloud API (Meta): conversation triggers + webhooks (see backend/whatsapp/README.md)
+app.use('/whatsapp', whatsappRoutes); // WhatsApp Cloud API (Meta): inbound webhooks only (see backend/whatsapp/README.md)
 
 // Catch‑all for unknown routes
 app.use((req, res, next) => {

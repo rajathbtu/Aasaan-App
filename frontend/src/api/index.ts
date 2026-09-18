@@ -235,3 +235,8 @@ export async function markNotificationRead(token: string, id: string) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+export async function completeOnboarding(token: string) {
+  const res = await api.post('/auth/complete-onboarding', { token });
+  return res.data as { token: string; user: any };
+}

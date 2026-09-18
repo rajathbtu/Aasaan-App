@@ -7,11 +7,13 @@ import {
 	truecallerCallback,
 	truecallerStatus,
 	startTruecallerLogin,
+	completeOnboarding,
 } from '../controllers/authController';
 
 const router = Router();
 
 router.post('/send-otp', sendOtp);
+router.post('/complete-onboarding', completeOnboarding);
 router.post('/verify-otp', verifyOtp);
 router.post('/register', register);
 router.post('/check-registration', checkUserRegistration);
