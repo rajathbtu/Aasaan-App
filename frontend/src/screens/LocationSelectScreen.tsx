@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import BlockingLoader from '../components/BlockingLoader';
+import BottomCTA from '../components/BottomCTA';
 
 const LocationSelectScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -42,6 +43,7 @@ const LocationSelectScreen: React.FC = () => {
   const [isRadiusExpanded, setIsRadiusExpanded] = useState(false);
   const [saveError, setSaveError] = useState<unknown | null>(null);
   const [saving, setSaving] = useState(false);
+  const [isLocationResolving, setIsLocationResolving] = useState(false);
 
   if (isRequestCreationMode && (!serviceId || !serviceName)) {
     return (
@@ -58,7 +60,7 @@ const LocationSelectScreen: React.FC = () => {
   }
 
   const handleSave = async () => {
-    if (saving) return;
+    if (saving || isLocationResolving) return;
     if (!selectedLocation || !selectedLocation.lat || !selectedLocation.lng) {
       if (isRequestCreationMode) 
           Alert.alert(t('createRequest.addDetails.locationRequiredTitle'), t('createRequest.addDetails.locationRequiredDesc'));
@@ -121,6 +123,7 @@ const LocationSelectScreen: React.FC = () => {
 
       <View style={styles.flex}>
         <LocationSearch
+          onResolvingChange={setIsLocationResolving}
           onSelect={(loc) => {
             setSelectedLocation(!loc ? null : { name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng });
           }}
@@ -193,12 +196,14 @@ const LocationSelectScreen: React.FC = () => {
 
         <ErrorBanner error={saveError} onRetry={handleSave} />
 
-        <TouchableOpacity style={[styles.saveButton, styles.ctaShadow]} onPress={handleSave} activeOpacity={0.85}>
-          <Text style={styles.saveText}>
-            {isRequestCreationMode ? t('createRequest.addDetails.confirmLocationButton') : t('sp.selectLocation.saveButton')}
-          </Text>
-          <Ionicons name="arrow-forward" size={18} color={colors.white} style={{ marginLeft: spacing.sm }} />
-        </TouchableOpacity>
+        <BottomCTA
+          containerStyle={styles.bottomCtaContainer}
+          buttonStyle={styles.ctaShadow}
+          buttonText={isRequestCreationMode ? t('createRequest.addDetails.confirmLocationButton') : t('sp.selectLocation.saveButton')}
+          onPress={handleSave}
+          isLoading={isLocationResolving}
+          showArrow={!isLocationResolving}
+        />
       </View>
       <SafeBottomBanner/>
       <BlockingLoader visible={saving} />
@@ -344,14 +349,11 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: '700',
   },
-  saveButton: {
-    height: 48,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    // marginTop: spacing.xs,
+  bottomCtaContainer: {
+    padding: 0,
+    paddingBottom: 0,
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
     marginBottom: spacing.sm,
   },
   ctaShadow: {
@@ -360,11 +362,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
-  },
-  saveText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

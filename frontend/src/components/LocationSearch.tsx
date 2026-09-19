@@ -39,6 +39,7 @@ type Location = {
 
 type Props = {
   onSelect: (location: any | null) => void;
+  onResolvingChange?: (isResolving: boolean) => void;
   initialValue?: string;
   placeholder?: string;
   enableMap?: boolean;
@@ -50,6 +51,7 @@ type Props = {
 
 const LocationSearch: React.FC<Props> = ({
   onSelect,
+  onResolvingChange,
   initialValue = '',
   placeholder = 'Select location',
   enableMap = false,
@@ -67,7 +69,7 @@ const LocationSearch: React.FC<Props> = ({
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<Array<{ place_id: string; description: string }>>([]);
   const [savedLocations, setSavedLocations] = useState<Array<{ place_id: string; description: string }>>([]);
-  const [locating, setLocating] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [cachedLocation, setCachedLocation] = useState<any>(null); // Cache for current location
   const [currentLocationRegion, setCurrentLocationRegion] = useState<{ latitude: number; longitude: number } | null>(null);
   const [mapRegion, setMapRegion] = useState<Region | null>(
@@ -75,15 +77,19 @@ const LocationSearch: React.FC<Props> = ({
       ? getRegionFromLocation({ latitude: initialLocation.lat, longitude: initialLocation.lng }, isServiceArea)
       : liveDefaultRegion
   );
-  const [mapLoading, setMapLoading] = useState(enableMap);
+  const [isMapReady, setIsMapReady] = useState(!enableMap);
   const [isMapInteracting, setIsMapInteracting] = useState(false);
-  const [showLocationSearchOverlay, setShowLocationSearchOverlay] = useState(false);
-  const [showEdgeLoader, setShowEdgeLoader] = useState(false);
+  const [isSearchOverlayVisible, setIsSearchOverlayVisible] = useState(false);
+  const [isLocationResolving, setIsLocationResolving] = useState(false);
   const [locationError, setLocationError] = useState<unknown | null>(null);
   const autoSelectedCurrentLocation = useRef(false);
   const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestMapSelectionRequest = useRef(0);
   const mapRef = useRef<MapViewType | null>(null);
+
+  useEffect(() => {
+    onResolvingChange?.(isLocationResolving);
+  }, [isLocationResolving, onResolvingChange]);
 
   const animateToRegion = (region: Region) => {
     if (mapRef.current) {
@@ -118,7 +124,7 @@ const LocationSearch: React.FC<Props> = ({
         return currentRegion;
       return region;
     });
-    setMapLoading(false);
+    setIsMapReady(true);
 
     if (mapRef.current) {
       animateToRegion(region);
@@ -149,7 +155,6 @@ const LocationSearch: React.FC<Props> = ({
         description: removeStateAndCountry(suggestion),
       }));
       setSuggestions(processedSuggestions as unknown as Array<{ place_id: string; description: string }>);
-      // setLocationError(null);
     } catch (error) {
       setLocationError(error);
     }
@@ -185,18 +190,18 @@ const LocationSearch: React.FC<Props> = ({
 
   const handleSelect = async (place: any) => {
     if (place.place_id === 'current_location') {
-      setShowLocationSearchOverlay(false);
+      setIsSearchOverlayVisible(false);
       return detectLocation();
     }
 
-    setShowEdgeLoader(true);
+    setIsLocationResolving(true);
     const cleanedPlaceName = removeStateAndCountry(place);
     setSuggestions([]);
-    setShowLocationSearchOverlay(false);
+    setIsSearchOverlayVisible(false);
 
     if (!place.place_id) {
       onSelect({ ...place, description: cleanedPlaceName });
-      setShowEdgeLoader(false);
+      setIsLocationResolving(false);
       return;
     }
 
@@ -216,12 +221,11 @@ const LocationSearch: React.FC<Props> = ({
       animateToRegion(region);
       await saveLocation(selectedLocation);
       setSavedLocations(await getSavedLocations());
-      // setLocationError(null);
-      setShowEdgeLoader(false);
+      setIsLocationResolving(false);
     } catch (error) {
       setLocationError(error);
       onSelect({ ...place, description: cleanedPlaceName });
-      setShowEdgeLoader(false);
+      setIsLocationResolving(false);
     }
   };
 
@@ -229,15 +233,15 @@ const LocationSearch: React.FC<Props> = ({
     if (regionChangeTimeout.current) 
       clearTimeout(regionChangeTimeout.current);
     latestMapSelectionRequest.current += 1;
-    setShowEdgeLoader(true);
+    setIsLocationResolving(true);
     setLocationError(null);
     let detectedLocation = cachedLocation; // Use cached location if available
     if (!detectedLocation) {
       try {
-        setLocating(true);
+        setIsLocating(true);
         const gpsLocation = await locationManager.getGPSLocation(true);
         if (!gpsLocation) {
-          setShowEdgeLoader(false);
+          setIsLocationResolving(false);
           return;
         }
 
@@ -254,12 +258,12 @@ const LocationSearch: React.FC<Props> = ({
           setLocationError(error);
         }
       } finally {
-        setLocating(false);
+        setIsLocating(false);
       }
     }
 
     if (!detectedLocation) {
-      setShowEdgeLoader(false);
+      setIsLocationResolving(false);
       return;
     }
 
@@ -267,7 +271,7 @@ const LocationSearch: React.FC<Props> = ({
       latitude: detectedLocation.lat,
       longitude: detectedLocation.lng,
     });
-    setShowLocationSearchOverlay(false);
+    setIsSearchOverlayVisible(false);
     onSelect(detectedLocation);
     const region = {
       latitude: detectedLocation.lat,
@@ -277,7 +281,7 @@ const LocationSearch: React.FC<Props> = ({
     };
     setMapRegion(region);
     animateToRegion(region);
-    setShowEdgeLoader(false);
+    setIsLocationResolving(false);
     return;
   };
 
@@ -293,7 +297,6 @@ const LocationSearch: React.FC<Props> = ({
     setLocationError(null);
     try {
       const data = await reverseGeocode({ latlng: `${latitude},${longitude}` });
-      // setLocationError(null);
       if (data.results && data.results.length > 0)
         return removeStateCountryAndPostalCode(data.results[0]);
     } catch (error) {
@@ -320,7 +323,7 @@ const LocationSearch: React.FC<Props> = ({
       const description = await reverseGeocodeLocation(region.latitude, region.longitude);
       if (requestId !== latestMapSelectionRequest.current) return;
       onSelect({ lat: region.latitude, lng: region.longitude, description });
-      setShowEdgeLoader(false);
+      setIsLocationResolving(false);
     }, 3000);
   };
 
@@ -353,16 +356,15 @@ const LocationSearch: React.FC<Props> = ({
     }
   };
 
-  const shown = suggestions.slice(0, 5);
 
   const capitalizeWords = (text: string) => {
     return text.replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
   };
 
-  const renderLocationOption = (item: { place_id: string; description: string }, isCurrentLocation = false, iconName?: string) => (
+  const renderLocationOption = (item: { place_id: string; description: string }, iconName?: string) => (
     <TouchableOpacity
       key={item.place_id}
-      onPress={() => (isCurrentLocation ? detectLocation() : handleSelect(item))}
+      onPress={() => handleSelect(item)}
     >
       <View style={styles.suggestionRow}>
         {iconName ? (
@@ -385,7 +387,7 @@ const LocationSearch: React.FC<Props> = ({
       
       {enableMap && (
         <View style={[styles.mapContainer, mapHeight ? { height: mapHeight } : { flex: 1 }]}>            
-          {mapLoading && (
+          {!isMapReady && (
             <View style={styles.mapLoadingOverlay}>
               <ActivityIndicator size="large" color={colors.primary} />
             </View>
@@ -403,10 +405,8 @@ const LocationSearch: React.FC<Props> = ({
                 } : undefined}
                 onPanDrag={() => {
                   setIsMapInteracting(true);
-                  setShowEdgeLoader(true);
+                  setIsLocationResolving(true);
                 }}
-                // onLongPress={() => setIsMapInteracting(true)}
-                // onPress={() => setIsMapInteracting(false)}
                 onRegionChangeComplete={(region: Region) => {
                   if (!regionsAreClose(mapRegion, region)) { // Only update if new region differs meaningfully
                     console.log('Map region changed:', region.latitude, region.longitude);
@@ -415,11 +415,11 @@ const LocationSearch: React.FC<Props> = ({
                   }
                   setIsMapInteracting(false);
                 }}
-                onMapReady={() => setMapLoading(false)}
+                onMapReady={() => setIsMapReady(true)}
                 showsUserLocation={true}
                 showsMyLocationButton={false}
               />
-              <EdgeLoader visible={showEdgeLoader} />
+              <EdgeLoader visible={isLocationResolving} />
               <View pointerEvents="none" style={styles.centerMarkerContainer}>
                 <Image
                   source={locationMarkerIcon}
@@ -432,7 +432,7 @@ const LocationSearch: React.FC<Props> = ({
               </View>
               <TouchableOpacity
                 activeOpacity={0.9}
-                onPress={() => setShowLocationSearchOverlay(true)}
+                onPress={() => setIsSearchOverlayVisible(true)}
                 style={styles.mapInputOverlay}
                 accessibilityLabel="Enter location name"
               >
@@ -467,20 +467,20 @@ const LocationSearch: React.FC<Props> = ({
         </View>
       )}
       <Modal
-        visible={showLocationSearchOverlay}
+        visible={isSearchOverlayVisible}
         animationType="slide"
         transparent
         statusBarTranslucent
-        onRequestClose={() => setShowLocationSearchOverlay(false)}
+        onRequestClose={() => setIsSearchOverlayVisible(false)}
       >
         <View style={styles.overlay}>
           <Header title={'Search Location'} showBackButton={true} showNotification={false}
-                  keepTitleCenterAligned={false} onBackPress={() => setShowLocationSearchOverlay(false)} />
+                  keepTitleCenterAligned={false} onBackPress={() => setIsSearchOverlayVisible(false)} />
           <View id="location-search-input" style={styles.overlayContent}>
             <View style={styles.inputWrap}>
               <TextInput
                 style={[styles.input, { maxHeight: 60 }]} // Adjust maxHeight to fit 2 lines
-                placeholder={locating ? 'Fetching current location...' : placeholder} // Show fetching message
+                placeholder={isLocating ? 'Fetching current location...' : placeholder} // Show fetching message
                 placeholderTextColor={colors.grey}
                 value={query}
                 multiline={true} // Enable multiline to allow wrapping
@@ -501,7 +501,7 @@ const LocationSearch: React.FC<Props> = ({
                   fetchSuggestions(text);
                 }}
               />
-              {/* {query.length == 0 && !locating && (
+              {/* {query.length == 0 && !isLocating && (
                 <TouchableOpacity
                   onPress={detectLocation}
                   style={styles.rightAdornment}
@@ -522,18 +522,18 @@ const LocationSearch: React.FC<Props> = ({
                   <Ionicons name="close-circle" size={21} color={colors.grey} />
                 </TouchableOpacity>
               )}
-              {locating && (
+              {isLocating && (
                 <ActivityIndicator style={styles.rightAdornment} size="small" />
               )}
             </View>
             {query.trim() === '' && savedLocations.length > 0 && (
               <View style={styles.suggestionsContainer}>
-                {savedLocations.map((item) => renderLocationOption(item, false, 'time-outline'))}
+                {savedLocations.map((item) => renderLocationOption(item, 'time-outline'))}
               </View>
             )}
             {query.trim() !== '' && suggestions.length > 0 && (
               <View style={styles.suggestionsContainer}>
-                {suggestions.map((item) => renderLocationOption(item, false, 'location-outline'))}
+                {suggestions.map((item) => renderLocationOption(item, 'location-outline'))}
               </View>
             )}
           </View>
@@ -551,7 +551,6 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: colors.greyLight,
-    // borderRadius: radius.sm,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     color: colors.dark,
@@ -574,7 +573,6 @@ const styles = StyleSheet.create({
   suggestionsContainer: {
     borderWidth: 1,
     borderColor: colors.greyLight,
-    // borderRadius: radius.sm,
     overflow: 'hidden',
     backgroundColor: colors.white,
   },
@@ -605,7 +603,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.greyLight,
     borderRadius: radius.md,
     overflow: 'hidden',
-    // marginBottom: spacing.sm,
   },
   flexContainer: {
     flex: 1,
@@ -706,10 +703,6 @@ const styles = StyleSheet.create({
     zIndex: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
     justifyContent: 'flex-start',
-  },
-  overlayBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   overlayContent: {
     position: 'relative',
