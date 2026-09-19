@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
-import { completeOnboarding } from '../api';
+import { completeOnboarding, sendOtp } from '../api';
 import Header from '../components/Header';
 import { colors, spacing } from '../theme';
 
@@ -28,7 +28,7 @@ const getDeepLinkParams = (params: Record<string, unknown> | undefined): DeepLin
 const SPOnboardSimpleScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { user, token, login, loading: authLoading } = useAuth();
+  const { user, token, login, logout, loading: authLoading } = useAuth();
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const attemptedRef = useRef(false);
@@ -43,12 +43,6 @@ const SPOnboardSimpleScreen: React.FC = () => {
       navigation.setParams({ data: undefined, token: undefined });
     };
 
-    if (user && token) {
-      clearParams();
-      navigation.replace('SPSelectServices');
-      return;
-    }
-
     if (!onboardingToken) {
       setLoading(false);
       Alert.alert(t('common.error'), 'This onboarding link is missing its token.');
@@ -58,7 +52,19 @@ const SPOnboardSimpleScreen: React.FC = () => {
 
     (async () => {
       try {
+        if (user && token) await logout();
+
         const authenticationResult = await completeOnboarding(onboardingToken);
+        if ('requiresOtp' in authenticationResult) {
+          await sendOtp(authenticationResult.phone);
+          clearParams();
+          navigation.replace('Auth', {
+            screen: 'OTPVerification',
+            params: { phone: authenticationResult.phone },
+          });
+          return;
+        }
+
         if (!authenticationResult?.token) throw new Error(t('common.invalidOtp'));
         await login(authenticationResult.token, authenticationResult.user);
         clearParams();
@@ -70,7 +76,7 @@ const SPOnboardSimpleScreen: React.FC = () => {
         setLoading(false);
       }
     })();
-  }, [authLoading, login, navigation, onboardingToken, t, token, user]);
+  }, [authLoading, login, logout, navigation, onboardingToken, t, token, user]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>

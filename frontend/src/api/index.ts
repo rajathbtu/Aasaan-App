@@ -238,5 +238,7 @@ export async function markNotificationRead(token: string, id: string) {
 
 export async function completeOnboarding(token: string) {
   const res = await api.post('/auth/complete-onboarding', { token });
-  return res.data as { token: string; user: any };
+  return res.data as
+    | { requiresOtp: true; phone: string }
+    | { token: string; user: any };
 }

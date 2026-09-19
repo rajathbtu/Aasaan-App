@@ -332,7 +332,9 @@ export async function completeOnboarding(req: Request, res: Response): Promise<v
     const { phone, name, language } = decryptOnboardingToken(token);
     const existing = await findUserByPhone(phone);
     if (existing) {
-      res.json({ token: existing.id, user: existing });
+      // The onboarding link just identifies the phone, but it is not used to authenticate
+      // an existing account. Normal OTP flow performs authentication.
+      res.json({ requiresOtp: true, phone });
       return;
     }
 

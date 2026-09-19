@@ -116,7 +116,8 @@ function RootNavigator() {
   // conditional screen swap.  Reset the root stack to the auth flow so the
   // user lands on the launch screen.
   useEffect(() => {
-    if (wasAuthenticated.current && !user) {
+    if (wasAuthenticated.current && !user &&
+          navigationRef.current?.getCurrentRoute()?.name !== 'SPOnboardSimple') {
       navigationRef.current?.reset({ index: 0, routes: [{ name: 'Auth' }] });
     }
     wasAuthenticated.current = !!user;
