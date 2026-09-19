@@ -132,6 +132,14 @@ const OTPVerificationScreen: React.FC = () => {
 
   const timerText = seconds > 0 ? `00:${String(seconds).padStart(2, '0')}` : '';
 
+  const handleChangePhone = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate('MobileInput', { language: lang });
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.white }} >
         {/* Header */}
@@ -149,7 +157,7 @@ const OTPVerificationScreen: React.FC = () => {
             <Text style={styles.subtle}>{t('otp.sentInfo')}</Text>
             <View style={styles.phoneRow}>
               <Text style={styles.phoneText}>+91 {String(phone || '').replace(/^\+?91/, '')}</Text>
-              <TouchableOpacity onPress={() => navigation.goBack()}>
+              <TouchableOpacity onPress={handleChangePhone}>
                 <Text style={styles.changeLink}>{t('common.change')}</Text>
               </TouchableOpacity>
             </View>

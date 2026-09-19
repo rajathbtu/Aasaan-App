@@ -87,7 +87,7 @@ const ProfileScreen: React.FC = () => {
     setPendingServices(Array.isArray(user?.serviceProviderInfo?.services) ? (user!.serviceProviderInfo!.services as string[]) : []);
     setPendingLocation(user?.serviceProviderInfo?.location || null);
     setPendingRadius((user?.serviceProviderInfo?.radius as number | undefined) ?? 5);
-  }, [user?.id, user?.name, user?.role]);
+  }, [user]);
 
   useEffect(() => {
     (async () => {
