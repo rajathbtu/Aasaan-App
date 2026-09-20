@@ -3,8 +3,6 @@ import { Server } from 'http';
 import { randomUUID } from 'crypto';
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import { callSessionManager } from '../models/callSessions';
-import OpenAIRealtime from '../services/openaiRealtime';
-import VOICE_AGENT_SYSTEM_PROMPT from '../config/openaiPrompt';
 import { CallSummary, TranscriptEntry } from '../services/callSummary';
 
 // Plivo WebSocket adapter
@@ -20,16 +18,10 @@ export function attachPlivoWs(server: Server) {
     const summary = process.env.CALL_SUMMARY_ENABLED === '1' ? new CallSummary() : undefined;
     let ended = false;
     // Stop/close/hangup share this connection's single finalization guard.
-    const openai = new OpenAIRealtime({
-      apiKey: process.env.OPENAI_API_KEY || '',
-      model: process.env.OPENAI_REALTIME_MODEL || 'gpt-4o-realtime-preview',
-      instructions: VOICE_AGENT_SYSTEM_PROMPT,
-      transcriptLogging: process.env.CALL_TRANSCRIPT_LOGGING === '1',
-      collectTranscripts: Boolean(summary),
-      getCallId: () => callUuid || connectionId,
-    });
-
-    openai.on('transcript', (entry: TranscriptEntry) => summary?.add(entry));
+    // Create pluggable provider (OpenAI realtime by default, or Sarvam)
+    const { createProvider } = require('../providers/factory');
+    const provider = createProvider();
+    provider.on('transcript', (entry: TranscriptEntry) => summary?.add(entry));
 
     // Per-connection ffmpeg process that converts OpenAI PCM@24000 -> mu-law@8000 for Plivo
     let ffmpeg: ChildProcessWithoutNullStreams | null = null;
@@ -46,7 +38,7 @@ export function attachPlivoWs(server: Server) {
       }
     }
 
-    openai.on('speech_started', () => {
+    provider.on('speech_started', () => {
       if (ended || ws.readyState !== WebSocket.OPEN || outputInterrupted) return;
       outputInterrupted = true;
       discardTranscoder();
@@ -56,7 +48,7 @@ export function attachPlivoWs(server: Server) {
       });
     });
     // Transcode the next agent response from a clean ffmpeg process.
-    openai.on('response.started', () => { outputInterrupted = false; });
+    provider.on('response.started', () => { outputInterrupted = false; });
 
     function startFfmpeg() {
       if (ffmpeg) return ffmpeg;
@@ -115,15 +107,15 @@ export function attachPlivoWs(server: Server) {
       return ffmpeg;
     }
 
-    openai.on('open', () => console.log('[OPENAI] realtime open'));
-    openai.on('error', (e) => console.error('[OpenAI] error', e));
-    openai.on('close', () => console.log('[OpenAI] closed'));
-    openai.on('audio', (b64: string) => {
+    provider.on('open', () => console.log('[PROVIDER] open'));
+    provider.on('error', (e: Error) => console.error('[PROVIDER] error', e));
+    provider.on('close', () => console.log('[PROVIDER] closed'));
+    provider.on('audio', (b64: string) => {
       if (ended || ws.readyState !== WebSocket.OPEN || outputInterrupted) return;
       // OpenAI emits PCM@24000 (s16le). Transcode to mu-law@8000 before sending to Plivo.
       try {
         const raw = Buffer.from(b64, 'base64');
-        if (process.env.OPENAI_DEBUG === '1') console.log('[OPENAI] audio delta bytes=', raw.length);
+        if (process.env.OPENAI_DEBUG === '1') console.log('[PROVIDER] audio delta bytes=', raw.length);
         const ff = startFfmpeg();
         if (!ff || !ff.stdin || !ffmpegAvailable) {
           console.warn('[PLIVO] ffmpeg not available; cannot transcode OpenAI audio — install ffmpeg and restart the server');
@@ -149,7 +141,7 @@ export function attachPlivoWs(server: Server) {
       console.error('[Plivo WS] server ws error', err);
     });
 
-    openai.connect();
+    provider.connect();
     const MIN_COMMIT_BYTES = Number(process.env.MIN_OPENAI_COMMIT_BYTES || '1600'); // ~200ms @ 8kHz mu-law (was 800)
     let openaiReady = false;
     let audioBufferParts: string[] = [];
@@ -166,20 +158,14 @@ export function attachPlivoWs(server: Server) {
       }
       
       try {
-        // Convert buffered mu-law parts to PCM@24k and send to OpenAI
+        // Forward mu-law parts to provider; provider implementations handle conversion/append
         for (const part of audioBufferParts) {
-          const mu = Buffer.from(part, 'base64');
-          const pcm24 = mulawToPcm24k(mu);
-          openai.appendAudio(pcm24.toString('base64'));
+          try { provider.sendInputAudio(part); } catch (err) { console.error('[PLIVO] provider.sendInputAudio error', err); }
         }
-        
-        // Clear buffer AFTER successful append
+        // Clear buffer AFTER forwarding
         audioBufferParts = [];
         audioBufferBytes = 0;
-        
-        if (process.env.PLIVO_DEBUG === '1') {
-          console.log('[PLIVO] flushAudioBuffer: appended audio to OpenAI (VAD will auto-commit/respond)');
-        }
+        if (process.env.PLIVO_DEBUG === '1') console.log('[PLIVO] flushAudioBuffer: forwarded audio to provider');
         return true;
       } catch (e) {
         console.error('[PLIVO] error in flushAudioBuffer', e);
@@ -223,12 +209,10 @@ export function attachPlivoWs(server: Server) {
       // not a guarantee that all in-flight speech will finish transcribing.
       if (summary) {
         setTimeout(() => {
-          openai.close();
+          provider.close();
           void summary.finish(callUuid || connectionId);
         }, 1500);
-      } else {
-        openai.close();
-      }
+      } else provider.close();
       audioBufferParts = [];
       audioBufferBytes = 0;
     }
@@ -238,10 +222,10 @@ export function attachPlivoWs(server: Server) {
     function requestGreeting() {
       if (ended || !streamStarted || !openaiReady || greetingRequested || ws.readyState !== WebSocket.OPEN) return;
       greetingRequested = true;
-      openai.requestResponse();
+      provider.requestResponse();
     }
 
-    openai.on('open', () => {
+    provider.on('open', () => {
       openaiReady = true;
       requestGreeting();
     });
@@ -277,18 +261,11 @@ export function attachPlivoWs(server: Server) {
           if (payload) {
             try {
               const rawBytes = Buffer.from(payload, 'base64').length;
-              if (process.env.PLIVO_DEBUG === '1') {
-                console.log('[PLIVO] media received bytes=', rawBytes);
-              }
-              // Buffer incoming mu-law chunks until we have enough audio for OpenAI to accept a commit
+              if (process.env.PLIVO_DEBUG === '1') console.log('[PLIVO] media received bytes=', rawBytes);
+              // Buffer incoming mu-law chunks until we have enough audio for the provider to accept
               audioBufferParts.push(payload);
               audioBufferBytes += rawBytes;
-
-              // If we have enough buffered audio and OpenAI is ready, convert and flush to OpenAI
-              // (Let OpenAI server-side VAD handle turn-taking - don't block on responseActive)
-              if (audioBufferBytes >= MIN_COMMIT_BYTES && openaiReady) {
-                flushAudioBuffer();
-              }
+              if (audioBufferBytes >= MIN_COMMIT_BYTES && openaiReady) flushAudioBuffer();
             } catch (err) {
               console.error('[PLIVO] error forwarding media to OpenAI', err);
             }
