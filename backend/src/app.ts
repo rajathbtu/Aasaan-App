@@ -9,6 +9,7 @@ import serviceRoutes from './routes/serviceRoutes';
 import googlePlacesRoutes from './routes/googlePlacesRoutes';
 import whatsappRoutes from './communications/whatsapp/routes';
 import plivoRoutes from '../voiceAI/routes/plivoRoutes';
+import sarvamRoutes from '../voiceAI/routes/sarvamRoutes';
 import { errorHandler } from './middleware/errorHandler';
 
 // Create and configure the Express application.  All middleware and routes are
@@ -93,6 +94,8 @@ app.use('/google-places', googlePlacesRoutes); // Web-only proxy for Google Plac
 app.use('/whatsapp', whatsappRoutes); // WhatsApp Cloud API (Meta): inbound webhooks only
 app.use('/webhooks/plivo', plivoRoutes);
 app.use('/api', plivoRoutes); // exposes POST /api/calls
+app.use('/webhooks/sarvam', sarvamRoutes);
+app.use('/api/sarvam', sarvamRoutes); // exposes POST /api/sarvam/calls
 
 // Catch‑all for unknown routes
 app.use((req, res, next) => {
