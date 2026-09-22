@@ -253,13 +253,22 @@ export async function hangup(req: Request, res: Response) {
       rawStatus: status
     });
 
-    // TRIGGER WHATSAPP FOR MISSED CALL CANDIDATES
-    if (isMissedCandidate && session.from && !session.whatsappTriggered) {
+    // TRIGGER WHATSAPP FOR MISSED OUTBOUND CALLS ONLY
+    // Inbound calls (to +918064261388 or any agent number) NEVER trigger WhatsApp
+    if (isOutbound && isMissedCandidate && session.from && !session.whatsappTriggered) {
       await triggerMissedCallWhatsApp(session);
-    } else if (isMissedCandidate && session.whatsappTriggered) {
-      console.log('[SARVAM] hangup: WhatsApp already triggered for this call (idempotent)', { callId });
-    } else if (isAnswered) {
-      console.log('[SARVAM] hangup: answered call - skipping WhatsApp', { callId, durationSec: calculatedDuration, transcriptLength: Array.isArray(transcript) ? transcript.length : 0 });
+    } else if (isOutbound && isMissedCandidate && session.whatsappTriggered) {
+      console.log('[SARVAM] hangup: WhatsApp already triggered for this outbound call (idempotent)', { callId });
+    } else if (isOutbound && isAnswered) {
+      console.log('[SARVAM] hangup: answered outbound call - skipping WhatsApp', { callId, durationSec: calculatedDuration });
+    } else if (!isOutbound) {
+      // Inbound call - NEVER trigger WhatsApp regardless of missed/answered
+      console.log('[SARVAM] hangup: inbound call - WhatsApp disabled for inbound', { 
+        callId, 
+        status: isAnswered ? 'answered' : (isMissedCandidate ? 'missed' : 'indeterminate'),
+        from: session.from,
+        to: session.to 
+      });
     } else {
       // Neither clearly answered nor clearly missed (e.g., duration > 0 but no transcript)
       console.log('[SARVAM] hangup: indeterminate call - skipping WhatsApp', { callId, durationSec: calculatedDuration, transcriptLength: Array.isArray(transcript) ? transcript.length : 0, hasTranscript: Array.isArray(transcript) && transcript.length > 0 });
