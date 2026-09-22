@@ -55,9 +55,14 @@ async function makeCall({ to }: { to: string }): Promise<CallResult> {
   if (!SARVAM_WORKSPACE_ID) throw new Error('SARVAM_WORKSPACE_ID not configured');
   if (!SARVAM_CONNECTION_ID) throw new Error('SARVAM_CONNECTION_ID not configured');
 
+  const publicBase = (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
+  if (!publicBase) {
+    console.error('[SARVAM] PUBLIC_BASE_URL not set; cannot configure outbound webhook');
+  }
+
   const url = `${SARVAM_API_BASE}/api/outbounds/v1/orgs/${SARVAM_ORG_ID}/workspaces/${SARVAM_WORKSPACE_ID}/outbounds`;
 
-  const payload = {
+  const payload: any = {
     app_config: {
       app_id: SARVAM_AGENT_ID,
       app_version: 3,
@@ -71,6 +76,14 @@ async function makeCall({ to }: { to: string }): Promise<CallResult> {
       user_phone_number: to,
     },
   };
+
+  // Add webhook config for call completion notifications (missed/answered detection)
+  if (publicBase) {
+    payload.webhook_config = {
+      url: `${publicBase}/webhooks/sarvam/hangup`,
+      metadata: { source: 'instant-outbound' },
+    };
+  }
 
   try {
     console.log('[SARVAM] Making instant outbound call via official REST API', { 
