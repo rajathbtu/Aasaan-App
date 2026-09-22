@@ -12,7 +12,7 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-import { initiateConversation } from './service';
+import { initiateConversation } from '../whatsapp/service';
 
 async function main(): Promise<void> {
   const [phone, templateName, languageCode] = process.argv.slice(2);

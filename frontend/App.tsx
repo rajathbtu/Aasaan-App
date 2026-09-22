@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { locationManager } from './src/services/LocationManager';
 import { NotificationCountProvider, useNotificationCount } from './src/contexts/NotificationCountContext';
+import { ToastProvider } from './src/contexts/ToastContext';
 import { markNotificationRead } from './src/api';
 import { colors, radius, spacing } from './src/theme';
 import * as Notifications from 'expo-notifications';
@@ -109,6 +110,19 @@ function NotificationHandler({ navigationReady }: { navigationReady: boolean }) 
 // finishes loading the current user from secure storage.
 function RootNavigator() {
   const { user, loading } = useAuth();
+  const wasAuthenticated = useRef(false);
+
+  // On logout, stale onboarding routes (e.g. SPSelectServices) can survive the
+  // conditional screen swap.  Reset the root stack to the auth flow so the
+  // user lands on the launch screen.
+  useEffect(() => {
+    if (wasAuthenticated.current && !user &&
+          navigationRef.current?.getCurrentRoute()?.name !== 'SPOnboardSimple') {
+      navigationRef.current?.reset({ index: 0, routes: [{ name: 'Auth' }] });
+    }
+    wasAuthenticated.current = !!user;
+  }, [user]);
+
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -297,15 +311,17 @@ export default function App() {
       <NotificationCountProvider>
         <NotificationHandler navigationReady={navigationReady} />
         <SafeAreaProvider>
-          <NavigationContainer
-            ref={navigationRef}
-            onReady={() => setNavigationReady(true)}
-            linking={linking as any}
-            documentTitle={documentTitle as any}
-          >
-            <StatusBar style="dark" />
-            <RootNavigator />
-          </NavigationContainer>
+          <ToastProvider>
+            <NavigationContainer
+              ref={navigationRef}
+              onReady={() => setNavigationReady(true)}
+              linking={linking as any}
+              documentTitle={documentTitle as any}
+            >
+              <StatusBar style="dark" />
+              <RootNavigator />
+            </NavigationContainer>
+          </ToastProvider>
         </SafeAreaProvider>
       </NotificationCountProvider>
     </AuthProvider>

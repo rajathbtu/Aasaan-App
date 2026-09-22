@@ -5,6 +5,7 @@ export const translations = {
   en: {
     common: {
       continue: 'Continue',
+      confirm: 'Confirm',
       change: 'Change',
       save: 'Save',
       saveChanges: 'Save Changes',
@@ -103,7 +104,7 @@ export const translations = {
       tapToChangePhoto: 'Tap to change profile photo',
       yourName: 'Your Name',
       phoneNotEditable: 'Mobile number cannot be changed',
-      languageNotEditable: 'Language cannot be changed in this demo',
+      languageNotEditable: 'Language cannot be changed',
       spInfo: 'Service Provider Information',
       servicesOffered: 'Services Offered',
       noServices: 'No services selected',
@@ -120,7 +121,7 @@ export const translations = {
       startingFrom: 'Starting from {price}/month',
       viewPlans: 'View Plans',
       deactivate: 'Deactivate',
-      deactivateDesc: 'Account deactivation is not available in this demo',
+      deactivateDesc: 'Account deactivation is not available currently',
       logout: 'Log out',
       clearLocal: 'Clear local data',
       personalInfo: 'Personal Information',
@@ -281,8 +282,8 @@ export const translations = {
     sp: {
       selectServices: {
         title: 'Select Services you offer',
-        limitTitle: 'Limit reached',
-        limitDesc: 'You can select up to 3 services',
+        limitDesc: 'You may select upto 3 services',
+        limitTitle: 'Maximum 3 services allowed',
         selectTitle: 'Select services',
         selectDesc: 'Please choose at least one service',
         saveFailed: 'Failed to save services',
@@ -358,6 +359,7 @@ export const translations = {
   hi: {
     common: {
       continue: 'जारी रखें',
+      confirm: 'पुष्टि करें',
       change: 'बदलें',
       save: 'सहेजें',
       saveChanges: 'परिवर्तन सहेजें',

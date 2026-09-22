@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { isValidPhoneNumber, isValidName } from '../utils/validation';
 import { findUserByPhone, createUser } from '../models/dataStore';
 import { getReqLang, t } from '../utils/i18n';
+import { decryptOnboardingToken } from '../utils/encryption';
 
 // In‑memory store for OTPs.  Keys are phone numbers, values are the
 // generated numeric codes.  In production you should send the OTP via
@@ -316,5 +317,38 @@ export async function checkUserRegistration(req: Request, res: Response): Promis
   } catch (error) {
     console.error('Error checking user registration:', error);
     res.status(500).json({ message: t(lang, 'common.internalError') });
+  }
+}
+
+/** Completes the service-provider onboarding flow from the WhatsApp link token. */
+export async function completeOnboarding(req: Request, res: Response): Promise<void> {
+  const { token } = req.body as { token?: string };
+  if (!token) {
+    res.status(400).json({ message: 'Onboarding token is required' });
+    return;
+  }
+
+  try {
+    const { phone, name, language } = decryptOnboardingToken(token);
+    const existing = await findUserByPhone(phone);
+    if (existing) {
+      // The onboarding link just identifies the phone, but it is not used to authenticate
+      // an existing account. Normal OTP flow performs authentication.
+      res.json({ requiresOtp: true, phone });
+      return;
+    }
+
+    const user = await createUser({
+      phoneNumber: phone,
+      name: name?.trim() || `user_${phone}`,
+      language: language || 'en',
+      role: 'serviceProvider',
+      creditPoints: 0,
+      plan: 'free',
+    });
+    res.json({ token: user.id, user });
+  } catch (error) {
+    console.error('Error completing onboarding:', error);
+    res.status(400).json({ message: 'Invalid onboarding token' });
   }
 }

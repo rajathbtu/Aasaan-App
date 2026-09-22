@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
@@ -9,12 +10,16 @@ import ErrorBanner from '../components/ErrorBanner';
 import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SafeBottomBanner from '../components/SafeBottomBanner';
+import BlockingLoader from '../components/BlockingLoader';
+import BottomCTA from '../components/BottomCTA';
 
 const LocationSelectScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { user, updateUser } = useAuth();
   const { t } = useI18n();
+  const { showToast } = useToast();
   const insets = useSafeAreaInsets();
 
   // Modes: 'edit' for profile updates, 'onboarding' for SP onboarding, 'requestcreation' for work request creation
@@ -37,6 +42,8 @@ const LocationSelectScreen: React.FC = () => {
   const [radius, setRadius] = useState<number>(initialRadius);
   const [isRadiusExpanded, setIsRadiusExpanded] = useState(false);
   const [saveError, setSaveError] = useState<unknown | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [isLocationResolving, setIsLocationResolving] = useState(false);
 
   if (isRequestCreationMode && (!serviceId || !serviceName)) {
     return (
@@ -53,6 +60,7 @@ const LocationSelectScreen: React.FC = () => {
   }
 
   const handleSave = async () => {
+    if (saving || isLocationResolving) return;
     if (!selectedLocation || !selectedLocation.lat || !selectedLocation.lng) {
       if (isRequestCreationMode) 
           Alert.alert(t('createRequest.addDetails.locationRequiredTitle'), t('createRequest.addDetails.locationRequiredDesc'));
@@ -67,6 +75,7 @@ const LocationSelectScreen: React.FC = () => {
     }
 
     try {
+      setSaving(true);
       const locPayload = selectedLocation?.place_id || selectedLocation?.placeId
         ? {
             name: selectedLocation.description || selectedLocation.name,
@@ -82,9 +91,17 @@ const LocationSelectScreen: React.FC = () => {
           };
       await updateUser({ location: locPayload as any, radius });
       setSaveError(null);
-      navigation.navigate(user?.role === 'serviceProvider' ? 'SPAvailable' : 'Main');
+      if (mode === 'edit') {
+        showToast(t('common.updatedDesc'));
+        navigation.popTo('Profile');
+      } else {
+        navigation.navigate(user?.role === 'serviceProvider' ? 'SPAvailable' : 'Main');
+      }
+      
     } catch (err: any) {
       setSaveError(err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -106,17 +123,20 @@ const LocationSelectScreen: React.FC = () => {
 
       <View style={styles.flex}>
         <LocationSearch
+          onResolvingChange={setIsLocationResolving}
           onSelect={(loc) => {
             setSelectedLocation(!loc ? null : { name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng });
           }}
           enableMap={true}
+          isServiceArea={!isRequestCreationMode}
+          serviceAreaRadiusKm={radius}
           initialValue={displayLocationName || ''}
           initialLocation={selectedLocation}
         />
       </View>
 
       {/* Bottom panel: selection summary, service radius and CTA */}
-      <View style={[styles.bottomPanel, { paddingBottom: insets.bottom + spacing.md }]}>
+      <View style={[styles.bottomPanel, ]}>
         {hasSelection && (
           <View style={[styles.locationCard, styles.cardShadow]}>
             <View style={styles.locIconCircle}>
@@ -144,16 +164,16 @@ const LocationSelectScreen: React.FC = () => {
             >
               <Ionicons name="compass-outline" size={18} color={colors.primary} />
               <Text style={styles.radiusSummaryText} numberOfLines={2} ellipsizeMode="tail">
-                {`You'll see work requests within ${radius} kms of ${selectedLocation?.name || selectedLocation?.description || 'your selected location'}`}
+                {`You'll see Work Requests within ${radius} kms ${!isRadiusExpanded? '': 'of ' + selectedLocation?.name || selectedLocation?.description || 'your selected location'}`}
               </Text>
               <Ionicons name={isRadiusExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.grey} />
             </TouchableOpacity>
 
             {isRadiusExpanded && (
               <>
-                <Text style={styles.radiusQuestion}>
-                  {t('sp.selectLocation.radiusQuestion') || 'How far can you travel for work?'}
-                </Text>
+                {/* <Text style={styles.radiusQuestion}>
+                  {t('sp.selectLocation.changeRadius')}
+                </Text> */}
                 <View style={styles.radiusGrid}>
                   {radiusOptions.map((value) => {
                     const active = radius === value;
@@ -174,13 +194,19 @@ const LocationSelectScreen: React.FC = () => {
           </View>
         )}
 
-        <TouchableOpacity style={[styles.saveButton, styles.ctaShadow]} onPress={handleSave} activeOpacity={0.85}>
-          <Text style={styles.saveText}>
-            {isRequestCreationMode ? t('createRequest.addDetails.confirmLocationButton') : t('sp.selectLocation.saveButton')}
-          </Text>
-          <Ionicons name="arrow-forward" size={18} color={colors.white} style={{ marginLeft: spacing.sm }} />
-        </TouchableOpacity>
+        <ErrorBanner error={saveError} onRetry={handleSave} />
+
+        <BottomCTA
+          containerStyle={styles.bottomCtaContainer}
+          buttonStyle={styles.ctaShadow}
+          buttonText={isRequestCreationMode ? t('createRequest.addDetails.confirmLocationButton') : t('sp.selectLocation.saveButton')}
+          onPress={handleSave}
+          isLoading={isLocationResolving}
+          showArrow={!isLocationResolving}
+        />
       </View>
+      <SafeBottomBanner/>
+      <BlockingLoader visible={saving} />
     </View>
   );
 };
@@ -264,8 +290,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.greyLight,
     borderRadius: radius.lg,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    padding: spacing.md,
     marginBottom: spacing.md,
   },
   radiusSummaryRow: {
@@ -289,12 +314,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   radiusGrid: {
+    marginTop: spacing.sm,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12 as any,
   },
   radiusCell: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: radius.md,
     borderWidth: 1,
     alignItems: 'center',
@@ -314,23 +341,20 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   radiusCellText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '700',
     color: colors.dark,
   },
   radiusCellTextActive: {
     color: colors.white,
     fontWeight: '700',
   },
-  saveButton: {
-    height: 48,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    marginTop: spacing.xs,
-    marginBottom: spacing.xs,
+  bottomCtaContainer: {
+    padding: 0,
+    paddingBottom: 0,
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
+    marginBottom: spacing.sm,
   },
   ctaShadow: {
     shadowColor: colors.black,
@@ -338,11 +362,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
-  },
-  saveText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

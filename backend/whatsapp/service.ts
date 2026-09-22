@@ -10,6 +10,10 @@
  */
 import { readWhatsAppConfig } from './config';
 import { postWhatsAppMessage, WhatsAppSendResult } from './client';
+import { encryptOnboardingToken } from '../src/utils/encryption';
+
+const SP_ONBOARDING_URL =
+  process.env.SP_ONBOARDING_URL || 'https://odxas8k-rajkgupta88-8081.exp.direct/onboarding?data=';
 
 /**
  * Normalizes a phone number to the format Meta expects: plain E.164 digits
@@ -69,6 +73,37 @@ export async function initiateConversation(options: InitiateConversationOptions)
   return postWhatsAppMessage(config, payload);
 }
 
+/** Creates the one-parameter SP onboarding link and sends its approved template. */
+export async function sendServiceProviderOnboarding(
+  phone: string,
+  otp: string | number,
+): Promise<{ onboardingUrl: string; result: WhatsAppSendResult }> {
+  const token = encryptOnboardingToken({ phone, otp: String(otp), language: 'hi' });
+  const onboardingUrl = `${SP_ONBOARDING_URL}${encodeURIComponent(token)}`;
+  const config = readWhatsAppConfig();
+
+  const result = await postWhatsAppMessage(config, {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: normalizePhoneNumber(phone),
+    type: 'template',
+    template: {
+      name: 'sp_onboarding_missedcall_hindi',
+      language: { policy: 'deterministic', code: 'hi' },
+      components: [
+        {
+          type: 'button',
+          sub_type: 'url',
+          index: '0',
+          parameters: [{ type: 'text', text: token }],
+        },
+      ],
+    },
+  });
+
+  return { onboardingUrl, result };
+}
+
 /**
  * Sends a free-form text message.  Only allowed within the 24-hour customer
  * service window that opens when the user last messaged the business.
@@ -99,35 +134,4 @@ export async function sendLocationRequest(to: string): Promise<WhatsAppSendResul
   });
 }
 
-export interface WhatsAppServiceListItem {
-  id: string;
-  name: string;
-  category: string;
-}
 
-/** Sends the onboarding service picker inside the active WhatsApp window. */
-export async function sendServiceList(
-  to: string,
-  services: WhatsAppServiceListItem[],
-): Promise<WhatsAppSendResult> {
-  const rows = services.slice(0, 10).map((service) => ({
-    id: `service:${service.id}`,
-    title: service.name.slice(0, 24),
-    description: service.category.slice(0, 72),
-  }));
-
-  return postWhatsAppMessage(readWhatsAppConfig(), {
-    messaging_product: 'whatsapp',
-    recipient_type: 'individual',
-    to: normalizePhoneNumber(to),
-    type: 'interactive',
-    interactive: {
-      type: 'list',
-      body: { text: 'कृपया अपनी सेवा चुनें:' },
-      action: {
-        button: 'सेवाएं देखें',
-        sections: [{ title: 'उपलब्ध सेवाएं', rows }],
-      },
-    },
-  });
-}

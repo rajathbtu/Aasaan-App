@@ -85,7 +85,7 @@ const screens: Record<string, unknown> = {
   },
   // ---- Root-level screens (also registered post-auth in App.tsx) ----
   RoleSelect: 'select-role',
-  SPOnboardSimple: 'sp-onboard-simple',
+  SPOnboardSimple: 'onboarding',
   SPSelectServices: 'select-services',
   LocationSelect: 'select-location',
   // Work-request creation funnel. Workflow params remain in navigation state

@@ -21,6 +21,7 @@ import * as realApi from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import BlockingLoader from '../components/BlockingLoader';
 import { spacing, colors, radius } from '../theme';
 
 const API = realApi;
@@ -236,6 +237,7 @@ const NameOTPValidationScreen: React.FC = () => {
           <Icon name="shield" size={12} color={colors.grey} style={{ marginRight: 6 }} />
           <Text style={styles.securityText}>{t('nameReg.help')}</Text>
         </View>
+        <BlockingLoader visible={loading} />
     </View>
   );
 };

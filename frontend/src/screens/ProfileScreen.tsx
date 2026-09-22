@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView,
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
@@ -11,6 +12,7 @@ import ErrorBanner from '../components/ErrorBanner';
 import { getServices } from '../api';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import UpgradeProBanner from '../components/UpgradeProBanner';
+import BlockingLoader from '../components/BlockingLoader';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 /**
@@ -23,6 +25,7 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user, updateUser, logout, setLanguage: setGlobalLanguage, refreshUser } = useAuth();
   const { t, lang } = useI18n();
+  const { showToast } = useToast();
   const isBottomTabsDisplayed = useNavigationState(state => state.type === 'tab');
 
   // Shared services list to map ids -> display names
@@ -73,6 +76,7 @@ const ProfileScreen: React.FC = () => {
   const [pendingLocation, setPendingLocation] = useState<any>(initialLocation);
   const [pendingRadius, setPendingRadius] = useState<number>(initialRadius);
   const [darkMode, setDarkMode] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     // If user object updates (after save), sync pending state
@@ -83,7 +87,7 @@ const ProfileScreen: React.FC = () => {
     setPendingServices(Array.isArray(user?.serviceProviderInfo?.services) ? (user!.serviceProviderInfo!.services as string[]) : []);
     setPendingLocation(user?.serviceProviderInfo?.location || null);
     setPendingRadius((user?.serviceProviderInfo?.radius as number | undefined) ?? 5);
-  }, [user?.id, user?.name, user?.role]);
+  }, [user]);
 
   useEffect(() => {
     (async () => {
@@ -138,7 +142,7 @@ const ProfileScreen: React.FC = () => {
       await updateUser(updates);
       setProfileError(null);
       setEditing(false);
-      Alert.alert(t('common.updated'), t('common.updatedDesc'));
+      showToast(t('common.updatedDesc'));
     } catch (err: any) {
       setProfileError(err);
     }
@@ -301,11 +305,15 @@ const ProfileScreen: React.FC = () => {
                       initialSelected: pendingServices,
                       onDone: async (sel: string[]) => {
                         setPendingServices(sel);
+                        setIsUpdating(true);
                         try {
                           await updateUser({ services: sel });
                           setProfileError(null);
+                          showToast(t('common.updatedDesc'));
                         } catch (error) {
                           setProfileError(error);
+                        } finally {
+                          setIsUpdating(false);
                         }
                       },
                     })
@@ -373,7 +381,15 @@ const ProfileScreen: React.FC = () => {
 
         {/* Account Actions */}
         <View style={styles.section}>
-          <TouchableOpacity onPress={logout} style={styles.logoutRow}>
+          <TouchableOpacity onPress={async () => {
+              setIsUpdating(true);
+              try {
+                await logout();
+              } finally {
+                setIsUpdating(false);
+              }
+            }}
+            disabled={isUpdating} style={styles.logoutRow}>
             <Ionicons name="log-out" size={16} color={colors.error} style={{ marginRight: spacing.xs }} />
             <Text style={styles.logoutText}>{t('profile.logout')}</Text>
           </TouchableOpacity>
@@ -387,6 +403,7 @@ const ProfileScreen: React.FC = () => {
       </ScrollView>
       <ErrorBanner error={profileError} onRetry={refreshUser} />
       {!isBottomTabsDisplayed && <SafeBottomBanner />}
+      <BlockingLoader visible={isUpdating} />
     </View>
   );
 };

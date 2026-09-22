@@ -491,6 +491,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         showBackButton={false} 
         showNotification={true}
         showProfileButton={true} 
+        titleStyle={{ fontSize: 21, fontWeight: '700' }}
       />
       <View style={{ height: spacing.sm }} />
       <View style={styles.container}>

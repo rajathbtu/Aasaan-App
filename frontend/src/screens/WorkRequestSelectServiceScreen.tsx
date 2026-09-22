@@ -1,45 +1,26 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
-import ServiceIcon from '../components/ServiceIcon';
+import { Service, ServiceCard, ServiceCategoryGrid, useServiceCatalog } from '../components/ServiceSelection';
+import ServicesSearchBar from '../components/ServicesSearchBar';
 import { useI18n } from '../i18n';
-import { getServices } from '../api';
 import { useAuth } from '../contexts/AuthContext';
-import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
-
-type Service = { id: string; name: string; category: string; alias?: string[]; tags?: string[]; icon?: string; color?: string };
+import { readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 const RECENT_SERVICES_KEY = (userId: string) => `recent_services_${userId}`;
 const MAX_RECENT_SERVICES = 3;
 
 const WorkRequestSelectServiceScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const [query, setQuery] = useState('');
   const { t } = useI18n();
 
-  const [services, setServices] = useState<Service[] | null>(null);
   const userId = useAuth()?.user?.id;
-  const servicesCacheKey = userId ? offlineCacheKey('services', userId) : null;
+  const { services, query, setQuery, filtered, servicesError, refreshInBackground } = useServiceCatalog(userId);
   const [recentServices, setRecentServices] = useState<Service[]>([]);
-  const [servicesError, setServicesError] = useState<unknown | null>(null);
-
-  useEffect(() => {
-    // Load cached services immediately
-    (async () => {
-      try {
-        if (servicesCacheKey) {
-          const cached = await readOfflineCache<Service[]>(servicesCacheKey);
-          if (cached) setServices(cached);
-        }
-      } catch { }
-      // Always refresh in background
-      refreshInBackground();
-    })();
-  }, [servicesCacheKey]);
 
   useEffect(() => {
     // Load recently used services for the user
@@ -55,20 +36,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     })();
   }, [userId]);
 
-  const refreshInBackground = async () => {
-    try {
-      const data = await getServices();
-      const incoming = data.services as Service[];
-
-      setServices(incoming);
-      setServicesError(null);
-      if (servicesCacheKey) await writeOfflineCache(servicesCacheKey, incoming);
-    } catch (error) {
-      // Keep showing cache on error
-      setServicesError(error);
-    }
-  };
-
   const updateRecentServices = async (service: Service) => {
     try {
       const updatedRecent = [service, ...recentServices.filter((s) => s.id !== service.id)].slice(0, MAX_RECENT_SERVICES);
@@ -79,51 +46,9 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     }
   };
 
-  const grouped = useMemo(() => {
-    const list = services || [];
-    const map: Record<string, Service[]> = {};
-    list.forEach((s) => {
-      if (!map[s.category]) map[s.category] = [];
-      map[s.category].push(s);
-    });
-    return map;
-  }, [services]);
-
-  const filtered = useMemo(() => {
-    if (!query.trim()) return grouped;
-    const lower = query.trim().toLowerCase();
-    const matchesQuery = (s: Service) =>
-      s.name.toLowerCase().includes(lower) ||
-      (Array.isArray(s.alias) && s.alias.some((alias) => alias.toLowerCase().includes(lower))) ||
-      (Array.isArray(s.tags) && s.tags.some((tag) => tag.toLowerCase().includes(lower)));
-    const map: Record<string, Service[]> = {};
-    Object.keys(grouped).forEach((cat) => {
-      const list = grouped[cat].filter(matchesQuery);
-      if (list.length > 0) map[cat] = list;
-    });
-    return map;
-  }, [query, grouped]);
-
-  const renderServiceCard = (service: Service) => {
-    return (
-      <TouchableOpacity
-        key={service.id}
-        style={[styles.serviceCard, styles.shadow]}
-        onPress={() => {
-          updateRecentServices(service);
-          navigation.navigate('LocationSelect', { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [], mode: 'requestcreation', });
-        }}
-        activeOpacity={0.7}
-      >
-        <ServiceIcon
-          icon={service.icon}
-          color={service.color}
-          circleSize={72}
-          iconSize={34}
-        />
-        <Text style={styles.serviceLabel} numberOfLines={2}>{service.name}</Text>
-      </TouchableOpacity>
-    );
+  const handleServicePress = (service: Service) => {
+    updateRecentServices(service);
+    navigation.navigate('LocationSelect', { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [], mode: 'requestcreation' });
   };
 
   const hasData = services && services.length > 0;
@@ -133,15 +58,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     t('createRequest.selectService.searchPlaceholder1'),
     t('createRequest.selectService.searchPlaceholder2')
   ];
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPlaceholderIndex((prevIndex) => (prevIndex + 1) % placeholderTexts.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
@@ -166,23 +82,13 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
             />
           </View>
 
-          {/* Search bar (icon inside input) */}
+          {/* Search bar */}
           <View style={styles.searchSection}>
-            <View style={[styles.searchWrapper, styles.shadow]}>
-              <Ionicons name="search" size={20} color={colors.greyMuted} style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder={placeholderTexts[placeholderIndex]}
-                placeholderTextColor={colors.greyMuted}
-                value={query}
-                onChangeText={setQuery}
-              />
-              {query.trim() !== '' && (
-                <TouchableOpacity style={styles.resetButton} hitSlop={10} onPress={() => setQuery('')} >
-                  <Ionicons name="close-circle" size={20} color={colors.greyMuted} />
-                </TouchableOpacity>
-              )}
-            </View>
+            <ServicesSearchBar
+              placeholders={placeholderTexts}
+              value={query}
+              onChangeText={setQuery}
+            />
           </View>
 
           {!hasData && (
@@ -199,7 +105,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
                 {t('createRequest.selectService.recentlyUsed')}
               </Text>
               <View style={styles.gridRow}>
-                {recentServices.map((svc) => renderServiceCard(svc))}
+                {recentServices.map((svc) => <ServiceCard key={svc.id} service={svc} onPress={() => handleServicePress(svc)} />)}
               </View>
             </View>
           )}
@@ -208,15 +114,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           {hasData && (
             <View style={styles.section}>
               {query.trim() === '' && <Text style={styles.sectionTitle}>{t('createRequest.selectService.allServices')}</Text>}
-              {Object.keys(filtered).map((category) => (
-                <View key={category} style={styles.categorySection}>
-                  <View style={styles.categoryHeading}>
-                    <View style={styles.categoryMarker} />
-                    <Text style={styles.categoryTitle}>{category}</Text>
-                  </View>
-                  <View style={styles.gridRow}>{filtered[category].map((svc) => renderServiceCard(svc))}</View>
-                </View>
-              ))}
+              <ServiceCategoryGrid servicesByCategory={filtered} onServicePress={handleServicePress} />
             </View>
           )}
 
@@ -286,29 +184,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     marginBottom: spacing.lg,
   },
-  searchWrapper: {
-    position: 'relative',
-    backgroundColor: colors.white,
-    borderRadius: radius.xl,
-  },
-  searchIcon: {
-    position: 'absolute',
-    left: spacing.md,
-    top: 12,
-  },
-  searchInput: {
-    paddingHorizontal: spacing.md,
-    paddingLeft: spacing.xl * 1.5, // Adjusted padding to ensure proper spacing
-    paddingVertical: spacing.md,
-    fontSize: 16,
-    color: colors.dark,
-  },
-  resetButton: {
-    position: 'absolute',
-    right: spacing.md,
-    top: 10,
-    padding: 4,
-  },
 
   // -- Sections --
   scrollContent: {
@@ -325,27 +200,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     textTransform: 'uppercase',
   },
-  categorySection: {
-    marginBottom: spacing.xl,
-  },
-  categoryHeading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  categoryMarker: {
-    width: 4,
-    height: 18,
-    borderRadius: 2,
-    backgroundColor: colors.primary,
-    marginRight: spacing.sm,
-  },
-  categoryTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.dark,
-  },
-
   gridRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -353,32 +207,12 @@ const styles = StyleSheet.create({
     columnGap: spacing.lg,
   },
 
-  serviceCard: {
-    width: '30%',
-    marginBottom: 10,
-    borderRadius: 18,
-    paddingHorizontal: spacing.xs,
-    paddingTop: 12,
-    paddingBottom: 8,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    backgroundColor: colors.white,
-  },
   shadow: {
     shadowColor: colors.black,
     shadowOpacity: 0.06,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 3,
-  },
-  serviceLabel: {
-    fontSize: 13,
-    lineHeight: 16,
-    fontWeight: '600',
-    letterSpacing: 0.1,
-    textAlign: 'center',
-    color: colors.dark,
-    minHeight: 36,
   },
 
   // -- Trust banner --
