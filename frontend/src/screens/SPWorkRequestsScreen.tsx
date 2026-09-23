@@ -25,6 +25,7 @@ import SkeletonLoader from '../components/SkeletonLoader';
 import UpgradeProBanner from '../components/UpgradeProBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo } from '../utils/time';
+import Spinner from '../components/Spinner';
 
 const API = realApi;
 
@@ -547,6 +548,11 @@ const SPWorkRequestsScreen: React.FC = () => {
             );
           })}
         </View>
+        {loading && requests.length > 0 && (
+          <View style={styles.loadingRow}>
+            <Spinner size="small" color={colors.primary} style={{ marginBottom: spacing.sm }} />
+          </View>
+        )}
         {/* List */}
         {filteredRequests.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -616,6 +622,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     color: colors.dark,
+  },
+  loadingRow: {
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
   // --- Segmented control ---
   segmentContainer: {

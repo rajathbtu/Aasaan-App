@@ -83,17 +83,11 @@ const LanguageSelectionScreen: React.FC = () => {
           showNotification={false}
           extraLargeTitle={mode=== 'onboarding' } 
           keepTitleCenterAligned={mode!== 'edit'} />
-        <View style={{ height: spacing.sm }} />
 
         {/* Language Selection Content */}
-        <ScrollView
-          contentContainerStyle={[
-            styles.languageSelection,
-            // add bottom spacing so last items never sit under the sticky CTA
-            { paddingBottom: STICKY_HEIGHT + insets.bottom + 16 },
-          ]}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView 
+          contentContainerStyle={styles.languageSelection}
+          keyboardShouldPersistTaps="handled">
           <Text style={styles.subtitle}>{t.language.subtitle}</Text>
           <Text style={styles.description}>{t.language.description}</Text>
 

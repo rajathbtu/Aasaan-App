@@ -67,8 +67,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
         tags: selectedTags,
       });
       navigation.navigate('WorkRequestCreated', {
-        request: { ...wr, serviceName: service.name },
-        locationName: locName,
+        request: wr,
       });
       setRequestError(null);
     } catch (err: any) {
@@ -83,7 +82,6 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
       <Header title={t('createRequest.selectTags.title')} showNotification={false} showBackButton={true} />
 
       <ScrollView style={styles.flex} contentContainerStyle={styles.scrollContent}>
-        <View style={[styles.sectionCard, styles.cardShadow]}>
           {/* Section header with live selection count */}
           <View style={styles.sectionHeader}>
             <View style={styles.iconBadge}>
@@ -112,8 +110,8 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                     >
                       <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{tag}</Text>
                       <Ionicons
-                        name={selected ? 'checkmark' : 'add'}
-                        size={13}
+                        name={selected ? 'checkmark-done' : 'add-circle-outline'}
+                        size={15}
                         color={selected ? colors.primary : colors.greyMuted}
                         style={styles.tagIcon}
                       />
@@ -128,7 +126,6 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
               <Text style={styles.noTagsText}>{t('createRequest.selectTags.noTagsAvailable')}</Text>
             </View>
           )}
-        </View>
       </ScrollView>
 
       <ErrorBanner error={requestError} onRetry={handleConfirm} />
@@ -224,7 +221,7 @@ const styles = StyleSheet.create({
     borderColor: colors.greyLight,
     backgroundColor: colors.white,
     marginRight: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   tagChipSelected: {
     backgroundColor: colors.primarySoft,
@@ -234,10 +231,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     color: colors.dark,
+    fontWeight: '600',
   },
   tagTextSelected: {
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   tagIcon: {
     marginLeft: spacing.xs,

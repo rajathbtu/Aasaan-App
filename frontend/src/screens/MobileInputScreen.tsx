@@ -50,7 +50,7 @@ const MobileInputScreen: React.FC = () => {
   const [webTitle, setWebTitle] = useState<string>('');
   const [truecallerRequestId, setTruecallerRequestId] = useState<string | null>(null);
   const [truecallerStarted, setTruecallerStarted] = useState(false);
-  const [truecallerWaiting, setTruecallerWaiting] = useState(false);
+  const [truecallerInitializing, setTruecallerInitializing] = useState(false);
 
   const truecallerHtml = (requestId: string) => `
     <!doctype html>
@@ -118,10 +118,12 @@ const MobileInputScreen: React.FC = () => {
 
   const initiateTruecallerLogin = async () => {
     setTruecallerStarted(false);
+    setTruecallerInitializing(true);
     try {
       const result = await API.startTruecallerLogin();
       setTruecallerRequestId(result.requestId);
     } catch {
+      setTruecallerInitializing(false);
       // OTP remains available if the background Truecaller attempt cannot start.
     }
   };
@@ -145,20 +147,16 @@ const MobileInputScreen: React.FC = () => {
           const result = await API.getTruecallerLoginStatus(truecallerRequestId);
           if (result.status === 'complete') {
             await login(result.token, result.user);
-            setTruecallerWaiting(false);
             return;
           }
           if (result.status === 'failed') {
-            setTruecallerWaiting(false);
             return;
           }
         } catch (error: any) {
           if (error?.response?.status === 404) continue;
-          setTruecallerWaiting(false);
           return;
         }
       }
-      if (!cancelled) setTruecallerWaiting(false);
     };
 
     void poll();
@@ -278,12 +276,11 @@ const MobileInputScreen: React.FC = () => {
           setSupportMultipleWindows={false}
           onShouldStartLoadWithRequest={(request) => {
             if (request.url.startsWith('truecallersdk://')) {
+              setTruecallerInitializing(false);
               setTruecallerStarted(true);
-              setTruecallerWaiting(true);
               void Linking.openURL(request.url)
                 .catch(() => {
                   setTruecallerStarted(false);
-                  setTruecallerWaiting(false);
                 });
               return false;
             }
@@ -292,12 +289,7 @@ const MobileInputScreen: React.FC = () => {
         />
       )}
 
-      {truecallerWaiting && (
-        <View style={styles.truecallerWaitingOverlay} pointerEvents="none">
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      )}
-      <BlockingLoader visible={loading} />
+      <BlockingLoader visible={loading || truecallerInitializing} />
       {/* In-app WebView Modal */}
       <Modal visible={webOpen} animationType="slide" onRequestClose={() => setWebOpen(false)}>
         <SafeAreaProvider>
@@ -473,11 +465,6 @@ const styles = StyleSheet.create({
     width: 1,
     height: 1,
     opacity: 0,
-  },
-  truecallerWaitingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
 

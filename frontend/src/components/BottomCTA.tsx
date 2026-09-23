@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, 
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SafeBottomBanner from '../components/SafeBottomBanner';
 
 interface BottomCTAProps {
   isSticky?: boolean;
@@ -93,6 +94,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.greyLight,
+    marginBottom: spacing.md,
   },
   sticky: {
     position: 'relative',

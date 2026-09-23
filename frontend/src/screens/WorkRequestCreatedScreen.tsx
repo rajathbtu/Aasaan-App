@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, usePreventRemove } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
+import ServiceIcon from '../components/ServiceIcon';
 
 /**
  * Confirmation screen displayed after a work request has been created.
@@ -20,6 +21,10 @@ const WorkRequestCreatedScreen: React.FC = () => {
   const serviceName = request?.serviceName || serviceNameParam || 'Service';
   const locationName = locationNameParam ?? request?.locationName ?? t('userRequests.locationFallback');
   const tags = Array.isArray(request?.tags) ? request.tags.slice(0, 2) : [];
+
+  usePreventRemove(true, () => {
+    navigation.navigate('Main', { screen: 'Create' });
+  });
 
   const goToMyRequests = () => {
     navigation.navigate('Main', { screen: 'MyRequests' });
@@ -47,11 +52,14 @@ const WorkRequestCreatedScreen: React.FC = () => {
       <View style={styles.successIconContainer}>
         <Ionicons name="checkmark-circle" size={64} color={colors.success} />
       </View>
+
       <Text style={styles.title}>{t('createRequest.created.title')}</Text>
       <Text style={styles.subtitle}>{t('createRequest.created.subtitle')}</Text>
+
       <View style={styles.summaryCard}>
         <View style={styles.summaryRow}>
-          <Ionicons name="flash" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
+          <ServiceIcon icon={request.serviceIcon} color={request.serviceColor}
+            circleSize={32} iconSize={20}/>
           <View style={{ flex: 1 }}>
             <Text style={styles.summaryLabel}>{serviceName}</Text>
             {tags.length > 0 && (
@@ -74,6 +82,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
           <Text style={styles.summaryLabel}>{t('common.relative.justNow')}</Text>
         </View>
       </View>
+
       <Text style={styles.nextTitle}>{t('createRequest.created.nextTitle')}</Text>
       <View style={styles.stepsList}>
         <View style={styles.stepItem}>
@@ -98,6 +107,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
           </View>
         </View>
       </View>
+
       <View style={styles.boostCard}>
         <Text style={styles.boostTitle}>{t('createRequest.created.boostTitle')}</Text>
         <Text style={styles.boostSubtitle}>{t('createRequest.created.boostSubtitle')}</Text>
@@ -105,6 +115,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
           <Text style={styles.boostButtonText}>{t('createRequest.created.boostButton')}</Text>
         </TouchableOpacity>
       </View>
+      
       <TouchableOpacity onPress={goToMyRequests} style={{ alignSelf: 'center', marginTop: spacing.lg, marginBottom: spacing.xl }}>
         <Text style={styles.viewRequestsText}>{t('createRequest.created.viewMyRequests')}</Text>
       </TouchableOpacity>

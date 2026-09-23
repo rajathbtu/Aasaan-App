@@ -125,7 +125,13 @@ export async function create(req: Request, res: Response): Promise<void> {
         }).catch((error) => console.error('Failed to create provider notification:', error));
       }
     }
-    res.status(201).json(wr);
+    const serviceDetails = (await getServiceMap([service])).get(service);
+    res.status(201).json({
+      ...wr,
+      serviceName: serviceDetails?.name || service,
+      serviceIcon: serviceDetails?.icon || null,
+      serviceColor: serviceDetails?.color || null,
+    });
   } catch { res.status(500).json({ message: t(lang, 'request.createFailed') }); }
 }
 
