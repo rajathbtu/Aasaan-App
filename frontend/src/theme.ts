@@ -77,28 +77,9 @@ export const sizes = {
 
 // Common light tints used for cards, chips and category tiles
 export const tints = {
-  purple: '#e9d5ff',
   purpleSoft: '#f5f3ff',
-  blue: '#dbeafe',
   blueSoft: '#eff6ff',
-  sky: '#bae6fd',
-  skySoft: '#e0f2fe',
-  indigo: '#e0e7ff',
-  indigoSoft: '#eef2ff',
-  emeraldSoft: '#dcfce7',
-  green: '#bbf7d0',
   greenSoft: '#ecfdf5',
-  rose: '#fecaca',
-  roseSoft: '#fee2e2',
-  pink: '#fbcfe8',
-  pinkSoft: '#fce7f3',
-  orange: '#fed7aa',
   orangeSoft: '#ffedd5',
-  amber: '#fde68a',
   amberSoft: '#fffbeb',
-  amberPale: '#fef9c3',
-  lime: '#d9f99d',
-  limeSoft: '#ecfccb',
-  cyanSoft: '#a5f3fc',
-  redSoft: '#fef2f2',
 };

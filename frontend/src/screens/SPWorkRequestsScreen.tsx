@@ -26,8 +26,26 @@ import UpgradeProBanner from '../components/UpgradeProBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo } from '../utils/time';
 import Spinner from '../components/Spinner';
+import SegmentedTabs from '../components/SegmentedTabs';
 
 const API = realApi;
+  
+/**
+ * Computes the distance between two latitude/longitude pairs using the
+ * haversine formula.  Returns the distance in kilometres.
+ */
+const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const earthRadius = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadius * c;
+};
 
 /** Helper: ensure provider has completed profile before using this screen */
 function validateProviderProfile(user: any): { ok: boolean; next: 'services' | 'location' | null } {
@@ -133,23 +151,6 @@ const SPWorkRequestsScreen: React.FC = () => {
       fetchRequests();
     }, [token, user, requestsCacheKey])
   );
-
-  /**
-   * Computes the distance between two latitude/longitude pairs using the
-   * haversine formula.  Returns the distance in kilometres.
-   */
-  const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Earth radius in km
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
 
   /**
    * Accept a work request.  Invokes the API and refreshes the list on
@@ -497,31 +498,14 @@ const SPWorkRequestsScreen: React.FC = () => {
       <View style={{ height: spacing.sm }} />
       <View style={styles.container}>
         <Text style={styles.pageTitle}>{t('spRequests.title')}</Text>
-        {/* Segmented control */}
-        <View style={styles.segmentContainer}>
-          <TouchableOpacity
-            style={[styles.segmentButton, tab === 'all' && styles.segmentButtonActive]}
-            onPress={() => setTab('all')}
-            activeOpacity={0.8}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: tab === 'all' }}
-          >
-            <Text style={[styles.segmentLabel, tab === 'all' && styles.segmentLabelActive]}>
-              {t('spRequests.allTab', { count: totalCount })}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.segmentButton, tab === 'accepted' && styles.segmentButtonActive]}
-            onPress={() => setTab('accepted')}
-            activeOpacity={0.8}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: tab === 'accepted' }}
-          >
-            <Text style={[styles.segmentLabel, tab === 'accepted' && styles.segmentLabelActive]}>
-              {t('spRequests.acceptedTab', { count: acceptedCount })}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <SegmentedTabs
+          activeKey={tab}
+          onChange={(key) => setTab(key as 'all' | 'accepted')}
+          tabs={[
+            { key: 'all', label: t('spRequests.allTab'), count: totalCount },
+            { key: 'accepted', label: t('spRequests.acceptedTab'), count: acceptedCount },
+          ]}
+        />
         {/* Filter chips */}
         <View style={styles.filterRow}>
           {(['all', 'today', 'within3'] as const).map(f => {
@@ -629,37 +613,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.xs,
   },
-  // --- Segmented control ---
-  segmentContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.greyLight,
-    borderRadius: radius.xl,
-    padding: 4,
-    marginBottom: spacing.md,
-  },
-  segmentButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  segmentButtonActive: {
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  segmentLabel: {
-    fontSize: 14,
-    color: colors.dark,
-    fontWeight: '600',
-  },
-  segmentLabelActive: {
-    color: 'white',
-  },
   // --- Filter chips ---
   filterRow: {
     flexDirection: 'row',
@@ -739,13 +692,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.sm,
-  },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   serviceName: {
     fontSize: 16,

@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import ServiceIcon from '../components/ServiceIcon';
+import SegmentedTabs from '../components/SegmentedTabs';
 import * as realApi from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
@@ -148,37 +149,18 @@ const WorkRequestsScreen: React.FC = () => {
       <Header title={t('userRequests.title')} showNotification={true} showBackButton={false} />
       {/* <View style={{ height: spacing.sm }} /> */}
 
-      {/* Filter Tabs */}
-      <View style={styles.filterTabs}>
-        <TouchableOpacity
-          style={[styles.filterTab, activeTab === 'active' && styles.activeTab]}
-          onPress={() => {
-            setActiveTab('active');
-            setLoading(!loadedTabs.current.active);
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={[styles.filterTabText, activeTab === 'active' && styles.activeTabText]}>{t('userRequests.tabActive')}</Text>
-            <View style={[styles.countBadge, activeTab === 'active' ? styles.countBadgeActive : styles.countBadgeInactive]}>
-              <Text style={[styles.countBadgeText, activeTab === 'active' && styles.countBadgeTextActive]}>{counts.active}</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterTab, activeTab === 'completed' && styles.activeTab]}
-          onPress={() => {
-            setActiveTab('completed');
-            setLoading(!loadedTabs.current.completed);
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={[styles.filterTabText, activeTab === 'completed' && styles.activeTabText]}>{t('userRequests.tabCompleted')}</Text>
-            <View style={[styles.countBadge, activeTab === 'completed' ? styles.countBadgeActive : styles.countBadgeInactive]}>
-              <Text style={[styles.countBadgeText, activeTab === 'completed' && styles.countBadgeTextActive]}>{counts.completed}</Text>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </View>
+      <SegmentedTabs
+        activeKey={activeTab}
+        onChange={(key: string) => {
+          const nextTab = key as RequestTab;
+          setActiveTab(nextTab);
+          setLoading(!loadedTabs.current[nextTab]);
+        }}
+        tabs={[
+          { key: 'active', label: t('userRequests.tabActive'), count: counts.active },
+          { key: 'completed', label: t('userRequests.tabCompleted'), count: counts.completed },
+        ]}
+      />
 
       {/* Request List */}
       <FlatList
@@ -212,65 +194,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  filterTabs: {
-    flexDirection: 'row',
-    backgroundColor: colors.paper,
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.sm,
-    padding: spacing.xs,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    overflow: 'hidden',
-  },
-  filterTab: {
-    flex: 1,
-    paddingVertical: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.md,
-  },
-  activeTab: {
-    backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
-    shadowColor: colors.black,
-    shadowOpacity: 0.08,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  filterTabText: {
-    fontSize: 14,
-    color: colors.grey,
-    marginRight: 8,
-  },
-  activeTabText: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  countBadge: {
-    minWidth: 26,
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.xl,
-  },
-  countBadgeActive: {
-    backgroundColor: colors.primary,
-  },
-  countBadgeInactive: {
-    backgroundColor: colors.greyLight,
-  },
-  countBadgeText: {
-    fontSize: 12,
-    color: colors.dark,
-    fontWeight: '600',
-  },
-  countBadgeTextActive: {
-    color: colors.white,
-    fontWeight: '700',
-  },
   requestCard: {
     backgroundColor: colors.white,
     marginHorizontal: spacing.lg,
@@ -289,15 +212,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.md,
-  },
-  iconContainer: {
-    width: 46,
-    height: 46,
-    backgroundColor: colors.infoLight,
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
   },
   cardTitle: {
     fontSize: 16,
@@ -358,21 +272,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     marginRight: 4,
     marginBottom: 4,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  actionButton: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  actionButtonText: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,
