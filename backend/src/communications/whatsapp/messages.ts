@@ -4,10 +4,7 @@ import { normalizePhoneNumber } from '../utils';
 
 
 /** Sends the approved onboarding template using a token created by the flow coordinator. */
-export async function sendWA_SP_Onboarding(
-  phone: string,
-  token: string,
-): Promise<WhatsAppSendResult> {
+export async function sendWA_SP_Onboarding(phone: string, token: string,): Promise<WhatsAppSendResult> {
   return postWhatsAppMessage(readWhatsAppConfig(), {
     messaging_product: 'whatsapp',
     recipient_type: 'individual',
@@ -35,8 +32,8 @@ export async function sendWA_SP_Registered(to: string, appLink: string): Promise
     to: normalizePhoneNumber(to),
     type: 'template',
     template: {
-      name: config.registeredTemplateName,
-      language: { policy: 'deterministic', code: config.registeredTemplateLanguage },
+      name: 'sp_registered_app_link_hindi',
+      language: { policy: 'deterministic', code: 'hi' },
       components: [{
         type: 'body',
         parameters: [{ type: 'text', text: appLink }],

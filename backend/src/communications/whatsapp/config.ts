@@ -5,10 +5,6 @@ export interface WhatsAppConfig {
   apiVersion: string;
   verifyToken?: string;
   appSecret?: string;
-  defaultTemplateName: string;
-  defaultTemplateLanguage: string;
-  registeredTemplateName: string;
-  registeredTemplateLanguage: string;
 }
 
 export function readWhatsAppConfig(): WhatsAppConfig {
@@ -27,10 +23,6 @@ export function readWhatsAppConfig(): WhatsAppConfig {
     apiVersion: process.env.WHATSAPP_API_VERSION?.trim() || 'v23.0',
     verifyToken: process.env.WHATSAPP_VERIFY_TOKEN?.trim() || undefined,
     appSecret: process.env.WHATSAPP_APP_SECRET?.trim() || undefined,
-    defaultTemplateName: process.env.WHATSAPP_DEFAULT_TEMPLATE?.trim() || 'hello_world',
-    defaultTemplateLanguage: process.env.WHATSAPP_DEFAULT_TEMPLATE_LANG?.trim() || 'en_US',
-    registeredTemplateName: process.env.WHATSAPP_REGISTERED_TEMPLATE?.trim() || 'sp_registered_app_link',
-    registeredTemplateLanguage: process.env.WHATSAPP_REGISTERED_TEMPLATE_LANG?.trim() || 'en',
   };
 }
 

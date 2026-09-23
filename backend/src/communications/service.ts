@@ -7,9 +7,7 @@ import { sendWA_SP_Registered, sendWA_SP_Onboarding,
 
 
 /** Coordinates SMS and WhatsApp after a service-provider missed call. */
-export async function handleServiceProviderMissedCall(
-  phone: string,
-): Promise<void> {
+export async function handleServiceProviderMissedCall(phone: string,): Promise<void> {
   const whatsappPhone = normalizePhoneNumber(phone);
   const storedPhone = toStoredPhoneNumber(whatsappPhone);
   const existingUser = await findUserByPhone(storedPhone);
@@ -33,10 +31,12 @@ export async function handleServiceProviderMissedCall(
     return;
   }
 
+  // if the user already exists
   await Promise.allSettled([
     sendWA_SP_Registered(whatsappPhone, "< insert link>"),
     sendSMS(
-      storedPhone, `This phone number is already registered with us. Open the Aasaan app: < insert link>`,
+      storedPhone, `आपका मोबाइल नंबर Aasaan पर सेवा प्रदाता के रूप में पहले से पंजीकृत है। \n\n`+
+        `काम के नए अवसर देखने और अपनी प्रोफ़ाइल प्रबंधित करने के लिए Aasaan ऐप खोलें:: < insert link>`,
     ),
   ]);
 }
