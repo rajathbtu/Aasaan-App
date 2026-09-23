@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
 import sarvamService from '../services/sarvamService';
 import { sarvamCallSessionManager } from '../models/sarvamCallSessions';
-import { initiateConversation, normalizePhoneNumber } from '../../whatsapp/service';
+import { handleServiceProviderMissedCall } from '../../src/communications/service';
+import { Prisma } from '@prisma/client';
+import prisma from '../../src/utils/prisma';
 
 // In-memory map to track outbound attempt_id -> called number
 // This is needed because outbound completion webhook doesn't include user_phone_number
@@ -118,7 +120,7 @@ export async function hangup(req: Request, res: Response) {
       // OUTBOUND payload (instant-outbound completion webhook)
       callId = body.attempt_id;
       // Outbound webhook doesn't include user_phone_number - look up from our map
-      from = getOutboundAttempt(body.attempt_id);
+      from = getOutboundAttempt(body.attempt_id) || body.user_phone_number;
       to = body.channel_info?.agent_phone_number;
       durationSec = typeof body.duration === 'number' ? body.duration : 0;
       endedAt = body.end_datetime;
@@ -253,25 +255,96 @@ export async function hangup(req: Request, res: Response) {
       rawStatus: status
     });
 
-    // TRIGGER WHATSAPP FOR MISSED OUTBOUND CALLS ONLY
-    // Inbound calls (to +918064261388 or any agent number) NEVER trigger WhatsApp
-    if (isOutbound && isMissedCandidate && session.from && !session.whatsappTriggered) {
-      await triggerMissedCallWhatsApp(session);
-    } else if (isOutbound && isMissedCandidate && session.whatsappTriggered) {
-      console.log('[SARVAM] hangup: WhatsApp already triggered for this outbound call (idempotent)', { callId });
-    } else if (isOutbound && isAnswered) {
-      console.log('[SARVAM] hangup: answered outbound call - skipping WhatsApp', { callId, durationSec: calculatedDuration });
-    } else if (!isOutbound) {
-      // Inbound call - NEVER trigger WhatsApp regardless of missed/answered
-      console.log('[SARVAM] hangup: inbound call - WhatsApp disabled for inbound', { 
-        callId, 
-        status: isAnswered ? 'answered' : (isMissedCandidate ? 'missed' : 'indeterminate'),
-        from: session.from,
-        to: session.to 
+    // WhatsApp dispatch is performed after the call record is persisted below.
+    // A missed outbound call is the only path that sends WhatsApp.
+
+    // Persist call record to database (idempotent via interaction_id unique constraint)
+    try {
+      // Determine interaction_id for the database record
+      const interactionId = body.interaction_id ?? body.attempt_id;
+      if (interactionId) {
+        // Extract Sarvam output variables (per spec: output_agent_variables takes precedence)
+        const sarvamOutput = body.output_agent_variables ?? body.final_agent_variables ?? {};
+
+        // Missed calls are persisted but never sent through provider extraction.
+        const isAnsweredCall = finalStatus === 'answered';
+        const extractedData: Prisma.InputJsonValue | typeof Prisma.JsonNull = isAnsweredCall
+          ? {
+              name: sarvamOutput.customer_name ?? null,
+              services: sarvamOutput.services_provided ?? [],
+              city: sarvamOutput.city ?? null,
+            }
+          : Prisma.JsonNull;
+
+        const recordData: Prisma.VoiceCallRecordUncheckedCreateInput = {
+          interactionId,
+          providerCallId: isOutbound ? body.attempt_id : undefined,
+          callType: 'provider_onboarding',
+          source: 'sarvam',
+          fromNumber: from,
+          toNumber: to,
+          status: finalStatus,
+          durationSeconds: calculatedDuration > 0 ? calculatedDuration : null,
+          startedAt: startDatetime ? new Date(startDatetime) : null,
+          endedAt: endedAt ? new Date(endedAt) : new Date(),
+          transcript: transcript && Array.isArray(transcript) && transcript.length > 0
+            ? transcript
+            : Prisma.JsonNull,
+          agentVariables: body.agent_variables ?? body.initial_agent_variables ?? Prisma.JsonNull,
+          outputAgentVariables: sarvamOutput,
+          extractedData,
+          extractionSchemaVersion: 1,
+          rawWebhookPayload: body,
+          extractionStatus: isAnsweredCall ? 'completed' : 'skipped',
+          processingError: null,
+        };
+
+        await prisma.voiceCallRecord.upsert({
+          where: { interactionId },
+          create: recordData,
+          update: {
+            providerCallId: recordData.providerCallId,
+            callType: recordData.callType,
+            source: recordData.source,
+            fromNumber: recordData.fromNumber,
+            toNumber: recordData.toNumber,
+            status: recordData.status,
+            durationSeconds: recordData.durationSeconds,
+            startedAt: recordData.startedAt,
+            endedAt: recordData.endedAt,
+            transcript: recordData.transcript,
+            agentVariables: recordData.agentVariables,
+            outputAgentVariables: recordData.outputAgentVariables,
+            extractedData: recordData.extractedData,
+            extractionSchemaVersion: recordData.extractionSchemaVersion,
+            rawWebhookPayload: recordData.rawWebhookPayload,
+            extractionStatus: recordData.extractionStatus,
+            processingError: recordData.processingError,
+          },
+        });
+
+        if (isOutbound && isMissedCandidate && session.from) {
+          await triggerMissedCallWhatsApp(session);
+        } else if (isOutbound && isAnswered) {
+          console.log('[SARVAM] hangup: answered outbound call - skipping WhatsApp', { callId });
+        } else if (!isOutbound) {
+          console.log('[SARVAM] hangup: inbound call - WhatsApp disabled', { callId, finalStatus });
+        } else {
+          console.log('[SARVAM] hangup: indeterminate call - skipping WhatsApp', { callId, finalStatus });
+        }
+
+        console.log('[SARVAM] hangup: call record persisted to database', {
+          interactionId,
+          status: finalStatus,
+          extractionStatus: recordData.extractionStatus
+        });
+      }
+    } catch (dbErr: any) {
+      // Don't fail the webhook if DB persistence fails - log and continue
+      console.error('[SARVAM] hangup: database persistence failed', {
+        error: dbErr?.message || String(dbErr),
+        interactionId: body.interaction_id ?? body.attempt_id
       });
-    } else {
-      // Neither clearly answered nor clearly missed (e.g., duration > 0 but no transcript)
-      console.log('[SARVAM] hangup: indeterminate call - skipping WhatsApp', { callId, durationSec: calculatedDuration, transcriptLength: Array.isArray(transcript) ? transcript.length : 0, hasTranscript: Array.isArray(transcript) && transcript.length > 0 });
     }
 
     res.status(200).send('OK');
@@ -284,49 +357,43 @@ export async function hangup(req: Request, res: Response) {
 async function triggerMissedCallWhatsApp(session: any) {
   const callId = session.callId;
   const callerNumber = session.from;
-  
+
   if (!callerNumber) {
     console.warn('[SARVAM] Missed call WhatsApp trigger skipped: missing caller number', { callId });
     return;
   }
 
+  if (session.whatsappTriggered) {
+    console.log('[SARVAM] Missed call WhatsApp already triggered; skipping duplicate', { callId });
+    return;
+  }
+
   try {
-    // Normalize phone number for WhatsApp (E.164 without +)
-    const normalizedPhone = normalizePhoneNumber(callerNumber);
-    
-    console.log('[SARVAM] Triggering missed call WhatsApp', { 
-      callId, 
-      originalNumber: callerNumber,
-      normalizedPhone 
+    console.log('[SARVAM] Triggering missed call WhatsApp', {
+      callId,
+      callerNumber,
     });
 
-    // Use existing WhatsApp flow - initiate conversation with missed call template
-    const result = await initiateConversation({
-      to: normalizedPhone,
-      templateName: 'sp_onboarding_missedcall_hindi',
-      languageCode: 'hi',
-    });
+    // Existing independently working missed-call flow. It uses the approved
+    // sp_onboarding_missedcall_hindi template for new providers.
+    await handleServiceProviderMissedCall(callerNumber);
 
-    // Mark as triggered (idempotency)
+    // Preserve the original in-memory idempotency behavior.
     sarvamCallSessionManager.update(callId, {
       whatsappTriggered: true,
       whatsappTriggeredAt: new Date(),
     });
 
-    console.log('[SARVAM] Missed call WhatsApp sent successfully', { 
-      callId, 
-      messageId: result.messageId,
-      waId: result.waId 
-    });
+    console.log('[SARVAM] Missed call WhatsApp flow completed', { callId });
   } catch (err: any) {
-    console.error('[SARVAM] Missed call WhatsApp trigger failed', { 
-      callId, 
+    console.error('[SARVAM] Missed call WhatsApp trigger failed', {
+      callId,
       callerNumber,
       error: err?.message || String(err),
       status: err?.status,
-      details: err?.details 
+      details: err?.details,
     });
-    // Don't mark as triggered on failure - allows retry on next webhook
+    // Do not mark the session as triggered on failure.
   }
 }
 

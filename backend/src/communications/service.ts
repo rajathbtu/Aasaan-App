@@ -12,7 +12,9 @@ export async function handleServiceProviderMissedCall(phone: string,): Promise<v
   const storedPhone = toStoredPhoneNumber(whatsappPhone);
   const existingUser = await findUserByPhone(storedPhone);
 
-  if (!existingUser) {
+  const existingProvider = Boolean(existingUser?.serviceProviderInfo);
+
+  if (!existingProvider) {
     const otp = generateOTP();
     const { token, url: onboardingUrl } = createOnboardingLink(storedPhone, otp);
 
