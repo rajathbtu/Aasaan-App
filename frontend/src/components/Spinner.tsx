@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, Platform, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Platform, StyleSheet, View, StyleProp, ViewStyle } from 'react-native';
 
 type SpinnerProps = {
   size?: 'small' | 'large' | number;
   color?: string;
+  style?: StyleProp<ViewStyle>;
 };
 
 /**
@@ -17,7 +18,7 @@ type SpinnerProps = {
 
 const PRESET_SIZES = { small: 20, large: 36 };
 
-const Spinner: React.FC<SpinnerProps> = ({ size = 'small', color = '#1976D2' }) => {
+const Spinner: React.FC<SpinnerProps> = ({ size = 'small', color = '#1976D2', style }) => {
   const dimension = typeof size === 'number' ? size : PRESET_SIZES[size];
   const strokeWidth = dimension * (4 / 32);
   const radius = dimension / 2;
@@ -43,11 +44,11 @@ const Spinner: React.FC<SpinnerProps> = ({ size = 'small', color = '#1976D2' }) 
   });
 
   return (
-    <Animated.View style={{
+    <Animated.View style={[{
         width: dimension,
         height: dimension,
         transform: [{ rotate }],
-      }}>
+      }, style]}>
       {/* Light track: full circle outline at 20% opacity */}
       <View style={{
           ...StyleSheet.absoluteFillObject,

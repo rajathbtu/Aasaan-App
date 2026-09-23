@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { View, ActivityIndicator, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { locationManager } from './src/services/LocationManager';
 import { NotificationCountProvider, useNotificationCount } from './src/contexts/NotificationCountContext';
@@ -203,6 +203,7 @@ function AuthStack() {
 // Main application tabs differ based on the user role
 function MainTabs() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   if (!user) return null;
   const isProvider = user.role === 'serviceProvider';
   return (
@@ -220,12 +221,8 @@ function MainTabs() {
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.08,
           shadowRadius: 8,
-          paddingTop: spacing.xs,
-          // paddingBottom: spacing.sm,
-        },
-        tabBarItemStyle: {
-          minHeight: 48,
-        },
+          height: 60 + insets.bottom,
+        }, 
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '700',
