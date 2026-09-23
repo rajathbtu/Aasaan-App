@@ -1,19 +1,9 @@
-/**
- * Express routes for the WhatsApp module.
- *
- *  GET  /whatsapp/webhook   — Meta webhook subscription handshake.
- *  POST /whatsapp/webhook   — Meta webhook events (inbound messages,
- *                             delivery statuses). Signature-verified when
- *                             WHATSAPP_APP_SECRET is configured.
- *  GET  /whatsapp/status    — reports whether credentials are configured.
- */
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
 import { isWhatsAppConfigured, readWhatsAppConfig } from './config';
 
 const router = Router();
 
-/** Meta verifies the webhook URL with a one-time handshake. */
 router.get('/webhook', (req: Request, res: Response): void => {
   const config = readWhatsAppConfig();
   const mode = String(req.query['hub.mode'] ?? '');
@@ -27,11 +17,6 @@ router.get('/webhook', (req: Request, res: Response): void => {
   res.sendStatus(403);
 });
 
-/**
- * Verifies the X-Hub-Signature-256 header against the HMAC-SHA256 of the raw
- * request body, using the Meta app secret.  The raw body is captured by the
- * express.json verify() hook registered in src/app.ts.
- */
 function isWebhookSignatureValid(req: Request, appSecret: string): boolean {
   const rawBody = (req as any).rawBody;
   const header = String(req.headers['x-hub-signature-256'] ?? '');
@@ -46,7 +31,6 @@ function isWebhookSignatureValid(req: Request, appSecret: string): boolean {
   }
 }
 
-/** Meta posts message/status events here. */
 router.post('/webhook', (req: Request, res: Response): void => {
   const { appSecret } = readWhatsAppConfig();
   if (appSecret && !isWebhookSignatureValid(req, appSecret)) {
@@ -68,11 +52,9 @@ router.post('/webhook', (req: Request, res: Response): void => {
     }
   }
 
-  // Meta requires a fast 200; anything else triggers retries.
   res.sendStatus(200);
 });
 
-/** Lightweight report of whether the WhatsApp credentials are in place. */
 router.get('/status', (_req: Request, res: Response): void => {
   res.json({ configured: isWhatsAppConfigured() });
 });

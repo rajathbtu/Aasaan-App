@@ -7,7 +7,7 @@ import notificationRoutes from './routes/notificationRoutes';
 import paymentRoutes from './routes/paymentRoutes';
 import serviceRoutes from './routes/serviceRoutes';
 import googlePlacesRoutes from './routes/googlePlacesRoutes';
-import whatsappRoutes from '../whatsapp/routes';
+import whatsappRoutes from './communications/whatsapp/routes';
 import { errorHandler } from './middleware/errorHandler';
 
 // Create and configure the Express application.  All middleware and routes are
@@ -87,7 +87,7 @@ app.use('/notifications', notificationRoutes);
 app.use('/payments', paymentRoutes);
 app.use('/services', serviceRoutes);
 app.use('/google-places', googlePlacesRoutes); // Web-only proxy for Google Places Web Service endpoints (see googlePlacesProxyController). Native apps call Google directly.
-app.use('/whatsapp', whatsappRoutes); // WhatsApp Cloud API (Meta): inbound webhooks only (see backend/whatsapp/README.md)
+app.use('/whatsapp', whatsappRoutes); // WhatsApp Cloud API (Meta): inbound webhooks only
 
 // Catch‑all for unknown routes
 app.use((req, res, next) => {
