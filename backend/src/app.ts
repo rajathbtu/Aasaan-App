@@ -8,8 +8,8 @@ import paymentRoutes from './routes/paymentRoutes';
 import serviceRoutes from './routes/serviceRoutes';
 import googlePlacesRoutes from './routes/googlePlacesRoutes';
 import whatsappRoutes from './communications/whatsapp/routes';
-import plivoRoutes from '../voiceAI/routes/plivoRoutes';
-import sarvamRoutes from '../voiceAI/routes/sarvamRoutes';
+import plivoRoutes from './communications/voiceAI/routes/plivoRoutes';
+import sarvamRoutes from './communications/voiceAI/routes/sarvamRoutes';
 import { errorHandler } from './middleware/errorHandler';
 
 // Create and configure the Express application.  All middleware and routes are
