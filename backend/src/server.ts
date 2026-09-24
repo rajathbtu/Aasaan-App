@@ -14,6 +14,11 @@ const HOST = process.env.HOST || '0.0.0.0';
 // attaching WebSockets).
 const server = http.createServer(app);
 
+// Attach WebSocket handlers (Plivo streaming)
+import { attachPlivoWs } from './communications/voiceAI/ws/plivoWs';
+import { attachSarvamWs } from './communications/voiceAI/ws/sarvamWs';
+
+
 server.listen({ port: Number(PORT), host: HOST }, () => {
   const lanIPs = getLanIPv4Addresses();
   console.log(`Aasaan backend is running on http://${HOST}:${PORT}`);
@@ -28,4 +33,7 @@ server.listen({ port: Number(PORT), host: HOST }, () => {
       console.log('[Dev] No external IPv4 address detected. Are you connected to Wi‑Fi/LAN?');
     }
   }
+  // Attach WS after server is listening
+  attachPlivoWs(server);
+  attachSarvamWs(server);
 });
