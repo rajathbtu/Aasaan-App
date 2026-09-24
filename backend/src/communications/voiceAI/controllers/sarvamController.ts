@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import sarvamService from '../services/sarvamService';
 import { sarvamCallSessionManager } from '../models/sarvamCallSessions';
-import { handleServiceProviderMissedCall } from '../../src/communications/service';
+import { handleServiceProviderMissedCall } from '../../service';
 import { Prisma } from '@prisma/client';
-import prisma from '../../src/utils/prisma';
+import prisma from '../../../utils/prisma';
 
 // In-memory map to track outbound attempt_id -> called number
 // This is needed because outbound completion webhook doesn't include user_phone_number
