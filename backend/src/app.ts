@@ -67,9 +67,7 @@ app.use((req, res, next) => {
   const time = new Date().toLocaleTimeString('en-GB');
   try {
     // Log request & response for debugging
-    const isRecordingCallback = /^\/(webhooks\/plivo|api)\/recording-ready\/?$/.test(req.path);
-    const bodyPreview = isRecordingCallback ? '<redacted>' :
-      req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : '{}';
+    const bodyPreview = req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : '{}';
     console.log(`# # # REQUEST  # # #   ${time} ${req.method} ${req.originalUrl} body=${bodyPreview}`);
   } catch (err) {
     console.log(`# # # REQUEST  # # #   ${time} ${req.method} ${req.originalUrl} body=<unserializable>`);
