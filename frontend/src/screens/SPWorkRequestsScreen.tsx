@@ -23,6 +23,7 @@ import ServiceIcon from '../components/ServiceIcon';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import SkeletonLoader from '../components/SkeletonLoader';
 import UpgradeProBanner from '../components/UpgradeProBanner';
+import EmptyState from '../components/EmptyState';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo } from '../utils/time';
 import Spinner from '../components/Spinner';
@@ -539,17 +540,10 @@ const SPWorkRequestsScreen: React.FC = () => {
         )}
         {/* List */}
         {filteredRequests.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconWrap}>
-              <Ionicons name="briefcase-outline" size={34} color={colors.primary} />
-            </View>
-            <Text style={styles.emptyTitle}>
-              {t(tab === 'accepted' ? 'spRequests.emptyAccepted' : 'spRequests.empty')}
-            </Text>
-            <Text style={styles.emptyHint}>
-              {t(tab === 'accepted' ? 'spRequests.emptyHintAccepted' : 'spRequests.emptyHint')}
-            </Text>
-          </View>
+          <EmptyState
+            icon="briefcase-outline"
+            title={t(tab === 'accepted' ? 'spRequests.emptyAccepted' : 'spRequests.empty')}
+            description={t(tab === 'accepted' ? 'spRequests.emptyHintAccepted' : 'spRequests.emptyHint')} />
         ) : (
           <FlatList
             ref={listRef}
@@ -637,35 +631,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.dark,
     fontWeight: '600',
-  },
-  // --- Empty state ---
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-  },
-  emptyIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.primarySoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.dark,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  emptyHint: {
-    fontSize: 14,
-    color: colors.grey,
-    textAlign: 'center',
-    lineHeight: 20,
   },
   // --- Request cards ---
   card: {

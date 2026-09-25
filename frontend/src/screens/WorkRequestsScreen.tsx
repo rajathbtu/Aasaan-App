@@ -13,6 +13,7 @@ import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import ServiceIcon from '../components/ServiceIcon';
 import SegmentedTabs from '../components/SegmentedTabs';
+import EmptyState from '../components/EmptyState';
 import * as realApi from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
@@ -174,8 +175,13 @@ const WorkRequestsScreen: React.FC = () => {
         windowSize={5}
         removeClippedSubviews
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={requests.length === 0 ? styles.emptyContainer : styles.listContent}
-        ListEmptyComponent={<Text style={styles.emptyText}>{t('userRequests.empty')}</Text>}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <EmptyState
+            icon="briefcase-outline"
+            title={t(activeTab === 'active' ? 'userRequests.emptyActiveTitle' : 'userRequests.emptyCompletedTitle')}
+            description={t(activeTab === 'active' ? 'userRequests.emptyActiveDescription' : 'userRequests.emptyCompletedDescription')}/>
+        }
       />
       <ErrorBanner
         error={requestError}
@@ -273,19 +279,9 @@ const styles = StyleSheet.create({
     marginRight: 4,
     marginBottom: 4,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xxl,
-  },
   listContent: {
     paddingTop: spacing.xs,
     paddingBottom: spacing.xxl,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.grey,
   },
 });
 

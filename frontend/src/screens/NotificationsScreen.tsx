@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius, tints } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import EmptyState from '../components/EmptyState';
 import { useNotificationCount } from '../contexts/NotificationCountContext';
 import ErrorBanner from '../components/ErrorBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
@@ -313,13 +314,11 @@ const NotificationsScreen: React.FC = () => {
         keyExtractor={(row) => row.key}
         renderItem={renderItem}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconCircle}>
-              <Ionicons name="notifications-off-outline" size={40} color={colors.primary} />
-            </View>
-            <Text style={styles.emptyTitle}>{t('notifications.emptyTitle')}</Text>
-            <Text style={styles.emptySubtitle}>{t('notifications.emptySubtitle')}</Text>
-          </View>
+          <EmptyState
+            icon="notifications-off-outline"
+            title={t('notifications.emptyTitle')}
+            description={t('notifications.emptySubtitle')}
+          />
         }
         refreshControl={
           <RefreshControl
@@ -525,34 +524,6 @@ const styles = StyleSheet.create({
   skeletonBlock: {
     backgroundColor: colors.greyLight,
     borderRadius: radius.sm,
-  },
-  /* Empty state */
-  emptyContainer: {
-    alignItems: 'center',
-    paddingTop: spacing.xxl + spacing.xl,
-    paddingHorizontal: spacing.xl,
-  },
-  emptyIconCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.dark,
-    marginBottom: spacing.xs,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.grey,
-    textAlign: 'center',
-    maxWidth: 280,
   },
 });
 
