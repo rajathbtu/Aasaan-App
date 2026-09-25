@@ -291,7 +291,6 @@ export async function hangup(req: Request, res: Response) {
           inputAgentVariables: body.agent_variables ?? body.initial_agent_variables ?? Prisma.JsonNull,
           outputAgentVariables,
           extractionSchemaVersion: 1,
-          rawWebhookPayload: body,
         };
 
         await prisma.voiceCallRecord.upsert({
@@ -311,7 +310,6 @@ export async function hangup(req: Request, res: Response) {
             inputAgentVariables: recordData.inputAgentVariables,
             outputAgentVariables: recordData.outputAgentVariables,
             extractionSchemaVersion: recordData.extractionSchemaVersion,
-            rawWebhookPayload: recordData.rawWebhookPayload,
           },
         });
 
