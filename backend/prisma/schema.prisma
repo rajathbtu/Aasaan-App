@@ -172,8 +172,7 @@ enum PaymentType {
 }
 
 model VoiceCallRecord {
-  id                       String   @id @default(uuid())
-  interactionId            String   @unique @map("interaction_id")
+  id                       String   @id @map("interaction_id")
   providerCallId           String?  @map("provider_call_id")
   callType                 String   @default("provider_onboarding") @map("call_type")
   source                   String   @default("sarvam")
@@ -185,21 +184,17 @@ model VoiceCallRecord {
   startedAt                DateTime? @map("started_at")
   endedAt                  DateTime? @map("ended_at")
   transcript               Json?
-  agentVariables           Json?    @map("agent_variables")
+  inputAgentVariables      Json?    @map("input_agent_variables")
   outputAgentVariables     Json?    @map("output_agent_variables")
-  extractedData            Json?    @map("extracted_data")
   extractionSchemaVersion  Int      @default(1) @map("extraction_schema_version")
-  rawWebhookPayload        Json?    @map("raw_webhook_payload")
-  extractionStatus         String   @default("pending") @map("extraction_status")
-  processingError          String?  @map("processing_error")
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @updatedAt @map("updated_at")
 
   @@index([callType])
   @@index([status])
+  @@index([userId])
   @@index([fromNumber])
   @@index([toNumber])
   @@index([startedAt])
-  @@index([extractionStatus])
   @@map("voice_call_records")
 }

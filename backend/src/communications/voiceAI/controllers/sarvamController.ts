@@ -258,29 +258,27 @@ export async function hangup(req: Request, res: Response) {
     // WhatsApp dispatch is performed after the call record is persisted below.
     // A missed outbound call is the only path that sends WhatsApp.
 
-    // Persist call record to database (idempotent via interaction_id unique constraint)
+    // Persist call record to database (idempotent via interaction ID primary key)
     try {
-      // Determine interaction_id for the database record
-      const interactionId = body.interaction_id ?? body.attempt_id;
-      if (interactionId) {
-        // Extract Sarvam output variables (per spec: output_agent_variables takes precedence)
-        const sarvamOutput = body.output_agent_variables ?? body.final_agent_variables ?? {};
+      // Use Sarvam's interaction ID (or outbound attempt ID) as the record ID.
+      const id = body.interaction_id ?? body.attempt_id;
+      if (id) {
+        // Keep the final agent output for downstream analytics and reporting.
+        const outputAgentVariables = body.output_agent_variables ?? body.final_agent_variables ?? {};
 
-        // Missed calls are persisted but never sent through provider extraction.
-        const isAnsweredCall = finalStatus === 'answered';
-        const extractedData: Prisma.InputJsonValue | typeof Prisma.JsonNull = isAnsweredCall
-          ? {
-              name: sarvamOutput.customer_name ?? null,
-              services: sarvamOutput.services_provided ?? [],
-              city: sarvamOutput.city ?? null,
-            }
-          : Prisma.JsonNull;
+        const userId = from
+          ? (await prisma.user.findUnique({
+              where: { phoneNumber: from },
+              select: { id: true },
+            }))?.id ?? null
+          : null;
 
         const recordData: Prisma.VoiceCallRecordUncheckedCreateInput = {
-          interactionId,
+          id,
           providerCallId: isOutbound ? body.attempt_id : undefined,
           callType: 'provider_onboarding',
           source: 'sarvam',
+          userId,
           fromNumber: from,
           toNumber: to,
           status: finalStatus,
@@ -290,17 +288,13 @@ export async function hangup(req: Request, res: Response) {
           transcript: transcript && Array.isArray(transcript) && transcript.length > 0
             ? transcript
             : Prisma.JsonNull,
-          agentVariables: body.agent_variables ?? body.initial_agent_variables ?? Prisma.JsonNull,
-          outputAgentVariables: sarvamOutput,
-          extractedData,
+          inputAgentVariables: body.agent_variables ?? body.initial_agent_variables ?? Prisma.JsonNull,
+          outputAgentVariables,
           extractionSchemaVersion: 1,
-          rawWebhookPayload: body,
-          extractionStatus: isAnsweredCall ? 'completed' : 'skipped',
-          processingError: null,
         };
 
         await prisma.voiceCallRecord.upsert({
-          where: { interactionId },
+          where: { id },
           create: recordData,
           update: {
             providerCallId: recordData.providerCallId,
@@ -313,13 +307,9 @@ export async function hangup(req: Request, res: Response) {
             startedAt: recordData.startedAt,
             endedAt: recordData.endedAt,
             transcript: recordData.transcript,
-            agentVariables: recordData.agentVariables,
+            inputAgentVariables: recordData.inputAgentVariables,
             outputAgentVariables: recordData.outputAgentVariables,
-            extractedData: recordData.extractedData,
             extractionSchemaVersion: recordData.extractionSchemaVersion,
-            rawWebhookPayload: recordData.rawWebhookPayload,
-            extractionStatus: recordData.extractionStatus,
-            processingError: recordData.processingError,
           },
         });
 
@@ -334,16 +324,15 @@ export async function hangup(req: Request, res: Response) {
         }
 
         console.log('[SARVAM] hangup: call record persisted to database', {
-          interactionId,
+          id,
           status: finalStatus,
-          extractionStatus: recordData.extractionStatus
         });
       }
     } catch (dbErr: any) {
       // Don't fail the webhook if DB persistence fails - log and continue
       console.error('[SARVAM] hangup: database persistence failed', {
         error: dbErr?.message || String(dbErr),
-        interactionId: body.interaction_id ?? body.attempt_id
+        id: body.interaction_id ?? body.attempt_id
       });
     }
 
