@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView, Image, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView, Image, Switch, ActivityIndicator } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,6 +13,7 @@ import { getServices } from '../api';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import UpgradeProBanner from '../components/UpgradeProBanner';
 import BlockingLoader from '../components/BlockingLoader';
+import ProfileField from '../components/ProfileField';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 /**
@@ -77,6 +78,7 @@ const ProfileScreen: React.FC = () => {
   const [pendingRadius, setPendingRadius] = useState<number>(initialRadius);
   const [darkMode, setDarkMode] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isSavingName, setIsSavingName] = useState(false);
 
   useEffect(() => {
     // If user object updates (after save), sync pending state
@@ -102,9 +104,7 @@ const ProfileScreen: React.FC = () => {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <Text style={{ color: colors.dark }}>Loading...</Text>
-      </SafeAreaView>
+      <BlockingLoader visible={true} />
     );
   }
 
@@ -138,6 +138,7 @@ const ProfileScreen: React.FC = () => {
       placeId: pendingLocation.place_id || pendingLocation.placeId,
     } : null;
 
+    setIsSavingName(true);
     try {
       await updateUser(updates);
       setProfileError(null);
@@ -145,14 +146,15 @@ const ProfileScreen: React.FC = () => {
       showToast(t('common.updatedDesc'));
     } catch (err: any) {
       setProfileError(err);
+    } finally {
+      setIsSavingName(false);
     }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.white }}>
       <Header title={t('profile.header')} showBackButton={true} showNotification={false} />
-      {/* <View style={{ height: spacing.sm }} /> */}
-      <ScrollView style={{ flex: 1 }}>
+      <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
         {/* Profile photo */}
         <View style={styles.photoSection}>
           <View style={{ position: 'relative', marginBottom: spacing.xs }}>
@@ -181,201 +183,135 @@ const ProfileScreen: React.FC = () => {
         </View>
 
         {/* Full Name */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Ionicons name="person"  style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>{t('profile.yourName')}</Text>
-          </View>
-
-          <View style={{ marginBottom: spacing.md }}>
-            <View style={styles.infoCell}>
-              <TouchableOpacity
-                onPress={() => setEditing(true)}
-                style={styles.nameFieldPressable}
-                activeOpacity={1}
-              >
-              {editing ? (
-                <TextInput
-                  style={styles.inputInCell}
-                  value={name}
-                  onChangeText={setName}
-                  placeholder={t('profile.yourName')}
-                  placeholderTextColor={colors.greyMuted}
-                />
-              ) : (
-                <Text style={styles.infoValue}>{user.name}</Text>
-              )}
-              </TouchableOpacity>
-
-              {editing && name.trim() !== initialName.trim() ? (
-                <TouchableOpacity onPress={onSave} style={styles.inlineSaveBtn} activeOpacity={0.8}>
-                  <Text style={styles.inlineSaveBtnText}>{t('common.saveChanges')}</Text>
-                </TouchableOpacity>
-              ) : (
-                <Ionicons name="pencil" size={14} color={editing ? colors.primary : colors.greyMuted} />
-              )}
-            </View>
-          </View>
-        </View>
-
-          {/* Mobile Number */}
-        <View style={styles.section}> 
-          <View style={styles.sectionHeaderRow}>
-            <Ionicons name="call"  style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>{t('profile.mobileNumber')}</Text>
-          </View>
-          <View style={{ marginBottom: spacing.md }}>
-            <TouchableOpacity onPress={() => Alert.alert(t('common.notEditable'), t('profile.phoneNotEditable'))} style={styles.infoCell} activeOpacity={1}>
-              <Text style={styles.infoValue}>{user?.phoneNumber || user?.phone || ''}</Text>
-              <Ionicons name="pencil" size={14} color={colors.greyMuted} />
+        <ProfileField
+          title={t('profile.yourName')}
+          titleIcon="person"
+          fieldType="textfield"
+          value={name}
+          editing={editing}
+          onChangeText={setName}
+          placeholder={t('profile.yourName')}
+          onPress={() => setEditing(true)}
+          fieldEditIcon={'pencil'}
+          trailingContent={editing && name.trim() !== initialName.trim() ? (
+            <TouchableOpacity onPress={onSave} style={styles.inlineSaveBtn} activeOpacity={0.8} disabled={isSavingName}>
+              {isSavingName && <ActivityIndicator size="small" color={colors.white} />}
+              <Text style={styles.inlineSaveBtnText}>{t('common.saveChanges')}</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          ) : undefined}/>
 
-          {/* Language */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Ionicons name="globe"  style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>{t('profile.languageLabel')}</Text>
-          </View>
-          <View style={{ marginBottom: spacing.sm }}> 
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate('LanguageSelection', {
-                    preferred: user?.language || lang,
-                    mode: 'edit',
-                  })
-                }
-              style={styles.infoCell}
-              activeOpacity={1}
-            >
-              <Text style={styles.infoValue}>{getLanguageDisplay(user?.language || lang || 'en')}</Text>
-              <Ionicons name="pencil" size={14} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* Mobile Number */}
+        <ProfileField
+          title={t('profile.mobileNumber')}
+          titleIcon="call"
+          fieldType="textfield"
+          value={user?.phoneNumber || user?.phone || ''}
+          fieldEditIcon="lock-closed"
+          onPress={() => showToast(t('profile.phoneNotEditable'))}/>
+
+        {/* Language */}
+        <ProfileField
+          title={t('profile.languageLabel')}
+          titleIcon="globe"
+          fieldType="textfield"
+          value={getLanguageDisplay(user?.language || lang || 'en')}
+          fieldEditIcon="pencil"
+          onPress={() =>
+            navigation.navigate('LanguageSelection', {
+              preferred: user?.language || lang,
+              mode: 'edit',
+            })} />
 
         {/* User Role */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Ionicons name="people" style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>{t('roleSelect.title')}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.infoCell}
-            onPress={() => navigation.navigate('RoleSelect', { mode: 'edit' })}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.infoValue}> 
-              {pendingRole === 'serviceProvider' ? t('profile.roleServiceProvider') : t('profile.roleEndUser')}
-            </Text>
-            <Ionicons name="pencil" size={14} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
+        <ProfileField
+          title={t('roleSelect.title')}
+          titleIcon="people"
+          fieldType="textfield"
+          value={pendingRole === 'serviceProvider' ? t('profile.roleServiceProvider') : t('profile.roleEndUser')}
+          fieldEditIcon="pencil"
+          onPress={() => navigation.navigate('RoleSelect', { mode: 'edit' })} />
 
         {/* Service Provider Information */}
         {pendingRole === 'serviceProvider' && (
           <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Ionicons name="briefcase"  style={styles.sectionIcon} />
-              <Text style={styles.sectionTitle}>{t('sp.selectServices.title')}</Text>
-            </View>
-
-            {/* Services Offered */}
-            <View style={{ marginBottom: spacing.md }}>
-              <View style={styles.summaryCard}>
-                <View style={{ flex: 1 }}>
-                  <View style={styles.servicesChipsRow}>
-                    {pendingServices && pendingServices.length > 0 ? (
-                      pendingServices.map((svc: string) => (
-                        <View key={svc} style={styles.serviceChipPrimary}>
-                          <Text style={styles.serviceChipTextWhite}>{serviceNameMap[svc] || svc}</Text>
-                        </View>
-                      ))
-                    ) : (
-                      <Text style={{ fontSize: 12, color: colors.grey }}>{t('profile.noServices')}</Text>
-                    )}
-                  </View>
+            <ProfileField
+              title={t('sp.selectServices.title')}
+              titleIcon="briefcase"
+              fieldType="custom"
+              fieldEditIcon="pencil"
+              containerStyle={styles.providerProfileField}
+              onPress={() =>
+                navigation.navigate('SPSelectServices', {
+                  mode: 'edit',
+                  initialSelected: pendingServices,
+                  onDone: async (sel: string[]) => {
+                    setPendingServices(sel);
+                    setIsUpdating(true);
+                    try {
+                      await updateUser({ services: sel });
+                      setProfileError(null);
+                      showToast(t('common.updatedDesc'));
+                    } catch (error) {
+                      setProfileError(error);
+                    } finally {
+                      setIsUpdating(false);
+                    }
+                  },
+                })
+              }
+            >
+              <View style={styles.profileFieldContent}>
+                <View style={styles.servicesChipsRow}>
+                  {pendingServices.length > 0 ? (
+                    pendingServices.map((svc: string) => (
+                      <View key={svc} style={styles.serviceChipPrimary}>
+                        <Text style={styles.serviceChipTextWhite}>{serviceNameMap[svc] || svc}</Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={{ fontSize: 12, color: colors.grey }}>{t('profile.noServices')}</Text>
+                  )}
                 </View>
-
-                <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate('SPSelectServices', {
-                      mode: 'edit',
-                      initialSelected: pendingServices,
-                      onDone: async (sel: string[]) => {
-                        setPendingServices(sel);
-                        setIsUpdating(true);
-                        try {
-                          await updateUser({ services: sel });
-                          setProfileError(null);
-                          showToast(t('common.updatedDesc'));
-                        } catch (error) {
-                          setProfileError(error);
-                        } finally {
-                          setIsUpdating(false);
-                        }
-                      },
-                    })
-                  }
-                  style={styles.editButton}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="pencil"  />
-                </TouchableOpacity>
               </View>
-            </View>
+            </ProfileField>
 
-            {/* Service Location & Radius */}
-            <View style={styles.sectionHeaderRow}>
-              <Ionicons name="location"  style={styles.sectionIcon} />
-              <Text style={styles.sectionTitle}>{t('profile.serviceLocation')}</Text>
-            </View>
-            <View style={{ marginBottom: spacing.md }}>
-              <View style={styles.summaryCard}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.locationSummaryText} numberOfLines={2}>
-                    {pendingLocation?.name || pendingLocation?.description || t('profile.noLocation') || 'No location selected'}
-                  </Text>
-
-                  <Text style={[styles.fieldLabel, { marginTop: spacing.sm }]}>{t('profile.serviceRadius')}</Text>
-                  <Text style={styles.locationSummaryText}>{pendingRadius} km</Text>
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('LocationSelect', { mode: 'edit' })}
-                  style={styles.editButton}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="pencil" size={16} color={colors.primary} />
-                </TouchableOpacity>
+            <ProfileField
+              title={t('profile.serviceLocation')}
+              titleIcon="location"
+              fieldType="custom"
+              fieldEditIcon="pencil"
+              containerStyle={styles.providerProfileField}
+              onPress={() => navigation.navigate('LocationSelect', { mode: 'edit' })}>
+              <View style={styles.profileFieldContent}>
+                <Text style={styles.locationSummaryText} numberOfLines={2}>
+                  {pendingLocation?.name || pendingLocation?.description || t('profile.noLocation') || 'No location selected'}
+                </Text>
+                <Text style={[styles.fieldLabel, { marginTop: spacing.sm }]}>{t('profile.serviceRadius')}</Text>
+                <Text style={styles.locationSummaryText}>{pendingRadius} km</Text>
               </View>
-            </View>
+            </ProfileField>
           </View>
         )}
 
         {/* Additional Settings */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
-            <Ionicons name="settings"  style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>{t('profile.additionalSettings')}</Text>
-          </View>
-          <View style={styles.settingRow}>
+        <ProfileField
+          title={t('profile.additionalSettings')}
+          titleIcon="settings"
+          fieldType="custom"
+          onPress={() => showToast('This feature is not supported for your device')}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="moon" size={16} color={colors.grey} style={{ marginRight: spacing.sm }} />
               <Text style={{ fontSize: 14, color: colors.dark }}>{t('profile.darkMode')}</Text>
             </View>
             <Switch value={darkMode} onValueChange={setDarkMode} thumbColor={darkMode ? colors.primary : colors.white} trackColor={{ true: colors.primaryBorder, false: colors.greyLight }} />
-          </View>
-        </View>
+        </ProfileField>
 
         {/* Professional Plans Promotion */}
         {user.role === 'serviceProvider' && (
           <View style={styles.section}>
             <UpgradeProBanner
               variant="card"
-              onPress={() => navigation.navigate('Subscription')}
-            />
+              onPress={() => navigation.navigate('Subscription')}/>
           </View>
         )}
 
@@ -393,7 +329,7 @@ const ProfileScreen: React.FC = () => {
             <Ionicons name="log-out" size={16} color={colors.error} style={{ marginRight: spacing.xs }} />
             <Text style={styles.logoutText}>{t('profile.logout')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => Alert.alert('Deactivate', t('profile.deactivateDesc'))} style={styles.logoutRow}>
+          <TouchableOpacity onPress={() => showToast(t('profile.deactivateDesc'))} style={styles.logoutRow}>
             <Ionicons name="alert-circle" size={16} color={colors.error} style={{ marginRight: spacing.xs }} />
             <Text style={styles.logoutText}>{t('profile.deactivate')}</Text>
           </TouchableOpacity>
@@ -409,31 +345,6 @@ const ProfileScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.light,
-  },
-  header: {
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.greyLight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backBtn: {
-    padding: spacing.sm,
-    marginRight: spacing.sm,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.primary,
-  },
   photoSection: {
     alignItems: 'center',
     marginTop: spacing.md,
@@ -472,20 +383,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginTop: spacing.xl,
   },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
+  providerProfileField: {
+    paddingHorizontal: 0,
+    marginTop: 0,
+    marginBottom: spacing.md,
   },
-  sectionIcon: {
-    marginRight: spacing.sm,
-    color: colors.greyMuted,
-    fontSize: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.dark,
+  profileFieldContent: {
+    flex: 1,
+    backgroundColor: colors.greyLight,
   },
   fieldLabel: {
     fontSize: 12,
@@ -493,25 +398,13 @@ const styles = StyleSheet.create({
     color: colors.grey,
     marginBottom: spacing.xs,
   },
-  infoCell: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.greyLight,
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
-  },
-  nameFieldPressable: {
-    flex: 1,
-    minWidth: 0,
-  },
   inlineSaveBtn: {
     backgroundColor: colors.primary,
     borderRadius: radius.sm,
     padding: spacing.sm,
     paddingVertical: 6,
+    flexDirection: 'row',
+    gap: spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -519,56 +412,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 12,
     fontWeight: '700',
-  },
-  inputInCell: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.dark,
-    paddingVertical: 0,
-    minHeight: 20,
-  },
-  infoValue: {
-    color: colors.dark,
-    fontSize: 16,
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  roleGrid: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    justifyContent: 'space-between',
-  },
-  roleCard: {
-    flex: 1,
-    borderWidth: 2,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    marginRight: spacing.sm,
-  },
-  roleCardSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
-  },
-  roleCardUnselected: {
-    borderColor: colors.greyLight,
-    backgroundColor: colors.white,
-  },
-  roleIconCircle: {
-    borderRadius: 999,
-    padding: 8,
-    marginBottom: spacing.xs,
-  },
-  roleText: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  servicesBox: {
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    borderRadius: radius.md,
-    backgroundColor: colors.light,
-    padding: spacing.md,
   },
   servicesChipsRow: {
     flexDirection: 'row',
@@ -587,54 +430,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  addServiceFullButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-  },
-  addServiceFullText: {
-    color: colors.white,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  summaryCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    backgroundColor: colors.light,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    borderRadius: radius.md,
-    padding: spacing.md,
-  },
   locationSummaryText: {
     color: colors.dark,
     fontSize: 14,
     fontWeight: '600',
     flexShrink: 1,
-  },
-  editButton: {
-    marginLeft: spacing.sm,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
   },
   logoutRow: {
     flexDirection: 'row',
@@ -651,16 +451,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.greyMuted,
     marginVertical: spacing.lg,
-  },
-  headerActionRow: {
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.greyLight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
   },
 });
 
