@@ -87,6 +87,12 @@ const SPWorkRequestsScreen: React.FC = () => {
   const listRef = useRef<FlatList<any>>(null);
   const userId = user?.id;
   const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
+  
+  const filterOptions = [
+    { value: 'all', labelKey: 'spRequests.filterAll', iconName: 'apps-outline' },
+    { value: 'today', labelKey: 'spRequests.filterToday', iconName: 'time-outline' },
+    { value: 'within3', labelKey: 'spRequests.filterWithin3', iconName: 'navigate-outline' },
+  ] as const;
 
   // Fetch work requests from the API
   const fetchRequests = async () => {
@@ -501,7 +507,10 @@ const SPWorkRequestsScreen: React.FC = () => {
         <Text style={styles.pageTitle}>{t('spRequests.title')}</Text>
         <SegmentedTabs
           activeKey={tab}
-          onChange={(key) => setTab(key as 'all' | 'accepted')}
+          onChange={(key) => {
+            setTab(key as 'all' | 'accepted');
+            listRef.current?.scrollToOffset({ offset: 0, animated: true });
+          }}
           tabs={[
             { key: 'all', label: t('spRequests.allTab'), count: totalCount },
             { key: 'accepted', label: t('spRequests.acceptedTab'), count: acceptedCount },
@@ -509,30 +518,22 @@ const SPWorkRequestsScreen: React.FC = () => {
         />
         {/* Filter chips */}
         <View style={styles.filterRow}>
-          {(['all', 'today', 'within3'] as const).map(f => {
-            const active = filter === f;
-            const labelKey = f === 'all' ? 'spRequests.filterAll' : f === 'today' ? 'spRequests.filterToday' : 'spRequests.filterWithin3';
-            const iconName = f === 'all' ? 'apps-outline' : f === 'today' ? 'time-outline' : 'navigate-outline';
+          {filterOptions.map(({ value, labelKey, iconName }) => {
+            const active = filter === value;
             return (
               <TouchableOpacity
-                key={f}
-                onPress={() => setFilter(f)}
+                key={value}
+                onPress={() => setFilter(value)}
                 activeOpacity={0.8}
                 style={[styles.filterChip, active && styles.filterChipActive]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-              >
-                <Ionicons
-                  name={iconName}
-                  size={14}
-                  color={active ? 'white' : colors.grey}
-                  style={{ marginRight: 5 }}
-                />
-                <Text style={[styles.filterLabel, active && { color: 'white' }]}>{t(labelKey)}</Text>
+                accessibilityRole="button" accessibilityState={{ selected: active }}>
+                  <Ionicons name={iconName} size={14} color={active ? 'white' : colors.grey} style={{ marginRight: 5 }}/>
+                  <Text style={[styles.filterLabel, active && { color: 'white' }]}>{t(labelKey)}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
+        {/* Loading indicator when few requests are available */}
         {loading && requests.length > 0 && (
           <View style={styles.loadingRow}>
             <Spinner size="small" color={colors.primary} style={{ marginBottom: spacing.sm }} />

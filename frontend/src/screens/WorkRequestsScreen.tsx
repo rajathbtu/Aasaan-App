@@ -20,6 +20,7 @@ import { useI18n } from '../i18n';
 import { colors, radius, spacing } from '../theme';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo } from '../utils/time';
+import SkeletonLoader from '../components/SkeletonLoader';
 
 const API = realApi;
 type RequestTab = 'active' | 'completed';
@@ -137,14 +138,6 @@ const WorkRequestsScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
-  if (loading && requests.length === 0) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <Header title={t('userRequests.title')} showNotification={true} showBackButton={false} />
@@ -177,11 +170,14 @@ const WorkRequestsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
-          <EmptyState
-            icon="briefcase-outline"
-            title={t(activeTab === 'active' ? 'userRequests.emptyActiveTitle' : 'userRequests.emptyCompletedTitle')}
-            description={t(activeTab === 'active' ? 'userRequests.emptyActiveDescription' : 'userRequests.emptyCompletedDescription')}/>
-        }
+          loading ? (
+            <SkeletonLoader count={4} />
+          ): (
+            <EmptyState
+              icon="briefcase-outline"
+              title={t(activeTab === 'active' ? 'userRequests.emptyActiveTitle' : 'userRequests.emptyCompletedTitle')}
+              description={t(activeTab === 'active' ? 'userRequests.emptyActiveDescription' : 'userRequests.emptyCompletedDescription')}/>
+        )}
       />
       <ErrorBanner
         error={requestError}
@@ -194,11 +190,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.light,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   requestCard: {
     backgroundColor: colors.white,
