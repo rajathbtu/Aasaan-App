@@ -103,23 +103,21 @@ const WorkRequestsScreen: React.FC = () => {
     <TouchableOpacity
       style={styles.requestCard}
       activeOpacity={0.8}
-      onPress={() => navigation.navigate('WorkRequestDetails', {
-        id: item.id,
-        request: {
-          ...item,
-        },
-      })}
-    >
+      onPress={() => 
+        navigation.navigate('WorkRequestDetails', {id: item.id, request: {...item,},})} >
       <View style={styles.cardHeader}>
         <ServiceIcon
           icon={item.serviceIcon}
           color={item.serviceColor}
           circleSize={46}
-          iconSize={20}
-        />
+          iconSize={20} />
         <View style={{ flex: 1 }}>
           <Text style={styles.cardTitle}>{item.serviceName || item.service}</Text>
           <Text style={styles.cardSubtitle}>{timeAgo(item.createdAt)}</Text>
+        </View>
+        <View style={styles.responseCountBadge}>
+          <Ionicons name="people-outline" size={14} color={colors.primary} />
+          <Text style={styles.responseCountText}>{item.responseCount ?? 0}</Text>
         </View>
         <View style={[styles.statusBadge, item.status === 'closed' ? styles.statusBadgeCompleted : styles.statusBadgeActive]}>
           <Ionicons name={item.status === 'closed' ? 'checkmark-circle' : 'ellipse'} size={10} color={item.status === 'closed' ? colors.success : colors.accent} style={{ marginRight: 4 }} />
@@ -134,7 +132,6 @@ const WorkRequestsScreen: React.FC = () => {
           ))}
         </View>
       </View>
-      {/* Removed footer button; whole card is tappable */}
     </TouchableOpacity>
   );
 
@@ -219,6 +216,21 @@ const styles = StyleSheet.create({
   cardSubtitle: {
     fontSize: 12,
     color: colors.grey,
+  },
+  responseCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.xl,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginRight: spacing.sm,
+  },
+  responseCountText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 4,
   },
   statusBadge: {
     flexDirection: 'row',

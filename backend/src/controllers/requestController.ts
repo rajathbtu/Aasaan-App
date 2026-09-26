@@ -166,6 +166,18 @@ export async function list(req: Request, res: Response): Promise<void> {
       pAny.workRequest.count({ where: { userId: user.id, status: 'closed' } }),
     ]);
     const counts = { active: activeCount, completed: completedCount };
+    const requestIds = (requests as any[]).map((request: any) => request.id);
+    let responseCountsMap = new Map<string, number>();
+    if (requestIds.length && pAny.acceptedProvider?.groupBy) {
+      const responseCounts = await pAny.acceptedProvider.groupBy({
+        by: ['workRequestId'],
+        where: { workRequestId: { in: requestIds } },
+        _count: { _all: true },
+      });
+      responseCountsMap = new Map(
+        responseCounts.map((entry: any) => [entry.workRequestId, entry._count._all || 0])
+      );
+    }
     // Enrich requests with location and service metadata for client display.
     try {
       const serviceIds = Array.from(new Set((requests as any[]).map((request: any) => request.service).filter(Boolean)));
@@ -177,6 +189,7 @@ export async function list(req: Request, res: Response): Promise<void> {
           serviceName: service?.name || request.service,
           serviceIcon: service?.icon || null,
           serviceColor: service?.color || null,
+          responseCount: responseCountsMap.get(request.id) || 0,
         };
       });
       res.json({
