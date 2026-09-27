@@ -11,15 +11,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  web-deploy:
-    name: Build and Deploy Aasaan Web
-    # Deploys from the branches that actually receive work. Previously gated
-    # on 'main' only, while day-to-day commits land on 'latest-main', so the
-    # Pages deploy was skipped on every run since May 2026.
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/latest-main'
+  # Builds the web bundle on EVERY branch and PR so a broken web build is
+  # caught before merge, without touching production. Uploads the bundle as
+  # an artifact instead of publishing it.
+  web-build:
+    name: Build Aasaan Web (validate only)
+    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/latest-main'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - name: Checkout repo
         uses: actions/checkout@v5
@@ -32,11 +33,51 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        working-directory: frontend
-        run: npm install
+        run: npm ci --no-audit --prefer-offline
 
       - name: Build Expo Web
+        env:
+          EXPO_NO_TELEMETRY: 1
+          CI: true
+        run: |
+          npx expo export --platform web --non-interactive
+          cp dist/index.html dist/404.html
+          touch dist/.nojekyll
+
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: web-dist
+          path: frontend/dist
+          retention-days: 7
+
+  # Publishes to GitHub Pages (m.aasaanapp.in). Release branches ONLY --
+  # this overwrites the live site, so it must never run from a feature
+  # branch. The CNAME is written here rather than in web-build.
+  web-deploy:
+    name: Build and Deploy Aasaan Web
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/latest-main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
         working-directory: frontend
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v5
+
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --prefer-offline
+
+      - name: Build Expo Web
         env:
           EXPO_NO_TELEMETRY: 1
           CI: true
