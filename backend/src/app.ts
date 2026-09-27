@@ -8,7 +8,6 @@ import paymentRoutes from './routes/paymentRoutes';
 import serviceRoutes from './routes/serviceRoutes';
 import googlePlacesRoutes from './routes/googlePlacesRoutes';
 import whatsappRoutes from './communications/whatsapp/routes';
-import plivoRoutes from './communications/voiceAI/routes/plivoRoutes';
 import sarvamRoutes from './communications/voiceAI/routes/sarvamRoutes';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -67,10 +66,8 @@ app.use((req, res, next) => {
   const time = new Date().toLocaleTimeString('en-GB');
   try {
     // Log request & response for debugging
-    const isRecordingCallback = /^\/(webhooks\/plivo|api)\/recording-ready\/?$/.test(req.path);
-    const bodyPreview = isRecordingCallback ? 
-                            '<redacted>' 
-                            :req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : '{}';
+    const isVoiceWebhook = req.path.startsWith('/webhooks/sarvam') || req.path.startsWith('/api/sarvam');
+    const bodyPreview = isVoiceWebhook ? '<redacted>' : req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : '{}';
     
     console.log(`# # # REQUEST  # # #   ${time} ${req.method} ${req.originalUrl} body=${bodyPreview}`);
   } catch (err) {
@@ -94,8 +91,6 @@ app.use('/payments', paymentRoutes);
 app.use('/services', serviceRoutes);
 app.use('/google-places', googlePlacesRoutes); // Web-only proxy for Google Places Web Service endpoints (see googlePlacesProxyController). Native apps call Google directly.
 app.use('/whatsapp', whatsappRoutes); // WhatsApp Cloud API (Meta): inbound webhooks only
-app.use('/webhooks/plivo', plivoRoutes);
-app.use('/api', plivoRoutes); // exposes POST /api/calls
 app.use('/webhooks/sarvam', sarvamRoutes);
 app.use('/api/sarvam', sarvamRoutes); // exposes POST /api/sarvam/calls
 

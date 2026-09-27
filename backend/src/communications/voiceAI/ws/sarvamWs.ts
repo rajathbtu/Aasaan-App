@@ -3,10 +3,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { createProvider } from '../providers/factory';
 import { startFfmpegForProvider } from '../utils/ffmpegHelper';
 
-// Copy of plivoWs behavior but bound to /ws/sarvam. Assumes Sarvam will
-// open a websocket connection and send JSON messages similar to Plivo's
-// `{ event: 'start'|'media'|'stop', media: { payload: 'base64' }}`. If
-// Sarvam's format differs, adapt parsing rules below.
+// Sarvam realtime WebSocket transport. The Sarvam Voice Agents deployment
+// sends JSON messages using the start/media/stop event shape.
 export function attachSarvamWs(server: Server) {
   const wss = new WebSocketServer({ server, path: '/ws/sarvam' });
   wss.on('connection', (ws: WebSocket, req) => {
@@ -23,7 +21,7 @@ export function attachSarvamWs(server: Server) {
         if (msg.event === 'start') {
           console.log('[SARVAM] stream start', { callUuid: msg.call_uuid || msg.callId });
         } else if (msg.event === 'media' && msg.media && msg.media.payload) {
-          // Assume Sarvam sends base64 mu-law frames like Plivo
+          // Sarvam sends base64 mu-law audio frames.
           provider.sendInputAudio(msg.media.payload);
         } else if (msg.event === 'stop') {
           console.log('[SARVAM] stream stop', { callUuid: msg.call_uuid || msg.callId });

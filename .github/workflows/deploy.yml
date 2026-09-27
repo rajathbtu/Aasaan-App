@@ -11,29 +11,73 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  web-deploy:
-    name: Build and Deploy Aasaan Web
-    if: github.ref == 'refs/heads/main'
+  # Builds the web bundle on EVERY branch and PR so a broken web build is
+  # caught before merge, without touching production. Uploads the bundle as
+  # an artifact instead of publishing it.
+  web-build:
+    name: Build Aasaan Web (validate only)
+    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/latest-main'
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 18
+          node-version: 22
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        working-directory: frontend
-        run: npm install
+        run: npm ci --no-audit --prefer-offline
 
       - name: Build Expo Web
+        env:
+          EXPO_NO_TELEMETRY: 1
+          CI: true
+        run: |
+          npx expo export --platform web --non-interactive
+          cp dist/index.html dist/404.html
+          touch dist/.nojekyll
+
+      - name: Upload web build artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: web-dist
+          path: frontend/dist
+          retention-days: 7
+
+  # Publishes to GitHub Pages (m.aasaanapp.in). Release branches ONLY --
+  # this overwrites the live site, so it must never run from a feature
+  # branch. The CNAME is written here rather than in web-build.
+  web-deploy:
+    name: Build and Deploy Aasaan Web
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/latest-main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
         working-directory: frontend
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v5
+
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --prefer-offline
+
+      - name: Build Expo Web
         env:
           EXPO_NO_TELEMETRY: 1
           CI: true
@@ -58,23 +102,23 @@ jobs:
         working-directory: frontend
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 18
+          node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Setup Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Install dependencies
         run: npm install --no-audit --prefer-offline
@@ -86,7 +130,7 @@ jobs:
         run: npx expo prebuild --platform android --non-interactive
 
       - name: Cache Gradle
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.gradle/caches
@@ -111,19 +155,19 @@ jobs:
           ./gradlew --no-daemon bundleRelease
 
       - name: Upload Debug APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: android-debug-apk
           path: frontend/android/app/build/outputs/apk/debug/*.apk
 
       - name: Upload Release APK artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: android-apk
           path: frontend/android/app/build/outputs/apk/release/*.apk
 
       - name: Upload Release AAB artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: android-aab
           path: frontend/android/app/build/outputs/bundle/release/*.aab
@@ -136,12 +180,12 @@ jobs:
         working-directory: frontend
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 18
+          node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -182,7 +226,7 @@ jobs:
           zip -r ${APP_NAME}-simulator.zip ${APP_NAME}.app
 
       - name: Upload iOS Simulator artifact (.app zipped)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ios-simulator-app
           path: frontend/ios/build/Build/Products/Release-iphonesimulator/*-simulator.zip

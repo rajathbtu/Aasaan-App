@@ -5,15 +5,12 @@ export type ProviderEvents = 'open' | 'audio' | 'transcript' | 'response.started
 export interface Provider extends EventEmitter {
   connect(): void;
   close(): void;
-  sendInputAudio(muLawBase64: string): void; // incoming Plivo mu-law frame (base64)
-  requestResponse(instructions?: string): void; // ask provider to generate a response (triggers audio events)
+  sendInputAudio(muLawBase64: string): void;
+  requestResponse(instructions?: string): void;
   cancelResponse?(): void;
 }
 
 export interface ProviderOptions {
-  provider?: string;
-  openaiApiKey?: string;
-  openaiModel?: string;
   sarvamApiKey?: string;
   sarvamSttUrl?: string;
   sarvamTtsUrl?: string;
