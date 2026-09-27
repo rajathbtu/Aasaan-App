@@ -4,7 +4,7 @@ import { useNavigation, useRoute, usePreventRemove } from '@react-navigation/nat
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
-import ServiceIcon from '../components/ServiceIcon';
+import WorkRequestCard from '../components/WorkRequestCard';
 
 /**
  * Confirmation screen displayed after a work request has been created.
@@ -18,9 +18,11 @@ const WorkRequestCreatedScreen: React.FC = () => {
   const route = useRoute<any>();
   const { t } = useI18n();
   const { request, locationName: locationNameParam, serviceName: serviceNameParam } = (route.params as any) || {};
-  const serviceName = request?.serviceName || serviceNameParam || 'Service';
-  const locationName = locationNameParam ?? request?.locationName ?? t('userRequests.locationFallback');
-  const tags = Array.isArray(request?.tags) ? request.tags.slice(0, 2) : [];
+  const displayRequest = request && {
+    ...request,
+    serviceName: request.serviceName || serviceNameParam || request.service || 'Service',
+    locationName: locationNameParam ?? request.locationName,
+  };
 
   usePreventRemove(true, () => {
     navigation.navigate('Main', { screen: 'Create' });
@@ -56,32 +58,10 @@ const WorkRequestCreatedScreen: React.FC = () => {
       <Text style={styles.title}>{t('createRequest.created.title')}</Text>
       <Text style={styles.subtitle}>{t('createRequest.created.subtitle')}</Text>
 
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryRow}>
-          <ServiceIcon icon={request.serviceIcon} color={request.serviceColor}
-            circleSize={32} iconSize={20}/>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.summaryLabel}>{serviceName}</Text>
-            {tags.length > 0 && (
-              <View style={styles.summaryTagsRow}>
-                {tags.map((t: string) => (
-                  <View key={t} style={styles.tagPill}>
-                    <Text style={styles.tagPillText}>{t}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-        </View>
-        <View style={styles.summaryRow}>
-          <Ionicons name="location" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
-          <Text style={styles.summaryLabel}>{locationName}</Text>
-        </View>
-        <View style={styles.summaryRow}>
-          <Ionicons name="time" size={20} color={colors.primary} style={{ marginRight: spacing.sm }} />
-          <Text style={styles.summaryLabel}>{t('common.relative.justNow')}</Text>
-        </View>
-      </View>
+      <WorkRequestCard
+        request={displayRequest}
+        showExpanded
+      />
 
       <Text style={styles.nextTitle}>{t('createRequest.created.nextTitle')}</Text>
       <View style={styles.stepsList}>
@@ -183,45 +163,6 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
   },
-  summaryCard: {
-    backgroundColor: colors.white,
-    padding: spacing.lg,
-    borderRadius: radius.lg,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
-    shadowColor: colors.dark,
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  summaryLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.dark,
-  },
-  summaryTagsRow: {
-    flexDirection: 'row',
-    marginTop: 4,
-  },
-  tagPill: {
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.lg,
-    marginRight: spacing.sm,
-  },
-  tagPillText: {
-    fontSize: 12,
-    color: colors.primary,
-  },
   nextTitle: {
     fontSize: 16,
     fontWeight: '700',
@@ -260,7 +201,6 @@ const styles = StyleSheet.create({
   stepSecondary: {
     fontSize: 12,
     color: colors.grey,
-    display: 'none',
   },
   boostCard: {
     backgroundColor: colors.infoLight,

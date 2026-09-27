@@ -19,7 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
-import ServiceIcon from '../components/ServiceIcon';
+import WorkRequestCard from '../components/WorkRequestCard';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo } from '../utils/time';
 import SafeBottomBanner from '../components/SafeBottomBanner';
@@ -119,40 +119,13 @@ const WorkRequestDetailsScreen: React.FC = () => {
 
   return (
       <View style={styles.screen}>
-      <Header title={serviceName} showBackButton={true} showNotification={false} />
+      <Header title={t('requestDetails.title')} showBackButton={true} showNotification={false} />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryHeader}>
-            <ServiceIcon
-              icon={request.serviceIcon}
-              color={request.serviceColor}
-              circleSize={46}
-              iconSize={22}
-            />
-            <View style={styles.summaryTitleContainer}>
-              <Text style={styles.summaryLabel}>{serviceName}</Text>
-              <Text style={styles.summaryCaption}>{timeAgo(request.createdAt)}</Text>
-            </View>
-            {request.status !== undefined && (
-              <View style={[styles.statusBadge, isActive ? styles.statusBadgeActive : styles.statusBadgeInactive]}>
-                <Text style={[styles.statusBadgeText, isActive ? styles.statusTextActive : styles.statusTextInactive]}>{isActive ? t('requestDetails.statusActive') : (request.status as any)}</Text>
-              </View>
-            )}
-          </View>
-          <View style={styles.detailRow}>
-            <Ionicons name="location-outline" size={18} color={colors.grey} />
-            <Text style={styles.summaryValue} numberOfLines={2} ellipsizeMode="tail">{request.locationName || t('userRequests.locationFallback')}</Text>
-          </View>
-          {request.tags && request.tags.length > 0 && (
-            <View style={styles.tagsRow}>
-              {request.tags.slice(0, 3).map((tag: string) => (
-                <View key={tag} style={styles.tagPill}>
-                  <Text style={styles.tagPillText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
+        <WorkRequestCard
+          request={request}
+          showExpanded = {true}
+          showResponseStatus = {false}
+          containerStyle={styles.summaryCard}  />
 
         {!isCompleted && (
           <View style={styles.actionButtonsRow}>
@@ -283,73 +256,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.greyLight,
-  },
-  summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  summaryTitleContainer: {
-    flex: 1,
-  },
-  summaryLabel: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.dark,
-  },
-  summaryCaption: {
-    color: colors.grey,
-    fontSize: 12,
-    marginTop: 3,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.xl,
-  },
-  statusBadgeActive: {
-    backgroundColor: colors.successLight,
-  },
-  statusBadgeInactive: {
-    backgroundColor: colors.greyLight,
-  },
-  statusBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTextActive: {
-    color: colors.success,
-  },
-  statusTextInactive: {
-    color: colors.dark,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  summaryValue: {
-    fontSize: 14,
-    color: colors.grey,
-    flex: 1,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: spacing.sm,
-  },
-  tagPill: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    marginRight: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  tagPillText: {
-    fontSize: 12,
-    color: colors.dark,
-    fontWeight: '500',
   },
   actionButtonsRow: {
     flexDirection: 'row',

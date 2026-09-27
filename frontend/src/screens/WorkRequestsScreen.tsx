@@ -3,21 +3,18 @@ import {
   View,
   Text,
   FlatList,
-  TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
-import ServiceIcon from '../components/ServiceIcon';
+import WorkRequestCard from '../components/WorkRequestCard';
 import SegmentedTabs from '../components/SegmentedTabs';
 import EmptyState from '../components/EmptyState';
 import * as realApi from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
-import { colors, radius, spacing } from '../theme';
+import { colors, spacing } from '../theme';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo } from '../utils/time';
 import SkeletonLoader from '../components/SkeletonLoader';
@@ -25,11 +22,6 @@ import SkeletonLoader from '../components/SkeletonLoader';
 const API = realApi;
 type RequestTab = 'active' | 'completed';
 type RequestsByTab = Record<RequestTab, any[]>;
-
-/** Helper: pick the request snapshot location name. */
-function getLocationName(item: any, t: ReturnType<typeof useI18n>['t']): string {
-  return item?.locationName || t('userRequests.locationFallback');
-}
 
 /**
  * Displays a list of work requests created by the authenticated end user.
@@ -99,46 +91,10 @@ const WorkRequestsScreen: React.FC = () => {
     }, [fetchRequests])
   );
 
-  const renderRequestCard = (item: any) => (
-    <TouchableOpacity
-      style={styles.requestCard}
-      activeOpacity={0.8}
-      onPress={() => 
-        navigation.navigate('WorkRequestDetails', {id: item.id, request: {...item,},})} >
-      <View style={styles.cardHeader}>
-        <ServiceIcon
-          icon={item.serviceIcon}
-          color={item.serviceColor}
-          circleSize={46}
-          iconSize={20} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.cardTitle}>{item.serviceName || item.service}</Text>
-          <Text style={styles.cardSubtitle}>{timeAgo(item.createdAt)}</Text>
-        </View>
-        <View style={styles.responseCountBadge}>
-          <Ionicons name="people-outline" size={14} color={colors.primary} />
-          <Text style={styles.responseCountText}>{item.responseCount ?? 0}</Text>
-        </View>
-        <View style={[styles.statusBadge, item.status === 'closed' ? styles.statusBadgeCompleted : styles.statusBadgeActive]}>
-          <Ionicons name={item.status === 'closed' ? 'checkmark-circle' : 'ellipse'} size={10} color={item.status === 'closed' ? colors.success : colors.accent} style={{ marginRight: 4 }} />
-          <Text style={[styles.statusText, item.status === 'closed' ? styles.statusTextCompleted : styles.statusTextActive]}>{item.status === 'closed' ? t('userRequests.statusCompleted') : t('userRequests.statusActive')}</Text>
-        </View>
-      </View>
-      <View style={styles.cardBody}>
-        <Text style={styles.locationText}><Ionicons name="location" size={14} color={colors.grey} /> {getLocationName(item, t)}</Text>
-        <View style={styles.tagContainer}>
-          {(item.tags || []).map((tag: string) => (
-            <Text key={tag} style={styles.tag}>{tag}</Text>
-          ))}
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.container}>
       <Header title={t('userRequests.title')} showNotification={true} showBackButton={false} />
-      {/* <View style={{ height: spacing.sm }} /> */}
+      <View style={{ height: spacing.sm }} />
 
       <SegmentedTabs
         activeKey={activeTab}
@@ -157,7 +113,15 @@ const WorkRequestsScreen: React.FC = () => {
       <FlatList
         data={requests}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => renderRequestCard(item)}
+        renderItem={({ item }) => (
+          <WorkRequestCard
+            request={item}
+            showExpanded = {false}
+            showResponseStatus = {true}
+            onPress={() => navigation.navigate('WorkRequestDetails', { id: item.id, request: item })}
+            onBoostPress={() => navigation.navigate('BoostRequest', { request: item })}
+          />
+        )}
         refreshing={refreshing}
         onRefresh={() => fetchRequests(true)}
         initialNumToRender={8}
@@ -187,100 +151,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.light,
-  },
-  requestCard: {
-    backgroundColor: colors.white,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    shadowColor: colors.black,
-    shadowOpacity: 0.07,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 7,
-    elevation: 3,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.dark,
-    marginBottom: 3,
-  },
-  cardSubtitle: {
-    fontSize: 12,
-    color: colors.grey,
-  },
-  responseCountBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.xl,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginRight: spacing.sm,
-  },
-  responseCountText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: radius.xl,
-  },
-  statusBadgeActive: {
-    backgroundColor: '#fff7ed',
-  },
-  statusBadgeCompleted: {
-    backgroundColor: colors.successLight,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  statusTextActive: {
-    color: colors.accent,
-  },
-  statusTextCompleted: {
-    color: colors.success,
-  },
-  cardBody: {
-    paddingTop: spacing.lg,
-    marginBottom: spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: colors.greyLight,
-  },
-  locationText: {
-    fontSize: 12,
-    color: colors.grey,
-    lineHeight: 18,
-    marginBottom: spacing.md,
-  },
-  tagContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6 as any,
-  },
-  tag: {
-    backgroundColor: colors.primarySoft,
-    color: colors.dark,
-    fontSize: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: radius.xl,
-    marginRight: 4,
-    marginBottom: 4,
   },
   listContent: {
     paddingTop: spacing.xs,
