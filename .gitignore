@@ -3,4 +3,10 @@ node_modules/
 .expo/
 package-lock.json
 backend/Firebase-service-account-credentials.json
-package-lock.json
+
+# frontend/package-lock.json IS tracked on purpose.
+# CI (.github/workflows/deploy.yml) uses `cache: npm` with
+# `cache-dependency-path: frontend/package-lock.json`; actions/setup-node
+# hard-fails when the lockfile is missing ("Some specified paths were not
+# resolved, unable to cache dependencies"). Reproducible builds need it.
+!frontend/package-lock.json

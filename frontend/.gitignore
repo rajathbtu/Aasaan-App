@@ -57,7 +57,9 @@ build/
 # Jest
 coverage/
 
-# Optional npm package locks (choose only one if needed)
-package-lock.json
+# NOTE: package-lock.json is intentionally NOT ignored.
+# It is committed so CI can resolve the npm cache path
+# (see .github/workflows/deploy.yml) and builds stay reproducible.
+# Uncomment these only if you switch package managers.
 # yarn.lock
 # pnpm-lock.yaml
