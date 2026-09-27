@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,19 +9,44 @@ import {
   Alert,
   RefreshControl,
   Linking,
+  Platform,
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
-import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, spacing, radius, tints } from '../theme';
+import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import ErrorBanner from '../components/ErrorBanner';
+import ServiceIcon from '../components/ServiceIcon';
+import SafeBottomBanner from '../components/SafeBottomBanner';
+import SkeletonLoader from '../components/SkeletonLoader';
+import UpgradeProBanner from '../components/UpgradeProBanner';
+import EmptyState from '../components/EmptyState';
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
+import { buildTimeAgo } from '../utils/time';
+import Spinner from '../components/Spinner';
+import SegmentedTabs from '../components/SegmentedTabs';
 
-// Determine which API implementation to use (real or mock)
-const API = USE_MOCK_API ? mockApi : realApi;
+const API = realApi;
+  
+/**
+ * Computes the distance between two latitude/longitude pairs using the
+ * haversine formula.  Returns the distance in kilometres.
+ */
+const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const earthRadius = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadius * c;
+};
 
 /** Helper: ensure provider has completed profile before using this screen */
 function validateProviderProfile(user: any): { ok: boolean; next: 'services' | 'location' | null } {
@@ -45,22 +70,45 @@ function validateProviderProfile(user: any): { ok: boolean; next: 'services' | '
 const SPWorkRequestsScreen: React.FC = () => {
   const { token, user } = useAuth();
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { t } = useI18n();
+  const timeAgo = buildTimeAgo(t);
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<'all' | 'accepted'>('all');
   const [filter, setFilter] = useState<'all' | 'today' | 'within3'>('all');
-  const [unreadCount, setUnreadCount] = useState<number>(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState<unknown | null>(null);
   const [showProBanner, setShowProBanner] = useState(true);
+  const notificationRequestId = route.params?.highlightedRequestId as string | undefined;
+  const [highlightedRequestId, setHighlightedRequestId] = useState<string | null>(
+    notificationRequestId || null);
+  const listRef = useRef<FlatList<any>>(null);
+  const userId = user?.id;
+  const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
+  
+  const filterOptions = [
+    { value: 'all', labelKey: 'spRequests.filterAll', iconName: 'apps-outline' },
+    { value: 'today', labelKey: 'spRequests.filterToday', iconName: 'time-outline' },
+    { value: 'within3', labelKey: 'spRequests.filterWithin3', iconName: 'navigate-outline' },
+  ] as const;
 
   // Fetch work requests from the API
   const fetchRequests = async () => {
-    if (!token) return;
+    if (!token || !requestsCacheKey) return;
     try {
       setLoading(true);
+      const cached = await readOfflineCache<any[]>(requestsCacheKey);
+      if (cached) {
+        setRequests(cached);
+        setLoading(false);
+      }
       const list = await API.listWorkRequests(token);
-      setRequests(list);
+      const nextRequests = Array.isArray(list) ? list : list.requests || [];
+      setRequests(nextRequests);
+      await writeOfflineCache(requestsCacheKey, nextRequests);
+      setRequestError(null);
     } catch (err: any) {
       // If backend indicates incomplete profile, route to the appropriate step
       const status = err?.response?.status;
@@ -71,36 +119,27 @@ const SPWorkRequestsScreen: React.FC = () => {
           if (v.next === 'services') {
             navigation.navigate('SPSelectServices', { mode: 'onboarding', initialSelected: user?.serviceProviderInfo?.services || [] });
           } else if (v.next === 'location') {
-            navigation.navigate('SPSelectLocation');
+            navigation.navigate('LocationSelect');
           }
+          setRequestError(err);
           return;
         }
         // If provider profile not found, start services step
         if (/provider profile not found/i.test(message)) {
           navigation.navigate('SPSelectServices', { mode: 'onboarding' });
+          setRequestError(err);
           return;
         }
         // If location/radius not defined
         if (/location or radius not defined/i.test(message)) {
-          navigation.navigate('SPSelectLocation');
+          navigation.navigate('LocationSelect');
+          setRequestError(err);
           return;
         }
       }
-      console.error(err);
+      setRequestError(err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Fetch unread notifications to display in badge
-  const fetchNotifications = async () => {
-    if (!token) return;
-    try {
-      // Only get unread notifications
-      const list = await API.getNotifications(token, true as any);
-      setUnreadCount(list.length);
-    } catch (err) {
-      console.error(err);
     }
   };
 
@@ -112,44 +151,79 @@ const SPWorkRequestsScreen: React.FC = () => {
         if (v.next === 'services') {
           navigation.navigate('SPSelectServices', { mode: 'onboarding', initialSelected: user?.serviceProviderInfo?.services || [] });
         } else if (v.next === 'location') {
-          navigation.navigate('SPSelectLocation');
+          navigation.navigate('LocationSelect');
         }
         return;
       }
       fetchRequests();
-      fetchNotifications();
-    }, [token, user])
+    }, [token, user, requestsCacheKey])
   );
-
-  /**
-   * Computes the distance between two latitude/longitude pairs using the
-   * haversine formula.  Returns the distance in kilometres.
-   */
-  const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Earth radius in km
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
 
   /**
    * Accept a work request.  Invokes the API and refreshes the list on
    * success.  Shows an alert if the operation fails.
    */
   const handleAccept = async (item: any) => {
-    if (!token) return;
+    if (!token || acceptingId) return;
+    setAcceptingId(item.id);
     try {
       await API.acceptWorkRequest(token, item.id);
-      Alert.alert(t('common.success'), t('spRequests.accept'));
-      fetchRequests();
+      setRequestError(null);
+      // Refreshing the list flips this card to the green "Accepted" state,
+      // which acts as the visual confirmation (no blocking alert needed).
+      await fetchRequests();
     } catch (err: any) {
-      Alert.alert(t('common.error'), err.message || 'Failed to accept request');
+      setRequestError(err);
+    } finally {
+      setAcceptingId(null);
+    }
+  };
+
+  /**
+   * Open directions from SP's base location to the work request location.
+   * On iOS, tries Google Maps first, then falls back to Apple Maps.
+   * On Android, uses Google Maps.
+   */
+  const handleNavigate = (item: any) => {
+    try {
+      const destLat = item.locationLat;
+      const destLng = item.locationLng;
+      if (destLat == null || destLng == null) {
+        Alert.alert('Error', 'Work request location is not available.');
+        return;
+      }
+      // If SP has a base location, use it as origin
+      const originLat = user?.serviceProviderInfo?.location?.lat;
+      const originLng = user?.serviceProviderInfo?.location?.lng;
+      
+      if (Platform.OS === 'ios') {
+        // On iOS, try Google Maps first, then fall back to Apple Maps
+        const googleMapsUrl = originLat != null && originLng != null
+          ? `comgooglemaps://?saddr=${originLat},${originLng}&daddr=${destLat},${destLng}`
+          : `comgooglemaps://?daddr=${destLat},${destLng}`;
+        
+        const appleMapsUrl = originLat != null && originLng != null
+          ? `maps://maps.apple.com/?saddr=${originLat},${originLng}&daddr=${destLat},${destLng}&dirflg=d`
+          : `maps://maps.apple.com/?daddr=${destLat},${destLng}`;
+        
+        Linking.openURL(googleMapsUrl).catch(() => {
+          // If Google Maps not available, try Apple Maps
+          Linking.openURL(appleMapsUrl).catch(() => {
+            Alert.alert('Error', 'Unable to open maps application.');
+          });
+        });
+      } else {
+        // Use Google Maps on Android
+        const mapsUrl = originLat != null && originLng != null
+          ? `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&destination=${destLat},${destLng}&travelmode=driving`
+          : `https://maps.google.com/?daddr=${destLat},${destLng}`;
+        
+        Linking.openURL(mapsUrl).catch(() => {
+          Alert.alert('Error', 'Unable to open maps application.');
+        });
+      }
+    } catch (err: any) {
+      Alert.alert('Error', 'Failed to open directions.');
     }
   };
 
@@ -198,32 +272,35 @@ const SPWorkRequestsScreen: React.FC = () => {
     return list;
   }, [requests, tab, filter, user]);
 
+  useEffect(() => {
+    if (!notificationRequestId) return;
+    setHighlightedRequestId(notificationRequestId);
+    const index = filteredRequests.findIndex((item) => item.id === notificationRequestId);
+    if (index < 0) return;
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.25 });
+      navigation.setParams({ highlightedRequestId: undefined });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [notificationRequestId, filteredRequests, navigation]);
+
   /**
    * Renders a single work request card.  The card appearance and
    * available actions depend on whether the request has been accepted
-   * by the current user.  Accepted cards have a tinted green
-   * background and display only a call button.  Available cards show
-   * Accept and Call buttons.
+   * by the current user.  Accepted cards show a green "Accepted" chip
+   * and a prominent call button.  Available cards show Accept, Navigate
+   * and Call actions with a clear visual hierarchy.
    */
   const renderRequest = ({ item }: { item: any }) => {
     const accepted = isAcceptedByUser(item);
-    // Format time string (e.g. "2 hrs ago")
-    const now = new Date();
-    const created = new Date(item.createdAt);
-    const diffMs = now.getTime() - created.getTime();
-    let timeLabel = '';
-    const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
-    if (diffHours < 1) {
-      const diffMins = Math.floor(diffMs / (60 * 1000));
-      timeLabel = `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
-    } else if (diffHours < 24) {
-      timeLabel = `${diffHours} hr${diffHours !== 1 ? 's' : ''} ago`;
-    } else {
-      const diffDays = Math.floor(diffHours / 24);
-      timeLabel = `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
-    }
+    const highlighted = item.id === highlightedRequestId;
+    const accepting = acceptingId === item.id;
+    const timeLabel = timeAgo(item.createdAt);
+    // Fresh requests (under 2 hours old) get a "New" badge
+    const isNew =
+      !accepted && Date.now() - new Date(item.createdAt).getTime() < 2 * 60 * 60 * 1000;
     // Compute distance if provider location is available
-    let distance: string | null = null;
+    let distanceLabel: string | null = null;
     if (user?.serviceProviderInfo?.location) {
       const d = getDistanceKm(
         user.serviceProviderInfo.location.lat,
@@ -231,59 +308,118 @@ const SPWorkRequestsScreen: React.FC = () => {
         item.locationLat,
         item.locationLng
       );
-      distance = d.toFixed(1);
+      distanceLabel = t('spRequests.distanceAway', { distance: d.toFixed(1) });
     }
 
     return (
       <View
         style={[
           styles.card,
-          {
-            backgroundColor: accepted ? colors.successLight : colors.light,
-            borderColor: accepted ? colors.success : colors.greyLight,
-          },
+          accepted && styles.cardAccepted,
+          highlighted && styles.cardHighlighted,
         ]}
       >
         {/* Service label and time/distance */}
         <View style={styles.cardHeader}>
-          <View style={[styles.iconCircle, { backgroundColor: item.color }]}> 
-            <Ionicons name={item.icon || 'construct'} size={16} color={colors.primary} />
+          <ServiceIcon
+            icon={item.serviceIcon}
+            color={item.serviceColor}
+            circleSize={44}
+            iconSize={20}
+          />
+          <View style={{ flex: 1, marginLeft: spacing.md }}>
+            <Text style={styles.serviceName} numberOfLines={1}>{item.serviceName}</Text>
+            <View style={styles.metaRow}>
+              {!!distanceLabel && (
+                <>
+                  <Ionicons name="location-outline" size={13} color={colors.greyMuted} />
+                  <Text style={styles.metaText}>{distanceLabel}</Text>
+                  <View style={styles.metaDot} />
+                </>
+              )}
+              <Ionicons name="time-outline" size={13} color={colors.greyMuted} />
+              <Text style={styles.metaText}>{timeLabel}</Text>
+              
+            </View>
           </View>
-          <View style={{ flex: 1, marginLeft: spacing.sm }}>
-            <Text style={styles.serviceName}>{item.serviceName}</Text>
-            <Text style={styles.timeText}>{timeLabel}</Text>
-          </View>
-          {distance && (
-            <Text style={styles.distanceText}>{distance} km</Text>
+          {isNew && (
+            <View style={styles.newBadge}>
+              <Text style={styles.newBadgeText}>{t('spRequests.newBadge')}</Text>
+            </View>
+          )}
+          {accepted && (
+            <View style={styles.acceptedChip}>
+              <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+              <Text style={styles.acceptedChipText}>{t('spRequests.acceptedChip')}</Text>
+            </View>
           )}
         </View>
         {/* Location and requester */}
-        <Text style={styles.locationText}>{item.locationName}</Text>
-        {item.requesterName && (
-          <Text style={styles.requesterText}>{item.requesterName}</Text>
+        <View style={styles.infoRow}>
+          <Ionicons name="location-sharp" size={15} color={colors.grey} />
+          <Text style={styles.infoText} numberOfLines={2}>{item.locationName}</Text>
+        </View>
+        {!!item.requesterName && (
+          <View style={styles.infoRow}>
+            <Ionicons name="person-outline" size={15} color={colors.greyMuted} />
+            <Text style={styles.infoTextMuted} numberOfLines={1}>{item.requesterName}</Text>
+          </View>
         )}
         {/* Tags */}
-        <View style={styles.tagContainer}>
-          {Array.isArray(item.tags) &&
-            item.tags.slice(0, 3).map((tag: string) => (
+        {Array.isArray(item.tags) && item.tags.length > 0 && (
+          <View style={styles.tagContainer}>
+            {item.tags.slice(0, 3).map((tag: string) => (
               <View key={tag} style={styles.tagChip}>
                 <Text style={styles.tagText}>{tag}</Text>
               </View>
             ))}
-        </View>
-        {/* Action buttons */}
+          </View>
+        )}
+        {/* Action buttons: all CTAs share the same size in every state;
+            only the background/label colours change. */}
+        <View style={styles.divider} />
         <View style={styles.actionRow}>
           {!accepted && (
             <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.primary }]}
+              style={[styles.ctaButton, styles.ctaFilled]}
               onPress={() => handleAccept(item)}
+              disabled={accepting}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t('spRequests.accept')}
             >
-              <Ionicons name="checkmark" size={16} color="white" style={{ marginRight: 4 }} />
-              <Text style={styles.actionButtonText}>{t('spRequests.accept')}</Text>
+              {accepting ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={16} color="white" style={{ marginRight: 6 }} />
+                  <Text style={styles.ctaLabelLight} numberOfLines={1}>{t('spRequests.accept')}</Text>
+                </>
+              )}
             </TouchableOpacity>
           )}
+          <TouchableOpacity // @todo: Navigate CTA may be dangerous for app engagement as users are redirected to external maps app... so should be used with caution
+            style={[styles.ctaButton, accepted ? styles.ctaTintedSecondary : styles.ctaTintedPrimary]}
+            onPress={() => handleNavigate(item)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t('spRequests.navigate') || 'Navigate'}
+          >
+            <Ionicons
+              name="navigate"
+              size={16}
+              color={accepted ? colors.secondary : colors.primary}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={[styles.ctaLabel, { color: accepted ? colors.secondary : colors.primary }]}
+              numberOfLines={1}
+            >
+              {t('spRequests.navigate') || 'Navigate'}
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: accepted ? colors.primary : colors.secondary }]}
+            style={[styles.ctaButton, accepted ? styles.ctaFilled : styles.ctaTintedSecondary]}
             onPress={() => {
               if (item.requesterPhone) {
                 Linking.openURL(`tel:${item.requesterPhone}`);
@@ -291,9 +427,22 @@ const SPWorkRequestsScreen: React.FC = () => {
                 Alert.alert('Error', 'Requester phone number is not available.');
               }
             }}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={accepted ? t('spRequests.callNow') : t('spRequests.call')}
           >
-            <Ionicons name="call" size={16} color="white" style={{ marginRight: 4 }} />
-            <Text style={styles.actionButtonText}>{accepted ? t('spRequests.callNow') : t('spRequests.call')}</Text>
+            <Ionicons
+              name="call"
+              size={16}
+              color={accepted ? 'white' : colors.secondary}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={accepted ? styles.ctaLabelLight : [styles.ctaLabel, { color: colors.secondary }]}
+              numberOfLines={1}
+            >
+              {accepted ? t('spRequests.callNow') : t('spRequests.call')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -302,27 +451,40 @@ const SPWorkRequestsScreen: React.FC = () => {
 
   // Pull-to-refresh handler
   const onRefresh = async () => {
-    if (!token) return;
+    if (!token || !requestsCacheKey) return;
     try {
       setRefreshing(true);
       const latestRequests = await API.listWorkRequests(token);
+      const latest = Array.isArray(latestRequests) ? latestRequests : latestRequests.requests || [];
       setRequests(prevRequests => {
-        const newRequests = latestRequests.filter(
+        const newRequests = latest.filter(
           (newReq: any) => !prevRequests.some((prevReq: any) => prevReq.id === newReq.id)
         );
         return [...newRequests, ...prevRequests];
       });
+      await writeOfflineCache(requestsCacheKey, latest);
+      setRequestError(null);
     } catch (err) {
-      console.error(err);
+      setRequestError(err);
     } finally {
       setRefreshing(false);
     }
   };
 
-  if (loading) {
+  if (loading && requests.length === 0) {
+    // First load: keep the header/chrome visible and show placeholder cards
+    // instead of flashing a blank full-screen spinner.
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={{ flex: 1 }}>
+        <Header
+          title="Aasaan"
+          showBackButton={false}
+          showNotification={true}
+          showProfileButton={true}
+        />
+        <View style={styles.container}>
+          <SkeletonLoader count={4} />
+        </View>
       </View>
     );
   }
@@ -336,59 +498,65 @@ const SPWorkRequestsScreen: React.FC = () => {
       <Header 
         title="Aasaan" 
         showBackButton={false} 
-        showNotification={true} 
+        showNotification={true}
+        showProfileButton={true} 
+        titleStyle={{ fontSize: 21, fontWeight: '700' }}
       />
       <View style={{ height: spacing.sm }} />
       <View style={styles.container}>
         <Text style={styles.pageTitle}>{t('spRequests.title')}</Text>
-        {/* Segmented control */}
-        <View style={styles.segmentContainer}>
-          <TouchableOpacity
-            style={[styles.segmentButton, tab === 'all' && styles.segmentButtonActive]}
-            onPress={() => setTab('all')}
-          >
-            <Text style={[styles.segmentLabel, tab === 'all' && styles.segmentLabelActive]}>
-              {t('spRequests.allTab', { count: totalCount })}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.segmentButton, tab === 'accepted' && styles.segmentButtonActive]}
-            onPress={() => setTab('accepted')}
-          >
-            <Text style={[styles.segmentLabel, tab === 'accepted' && styles.segmentLabelActive]}>
-              {t('spRequests.acceptedTab', { count: acceptedCount })}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <SegmentedTabs
+          activeKey={tab}
+          onChange={(key) => {
+            setTab(key as 'all' | 'accepted');
+            listRef.current?.scrollToOffset({ offset: 0, animated: true });
+          }}
+          tabs={[
+            { key: 'all', label: t('spRequests.allTab'), count: totalCount },
+            { key: 'accepted', label: t('spRequests.acceptedTab'), count: acceptedCount },
+          ]}
+        />
         {/* Filter chips */}
         <View style={styles.filterRow}>
-          {(['all', 'today', 'within3'] as const).map(f => {
-            const active = filter === f;
-            const labelKey = f === 'all' ? 'spRequests.filterAll' : f === 'today' ? 'spRequests.filterToday' : 'spRequests.filterWithin3';
+          {filterOptions.map(({ value, labelKey, iconName }) => {
+            const active = filter === value;
             return (
               <TouchableOpacity
-                key={f}
-                onPress={() => setFilter(f)}
-                style={[
-                  styles.filterChip,
-                  active && { backgroundColor: colors.primary },
-                ]}
-              >
-                <Text style={[styles.filterLabel, active && { color: 'white' }]}>{t(labelKey)}</Text>
+                key={value}
+                onPress={() => setFilter(value)}
+                activeOpacity={0.8}
+                style={[styles.filterChip, active && styles.filterChipActive]}
+                accessibilityRole="button" accessibilityState={{ selected: active }}>
+                  <Ionicons name={iconName} size={14} color={active ? 'white' : colors.grey} style={{ marginRight: 5 }}/>
+                  <Text style={[styles.filterLabel, active && { color: 'white' }]}>{t(labelKey)}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
+        {/* Loading indicator when few requests are available */}
+        {loading && requests.length > 0 && (
+          <View style={styles.loadingRow}>
+            <Spinner size="small" color={colors.primary} style={{ marginBottom: spacing.sm }} />
+          </View>
+        )}
         {/* List */}
         {filteredRequests.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>{t('spRequests.empty')}</Text>
-          </View>
+          <EmptyState
+            icon="briefcase-outline"
+            title={t(tab === 'accepted' ? 'spRequests.emptyAccepted' : 'spRequests.empty')}
+            description={t(tab === 'accepted' ? 'spRequests.emptyHintAccepted' : 'spRequests.emptyHint')} />
         ) : (
           <FlatList
+            ref={listRef}
             data={filteredRequests}
             keyExtractor={(item: any) => item.id}
             renderItem={renderRequest}
+            onScrollToIndexFailed={({ index, averageItemLength }) => {
+              listRef.current?.scrollToOffset({
+                offset: Math.max(0, averageItemLength * index),
+                animated: true,
+              });
+            }}
             contentContainerStyle={{ paddingBottom: spacing.xl * 3 }}
             showsVerticalScrollIndicator={false}
             refreshControl={
@@ -405,28 +573,15 @@ const SPWorkRequestsScreen: React.FC = () => {
         )}
         {/* Pro banner */}
         {showProBanner && (
-          <TouchableOpacity
-            style={styles.proBanner}
+          <UpgradeProBanner
+            variant="compact"
             onPress={() => navigation.navigate('Subscription')}
-          >
-            <View style={styles.proIconWrapper}>
-              <Ionicons name="trophy" size={20} color={colors.violetStrong} />
-            </View>
-            <View style={{ flex: 1, marginLeft: spacing.sm }}>
-              <Text style={styles.proTitle}>{t('spRequests.goPro')}</Text>
-              <Text style={styles.proSubtitle}>{t('spRequests.goProSubtitle')}</Text>
-            </View>
-            <View style={styles.proPriceWrapper}>
-              <Text style={styles.proPrice}>{t('spRequests.perMonth', { price: '₹100' })}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowProBanner(false)}
-            >
-              <Ionicons name="close" size={16} color={colors.dark} />
-            </TouchableOpacity>
-          </TouchableOpacity>
+            onClose={() => setShowProBanner(false)}
+          />
         )}
+        <ErrorBanner error={requestError} onRetry={fetchRequests} />
+        {/* Safe area overlay to prevent content overlap with device buttons */}
+        <SafeBottomBanner />
       </View>
     </View>
   );
@@ -439,148 +594,147 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.light,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.light,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  logo: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  badge: {
-    position: 'absolute',
-    top: -4,
-    right: -6,
-    backgroundColor: colors.error,
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    minWidth: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '600',
+    paddingTop: spacing.sm,
   },
   pageTitle: {
-    margin: spacing.md,
-    fontSize: 20,
+    marginBottom: spacing.sm,
+    fontSize: 22,
     fontWeight: '700',
     color: colors.dark,
   },
-  segmentContainer: {
-    flexDirection: 'row',
-    backgroundColor: colors.greyLight,
-    borderRadius: radius.lg,
-    padding: 4,
-    marginBottom: spacing.md,
-  },
-  segmentButton: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
+  loadingRow: {
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
-  segmentButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  segmentLabel: {
-    fontSize: 14,
-    color: colors.dark,
-    fontWeight: '600',
-  },
-  segmentLabelActive: {
-    color: 'white',
-  },
+  // --- Filter chips ---
   filterRow: {
     flexDirection: 'row',
     marginBottom: spacing.md,
   },
   filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     borderWidth: 1,
-    borderColor: colors.greyLight,
+    borderColor: colors.greyBorder,
     marginRight: spacing.sm,
-    backgroundColor: 'white',
+    backgroundColor: colors.white,
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   filterLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.dark,
-    fontWeight: '500',
+    fontWeight: '600',
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: colors.grey,
-  },
+  // --- Request cards ---
   card: {
     borderWidth: 1,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     padding: spacing.md,
     marginBottom: spacing.md,
+    backgroundColor: colors.white,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  cardAccepted: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#bbf7d0',
+  },
+  cardHighlighted: {
+    borderColor: colors.warning,
+    borderWidth: 2,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
-  iconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   serviceName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.dark,
-    marginBottom: 2,
   },
-  timeText: {
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  metaText: {
     fontSize: 12,
     color: colors.grey,
+    marginLeft: 4,
   },
-  distanceText: {
-    fontSize: 12,
-    color: colors.grey,
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: colors.greyMuted,
+    marginHorizontal: 6,
   },
-  locationText: {
-    fontSize: 14,
+  newBadge: {
+    backgroundColor: colors.warning,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.sm,
+    marginLeft: spacing.sm,
+  },
+  newBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: colors.dark,
-    marginBottom: spacing.sm,
   },
-  requesterText: {
+  acceptedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.success,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    marginLeft: spacing.sm,
+  },
+  acceptedChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.success,
+    marginLeft: 4,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  infoText: {
+    flex: 1,
     fontSize: 14,
+    fontWeight: '500',
+    color: colors.dark,
+    marginLeft: 6,
+  },
+  infoTextMuted: {
+    flex: 1,
+    fontSize: 13,
     color: colors.grey,
-    marginBottom: spacing.sm,
+    marginLeft: 6,
   },
   tagContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: spacing.sm,
+    marginTop: spacing.xs,
   },
   tagChip: {
-    backgroundColor: colors.greyLight,
+    backgroundColor: colors.surface,
     borderRadius: radius.md,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
@@ -591,11 +745,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.dark,
   },
+  divider: {
+    height: 1,
+    backgroundColor: colors.greyLight,
+    marginVertical: spacing.xs,
+  },
+  // --- Action buttons (CTAs) ---
+  // Every CTA shares one fixed shape; state changes swap colours only,
+  // never dimensions, so buttons look consistent across cards/states.
   actionRow: {
     flexDirection: 'row',
     marginTop: spacing.sm,
   },
-  actionButton: {
+  ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -604,64 +766,23 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     marginRight: spacing.sm,
   },
-  actionButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
+  ctaFilled: {
+    backgroundColor: colors.primary,
   },
-  proBanner: {
-    position: 'absolute',
-    bottom: spacing.xl,
-    left: spacing.lg,
-    right: spacing.lg,
+  ctaTintedPrimary: {
     backgroundColor: colors.primarySoft,
-    borderRadius: radius.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  proIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
+  ctaTintedSecondary: {
+    backgroundColor: colors.successLight,
   },
-  proTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  proSubtitle: {
-    fontSize: 12,
-    color: colors.primary,
-    marginTop: 2,
-  },
-  proPriceWrapper: {
-    backgroundColor: colors.violetStrong,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.md,
-  },
-  proPrice: {
-    color: 'white',
+  ctaLabel: {
     fontSize: 14,
     fontWeight: '700',
   },
-  proBadge: {
-    backgroundColor: colors.violetStrong,
-  },
-  closeButton: {
-    marginLeft: spacing.md,
-    padding: 4,
-    borderRadius: 12,
-    backgroundColor: colors.greyLight,
+  ctaLabelLight: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
 

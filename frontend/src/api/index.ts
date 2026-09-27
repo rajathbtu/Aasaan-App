@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Platform } from 'react-native';
 import { BASE_URL } from '../config';
 
 // Create an Axios instance with a base URL.  The instance will be used
@@ -7,6 +8,15 @@ import { BASE_URL } from '../config';
 export const api = axios.create({
   baseURL: BASE_URL,
 });
+
+// ngrok's free tier serves an HTML "browser warning" interstitial
+// (ERR_NGROK_6024) to browser requests that lack this header. The
+// interstitial response carries no CORS headers, so every API call from the
+// web app through the dev tunnel fails. Native apps use non-browser user
+// agents and are unaffected, so the header is only needed on web.
+if (Platform.OS === 'web') {
+  api.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
+}
 
 /**
  * Sends an OTP to the specified phone number.
@@ -80,8 +90,9 @@ export async function createWorkRequest(
  * List work requests relevant to the authenticated user.  End users see
  * their own requests and service providers see eligible requests.
  */
-export async function listWorkRequests(token: string) {
+export async function listWorkRequests(token: string, status?: 'active' | 'closed') {
   const res = await api.get('/work-requests', {
+    params: status ? { status } : undefined,
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;
@@ -181,7 +192,7 @@ export async function markAllNotificationsRead(token: string) {
  */
 export async function getServices() {
   const res = await api.get('/services');
-  return res.data as { services: Array<{ id: string; name: string; category: string; tags: string[] }>; updatedAt: string };
+  return res.data as { services: Array<{ id: string; name: string; category: string; alias: string[]; tags: string[] }>; updatedAt: string };
 }
 
 /**
@@ -190,4 +201,44 @@ export async function getServices() {
 export async function checkUserRegistration(phone: string) {
   const res = await api.post('/auth/check-registration', { phone });
   return res.data;
+}
+
+export async function getTruecallerLoginStatus(requestId: string) {
+  const res = await api.get(`/auth/truecaller/status/${encodeURIComponent(requestId)}`);
+  return res.data;
+}
+
+export async function startTruecallerLogin() {
+  const res = await api.post('/auth/truecaller/start');
+  return res.data as { requestId: string };
+}
+
+export async function registerPushToken(token: string, pushToken: string, platform: 'android' | 'ios') {
+  const res = await api.post('/users/me/push-token', { token: pushToken, platform }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
+
+export async function removePushToken(token: string, pushToken?: string) {
+  await api.delete('/users/me/push-token', {
+    data: pushToken ? { token: pushToken } : undefined,
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+/**
+ * Mark a single notification as read.
+ */
+export async function markNotificationRead(token: string, id: string) {
+  await api.put(`/notifications/${id}/read`, {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function completeOnboarding(token: string) {
+  const res = await api.post('/auth/complete-onboarding', { token });
+  return res.data as
+    | { requiresOtp: true; phone: string }
+    | { token: string; user: any };
 }

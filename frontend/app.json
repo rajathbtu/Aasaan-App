@@ -7,7 +7,7 @@
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -18,28 +18,44 @@
       "**/*"
     ],
     "ios": {
-      "bundleIdentifier": "com.rajathbtu.aasaan",
+      "bundleIdentifier": "com.aasaan.app",
       "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Aasaan uses your location to show nearby services."
+        "NSLocationWhenInUseUsageDescription": "Aasaan uses your location to show nearby services.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.rajathbtu.aasaan",
-      "versionCode": 1,
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+      "package": "com.aasaan.app",
+      "googleServicesFile": "./google-services.json",
+      "versionCode": 3,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon.png"
     },
     "scheme": "aasaan",
     "plugins": [
-      "expo-dev-client"
-    ]
+      "expo-dev-client",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/new_request.wav"
+          ]
+        }
+      ],
+      "expo-secure-store",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c1796e30-6945-429f-a7ad-ee17b6908e06"
+      }
+    }
   }
 }

@@ -1,56 +1,117 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
+import { useNotificationCount } from '../contexts/NotificationCountContext';
 
 type HeaderProps = {
   title: string;
   showBackButton?: boolean;
+  onBackPress?: () => void;
   showNotification?: boolean;
-  notificationCount?: number;
-  customRightComponent?: React.ReactNode; // New prop for custom UI
-  keepTitleCenterAligned?: boolean; // New optional prop
+  showProfileButton?: boolean;
+  customRightComponent?: React.ReactNode;
+  keepTitleCenterAligned?: boolean;
+  extraLargeTitle?: boolean;
+  subheader?: string;
+  titleStyle?: React.ComponentProps<typeof Text>['style'];
 };
+
+/** Max unread count rendered inside the badge before capping to "20+". */
+const MAX_BADGE_COUNT = 20;
+
+// Shared metrics so every icon control has the same comfortable touch target.
+const ICON_BUTTON_SIZE = 38;
 
 const Header: React.FC<HeaderProps> = ({
   title,
   showBackButton = true,
+  onBackPress,
   showNotification = true,
-  notificationCount = 0,
+  showProfileButton = false,
   customRightComponent,
-  keepTitleCenterAligned = false, // Default to false
+  keepTitleCenterAligned = false,
+  extraLargeTitle = false,
+  subheader,
+  titleStyle,
 }) => {
   const navigation = useNavigation<any>();
+  const { unreadCount } = useNotificationCount();
+
+  const handleBackPress = useCallback(
+    () => (onBackPress ? onBackPress() : navigation.goBack()),
+    [onBackPress, navigation],
+  );
+  const handleProfilePress = useCallback(() => navigation.navigate('Profile'), [navigation]);
+  const handleNotificationPress = useCallback(() => navigation.navigate('Notifications'), [navigation]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.headerRow}>
         {showBackButton && (
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={20} color={colors.dark} />
+          <TouchableOpacity
+            style={[styles.iconButton, { marginRight: spacing.md }]}
+            onPress={handleBackPress}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="arrow-back" size={22} color={colors.dark} />
           </TouchableOpacity>
         )}
-        <Text style={[styles.headerTitle,
-            keepTitleCenterAligned && styles.centerAlignedTitle, // Apply center alignment to title if the prop is true
-          ]}
-        >{title}</Text>
-        {customRightComponent ? (
-          customRightComponent // Render custom UI if provided
-        ) : (
-        showNotification && (
-          <TouchableOpacity 
-            style={styles.notificationButton} 
-            onPress={() => navigation.navigate('Notifications')}>
-            <Ionicons name="notifications-outline" size={20} color={colors.dark} />
-            {notificationCount > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>{notificationCount}</Text>
-              </View>
+
+        <View style={[styles.titleContainer, keepTitleCenterAligned && styles.centeredTitleContainer]}>
+          {subheader ? <Text style={styles.subHeaderText}>{subheader}</Text> : null}
+          <Text
+            style={[
+              styles.headerTitle,
+              keepTitleCenterAligned && styles.centerAlignedTitle,
+              extraLargeTitle && styles.extraLargeTitle,
+              titleStyle,
+            ]}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {title}
+          </Text>
+        </View>
+
+        {customRightComponent ?? (
+          <View style={styles.rightActions}>
+            {showProfileButton && (
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={handleProfilePress}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Open profile"
+              >
+                <Ionicons name="person-circle-outline" size={24} color={colors.dark} />
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
-        )
+            {showNotification && (
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={handleNotificationPress}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'
+                }
+              >
+                <Ionicons name="notifications-outline" size={22} color={colors.dark} />
+                {unreadCount > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationBadgeText}>
+                      {unreadCount > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
         )}
       </View>
     </SafeAreaView>
@@ -59,52 +120,81 @@ const Header: React.FC<HeaderProps> = ({
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: colors.light,
+    backgroundColor: colors.white,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.greyLight,
     shadowColor: colors.black,
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 3, // For Android shadow
+    elevation: 2, // Android shadow
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start', // Ensure left alignment of content
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
+    minHeight: 56, // Ensure a minimum height for the header row
   },
-  backButton: {
-    padding: spacing.sm,
+  iconButton: {
+    width: ICON_BUTTON_SIZE,
+    height: ICON_BUTTON_SIZE,
+    borderRadius: ICON_BUTTON_SIZE / 2,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  titleContainer: {
+    flex: 1,
+    // marginLeft: spacing.md,
+    justifyContent: 'center',
+  },
+  centeredTitleContainer: {
+    marginRight: spacing.md,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.dark,
     textAlign: 'left',
-    flex: 1, // Take up remaining space to ensure alignment
   },
   centerAlignedTitle: {
-    textAlign: 'center', // Center align title text
+    textAlign: 'center',
   },
-  notificationButton: {
-    position: 'relative',
-    padding: spacing.sm,
+  subHeaderText: {
+    fontSize: 11,
+    color: colors.greyMuted,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs + 2,
   },
   notificationBadge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
+    top: -3,
+    right: -3,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
     backgroundColor: colors.accent,
-    borderRadius: 10,
-    height: 20,
-    width: 20,
+    borderWidth: 2,
+    borderColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
   notificationBadgeText: {
     color: colors.white,
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  extraLargeTitle: {
+    fontSize: 22,
   },
 });
 

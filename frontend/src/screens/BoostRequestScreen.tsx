@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
-import * as mockApi from '../api/mock';
 import { createBoostPaymentOptions, verifyBoostPayment } from '../api/razorpay';
 import { RazorpayWebPaymentOptions, RazorpayWebResponse } from '../api/razorpayWeb';
 import RazorpayWebView from '../components/RazorpayWebView';
@@ -12,27 +10,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
+import InfoBanner from '../components/InfoBanner';
+import { buildTimeAgo } from '../utils/time';
 
-const API = USE_MOCK_API ? mockApi : realApi;
+const API = realApi;
 
 const MONEY_PRICE_INR = 100;
 const CREDIT_COST = 100;
-
-function buildTimeAgo(t: ReturnType<typeof useI18n>['t']) {
-  return (value: any): string => {
-    if (!value) return t('common.relative.justNow');
-    const d = typeof value === 'string' || typeof value === 'number' ? new Date(value) : value;
-    const diff = Date.now() - (d?.getTime?.() || 0);
-    if (!Number.isFinite(diff) || diff < 0) return t('common.relative.justNow');
-    const m = Math.floor(diff / 60000);
-    if (m < 1) return t('common.relative.justNow');
-    if (m < 60) return t('common.relative.minAgo', { count: m });
-    const h = Math.floor(m / 60);
-    if (h < 24) return t('common.relative.hourAgo', { count: h });
-    const days = Math.floor(h / 24);
-    return t('common.relative.dayAgo', { count: days });
-  };
-}
 
 const BoostRequestScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -202,7 +186,7 @@ const BoostRequestScreen: React.FC = () => {
             <Ionicons name="flash" size={20} color="white" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.summaryService}>{request.service}</Text>
+            <Text style={styles.summaryService}>{request.serviceName}</Text>
             {request.tags && request.tags.length > 0 && (
               <View style={styles.summaryTagsRow}>
                 {request.tags.slice(0, 2).map((t: string) => (
@@ -212,8 +196,8 @@ const BoostRequestScreen: React.FC = () => {
                 ))}
               </View>
             )}
-            {request.location?.name && (
-              <Text style={styles.summaryLocation}>{request.location.name}</Text>
+            {request.locationName && (
+              <Text style={styles.summaryLocation}>{request.locationName}</Text>
             )}
           </View>
           <Text style={styles.summaryTime}>{createdText}</Text>
@@ -234,10 +218,10 @@ const BoostRequestScreen: React.FC = () => {
 
         {/* Already boosted banner */}
         {alreadyBoosted && (
-          <View style={styles.infoBanner}>
-            <Ionicons name="information-circle" size={16} color={colors.primary} style={{ marginRight: 6 }} />
-            <Text style={styles.infoBannerText}>{t('boostRequest.alreadyBoosted')}</Text>
-          </View>
+          <InfoBanner
+            message={t('boostRequest.alreadyBoosted')}
+            style={{ marginBottom: spacing.lg }}
+          />
         )}
 
         {/* Boost Benefits */}
@@ -452,21 +436,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
-  },
-  infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  infoBannerText: {
-    color: colors.primary,
-    fontSize: 12,
-    fontWeight: '600',
   },
   ctaButton: {
     backgroundColor: colors.primary,

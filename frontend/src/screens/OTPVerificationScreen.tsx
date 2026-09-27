@@ -13,18 +13,15 @@ import {
 } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { USE_MOCK_API } from '../config';
 import * as realApi from '../api';
-import * as mockApi from '../api/mock';
 import { useAuth } from '../contexts/AuthContext';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { languages } from '../data/languages';
 import { useI18n } from '../i18n';
 import { WebView } from 'react-native-webview';
 import Header from '../components/Header';
 import { spacing, colors, radius } from '../theme';
 
-const API = USE_MOCK_API ? mockApi : realApi;
+const API = realApi;
 
 const OTPVerificationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -95,11 +92,11 @@ const OTPVerificationScreen: React.FC = () => {
             return;
           }
           if (!info.location) {
-            navigation.navigate('SPSelectLocation');
+            navigation.navigate('LocationSelect');
             return;
           }
         }
-        navigation.navigate('Main');
+        navigation.navigate(user.role === 'serviceProvider' ? 'SPAvailable' : 'Main');
       } else if (result.error) {
         Alert.alert(t('common.error'), result.message || t('common.invalidOtp'));
       }
@@ -135,6 +132,14 @@ const OTPVerificationScreen: React.FC = () => {
 
   const timerText = seconds > 0 ? `00:${String(seconds).padStart(2, '0')}` : '';
 
+  const handleChangePhone = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate('MobileInput', { language: lang });
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.white }} >
         {/* Header */}
@@ -152,7 +157,7 @@ const OTPVerificationScreen: React.FC = () => {
             <Text style={styles.subtle}>{t('otp.sentInfo')}</Text>
             <View style={styles.phoneRow}>
               <Text style={styles.phoneText}>+91 {String(phone || '').replace(/^\+?91/, '')}</Text>
-              <TouchableOpacity onPress={() => navigation.goBack()}>
+              <TouchableOpacity onPress={handleChangePhone}>
                 <Text style={styles.changeLink}>{t('common.change')}</Text>
               </TouchableOpacity>
             </View>

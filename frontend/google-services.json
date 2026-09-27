@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "865322700441",
+    "firebase_url": "https://aasaan-app.firebaseio.com",
+    "project_id": "aasaan-app",
+    "storage_bucket": "aasaan-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:865322700441:android:72a6955133025ecf743208",
+        "android_client_info": {
+          "package_name": "com.aasaan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRCBUtyO5DoXzen5olyBXCAjF5LtXxsKM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:865322700441:android:56f77ab7d2fc40c1743208",
+        "android_client_info": {
+          "package_name": "com.aasaan.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRCBUtyO5DoXzen5olyBXCAjF5LtXxsKM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:865322700441:android:d7e0aba4e44c4faf743208",
+        "android_client_info": {
+          "package_name": "com.aasaan.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRCBUtyO5DoXzen5olyBXCAjF5LtXxsKM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

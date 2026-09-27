@@ -3,6 +3,7 @@ import prisma from '../utils/prisma';
 import { areValidTags } from '../utils/validation';
 import { pushNotification } from '../models/dataStore';
 import { getReqLang, t, notifyUser } from '../utils/i18n';
+import { getServices } from '../utils/serviceCache';
 
 const pAny: any = prisma;
 
@@ -23,9 +24,10 @@ export interface FullWorkRequest {
   id: string;
   userId: string;
   service: string;
-  // flattened fields may exist depending on current schema
-  locationId?: string;
-  location?: any;
+  serviceName?: string;
+  locationName?: string;
+  locationLat?: number;
+  locationLng?: number;
   tags?: string[];
   createdAt?: Date;
   status?: string;
@@ -36,15 +38,21 @@ export interface FullWorkRequest {
   [key: string]: any; // allow forward compatibility
 }
 
+async function getServiceMap(serviceIds: string[]): Promise<Map<string, any>> {
+  if (!serviceIds.length || !pAny.service?.findMany) return new Map();
+  const services = await getServices();
+  const serviceMap = new Map(services.map((service) => [service.id, service]));
+  return new Map(serviceIds.map((id) => [id, serviceMap.get(id)]));
+}
+
 // Build a full work request object with related entities via separate queries (avoids problematic includes)
-async function buildFullWorkRequest(id: string): Promise<FullWorkRequest | null> {
-  const wr = await pAny.workRequest.findUnique({ where: { id } });
+async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<FullWorkRequest | null> {
+  const wr = existingRequest || await pAny.workRequest.findUnique({ where: { id } });
   if (!wr) return null;
-  const locationId = (wr as any).locationId as string | undefined;
-  const [location, acceptedProviders, rating] = await Promise.all([
-    locationId && pAny.location?.findUnique ? pAny.location.findUnique({ where: { id: locationId } }).catch(() => null) : null,
+  const [acceptedProviders, rating, serviceMap] = await Promise.all([
     pAny.acceptedProvider?.findMany ? pAny.acceptedProvider.findMany({ where: { workRequestId: id } }) : [],
-    pAny.rating?.findFirst ? pAny.rating.findFirst({ where: { workRequestId: id } }) : null
+    pAny.rating?.findFirst ? pAny.rating.findFirst({ where: { workRequestId: id } }) : null,
+    getServiceMap((wr as any).service ? [(wr as any).service] : []),
   ]);
 
   // Enrich accepted providers with user profile (name, phone, avatarUrl)
@@ -61,7 +69,12 @@ async function buildFullWorkRequest(id: string): Promise<FullWorkRequest | null>
     }
   } catch {}
 
-  return { ...(wr as any), location, acceptedProviders: acceptedWithDetails, rating } as FullWorkRequest;
+  return {
+    ...(wr as any),
+    acceptedProviders: acceptedWithDetails,
+    rating,
+    serviceName: serviceMap.get((wr as any).service)?.name || (wr as any).service,
+  } as FullWorkRequest;
 }
 
 /**
@@ -82,15 +95,23 @@ export async function create(req: Request, res: Response): Promise<void> {
   try {
     const since = new Date(Date.now() - 24*60*60*1000);
     const recent = await prisma.workRequest.count({ where: { userId: user.id, createdAt: { gt: since } } });
-    if (recent >= 3 && !req.body.force) { res.status(429).json({ message: t(lang, 'request.limitReached'), code: 'LIMIT_EXCEEDED' }); return; }
-    const loc = await pAny.location.create?.({ data: { name: location.name, lat: location.lat, lng: location.lng } });
-    const wr = await pAny.workRequest.create({ data: { userId: user.id, service, locationId: loc?.id, tags: tags || [] } });
+    if (recent >= 40 && !req.body.force) { res.status(429).json({ message: t(lang, 'request.limitReached'), code: 'LIMIT_EXCEEDED' }); return; }
+    const wr = await pAny.workRequest.create({
+      data: {
+        userId: user.id,
+        service,
+        locationName: location.name,
+        locationLat: location.lat,
+        locationLng: location.lng,
+        tags: tags || [],
+      },
+    });
     // Notify eligible providers (service match + radius parity)
-    const providers = await pAny.serviceProviderInfo?.findMany?.({ where: { services: { has: service } }, include: { location: true } }) || [];
+    const providers = await pAny.serviceProviderInfo?.findMany?.({ where: { services: { has: service }, user: { role: 'serviceProvider' }, }, include: { location: true }, }) || [];
     for (const p of providers) {
       let notify = true;
-      if (p.location && p.radius > 0 && loc) {
-        const d = distanceKm(loc.lat, loc.lng, p.location.lat, p.location.lng);
+      if (p.location && p.radius > 0) {
+        const d = distanceKm(location.lat, location.lng, p.location.lat, p.location.lng);
         notify = d <= p.radius;
       }
       if (notify) {
@@ -99,12 +120,18 @@ export async function create(req: Request, res: Response): Promise<void> {
           type: 'newRequest',
           titleKey: 'notifications.newRequest.title',
           messageKey: 'notifications.newRequest.message',
-          params: { name: user.name, service },
+          params: { name: user.name, service, location: location.name },
           data: { requestId: wr.id }
-        });
+        }).catch((error) => console.error('Failed to create provider notification:', error));
       }
     }
-    res.status(201).json(wr);
+    const serviceDetails = (await getServiceMap([service])).get(service);
+    res.status(201).json({
+      ...wr,
+      serviceName: serviceDetails?.name || service,
+      serviceIcon: serviceDetails?.icon || null,
+      serviceColor: serviceDetails?.color || null,
+    });
   } catch { res.status(500).json({ message: t(lang, 'request.createFailed') }); }
 }
 
@@ -116,19 +143,67 @@ export async function create(req: Request, res: Response): Promise<void> {
 export async function list(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
   if (user.role === 'endUser') {
-    const my = await pAny.workRequest.findMany({ where: { userId: user.id } });
-    // Enrich with location objects so clients can display location.name
+    const requestedStatus = req.query.status;
+    const status = requestedStatus === 'active' || requestedStatus === 'closed'
+      ? requestedStatus
+      : undefined;
+    const [requests, activeCount, completedCount] = await Promise.all([
+      pAny.workRequest.findMany({
+        where: { userId: user.id, ...(status ? { status } : {}) },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+        select: {
+          id: true,
+          service: true,
+          locationName: true,
+          tags: true,
+          createdAt: true,
+          status: true,
+          boosted: true,
+        },
+      }),
+      pAny.workRequest.count({ where: { userId: user.id, status: 'active' } }),
+      pAny.workRequest.count({ where: { userId: user.id, status: 'closed' } }),
+    ]);
+    const counts = { active: activeCount, completed: completedCount };
+    const requestIds = (requests as any[]).map((request: any) => request.id);
+    let responseCountsMap = new Map<string, number>();
+    if (requestIds.length && pAny.acceptedProvider?.groupBy) {
+      const responseCounts = await pAny.acceptedProvider.groupBy({
+        by: ['workRequestId'],
+        where: { workRequestId: { in: requestIds } },
+        _count: { _all: true },
+      });
+      responseCountsMap = new Map(
+        responseCounts.map((entry: any) => [entry.workRequestId, entry._count._all || 0])
+      );
+    }
+    // Enrich requests with location and service metadata for client display.
     try {
-      const locationIds = Array.from(new Set((my as any[]).map((r: any) => r.locationId).filter(Boolean)));
-      if (locationIds.length && pAny.location?.findMany) {
-        const locations = await pAny.location.findMany({ where: { id: { in: locationIds } } });
-        const locMap = new Map(locations.map((l: any) => [l.id, l]));
-        const enriched = (my as any[]).map((r: any) => ({ ...r, location: locMap.get(r.locationId) || null }));
-        res.json(enriched);
-        return;
-      }
-    } catch {}
-    res.json(my);
+      const serviceIds = Array.from(new Set((requests as any[]).map((request: any) => request.service).filter(Boolean)));
+      const serviceItems = await getServiceMap(serviceIds);
+      const enriched = (requests as any[]).map((request: any) => {
+        const service = serviceItems.get(request.service);
+        return {
+          ...request,
+          serviceName: service?.name || request.service,
+          serviceIcon: service?.icon || null,
+          serviceColor: service?.color || null,
+          responseCount: responseCountsMap.get(request.id) || 0,
+        };
+      });
+      res.json({
+        requests: enriched,
+        counts,
+      });
+      return;
+    } catch (error) {
+      console.error('Failed to enrich work requests', error);
+    }
+    res.json({
+      requests,
+      counts,
+    });
     return;
   }
 
@@ -166,14 +241,14 @@ export async function list(req: Request, res: Response): Promise<void> {
         SELECT wr.*,
                s.name AS service_name,
                s.icon AS service_icon,
-               loc.name AS location_name,
-               loc.lat AS location_lat,
-               loc.lng AS location_lng,
+               s.color AS service_color,
+               wr."locationName" AS location_name,
+               wr."locationLat" AS location_lat,
+               wr."locationLng" AS location_lng,
                usr.name AS requester_name,
                usr."phoneNumber" AS requester_phone,
                CASE WHEN ap.id IS NULL THEN false ELSE true END AS accepted_by_provider
         FROM "WorkRequest" wr
-        JOIN "Location" loc ON wr."locationId" = loc."id"
         JOIN "User" usr ON wr."userId" = usr."id"
         LEFT JOIN "AcceptedProvider" ap
           ON ap."workRequestId" = wr."id"
@@ -181,12 +256,14 @@ export async function list(req: Request, res: Response): Promise<void> {
         LEFT JOIN "Service" s ON s."id" = wr."service"
         WHERE wr."status" = 'active'
           AND wr."service" = ANY(${services})
-          AND loc."lat" BETWEEN ${minLat} AND ${maxLat}
-          AND loc."lng" BETWEEN ${minLng} AND ${maxLng}
+          AND wr."locationLat" BETWEEN ${minLat} AND ${maxLat}
+          AND wr."locationLng" BETWEEN ${minLng} AND ${maxLng}
           AND ST_DistanceSphere(
             ST_MakePoint(${providerLoc.lng}, ${providerLoc.lat}),
-            ST_MakePoint(loc."lng", loc."lat")
-          ) <= ${radiusInMeters};
+            ST_MakePoint(wr."locationLng", wr."locationLat")
+          ) <= ${radiusInMeters}
+        ORDER BY wr."createdAt" DESC
+        LIMIT 50;
       `) as any[];
 
       const enrichedRequests = relevantRequests.map((request: any) => {
@@ -194,6 +271,7 @@ export async function list(req: Request, res: Response): Promise<void> {
           accepted_by_provider,
           service_name,
           service_icon,
+          service_color,
           location_name,
           location_lat,
           location_lng,
@@ -207,6 +285,7 @@ export async function list(req: Request, res: Response): Promise<void> {
           acceptedByProvider: !!accepted_by_provider,
           serviceName: service_name || null,
           serviceIcon: service_icon || null,
+          serviceColor: service_color || null,
           locationName: location_name || null,
           locationLat: location_lat || null,
           locationLng: location_lng || null,
@@ -215,7 +294,6 @@ export async function list(req: Request, res: Response): Promise<void> {
         };
       });
 
-      console.log('enrichedRequests', enrichedRequests);
       res.json(enrichedRequests);
       return;
     }
@@ -241,7 +319,7 @@ export async function getById(req: Request, res: Response): Promise<void> {
       const accepted = await pAny.acceptedProvider?.findFirst?.({ where: { workRequestId: id, providerId: user.id } });
       if (!accepted) { res.status(403).json({ message: t(lang, 'request.notAuthorised') }); return; }
     }
-    const full = await buildFullWorkRequest(id);
+    const full = await buildFullWorkRequest(id, wr);
     res.json(full);
   } catch (e) {
     console.error('getById error', e);

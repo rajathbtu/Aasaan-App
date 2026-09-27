@@ -1,14 +1,20 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import 'react-native-get-random-values'; 
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { locationManager } from './src/services/LocationManager';
+import { NotificationCountProvider, useNotificationCount } from './src/contexts/NotificationCountContext';
+import { ToastProvider } from './src/contexts/ToastContext';
+import { markNotificationRead } from './src/api';
+import { colors, radius, spacing } from './src/theme';
+import * as Notifications from 'expo-notifications';
 
 // Import screens
 import LaunchScreen from './src/screens/LaunchScreen';
@@ -18,7 +24,7 @@ import OTPVerificationScreen from './src/screens/OTPVerificationScreen';
 import NameOTPValidationScreen from './src/screens/NameOTPValidationScreen';
 import RoleSelectScreen from './src/screens/RoleSelectScreen';
 import WorkRequestSelectServiceScreen from './src/screens/WorkRequestSelectServiceScreen';
-import WorkRequestAddDetailsScreen from './src/screens/WorkRequestAddDetailsScreen';
+import WorkRequestSelectTagsScreen from './src/screens/WorkRequestSelectTagsScreen';
 import WorkRequestCreatedScreen from './src/screens/WorkRequestCreatedScreen';
 import BoostRequestScreen from './src/screens/BoostRequestScreen';
 import WorkRequestDetailsScreen from './src/screens/WorkRequestDetailsScreen';
@@ -27,17 +33,96 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import SPSelectServicesScreen from './src/screens/SPSelectServicesScreen';
-import SPSelectLocationScreen from './src/screens/SPSelectLocationScreen';
+import SPOnboardSimpleScreen from './src/screens/SPOnboardSimpleScreen';
+import LocationSelectScreen from './src/screens/LocationSelectScreen';
 import SPWorkRequestsScreen from './src/screens/SPWorkRequestsScreen';
+import { getNotificationNavigationTarget, NotificationUserRole } from './src/utils/notificationNavigation';
+import { linking, documentTitle} from './src/navigation/linking';
 
 // Define stack navigators
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const navigationRef = React.createRef<any>();
+const pendingNotification = { value: null as { type: string; requestId: string } | null };
+
+function navigateToNotificationTarget(role: NotificationUserRole, type: string, requestId: string): boolean {
+  const target = getNotificationNavigationTarget(role, type, requestId);
+  if (!target) return true;
+  navigationRef.current?.navigate(target.screen, target.params);
+  return true;
+}
+
+function NotificationHandler({ navigationReady }: { navigationReady: boolean }) {
+  const { user, token } = useAuth();
+  const { refresh: refreshUnreadCount } = useNotificationCount();
+  const responseListener = useRef<Notifications.EventSubscription | null>(null);
+  const navigationReadyRef = useRef(navigationReady);
+
+  navigationReadyRef.current = navigationReady;
+
+  useEffect(() => {
+    void locationManager.initialize();
+    const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
+      const data = response.notification.request.content.data;
+      const requestId = data?.requestId;
+      const type = data?.type;
+      // Opening a push from the system tray counts as seeing it: mark the
+      // underlying notification read and schedule a low-priority badge refresh.
+      const notificationId = data?.notificationId;
+      if (typeof notificationId === 'string' && token) {
+        void markNotificationRead(token, notificationId)
+          .then(() => refreshUnreadCount())
+          .catch(() => {});
+      }
+      if (typeof requestId !== 'string' || typeof type !== 'string') return;
+      if (!user?.role || !navigationReadyRef.current || !navigationRef.current?.isReady()) {
+        pendingNotification.value = { type, requestId };
+        return;
+      }
+      navigateToNotificationTarget(user.role, type, requestId);
+      pendingNotification.value = null;
+    };
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
+    // getLastNotificationResponseAsync is not implemented on web (throws
+    // UnavailabilityError); it is only needed to pick up cold-start push taps
+    // on native platforms.
+    if (Platform.OS !== 'web') {
+      void Notifications.getLastNotificationResponseAsync().then((response) => {
+        if (response) handleNotificationResponse(response);
+      });
+    }
+    return () => responseListener.current?.remove();
+  }, [user?.role, token, refreshUnreadCount]);
+
+  useEffect(() => {
+    const pending = pendingNotification.value;
+    if (!pending || !user?.role || !navigationReady || !navigationRef.current?.isReady()) return;
+    if (navigateToNotificationTarget(user.role, pending.type, pending.requestId)) {
+      pendingNotification.value = null;
+    }
+  }, [user?.role, navigationReady]);
+
+  return null;
+}
 
 // Splash/launch screen wrapper.  We show a spinner while the auth context
 // finishes loading the current user from secure storage.
 function RootNavigator() {
   const { user, loading } = useAuth();
+  const wasAuthenticated = useRef(false);
+
+  // On logout, stale onboarding routes (e.g. SPSelectServices) can survive the
+  // conditional screen swap.  Reset the root stack to the auth flow so the
+  // user lands on the launch screen.
+  useEffect(() => {
+    if (wasAuthenticated.current && !user &&
+          navigationRef.current?.getCurrentRoute()?.name !== 'SPOnboardSimple') {
+      navigationRef.current?.reset({ index: 0, routes: [{ name: 'Auth' }] });
+    }
+    wasAuthenticated.current = !!user;
+  }, [user]);
+
   if (loading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
@@ -55,16 +140,26 @@ function RootNavigator() {
             <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
             {/* Allow SP onboarding steps directly after role selection */}
             <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
-            <Stack.Screen name="SPSelectLocation" component={SPSelectLocationScreen} />
+            <Stack.Screen name="SPOnboardSimple" component={SPOnboardSimpleScreen} />
+            <Stack.Screen name="LocationSelect" component={LocationSelectScreen} />
             {/* Language change if needed */}
             <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
           </>
         ) : (
           <>
-            {/* Main tab navigator */}
-            <Stack.Screen name="Main" component={MainTabs} />
+            {/* Main tab navigator for regular users, direct screens for providers */}
+            {user.role === 'serviceProvider' ? (
+              <>
+                <Stack.Screen name="SPAvailable" component={SPWorkRequestsScreen} />
+                <Stack.Screen name="Profile" component={ProfileScreen} />
+              </>
+            ) : (
+              <Stack.Screen name="Main" component={MainTabs} />
+            )}
             {/* Screens accessible post-auth */}
-            <Stack.Screen name="WorkRequestAddDetails" component={WorkRequestAddDetailsScreen} />
+            <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
+            <Stack.Screen name="WorkRequestAddDetails" component={LocationSelectScreen} />
+            <Stack.Screen name="WorkRequestSelectTags" component={WorkRequestSelectTagsScreen} />
             <Stack.Screen name="WorkRequestCreated" component={WorkRequestCreatedScreen} />
             <Stack.Screen name="BoostRequest" component={BoostRequestScreen} />
             <Stack.Screen name="WorkRequestDetails" component={WorkRequestDetailsScreen} />
@@ -72,7 +167,8 @@ function RootNavigator() {
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
             {/* Provider tools */}
             <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
-            <Stack.Screen name="SPSelectLocation" component={SPSelectLocationScreen} />
+            <Stack.Screen name="SPOnboardSimple" component={SPOnboardSimpleScreen} />
+            <Stack.Screen name="LocationSelect" component={LocationSelectScreen} />
             {/* Language change from Profile */}
             <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
           </>
@@ -80,6 +176,8 @@ function RootNavigator() {
       ) : (
         <>
           <Stack.Screen name="Auth" component={AuthStack} />
+          <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
+          <Stack.Screen name="SPOnboardSimple" component={SPOnboardSimpleScreen} />
         </>
       )}
     </Stack.Navigator>
@@ -97,7 +195,7 @@ function AuthStack() {
       <Stack.Screen name="NameOTPValidation" component={NameOTPValidationScreen} />
       <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
       <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
-      <Stack.Screen name="SPSelectLocation" component={SPSelectLocationScreen} />
+      <Stack.Screen name="LocationSelect" component={LocationSelectScreen} />
     </Stack.Navigator>
   );
 }
@@ -105,22 +203,52 @@ function AuthStack() {
 // Main application tabs differ based on the user role
 function MainTabs() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   if (!user) return null;
   const isProvider = user.role === 'serviceProvider';
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.grey,
+        tabBarStyle: {
+          backgroundColor: colors.white,
+          borderTopColor: colors.greyLight,
+          borderTopWidth: 1,
+          elevation: 8,
+          shadowColor: colors.dark,
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.08,
+          shadowRadius: 8,
+          height: 60 + insets.bottom,
+        }, 
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '700',
+        },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
           if (route.name === 'Create') {
             iconName = focused ? 'add-circle' : 'add-circle-outline';
-          } else if (route.name === 'MyRequests' || route.name === 'Available') {
-            iconName = focused ? 'list' : 'list-outline';
+          } else if (route.name === 'MyRequests') {
+            iconName = focused ? 'reader' : 'reader-outline';
+          } else if (route.name === 'Available') {
+            iconName = focused ? 'briefcase' : 'briefcase-outline';
           } else {
-            iconName = focused ? 'person' : 'person-outline';
+            iconName = focused ? 'person-circle' : 'person-circle-outline';
           }
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return (
+          <View style={{
+                width: 50,
+                height: 28,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: radius.lg,
+                backgroundColor: focused ? colors.primaryLight : 'transparent',}}>
+              <Ionicons name={iconName} size={size} color={color} />
+            </View>
+          );
         },
       })}
     >
@@ -132,7 +260,7 @@ function MainTabs() {
       ) : (
         <>
           <Tab.Screen name="Create" component={WorkRequestSelectServiceScreen} />
-          <Tab.Screen name="MyRequests" component={WorkRequestsScreen} />
+          <Tab.Screen name="MyRequests" component={WorkRequestsScreen} options={{ title: 'My Requests' }} />
           <Tab.Screen name="Profile" component={ProfileScreen} />
         </>
       )}
@@ -149,19 +277,22 @@ type AuthStackParamList = {
   NameOTPValidation: undefined;
   RoleSelect: undefined;
   SPSelectServices: undefined;
-  SPSelectLocation: undefined;
+  SPOnboardSimple: undefined;
+  LocationSelect: undefined;
 };
 
 type RootStackParamList = {
   Main: undefined;
+  RoleSelect: undefined;
   WorkRequestAddDetails: undefined;
+  WorkRequestSelectTags: undefined;
   WorkRequestCreated: undefined;
   BoostRequest: undefined;
   WorkRequestDetails: undefined;
   Notifications: undefined;
   Subscription: undefined;
   SPSelectServices: undefined;
-  SPSelectLocation: undefined;
+  LocationSelect: undefined;
   LanguageSelection: undefined;
   Auth: undefined;
 };
@@ -170,14 +301,26 @@ export type AuthStackNavigationProp = NativeStackNavigationProp<AuthStackParamLi
 export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function App() {
+  const [navigationReady, setNavigationReady] = React.useState(false);
+
   return (
     <AuthProvider>
-      <SafeAreaProvider>
-        <NavigationContainer>
-          <StatusBar style="dark" />
-          <RootNavigator />
-        </NavigationContainer>
-      </SafeAreaProvider>
+      <NotificationCountProvider>
+        <NotificationHandler navigationReady={navigationReady} />
+        <SafeAreaProvider>
+          <ToastProvider>
+            <NavigationContainer
+              ref={navigationRef}
+              onReady={() => setNavigationReady(true)}
+              linking={linking as any}
+              documentTitle={documentTitle as any}
+            >
+              <StatusBar style="dark" />
+              <RootNavigator />
+            </NavigationContainer>
+          </ToastProvider>
+        </SafeAreaProvider>
+      </NotificationCountProvider>
     </AuthProvider>
   );
 }

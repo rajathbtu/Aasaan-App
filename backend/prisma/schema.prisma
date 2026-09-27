@@ -27,6 +27,9 @@ model User {
   notifications       Notification[]
   payments            Payment[] @relation("UserPayments")
   avatarUrl           String?
+  pushToken           String?
+  pushTokenPlatform   String?
+  pushTokenUpdatedAt  DateTime?
 }
 
 model ServiceProviderInfo {
@@ -45,7 +48,6 @@ model Location {
   lat       Float
   lng       Float
   serviceProviderInfo ServiceProviderInfo? @relation("ServiceProviderLocation")
-  workRequest         WorkRequest? @relation("WorkRequestLocation")
 }
 
 model WorkRequest {
@@ -53,8 +55,9 @@ model WorkRequest {
   user              User     @relation("UserWorkRequests", fields: [userId], references: [id])
   userId            String
   service           String
-  location          Location  @relation("WorkRequestLocation", fields: [locationId], references: [id])
-  locationId        String    @unique
+  locationName      String
+  locationLat       Float
+  locationLng       Float
   tags              String[]
   createdAt         DateTime @default(now())
   status            WorkRequestStatus @default(active)
@@ -62,6 +65,9 @@ model WorkRequest {
   acceptedProviders AcceptedProvider[]
   rating            Rating?
   closedAt          DateTime?
+
+  @@index([status, service, createdAt])
+  @@index([userId, createdAt])
 }
 
 model AcceptedProvider {
@@ -70,6 +76,8 @@ model AcceptedProvider {
   acceptedAt   DateTime @default(now())
   workRequest  WorkRequest @relation(fields: [workRequestId], references: [id])
   workRequestId String
+
+  @@unique([providerId, workRequestId])
 }
 
 model Rating {
@@ -97,6 +105,7 @@ model Service {
   id       String   @id
   name     String
   category String
+  alias    String[] @default([]) // Alternate/local names for the service (e.g. "Safai", "Khana")
   tags     String[]
   icon     String   // Icon name for the service
   color    String   // Color code for the service
@@ -160,4 +169,32 @@ enum PaymentType {
   boost
   subscription
   credit_purchase
+}
+
+model VoiceCallRecord {
+  id                       String   @id @map("interaction_id")
+  providerCallId           String?  @map("provider_call_id")
+  callType                 String   @default("provider_onboarding") @map("call_type")
+  source                   String   @default("sarvam")
+  userId                   String?  @map("user_id")
+  fromNumber               String?  @map("from_number")
+  toNumber                 String?  @map("to_number")
+  status                   String
+  durationSeconds          Decimal? @map("duration_seconds")
+  startedAt                DateTime? @map("started_at")
+  endedAt                  DateTime? @map("ended_at")
+  transcript               Json?
+  inputAgentVariables      Json?    @map("input_agent_variables")
+  outputAgentVariables     Json?    @map("output_agent_variables")
+  extractionSchemaVersion  Int      @default(1) @map("extraction_schema_version")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  @@index([callType])
+  @@index([status])
+  @@index([userId])
+  @@index([fromNumber])
+  @@index([toNumber])
+  @@index([startedAt])
+  @@map("voice_call_records")
 }

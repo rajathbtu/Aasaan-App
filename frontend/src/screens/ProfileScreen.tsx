@@ -1,16 +1,20 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView, Image, Switch, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView, Image, Switch, ActivityIndicator } from 'react-native';
+import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { colors, spacing, radius } from '../theme';
-import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
 import Header from '../components/Header';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import ErrorBanner from '../components/ErrorBanner';
 import { getServices } from '../api';
-import * as Location from 'expo-location';
+import SafeBottomBanner from '../components/SafeBottomBanner';
+import UpgradeProBanner from '../components/UpgradeProBanner';
+import BlockingLoader from '../components/BlockingLoader';
+import ProfileField from '../components/ProfileField';
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users
@@ -22,28 +26,33 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { user, updateUser, logout, setLanguage: setGlobalLanguage, refreshUser } = useAuth();
   const { t, lang } = useI18n();
+  const { showToast } = useToast();
+  const isBottomTabsDisplayed = useNavigationState(state => state.type === 'tab');
 
   // Shared services list to map ids -> display names
   type Service = { id: string; name: string; category: string; tags?: string[] };
-  const SERVICES_CACHE_KEY = 'services_cache_v1';
   const [allServices, setAllServices] = useState<Service[] | null>(null);
+  const [profileError, setProfileError] = useState<unknown | null>(null);
+  const servicesCacheKey = user?.id ? offlineCacheKey('services', user.id) : null;
 
   useEffect(() => {
     (async () => {
-      try {
-        const raw = await AsyncStorage.getItem(SERVICES_CACHE_KEY);
-        if (raw) setAllServices(JSON.parse(raw));
-      } catch {}
+      if (servicesCacheKey) {
+        const cached = await readOfflineCache<Service[]>(servicesCacheKey);
+        if (cached) setAllServices(cached);
+      }
       try {
         const data = await getServices();
         const incoming = data.services as Service[];
         setAllServices(incoming);
-        await AsyncStorage.setItem(SERVICES_CACHE_KEY, JSON.stringify(incoming));
-      } catch {
+        setProfileError(null);
+        if (servicesCacheKey) await writeOfflineCache(servicesCacheKey, incoming);
+      } catch (error) {
         // keep cache on failure
+        setProfileError(error);
       }
     })();
-  }, []);
+  }, [servicesCacheKey]);
 
   const serviceNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -68,6 +77,8 @@ const ProfileScreen: React.FC = () => {
   const [pendingLocation, setPendingLocation] = useState<any>(initialLocation);
   const [pendingRadius, setPendingRadius] = useState<number>(initialRadius);
   const [darkMode, setDarkMode] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isSavingName, setIsSavingName] = useState(false);
 
   useEffect(() => {
     // If user object updates (after save), sync pending state
@@ -78,20 +89,22 @@ const ProfileScreen: React.FC = () => {
     setPendingServices(Array.isArray(user?.serviceProviderInfo?.services) ? (user!.serviceProviderInfo!.services as string[]) : []);
     setPendingLocation(user?.serviceProviderInfo?.location || null);
     setPendingRadius((user?.serviceProviderInfo?.radius as number | undefined) ?? 5);
-  }, [user?.id, user?.name, user?.role]);
+  }, [user]);
 
   useEffect(() => {
     (async () => {
-      await refreshUser();
-      console.log('User refreshed', user);
+      try {
+        await refreshUser();
+        setProfileError(null);
+      } catch (error) {
+        setProfileError(error);
+      }
     })();
   }, []);
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <Text style={{ color: colors.dark }}>Loading...</Text>
-      </SafeAreaView>
+      <BlockingLoader visible={true} />
     );
   }
 
@@ -125,28 +138,23 @@ const ProfileScreen: React.FC = () => {
       placeId: pendingLocation.place_id || pendingLocation.placeId,
     } : null;
 
+    setIsSavingName(true);
     try {
       await updateUser(updates);
+      setProfileError(null);
       setEditing(false);
-      Alert.alert(t('common.updated'), t('common.updatedDesc'));
+      showToast(t('common.updatedDesc'));
     } catch (err: any) {
-      Alert.alert(t('common.error'), err.message || 'Failed to save changes');
+      setProfileError(err);
+    } finally {
+      setIsSavingName(false);
     }
   };
 
-  const canGoBack = navigation.canGoBack?.() ?? false;
-
   return (
     <View style={{ flex: 1, backgroundColor: colors.white }}>
-      <Header title={t('profile.header')} showBackButton={false} showNotification={false} 
-        customRightComponent={
-            <TouchableOpacity onPress={onSave} disabled={!canSave} style={[styles.saveBtn, !canSave && { opacity: 0.5 }]}>
-              <Text style={styles.saveBtnText}>{t('common.saveChanges')}</Text>
-            </TouchableOpacity>
-        }
-      />
-      <View style={{ height: spacing.sm }} />
-      <ScrollView style={{ flex: 1 }}>
+      <Header title={t('profile.header')} showBackButton={true} showNotification={false} />
+      <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
         {/* Profile photo */}
         <View style={styles.photoSection}>
           <View style={{ position: 'relative', marginBottom: spacing.xs }}>
@@ -164,7 +172,7 @@ const ProfileScreen: React.FC = () => {
               onPress={async () => {
                 Alert.prompt?.(t('profile.changePhotoTitle'), t('profile.changePhotoDesc'), [
                   { text: t('common.cancel'), style: 'cancel' },
-                  { text: t('common.save'), onPress: async (value?: string) => { if (!value) return; try { await updateUser({ avatarUrl: value }); } catch (e:any) { Alert.alert(t('common.error'), e.message || 'Failed to update photo'); } } },
+                  { text: t('common.save'), onPress: async (value?: string) => { if (!value) return; try { await updateUser({ avatarUrl: value }); setProfileError(null); } catch (error) { setProfileError(error); } } },
                 ], 'plain-text');
               }}
             >
@@ -174,92 +182,87 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.photoNote}>{t('profile.tapToChangePhoto')}</Text>
         </View>
 
-        {/* Personal Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('profile.personalInfo')}</Text>
-
-          {/* Full Name */}
-          <View style={{ marginBottom: spacing.md }}>
-            <Text style={styles.fieldLabel}>{t('profile.yourName')}</Text>
-            <TouchableOpacity onPress={() => setEditing(true)} style={styles.infoCell} activeOpacity={1}>
-              {editing ? (
-                <TextInput
-                  style={styles.inputInCell}
-                  value={name}
-                  onChangeText={setName}
-                  placeholder={t('profile.yourName')}
-                  placeholderTextColor={colors.greyMuted}
-                />
-              ) : (
-                <Text style={styles.infoValue}>{user.name}</Text>
-              )}
-              <Ionicons name="pencil" size={14} color={editing ? colors.primary : colors.greyMuted} />
+        {/* Full Name */}
+        <ProfileField
+          title={t('profile.yourName')}
+          titleIcon="person"
+          fieldType="textfield"
+          value={name}
+          editing={editing}
+          onChangeText={setName}
+          placeholder={t('profile.yourName')}
+          onPress={() => setEditing(true)}
+          fieldEditIcon={'pencil'}
+          trailingContent={editing && name.trim() !== initialName.trim() ? (
+            <TouchableOpacity onPress={onSave} style={styles.inlineSaveBtn} activeOpacity={0.8} disabled={isSavingName}>
+              {isSavingName && <ActivityIndicator size="small" color={colors.white} />}
+              <Text style={styles.inlineSaveBtnText}>{t('common.saveChanges')}</Text>
             </TouchableOpacity>
-          </View>
+          ) : undefined}/>
 
-          {/* Mobile Number */}
-          <View style={{ marginBottom: spacing.md }}>
-            <Text style={styles.fieldLabel}>{t('profile.mobileNumber')}</Text>
-            <TouchableOpacity onPress={() => Alert.alert(t('common.notEditable'), t('profile.phoneNotEditable'))} style={styles.infoCell} activeOpacity={1}>
-              <Text style={styles.infoValue}>{user?.phoneNumber || user?.phone || ''}</Text>
-              <Ionicons name="pencil" size={14} color={colors.greyMuted} />
-            </TouchableOpacity>
-          </View>
+        {/* Mobile Number */}
+        <ProfileField
+          title={t('profile.mobileNumber')}
+          titleIcon="call"
+          fieldType="textfield"
+          value={user?.phoneNumber || user?.phone || ''}
+          fieldEditIcon="lock-closed"
+          onPress={() => showToast(t('profile.phoneNotEditable'))}/>
 
-          {/* Language */}
-          <View style={{ marginBottom: spacing.sm }}>
-            <Text style={styles.fieldLabel}>{t('profile.languageLabel')}</Text>
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate('LanguageSelection', {
-                    preferred: user?.language || lang,
-                  })
-                }
-              style={styles.infoCell}
-              activeOpacity={1}
-            >
-              <Text style={styles.infoValue}>{getLanguageDisplay(user?.language || lang || 'en')}</Text>
-              <Ionicons name="pencil" size={14} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* Language */}
+        <ProfileField
+          title={t('profile.languageLabel')}
+          titleIcon="globe"
+          fieldType="textfield"
+          value={getLanguageDisplay(user?.language || lang || 'en')}
+          fieldEditIcon="pencil"
+          onPress={() =>
+            navigation.navigate('LanguageSelection', {
+              preferred: user?.language || lang,
+              mode: 'edit',
+            })} />
 
         {/* User Role */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('profile.userRole')}</Text>
-          <View style={styles.roleGrid}>
-            <TouchableOpacity
-              style={[styles.roleCard, pendingRole === 'endUser' ? styles.roleCardSelected : styles.roleCardUnselected]}
-              onPress={() => setPendingRole('endUser')}
-            >
-              <View style={[styles.roleIconCircle, pendingRole === 'endUser' ? { backgroundColor: colors.primary } : { backgroundColor: colors.greyLight }]}>
-                <Ionicons name="search" size={18} color={pendingRole === 'endUser' ? colors.white : colors.grey} />
-              </View>
-              <Text style={[styles.roleText, pendingRole === 'endUser' ? { color: colors.primary } : { color: colors.grey }]}>{t('profile.roleEndUser')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.roleCard, pendingRole === 'serviceProvider' ? styles.roleCardSelected : styles.roleCardUnselected]}
-              onPress={() => setPendingRole('serviceProvider')}
-            >
-              <View style={[styles.roleIconCircle, { backgroundColor: colors.greyLight }]}>
-                <Ionicons name="briefcase" size={18} color={colors.grey} />
-              </View>
-              <Text style={[styles.roleText, { color: colors.grey }]}>{t('profile.roleServiceProvider')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ProfileField
+          title={t('roleSelect.title')}
+          titleIcon="people"
+          fieldType="textfield"
+          value={pendingRole === 'serviceProvider' ? t('profile.roleServiceProvider') : t('profile.roleEndUser')}
+          fieldEditIcon="pencil"
+          onPress={() => navigation.navigate('RoleSelect', { mode: 'edit' })} />
 
         {/* Service Provider Information */}
         {pendingRole === 'serviceProvider' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('profile.spInfo')}</Text>
-
-            {/* Services Offered */}
-            <View style={{ marginBottom: spacing.md }}>
-              <Text style={styles.fieldLabel}>{t('profile.servicesOffered')}</Text>
-              <View style={styles.servicesBox}>
+            <ProfileField
+              title={t('sp.selectServices.title')}
+              titleIcon="briefcase"
+              fieldType="custom"
+              fieldEditIcon="pencil"
+              containerStyle={styles.providerProfileField}
+              onPress={() =>
+                navigation.navigate('SPSelectServices', {
+                  mode: 'edit',
+                  initialSelected: pendingServices,
+                  onDone: async (sel: string[]) => {
+                    setPendingServices(sel);
+                    setIsUpdating(true);
+                    try {
+                      await updateUser({ services: sel });
+                      setProfileError(null);
+                      showToast(t('common.updatedDesc'));
+                    } catch (error) {
+                      setProfileError(error);
+                    } finally {
+                      setIsUpdating(false);
+                    }
+                  },
+                })
+              }
+            >
+              <View style={styles.profileFieldContent}>
                 <View style={styles.servicesChipsRow}>
-                  {pendingServices && pendingServices.length > 0 ? (
+                  {pendingServices.length > 0 ? (
                     pendingServices.map((svc: string) => (
                       <View key={svc} style={styles.serviceChipPrimary}>
                         <Text style={styles.serviceChipTextWhite}>{serviceNameMap[svc] || svc}</Text>
@@ -269,116 +272,64 @@ const ProfileScreen: React.FC = () => {
                     <Text style={{ fontSize: 12, color: colors.grey }}>{t('profile.noServices')}</Text>
                   )}
                 </View>
-                <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate('SPSelectServices', {
-                      mode: 'edit',
-                      initialSelected: pendingServices,
-                      onDone: (sel: string[]) => setPendingServices(sel),
-                    })
-                  }
-                  style={styles.addServiceFullButton}
-                >
-                  <Ionicons name="add" size={16} color={colors.white} style={{ marginRight: spacing.xs }} />
-                  <Text style={styles.addServiceFullText}>{t('profile.addService')}</Text>
-                </TouchableOpacity>
               </View>
-            </View>
+            </ProfileField>
 
-            {/* Service Location */}
-            <View style={{ marginBottom: spacing.md }}>
-              <Text style={styles.fieldLabel}>{t('profile.serviceLocation')}</Text>
-               <LocationSearch
-                     onSelect={(loc) => setPendingLocation({ name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng })}
-                     initialValue={pendingLocation?.name || pendingLocation?.description || ''}
-                   />
-            </View>
-
-            {/* Service Radius */}
-            <View style={{ marginBottom: spacing.xs }}>
-              <Text style={styles.fieldLabel}>{t('profile.serviceRadius')}</Text>
-              <View style={styles.radiusGrid}>
-                {[5, 10, 15, 20].map(r => {
-                  const selected = pendingRadius === r;
-                  return (
-                    <TouchableOpacity
-                      key={r}
-                      style={[styles.radiusCell, selected ? styles.radiusCellSelected : styles.radiusCellUnselected]}
-                      onPress={() => setPendingRadius(r)}
-                    >
-                      <Text style={[styles.radiusCellText, selected ? { color: colors.primary, fontWeight: '700' } : { color: colors.grey }]}>
-                        {r} km
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+            <ProfileField
+              title={t('profile.serviceLocation')}
+              titleIcon="location"
+              fieldType="custom"
+              fieldEditIcon="pencil"
+              containerStyle={styles.providerProfileField}
+              onPress={() => navigation.navigate('LocationSelect', { mode: 'edit' })}>
+              <View style={styles.profileFieldContent}>
+                <Text style={styles.locationSummaryText} numberOfLines={2}>
+                  {pendingLocation?.name || pendingLocation?.description || t('profile.noLocation') || 'No location selected'}
+                </Text>
+                <Text style={[styles.fieldLabel, { marginTop: spacing.sm }]}>{t('profile.serviceRadius')}</Text>
+                <Text style={styles.locationSummaryText}>{pendingRadius} km</Text>
               </View>
-            </View>
+            </ProfileField>
           </View>
         )}
 
         {/* Additional Settings */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('profile.additionalSettings')}</Text>
-          <View style={styles.settingRow}>
+        <ProfileField
+          title={t('profile.additionalSettings')}
+          titleIcon="settings"
+          fieldType="custom"
+          onPress={() => showToast('This feature is not supported for your device')}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="moon" size={16} color={colors.grey} style={{ marginRight: spacing.sm }} />
               <Text style={{ fontSize: 14, color: colors.dark }}>{t('profile.darkMode')}</Text>
             </View>
             <Switch value={darkMode} onValueChange={setDarkMode} thumbColor={darkMode ? colors.primary : colors.white} trackColor={{ true: colors.primaryBorder, false: colors.greyLight }} />
-          </View>
-        </View>
+        </ProfileField>
 
         {/* Professional Plans Promotion */}
         {user.role === 'serviceProvider' && (
           <View style={styles.section}>
-            <View style={styles.proCard}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-                <View style={styles.proIconCircle}>
-                  <Ionicons name="trophy" size={16} color={colors.white} />
-                </View>
-                <View style={{ marginLeft: spacing.sm }}>
-                  <Text style={styles.proTitle}>{t('profile.upgradeTitle')}</Text>
-                  <Text style={styles.proSubtitle}>{t('profile.upgradeSubtitle')}</Text>
-                </View>
-              </View>
-
-              <View style={{ marginBottom: spacing.sm }}>
-                <View style={styles.proFeatRow}>
-                  <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
-                  <Text style={styles.proFeatText}>{t('profile.featEarly')}</Text>
-                </View>
-                <View style={styles.proFeatRow}>
-                  <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
-                  <Text style={styles.proFeatText}>{t('profile.featMultiLoc')}</Text>
-                </View>
-                <View style={styles.proFeatRow}>
-                  <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
-                  <Text style={styles.proFeatText}>{t('profile.featRadius')}</Text>
-                </View>
-                <View style={styles.proFeatRow}>
-                  <Ionicons name="checkmark" size={12} color={colors.secondary} style={{ marginRight: spacing.xs }} />
-                  <Text style={styles.proFeatText}>{t('profile.featPriority')}</Text>
-                </View>
-              </View>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={styles.proPrice}>{t('profile.startingFrom', { price: '₹100' })}</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Subscription')} style={styles.proBtn}>
-                  <Text style={styles.proBtnText}>{t('profile.viewPlans')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <UpgradeProBanner
+              variant="card"
+              onPress={() => navigation.navigate('Subscription')}/>
           </View>
         )}
 
         {/* Account Actions */}
         <View style={styles.section}>
-          <TouchableOpacity onPress={logout} style={styles.logoutRow}>
+          <TouchableOpacity onPress={async () => {
+              setIsUpdating(true);
+              try {
+                await logout();
+              } finally {
+                setIsUpdating(false);
+              }
+            }}
+            disabled={isUpdating} style={styles.logoutRow}>
             <Ionicons name="log-out" size={16} color={colors.error} style={{ marginRight: spacing.xs }} />
             <Text style={styles.logoutText}>{t('profile.logout')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => Alert.alert('Deactivate', t('profile.deactivateDesc'))} style={styles.logoutRow}>
+          <TouchableOpacity onPress={() => showToast(t('profile.deactivateDesc'))} style={styles.logoutRow}>
             <Ionicons name="alert-circle" size={16} color={colors.error} style={{ marginRight: spacing.xs }} />
             <Text style={styles.logoutText}>{t('profile.deactivate')}</Text>
           </TouchableOpacity>
@@ -386,47 +337,14 @@ const ProfileScreen: React.FC = () => {
 
         <Text style={styles.versionText}>Version 1.2.0</Text>
       </ScrollView>
+      <ErrorBanner error={profileError} onRetry={refreshUser} />
+      {!isBottomTabsDisplayed && <SafeBottomBanner />}
+      <BlockingLoader visible={isUpdating} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.light,
-  },
-  header: {
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.greyLight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backBtn: {
-    padding: spacing.sm,
-    marginRight: spacing.sm,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  saveBtn: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.md,
-  },
-  saveBtnText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '600',
-  },
   photoSection: {
     alignItems: 'center',
     marginTop: spacing.md,
@@ -463,13 +381,16 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: spacing.lg,
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.dark,
-    marginBottom: spacing.sm,
+  providerProfileField: {
+    paddingHorizontal: 0,
+    marginTop: 0,
+    marginBottom: spacing.md,
+  },
+  profileFieldContent: {
+    flex: 1,
+    backgroundColor: colors.greyLight,
   },
   fieldLabel: {
     fontSize: 12,
@@ -477,66 +398,20 @@ const styles = StyleSheet.create({
     color: colors.grey,
     marginBottom: spacing.xs,
   },
-  infoCell: {
+  inlineSaveBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+    paddingVertical: 6,
     flexDirection: 'row',
+    gap: spacing.xs,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.light,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
+    justifyContent: 'center',
   },
-  inputInCell: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.dark,
-    paddingVertical: 0,
-    marginRight: spacing.sm,
-  },
-  infoValue: {
-    color: colors.dark,
-    fontSize: 14,
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  roleGrid: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    justifyContent: 'space-between',
-  },
-  roleCard: {
-    flex: 1,
-    borderWidth: 2,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    marginRight: spacing.sm,
-  },
-  roleCardSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
-  },
-  roleCardUnselected: {
-    borderColor: colors.greyLight,
-    backgroundColor: colors.white,
-  },
-  roleIconCircle: {
-    borderRadius: 999,
-    padding: 8,
-    marginBottom: spacing.xs,
-  },
-  roleText: {
+  inlineSaveBtnText: {
+    color: colors.white,
     fontSize: 12,
-    textAlign: 'center',
-  },
-  servicesBox: {
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    borderRadius: radius.md,
-    backgroundColor: colors.light,
-    padding: spacing.md,
+    fontWeight: '700',
   },
   servicesChipsRow: {
     flexDirection: 'row',
@@ -545,110 +420,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   serviceChipPrimary: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: 999,
-    marginRight: spacing.sm,
-    marginBottom: spacing.sm,
+    backgroundColor: colors.primaryLight,
+    padding: spacing.sm,
+    borderRadius: 10,
+    margin: spacing.xs,
   },
   serviceChipTextWhite: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  addServiceFullButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-  },
-  addServiceFullText: {
-    color: colors.white,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  radiusGrid: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  radiusCell: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-    marginRight: spacing.sm,
-    borderWidth: 2,
-  },
-  radiusCellSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
-  },
-  radiusCellUnselected: {
-    borderColor: colors.greyLight,
-    backgroundColor: colors.white,
-  },
-  radiusCellText: {
-    fontSize: 12,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  proCard: {
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
-    backgroundColor: colors.primaryLight,
-    borderRadius: radius.md,
-    padding: spacing.md,
-  },
-  proIconCircle: {
-    backgroundColor: colors.primary,
-    borderRadius: 999,
-    padding: spacing.xs,
-  },
-  proTitle: {
-    fontSize: 16,
-    fontWeight: '600',
     color: colors.dark,
-  },
-  proSubtitle: {
-    fontSize: 12,
-    color: colors.grey,
-  },
-  proFeatRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  proFeatText: {
-    fontSize: 12,
-    color: colors.dark,
-  },
-  proPrice: {
-    fontSize: 12,
-    color: colors.grey,
-  },
-  proBtn: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-  },
-  proBtnText: {
-    color: colors.white,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
+  },
+  locationSummaryText: {
+    color: colors.dark,
+    fontSize: 14,
+    fontWeight: '600',
+    flexShrink: 1,
   },
   logoutRow: {
     flexDirection: 'row',
@@ -665,16 +451,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.greyMuted,
     marginVertical: spacing.lg,
-  },
-  headerActionRow: {
-    backgroundColor: colors.white,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.greyLight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
   },
 });
 

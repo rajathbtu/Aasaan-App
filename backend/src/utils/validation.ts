@@ -22,13 +22,14 @@ export function isValidName(name: string): boolean {
   return /^[A-Za-z\s]{2,50}$/.test(trimmed);
 }
 
-/**
- * Validates a list of tags.  Each tag must be a non‑empty string without
- * special characters.  Adjust the regular expression according to your
- * localisation requirements.
- */
+/** Validates tags supplied by the service catalogue or a work-request client. */
 export function areValidTags(tags: string[]): boolean {
-  return tags.every(tag => /^\w[\w\s]{0,20}$/.test(tag));
+  return Array.isArray(tags) && tags.every(tag => (
+    typeof tag === 'string' &&
+    tag.trim().length > 0 &&
+    tag.length <= 100 &&
+    !/[\u0000-\u001F\u007F]/.test(tag)
+  ));
 }
 
 /**

@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { getProfile, updateProfile } from '../api';
-import { USE_MOCK_API } from '../config';
-import * as mock from '../api/mock';
-import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getProfile, updateProfile, registerPushToken, removePushToken } from '../api';
+import { getPushToken } from '../services/pushNotifications';
 import { AuthStackNavigationProp } from '../../App';
 
 interface User {
@@ -34,7 +34,7 @@ interface AuthContextProps {
   token: string | null;
   loading: boolean;
   login: (token: string, user: User) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateUser: (updates: UpdatePayload) => Promise<void>;
   setLanguage: (lang: string) => Promise<void>;
@@ -42,18 +42,31 @@ interface AuthContextProps {
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
+const authStorage = {
+  getItem: (key: string) => Platform.OS === 'web'
+    ? AsyncStorage.getItem(key)
+    : SecureStore.getItemAsync(key),
+  setItem: (key: string, value: string) => Platform.OS === 'web'
+    ? AsyncStorage.setItem(key, value)
+    : SecureStore.setItemAsync(key, value),
+  deleteItem: (key: string) => Platform.OS === 'web'
+    ? AsyncStorage.removeItem(key)
+    : SecureStore.deleteItemAsync(key),
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // const navigation = useNavigation<AuthStackNavigationProp>();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const authVersion = useRef(0);
 
   // Attempt to load token/user from secure storage on mount
   useEffect(() => {
     (async () => {
       try {
-        const storedToken = await SecureStore.getItemAsync('aasaan_token');
-        const storedUser = await SecureStore.getItemAsync('aasaan_user');
+        const storedToken = await authStorage.getItem('aasaan_token');
+        const storedUser = await authStorage.getItem('aasaan_user');
         if (storedToken && storedUser) {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
@@ -64,11 +77,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     })();
   }, []);
 
+  useEffect(() => {
+    if (!token || !user) return;
+
+    void getPushToken().then((pushToken) => {
+      if (!pushToken) {
+        return undefined;
+      }
+      return registerPushToken(token, pushToken.token, pushToken.platform);
+    }).catch((error) => console.warn('Push notification registration failed:', error));
+  }, [token, user?.id]);
+
   const login = async (tok: string, usr: User, navigation?: AuthStackNavigationProp) => {
+    authVersion.current += 1;
     setToken(tok);
     setUser(usr);
-    await SecureStore.setItemAsync('aasaan_token', tok);
-    await SecureStore.setItemAsync('aasaan_user', JSON.stringify(usr));
+    await authStorage.setItem('aasaan_token', tok);
+    await authStorage.setItem('aasaan_user', JSON.stringify(usr));
 
     // Redirect to role selection page if role is null
     if (!usr.role && navigation) {
@@ -77,25 +102,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    const currentToken = token;
+    authVersion.current += 1;
+    if (currentToken) {
+      try {
+        await removePushToken(currentToken);
+      } catch (error) {
+        console.warn('Push notification cleanup failed:', error);
+      }
+    }
     setToken(null);
     setUser(null);
-    await SecureStore.deleteItemAsync('aasaan_token');
-    await SecureStore.deleteItemAsync('aasaan_user');
+    await authStorage.deleteItem('aasaan_token');
+    await authStorage.deleteItem('aasaan_user');
   };
 
   const refreshUser = async () => {
     if (!token) return;
+    const requestVersion = authVersion.current;
+    const requestToken = token;
     try {
       let updated: any;
-      if (USE_MOCK_API) {
-        updated = await mock.getProfile(token);
-      } else {
-        updated = await getProfile(token);
-      }
+      updated = await getProfile(requestToken);
+      if (requestVersion !== authVersion.current) return;
       setUser(updated);
-      await SecureStore.setItemAsync('aasaan_user', JSON.stringify(updated));
+      await authStorage.setItem('aasaan_user', JSON.stringify(updated));
     } catch (err) {
-      console.error(err);
+      throw err;
     }
   };
 
@@ -103,15 +136,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!token || !user) return;
     try {
       let updated: any;
-      if (USE_MOCK_API) {
-        updated = await (mock as any).updateProfile(token, updates as any);
-      } else {
-        updated = await updateProfile(token, updates as any);
-      }
+      updated = await updateProfile(token, updates as any);
       setUser(updated);
-      await SecureStore.setItemAsync('aasaan_user', JSON.stringify(updated));
+      await authStorage.setItem('aasaan_user', JSON.stringify(updated));
     } catch (err) {
-      console.error(err);
+      throw err;
     }
   };
 
@@ -120,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // optimistic local update
     const next = { ...user, language: lang } as User;
     setUser(next);
-    await SecureStore.setItemAsync('aasaan_user', JSON.stringify(next));
+    await authStorage.setItem('aasaan_user', JSON.stringify(next));
     // persist to backend when token is present
     if (token) {
       try {

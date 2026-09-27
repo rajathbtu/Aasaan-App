@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import SafeBottomBanner from '../components/SafeBottomBanner';
 
 interface BottomCTAProps {
   isSticky?: boolean;
@@ -12,6 +13,8 @@ interface BottomCTAProps {
   isLoading?: boolean;
   isDisabled?: boolean;
   showArrow?: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
+  buttonStyle?: StyleProp<ViewStyle>;
 }
 
 const BottomCTA: React.FC<BottomCTAProps> = ({
@@ -22,6 +25,8 @@ const BottomCTA: React.FC<BottomCTAProps> = ({
   isLoading = false,
   isDisabled = false,
   showArrow = false,
+  containerStyle,
+  buttonStyle,
 }) => {
   const insets = useSafeAreaInsets();
   const arrowAnimation = useRef(new Animated.Value(0)).current;
@@ -53,14 +58,16 @@ const BottomCTA: React.FC<BottomCTAProps> = ({
   });
 
   return (
-    <View style={[styles.container, isSticky && styles.sticky, { paddingBottom: insets.bottom || spacing.lg }]}>
-      {noteText && <Text style={styles.noteText}>{noteText}</Text>}
+    <View style={[styles.container, isSticky && styles.sticky, { paddingBottom: insets.bottom || spacing.lg }, containerStyle]}>
+      {noteText ? <Text style={styles.noteText}>{noteText}</Text> : null}
       <TouchableOpacity
         disabled={isDisabled || isLoading}
         onPress={onPress}
         style={[
           styles.button,
-          { backgroundColor: isDisabled || isLoading ? colors.greyBorder : colors.primary },
+          {backgroundColor: isDisabled ? colors.greyBorder : colors.primary,
+            opacity: isLoading ? 0.65 : 1,},
+          buttonStyle,
         ]}
         activeOpacity={0.8}
       >
@@ -87,9 +94,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderTopWidth: 1,
     borderTopColor: colors.greyLight,
+    marginBottom: spacing.md,
   },
   sticky: {
-    position: 'absolute',
+    position: 'relative',
     left: 0,
     right: 0,
     bottom: 0,
