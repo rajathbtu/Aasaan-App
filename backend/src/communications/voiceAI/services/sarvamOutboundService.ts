@@ -66,7 +66,7 @@ export async function uploadCohortToCampaign(
     throw new Error(`[SARVAM] uploadCohort failed ${resp.status}: ${txt}`);
   }
 
-  const data = await resp.json();
+  const data = await resp.json() as CohortUploadResult;
   return data;
 }
 
@@ -88,7 +88,7 @@ export async function getCohortStatus(cohortId: string): Promise<CohortUploadRes
     throw new Error(`[SARVAM] getCohortStatus failed ${resp.status}: ${txt}`);
   }
 
-  return resp.json();
+  return resp.json() as Promise<CohortUploadResult>;
 }
 
 /**
@@ -123,7 +123,7 @@ export async function makeTestCall({ to }: { to: string; app_version?: number })
   if (!process.env.SARVAM_AGENT_ID) throw new Error('SARVAM_AGENT_ID not configured');
 
   const agentId = process.env.SARVAM_AGENT_ID;
-  const agentVersion = process.env.SARVAM_AGENT_VERSION || '2';
+  const agentVersion = process.env.SARVAM_AGENT_VERSION || '3';
 
   const resp = await fetch(`${SARVAM_API_BASE}/test-call`, {
     method: 'POST',
@@ -143,7 +143,7 @@ export async function makeTestCall({ to }: { to: string; app_version?: number })
     throw new Error(`[SARVAM] makeTestCall failed ${resp.status}: ${txt}`);
   }
 
-  const data = await resp.json();
+  const data = await resp.json() as { id?: string };
   return {
     success: true,
     message: 'Test call initiated',

@@ -2,7 +2,7 @@ import WebSocket from 'ws';
 import { EventEmitter } from 'events';
 import { Provider, ProviderOptions } from './types';
 
-// Minimal Sarvam adapter: STT websocket + TTS websocket + LLM via OpenAI REST
+// Sarvam adapter: STT websocket + TTS websocket.
 class SarvamAdapter extends EventEmitter implements Provider {
   private sttWs?: WebSocket;
   private ttsWs?: WebSocket;
@@ -45,27 +45,11 @@ class SarvamAdapter extends EventEmitter implements Provider {
     }
   }
 
-  async requestResponse(instructions?: string) {
-    // For Sarvam flow: caller audio -> Sarvam STT produces transcripts which we forward to LLM.
-    // Here, requestResponse will call our LLM (OpenAI REST) with the latest transcripts and then synthesize via Sarvam TTS.
-    try {
-      // Simplified: call OpenAI Chat Completion with system prompt and recent transcript as user message
-      const openaiKey = process.env.OPENAI_API_KEY;
-      const model = process.env.OPENAI_CHAT_MODEL || process.env.OPENAI_REALTIME_MODEL || 'gpt-4o-mini';
-      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${openaiKey}` },
-        body: JSON.stringify({ model, messages: [ { role: 'system', content: instructions || '' }, { role: 'user', content: 'Respond to caller' } ], max_tokens: 300 }),
-      });
-      const data = await resp.json();
-      const text = data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text || '';
-      this.emit('response.started', { text });
-      // Send text to Sarvam TTS and stream audio back as 'audio' events (expecting PCM@24000)
-      await this.streamTextToTts(text);
-      this.emit('response.completed', { text });
-    } catch (e) {
-      this.emit('error', e);
-    }
+  async requestResponse(_instructions?: string) {
+    // Sarvam Voice Agents owns the conversational response when the
+    // deployment is used directly. This backend adapter only handles the
+    // realtime audio transport and does not call a separate LLM provider.
+    this.emit('response.completed', { text: '' });
   }
 
   cancelResponse() {
