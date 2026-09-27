@@ -65,7 +65,7 @@ async function makeCall({ to }: { to: string }): Promise<CallResult> {
   const payload: any = {
     app_config: {
       app_id: SARVAM_AGENT_ID,
-      app_version: 3,
+      app_version: SARVAM_AGENT_VERSION,
       connection_config: {
         connection_id: SARVAM_CONNECTION_ID,
         agent_phone_number: SARVAM_FROM_NUMBER,
@@ -90,7 +90,7 @@ async function makeCall({ to }: { to: string }): Promise<CallResult> {
       to, 
       from: SARVAM_FROM_NUMBER,
       agentId: SARVAM_AGENT_ID,
-      agentVersion: 3,
+      agentVersion: SARVAM_AGENT_VERSION,
       orgId: SARVAM_ORG_ID,
       workspaceId: SARVAM_WORKSPACE_ID,
       connectionId: SARVAM_CONNECTION_ID,
@@ -122,7 +122,7 @@ async function makeCall({ to }: { to: string }): Promise<CallResult> {
       success: true,
       message: `Call initiated successfully via Sarvam official API`, 
       attempt_id: data.attempt_id,
-      agent: { id: 'Aasaan-Priy-df7121a8-673d', version: 3 },
+      agent: { id: SARVAM_AGENT_ID, version: SARVAM_AGENT_VERSION },
     };
   } catch (error: any) {
     console.error('[SARVAM] makeCall error:', error.message);

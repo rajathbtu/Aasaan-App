@@ -2,7 +2,7 @@ import express from 'express';
 import { answer, hangup, createCall, createTestCall, getCampaignStatus } from '../controllers/sarvamController';
 
 const router = express.Router();
-// Sarvam sends JSON payloads (not form-urlencoded like Plivo)
+// Sarvam sends JSON payloads.
 router.use(express.json({ limit: '32kb' }));
 router.use(express.urlencoded({ extended: false, limit: '32kb' }));
 

@@ -14,8 +14,7 @@ const HOST = process.env.HOST || '0.0.0.0';
 // attaching WebSockets).
 const server = http.createServer(app);
 
-// Attach WebSocket handlers (Plivo streaming)
-import { attachPlivoWs } from './communications/voiceAI/ws/plivoWs';
+// Attach Sarvam realtime WebSocket handler
 import { attachSarvamWs } from './communications/voiceAI/ws/sarvamWs';
 
 
@@ -34,6 +33,5 @@ server.listen({ port: Number(PORT), host: HOST }, () => {
     }
   }
   // Attach WS after server is listening
-  attachPlivoWs(server);
   attachSarvamWs(server);
 });
