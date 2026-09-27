@@ -60,7 +60,23 @@ async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<
   try {
     const ids = Array.from(new Set((acceptedProviders || []).map((p: any) => p.providerId)));
     if (ids.length && pAny.user?.findMany) {
-      const users = await pAny.user.findMany({ where: { id: { in: ids } } });
+      const users = await pAny.user.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          name: true,
+          phoneNumber: true,
+          avatarUrl: true,
+          serviceProviderInfo: {
+            select: {
+              workSinceYear: true,
+              birthYear: true,
+              gender: true,
+              bio: true,
+            },
+          },
+        },
+      });
       const uMap = new Map(users.map((u: any) => [u.id, u]));
       acceptedWithDetails = (acceptedProviders || []).map((p: any) => ({
         ...p,
