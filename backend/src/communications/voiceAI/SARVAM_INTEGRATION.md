@@ -25,10 +25,10 @@ Caller (Phone) <--> Sarvam Platform <--> Aasaan Backend
 
 ```bash
 # Model APIs (api.sarvam.ai) - STT, TTS, Translation, Chat
-SARVAM_API_KEY=sk_jp0fjlno_gryCXvmNE0bxjUkmKqw9RzMJ
+SARVAM_API_KEY=your_sarvam_model_api_key
 
 # Voice Agents APIs (apps.sarvam.ai) - Voice Agents Platform
-SARVAM_VOICE_AGENTS_API_KEY=sk_samvaad_4psj7gwa_SJ0L60zO0w2PMBeMbjPeblUX
+SARVAM_VOICE_AGENTS_API_KEY=your_sarvam_voice_agents_key
 
 # Voice Agent Configuration
 SARVAM_FROM_NUMBER=+918064261388
@@ -82,8 +82,8 @@ POST https://apps.sarvam.ai/api/outbounds/v1/orgs/{org_id}/workspaces/{workspace
 ```bash
 curl -X POST https://apps.sarvam.ai/api/outbounds/v1/orgs/01a0b4c9-b383-7725-8437-0f2be51c264d/workspaces/01a0b4c9-b388-7c99-b7eb-b672f405486d/outbounds \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: sk_samvaad_4psj7gwa_SJ0L60zO0w2PMBeMbjPeblUX" \
-  -H "Authorization: Bearer sk_samvaad_4psj7gwa_SJ0L60zO0w2PMBeMbjPeblUX" \
+  -H "X-API-Key: sk_REDACTED" \
+  -H "Authorization: Bearer sk_REDACTED" \
   -d '{
     "app_config": {
       "app_id": "Aasaan-Priy-df7121a8-673d",
