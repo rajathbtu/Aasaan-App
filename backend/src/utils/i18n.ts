@@ -39,6 +39,10 @@ const translations: Record<Locale, Record<string, any>> = {
       invalidServicesArray: 'Services must be a non-empty string array',
       invalidRadius: 'Invalid radius value',
       invalidLocation: 'Invalid location',
+      invalidProfileYear: 'Invalid profile year',
+      invalidProfileYearOrder: 'Birth year cannot be later than the work start year',
+      invalidGender: 'Invalid gender value',
+      invalidBio: 'Keep Bio short and within 500 characters and without any control characters',
       updateFailed: 'Update failed',
     },
     services: {

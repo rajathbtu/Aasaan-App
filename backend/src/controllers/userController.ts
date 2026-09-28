@@ -5,6 +5,9 @@ import prisma from '../utils/prisma';
 import { Role } from '../models/User';
 import { getReqLang, t } from '../utils/i18n';
 
+const providerGenders = new Set(['male', 'female']);
+const minimumProfileYear = 1940;
+
 export async function getProfile(req: Request, res: Response): Promise<void> {
   const authUser = (req as any).user as { id: string };
   const lang = getReqLang(req);
@@ -21,7 +24,7 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
 export async function updateProfile(req: Request, res: Response): Promise<void> {
   const authUser = (req as any).user as { id: string };
   const lang = getReqLang(req);
-  const { name, language, role, services, location, radius, plan, avatarUrl } = req.body as {
+  const { name, language, role, services, location, radius, plan, avatarUrl, workSinceYear, birthYear, gender, bio } = req.body as {
     name?: string;
     language?: string;
     role?: Role;
@@ -30,6 +33,10 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     radius?: number;
     plan?: 'free' | 'basic' | 'pro';
     avatarUrl?: string | null;
+    workSinceYear?: number | null;
+    birthYear?: number | null;
+    gender?: 'male' | 'female' | null;
+    bio?: string | null;
   };
 
   const data: any = {};
@@ -43,6 +50,36 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
   if (avatarUrl !== undefined) {
     if (avatarUrl !== null && typeof avatarUrl !== 'string') { res.status(400).json({ message: t(lang, 'user.invalidAvatarUrl') }); return; }
     data.avatarUrl = avatarUrl;
+  }
+
+  const currentYear = new Date().getFullYear();
+  const isValidProfileYear = (value: number | null | undefined) => (
+    value === undefined || value === null || (
+      typeof value === 'number' &&
+      Number.isInteger(value) &&
+      value >= minimumProfileYear &&
+      value <= currentYear
+    )
+  );
+  if (!isValidProfileYear(workSinceYear) || !isValidProfileYear(birthYear)) {
+    res.status(400).json({ message: t(lang, 'user.invalidProfileYear') });
+    return;
+  }
+  if (workSinceYear !== null && birthYear !== null && workSinceYear !== undefined && birthYear !== undefined && birthYear > workSinceYear) {
+    res.status(400).json({ message: t(lang, 'user.invalidProfileYearOrder') });
+    return;
+  }
+  if (gender !== undefined && gender !== null && !providerGenders.has(gender)) {
+    res.status(400).json({ message: t(lang, 'user.invalidGender') });
+    return;
+  }
+  if (bio !== undefined && bio !== null && (
+    typeof bio !== 'string' ||
+    bio.length > 500 ||
+    /[\u0000-\u001F\u007F]/.test(bio)
+  )) {
+    res.status(400).json({ message: t(lang, 'user.invalidBio') });
+    return;
   }
 
   // Ensure services, radius, and location are properly validated and handled
@@ -70,17 +107,25 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
 
   // Ensure services, location, and radius are handled in ServiceProviderInfo via spUpdate
   let spUpdate: any | undefined;
-  if (role === 'serviceProvider' || services !== undefined || location !== undefined || radius !== undefined) {
+  if (role === 'serviceProvider' || services !== undefined || location !== undefined || radius !== undefined || workSinceYear !== undefined || birthYear !== undefined || gender !== undefined || bio !== undefined) {
     spUpdate = {
       upsert: {
         create: {
           services: services && services.length ? services : [],
           radius: radius ?? 20, //default radius if not provided
+          workSinceYear: workSinceYear ?? null,
+          birthYear: birthYear ?? null,
+          gender: gender ?? null,
+          bio: bio === undefined || bio === null ? null : bio.trim(),
           location: location ? { create: { name: location.name, lat: location.lat, lng: location.lng } } : undefined,
         },
         update: {
           services: services !== undefined ? services : undefined,
           radius: radius !== undefined ? radius : undefined,
+          workSinceYear: workSinceYear !== undefined ? workSinceYear : undefined,
+          birthYear: birthYear !== undefined ? birthYear : undefined,
+          gender: gender !== undefined ? gender : undefined,
+          bio: bio === undefined ? undefined : bio === null ? null : bio.trim(),
           location:
             location === null
               ? { disconnect: true }

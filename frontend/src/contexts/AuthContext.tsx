@@ -13,7 +13,15 @@ interface User {
   phone?: string;
   language: string;
   role: 'endUser' | 'serviceProvider';
-  serviceProviderInfo?: any;
+  serviceProviderInfo?: {
+    services?: string[];
+    location?: any;
+    radius?: number;
+    workSinceYear?: number | null;
+    birthYear?: number | null;
+    gender?: 'male' | 'female' | null;
+    bio?: string | null;
+  } | null;
   creditPoints: number;
   plan: 'free' | 'basic' | 'pro';
   avatarUrl?: string | null;
@@ -23,6 +31,10 @@ type UpdatePayload = Partial<User> & {
   services?: string[];
   location?: { name: string; lat: number; lng: number; placeId?: string } | null;
   radius?: number;
+  workSinceYear?: number | null;
+  birthYear?: number | null;
+  gender?: 'male' | 'female' | null;
+  bio?: string | null;
   plan?: 'free' | 'basic' | 'pro';
   role?: 'endUser' | 'serviceProvider';
   language?: string;

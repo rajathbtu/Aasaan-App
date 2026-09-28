@@ -158,6 +158,10 @@ const WorkRequestDetailsScreen: React.FC = () => {
               const displayName = provider.name || p.providerId || t('requestDetails.provider');
               const phone = provider.phoneNumber || '';
               const avatarUri = provider.avatarUrl || undefined;
+              const providerInfo = provider.serviceProviderInfo || {};
+              const genderKey = providerInfo.gender === 'male' ? 
+                    'Male' : providerInfo.gender === 'female'
+                          ? 'Female' : null;
               return (
                 <View key={p.id || p.providerId || index} style={styles.providerRow}>
                   {avatarUri ? (
@@ -171,6 +175,18 @@ const WorkRequestDetailsScreen: React.FC = () => {
                   )}
                   <View style={styles.providerDetails}>
                     <Text style={styles.providerName}>{displayName}</Text>
+                    {!!providerInfo.workSinceYear && (
+                      <Text style={styles.providerMeta}>{t('requestDetails.workingSince', { year: providerInfo.workSinceYear })}</Text>
+                    )}
+                    {!!providerInfo.birthYear && (
+                      <Text style={styles.providerMeta}>{t('requestDetails.bornIn', { year: providerInfo.birthYear })}</Text>
+                    )}
+                    {!!genderKey && (
+                      <Text style={styles.providerMeta}>{t('requestDetails.genderLabel', { gender: t(`requestDetails.gender${genderKey}`) })}</Text>
+                    )}
+                    {!!providerInfo.bio && (
+                      <Text style={styles.providerBio} numberOfLines={2}>{providerInfo.bio}</Text>
+                    )}
                     <View style={styles.ratingRow}>
                       {[1, 2, 3, 4, 5].map((i) => (
                         <Ionicons key={i} name={i <= 4 ? 'star' : 'star-outline'} size={12} color={i <= 4 ? colors.secondary : colors.greyMuted} style={{ marginRight: 2 }} />
@@ -367,6 +383,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.dark,
+  },
+  providerMeta: {
+    fontSize: 12,
+    color: colors.grey,
+    marginTop: 2,
+  },
+  providerBio: {
+    fontSize: 12,
+    color: colors.dark,
+    marginTop: spacing.xs,
   },
   ratingRow: {
     flexDirection: 'row',

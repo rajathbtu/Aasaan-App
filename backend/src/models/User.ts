@@ -20,6 +20,10 @@ export interface ServiceProviderInfo {
   services: string[];
   location: Location | null;
   radius: number;
+  workSinceYear?: number | null;
+  birthYear?: number | null;
+  gender?: 'male' | 'female' | null;
+  bio?: string | null;
 }
 
 /**

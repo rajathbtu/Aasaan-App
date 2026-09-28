@@ -14,7 +14,10 @@ import SafeBottomBanner from '../components/SafeBottomBanner';
 import UpgradeProBanner from '../components/UpgradeProBanner';
 import BlockingLoader from '../components/BlockingLoader';
 import ProfileField from '../components/ProfileField';
+import SingleSelectRadioModal from '../components/SingleSelectRadioModal';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
+
+type ProfileSelector = 'workSinceYear' | 'birthYear' | 'gender';
 
 /**
  * Displays and allows editing of the authenticated user's profile.  Users
@@ -68,6 +71,10 @@ const ProfileScreen: React.FC = () => {
     : [];
   const initialLocation = user?.serviceProviderInfo?.location || null;
   const initialRadius = (user?.serviceProviderInfo?.radius as number | undefined) ?? 5;
+  const initialWorkSinceYear = user?.serviceProviderInfo?.workSinceYear ?? null;
+  const initialBirthYear = user?.serviceProviderInfo?.birthYear ?? null;
+  const initialGender = user?.serviceProviderInfo?.gender ?? null;
+  const initialBio = user?.serviceProviderInfo?.bio || '';
 
   // Pending editable state (changed only on Save)
   const [name, setName] = useState(initialName);
@@ -76,9 +83,15 @@ const ProfileScreen: React.FC = () => {
   const [pendingServices, setPendingServices] = useState<string[]>(initialServices);
   const [pendingLocation, setPendingLocation] = useState<any>(initialLocation);
   const [pendingRadius, setPendingRadius] = useState<number>(initialRadius);
+  const [pendingWorkSinceYear, setPendingWorkSinceYear] = useState(initialWorkSinceYear ? String(initialWorkSinceYear) : '');
+  const [pendingBirthYear, setPendingBirthYear] = useState(initialBirthYear ? String(initialBirthYear) : '');
+  const [pendingGender, setPendingGender] = useState(initialGender || '');
+  const [pendingBio, setPendingBio] = useState(initialBio);
+  const [editingBio, setEditingBio] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSavingName, setIsSavingName] = useState(false);
+  const [activeSelector, setActiveSelector] = useState<ProfileSelector | null>(null);
 
   useEffect(() => {
     // If user object updates (after save), sync pending state
@@ -89,6 +102,11 @@ const ProfileScreen: React.FC = () => {
     setPendingServices(Array.isArray(user?.serviceProviderInfo?.services) ? (user!.serviceProviderInfo!.services as string[]) : []);
     setPendingLocation(user?.serviceProviderInfo?.location || null);
     setPendingRadius((user?.serviceProviderInfo?.radius as number | undefined) ?? 5);
+    setPendingWorkSinceYear(user?.serviceProviderInfo?.workSinceYear ? String(user.serviceProviderInfo.workSinceYear) : '');
+    setPendingBirthYear(user?.serviceProviderInfo?.birthYear ? String(user.serviceProviderInfo.birthYear) : '');
+    setPendingGender(user?.serviceProviderInfo?.gender || '');
+    setPendingBio(user?.serviceProviderInfo?.bio || '');
+    setEditingBio(false);
   }, [user]);
 
   useEffect(() => {
@@ -121,8 +139,12 @@ const ProfileScreen: React.FC = () => {
     const servicesChanged = !deepEqualArray(pendingServices, initialServices);
     const radiusChanged = pendingRadius !== initialRadius;
     const locationChanged = !locationEqual(pendingLocation, initialLocation);
-    return nameChanged || roleChanged || servicesChanged || radiusChanged || locationChanged;
-  }, [editing, name, pendingRole, pendingServices, pendingRadius, pendingLocation, initialName, initialRole, initialServices, initialRadius, initialLocation]);
+    const workSinceYearChanged = pendingWorkSinceYear !== (initialWorkSinceYear ? String(initialWorkSinceYear) : '');
+    const birthYearChanged = pendingBirthYear !== (initialBirthYear ? String(initialBirthYear) : '');
+    const genderChanged = pendingGender !== (initialGender || '');
+    const bioChanged = pendingBio.trim() !== initialBio.trim();
+    return nameChanged || roleChanged || servicesChanged || radiusChanged || locationChanged || workSinceYearChanged || birthYearChanged || genderChanged || bioChanged;
+  }, [editing, name, pendingRole, pendingServices, pendingRadius, pendingLocation, pendingWorkSinceYear, pendingBirthYear, pendingGender, pendingBio, initialName, initialRole, initialServices, initialRadius, initialLocation, initialWorkSinceYear, initialBirthYear, initialGender, initialBio]);
 
   const onSave = async () => {
     if (!canSave) return;
@@ -131,6 +153,14 @@ const ProfileScreen: React.FC = () => {
     if (pendingRole !== initialRole) updates.role = pendingRole;
     if (!deepEqualArray(pendingServices, initialServices)) updates.services = pendingServices;
     if (pendingRadius !== initialRadius) updates.radius = pendingRadius;
+    if (pendingWorkSinceYear !== (initialWorkSinceYear ? String(initialWorkSinceYear) : '')) {
+      updates.workSinceYear = pendingWorkSinceYear.trim() ? Number(pendingWorkSinceYear) : null;
+    }
+    if (pendingBirthYear !== (initialBirthYear ? String(initialBirthYear) : '')) {
+      updates.birthYear = pendingBirthYear.trim() ? Number(pendingBirthYear) : null;
+    }
+    if (pendingGender !== (initialGender || '')) updates.gender = pendingGender || null;
+    if (pendingBio.trim() !== initialBio.trim()) updates.bio = pendingBio.trim() || null;
     if (!locationEqual(pendingLocation, initialLocation)) updates.location = pendingLocation ? {
       name: pendingLocation.name,
       lat: pendingLocation.lat,
@@ -143,12 +173,47 @@ const ProfileScreen: React.FC = () => {
       await updateUser(updates);
       setProfileError(null);
       setEditing(false);
+      setEditingBio(false);
       showToast(t('common.updatedDesc'));
     } catch (err: any) {
       setProfileError(err);
     } finally {
       setIsSavingName(false);
     }
+  };
+
+  const currentYear = new Date().getFullYear();
+  const workSinceYears = Array.from({ length: currentYear - 1949 }, (_, index) => String(currentYear - index));
+  const birthYears = Array.from({ length: currentYear - 1945 }, (_, index) => String(currentYear - index));
+  const selectorConfig: Record<ProfileSelector, {
+    title: string; options: { label: string; value: string }[]; value: string;
+    onSelect: (value: string) => void;
+  }> = {
+    workSinceYear: {
+      title: t('profile.workSinceYear'),
+      options: [...workSinceYears.map(year => ({ label: year, value: year }))],
+      value: pendingWorkSinceYear,
+      onSelect: setPendingWorkSinceYear,
+    },
+    birthYear: {
+      title: t('profile.birthYear'),
+      options: [...birthYears.map(year => ({ label: year, value: year }))],
+      value: pendingBirthYear,
+      onSelect: setPendingBirthYear,
+    },
+    gender: {
+      title: t('profile.gender'),
+      options: [  { label: t('profile.genderMale'), value: 'male' },
+                  { label: t('profile.genderFemale'), value: 'female' }],
+      value: pendingGender,
+      onSelect: setPendingGender,
+    },
+  };
+  const activeSelection = activeSelector ? selectorConfig[activeSelector] : null;
+
+  const selectOption = (value: string) => {
+    activeSelection?.onSelect(value);
+    setActiveSelector(null);
   };
 
   return (
@@ -191,9 +256,9 @@ const ProfileScreen: React.FC = () => {
           editing={editing}
           onChangeText={setName}
           placeholder={t('profile.yourName')}
-          onPress={() => setEditing(true)}
+          onPress={() => { setEditing(true); setEditingBio(false); }}
           fieldEditIcon={'pencil'}
-          trailingContent={editing && name.trim() !== initialName.trim() ? (
+          trailingContent={canSave ? (
             <TouchableOpacity onPress={onSave} style={styles.inlineSaveBtn} activeOpacity={0.8} disabled={isSavingName}>
               {isSavingName && <ActivityIndicator size="small" color={colors.white} />}
               <Text style={styles.inlineSaveBtnText}>{t('common.saveChanges')}</Text>
@@ -258,8 +323,7 @@ const ProfileScreen: React.FC = () => {
                     }
                   },
                 })
-              }
-            >
+              }>
               <View style={styles.profileFieldContent}>
                 <View style={styles.servicesChipsRow}>
                   {pendingServices.length > 0 ? (
@@ -290,6 +354,48 @@ const ProfileScreen: React.FC = () => {
                 <Text style={styles.locationSummaryText}>{pendingRadius} km</Text>
               </View>
             </ProfileField>
+
+            <ProfileField
+              title={t('profile.workSinceYear')}
+              titleIcon="calendar"
+              fieldType="textfield"
+              value={pendingWorkSinceYear || t('profile.workSinceYearPlaceholder')}
+              fieldEditIcon="pencil"
+              containerStyle={styles.providerProfileField}
+              onPress={() => setActiveSelector('workSinceYear')}/>
+
+            <ProfileField
+              title={t('profile.birthYear')}
+              titleIcon="calendar-outline"
+              fieldType="textfield"
+              value={pendingBirthYear || t('profile.birthYearPlaceholder')}
+              fieldEditIcon="pencil"
+              containerStyle={styles.providerProfileField}
+              onPress={() => setActiveSelector('birthYear')}/>
+
+            <ProfileField
+              title={t('profile.gender')}
+              titleIcon="person-outline"
+              fieldType="textfield"
+              value={pendingGender === 'male'
+                ? t('profile.genderMale')
+                : pendingGender === 'female' ? t('profile.genderFemale') : t('profile.genderPlaceholder')}
+              fieldEditIcon="pencil"
+              containerStyle={styles.providerProfileField}
+              onPress={() => setActiveSelector('gender')}/>
+
+            <ProfileField
+              title={t('profile.aboutMe')}
+              titleIcon="document-text-outline"
+              fieldType="textfield"
+              value={pendingBio}
+              editing={editingBio}
+              onPress={() => setEditingBio(true)}
+              onChangeText={setPendingBio}
+              placeholder={t('profile.aboutMePlaceholder')}
+              fieldEditIcon="pencil"
+              containerStyle={styles.providerProfileField}/>
+
           </View>
         )}
 
@@ -337,6 +443,15 @@ const ProfileScreen: React.FC = () => {
 
         <Text style={styles.versionText}>Version 1.2.0</Text>
       </ScrollView>
+
+      <SingleSelectRadioModal
+        visible={activeSelector !== null}
+        title={activeSelection?.title ?? ''}
+        options={activeSelection?.options ?? []}
+        selectedValue={activeSelection?.value ?? ''}
+        onSelect={selectOption}
+        onClose={() => setActiveSelector(null)}/>
+
       <ErrorBanner error={profileError} onRetry={refreshUser} />
       {!isBottomTabsDisplayed && <SafeBottomBanner />}
       <BlockingLoader visible={isUpdating} />
