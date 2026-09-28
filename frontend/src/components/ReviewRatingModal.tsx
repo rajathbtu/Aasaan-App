@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -85,14 +84,12 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
             </View>
             <View style={styles.headingBlock}>
               <Text style={styles.title}>{t('requestDetails.reviewTitle')}</Text>
-              <Text style={styles.subtitle}>{t('requestDetails.reviewSubtitle')}</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton} accessibilityLabel={t('requestDetails.ok')}>
               <Ionicons name="close" size={20} color={colors.grey} />
             </TouchableOpacity>
           </View>
 
-          {/* <Text style={styles.sectionLabel}>{t('requestDetails.selectProviderLabel')}</Text> */}
           <ScrollView style={styles.providerList} showsVerticalScrollIndicator={false}>
             {acceptedProviders.length > 0 && acceptedProviders.map((item: any, index: number) => {
               const provider = item.provider || {};
@@ -161,11 +158,10 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
             >
               <View style={styles.providerCardHeader}>
                 <View style={styles.noneAvatar}>
-                  <Ionicons name="help" size={16} color={colors.grey} />
+                  <Ionicons name="person-outline" size={16} color={colors.grey} />
                 </View>
                 <View style={styles.providerDetails}>
                   <Text style={styles.providerName}>{t('requestDetails.noProviderTitle')}</Text>
-                  <Text style={styles.providerMeta}>{t('requestDetails.noProviderSubtitle')}</Text>
                 </View>
                 <SelectionMark selected={selectedProviderId === 'none'} />
               </View>
@@ -182,12 +178,11 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
               onPress={submitClose}
               disabled={isSubmitting}
               loading={isSubmitting}
-              buttonTitleColor={'#b91c1c'}
-              backgroundColor={'#fff5f5'}
-              style={[styles.actionButton]}
+              buttonTitleColor="#b91c1c"
+              backgroundColor="#fff5f5"
+              style={styles.actionButton}
             />
           </View>
-          {/* <Text style={styles.undoNote}>{t('requestDetails.undoPrompt')}</Text> */}
           <ActionButton
             buttonIcon="close-circle-outline"
             buttonTitle={t('common.cancel')}
@@ -254,11 +249,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.dark,
   },
-  subtitle: {
-    color: colors.grey,
-    fontSize: 12,
-    marginTop: 3,
-  },
   closeButton: {
     width: 36,
     height: 36,
@@ -266,14 +256,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surface,
-  },
-  sectionLabel: {
-    color: colors.dark,
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: spacing.sm,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   providerList: {
     maxHeight: 330,
@@ -289,7 +271,6 @@ const styles = StyleSheet.create({
   },
   providerCardSelected: {
     borderColor: colors.primary,
-    // backgroundColor: colors.primarySoft,
   },
   providerCardHeader: {
     flexDirection: 'row',
@@ -312,11 +293,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: colors.dark,
-  },
-  providerMeta: {
-    fontSize: 12,
-    color: colors.grey,
-    marginTop: 3,
   },
   selectionMark: {
     width: 24,
