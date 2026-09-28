@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -14,8 +13,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing } from '../theme';
 import { useI18n } from '../i18n';
 import { closeWorkRequest } from '../api/index';
+import ActionButton from './ActionButton';
 import ErrorBanner from './ErrorBanner';
 import SafeBottomBanner from './SafeBottomBanner';
+import ProfileAvatar from './ProfileAvatar';
 
 const ratingStarColor = '#ffd91d';
 const ratingStarOutlineColor = '#ffe043';
@@ -50,17 +51,20 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
     }
   }, [visible]);
 
-  const submitClose = async (skipRating: boolean) => {
+  const toggleProviderSelection = (providerId: string | 'none') => {
+    setSelectedProviderId(selectedProviderId === providerId ? null : providerId);
+    setStars(0);
+  };
+
+  const submitClose = async () => {
     if (!token || isSubmitting) return;
 
     setIsSubmitting(true);
     setError(null);
     try {
       const payload: { providerId?: string; stars?: number } = {};
-      if (!skipRating) {
-        if (selectedProviderId && selectedProviderId !== 'none') payload.providerId = selectedProviderId;
-        if (stars) payload.stars = stars;
-      }
+      if (selectedProviderId && selectedProviderId !== 'none') payload.providerId = selectedProviderId;
+      if (stars) payload.stars = stars;
       const closedRequest = await closeWorkRequest(token, request.id, payload);
       onSuccess(closedRequest);
     } catch (submissionError) {
@@ -88,7 +92,7 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.sectionLabel}>{t('requestDetails.selectProviderLabel')}</Text>
+          {/* <Text style={styles.sectionLabel}>{t('requestDetails.selectProviderLabel')}</Text> */}
           <ScrollView style={styles.providerList} showsVerticalScrollIndicator={false}>
             {acceptedProviders.length > 0 && acceptedProviders.map((item: any, index: number) => {
               const provider = item.provider || {};
@@ -100,22 +104,15 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
                 <TouchableOpacity
                   key={item.id || item.providerId || index}
                   style={[styles.providerCard, isSelected && styles.providerCardSelected]}
-                  onPress={() => setSelectedProviderId(item.providerId)}
+                  onPress={() => toggleProviderSelection(item.providerId)}
                   activeOpacity={0.8}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: isSelected }}
                 >
                   <View style={styles.providerCardHeader}>
-                    {avatarUri ? (
-                      <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
-                    ) : (
-                      <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{String(name).charAt(0).toUpperCase()}</Text>
-                      </View>
-                    )}
+                    <ProfileAvatar profilePic={avatarUri} profileName={name} />
                     <View style={styles.providerDetails}>
                       <Text style={styles.providerName} numberOfLines={1}>{name}</Text>
-                      <Text style={styles.providerMeta}>{t('requestDetails.acceptedRecently')}</Text>
                     </View>
                     <SelectionMark selected={isSelected} />
                   </View>
@@ -136,8 +133,7 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
                             onPress={() => setStars(rating)}
                             style={styles.starButton}
                             accessibilityRole="button"
-                            accessibilityLabel={`${rating} / 5`}
-                          >
+                            accessibilityLabel={`${rating} / 5`}>
                             <Ionicons
                               name={rating <= stars ? 'star' : 'star-outline'}
                               size={32}
@@ -158,7 +154,7 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
 
             <TouchableOpacity
               style={[styles.providerCard, selectedProviderId === 'none' && styles.providerCardSelected]}
-              onPress={() => setSelectedProviderId('none')}
+              onPress={() => toggleProviderSelection('none')}
               activeOpacity={0.8}
               accessibilityRole="radio"
               accessibilityState={{ selected: selectedProviderId === 'none' }}
@@ -179,21 +175,27 @@ const ReviewRatingModal: React.FC<ReviewRatingModalProps> = ({
           <ErrorBanner error={error} />
 
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.outlineButton, isSubmitting && styles.actionButtonDisabled]}
-              onPress={() => submitClose(true)}
+            <ActionButton
+              buttonIcon="checkmark-circle-outline"
+              buttonTitle={t('requestDetails.confirmClose')}
+              buttonSubTitle={t('requestDetails.undoPrompt')}
+              onPress={submitClose}
               disabled={isSubmitting}
-            >
-              {isSubmitting ? <ActivityIndicator color={colors.dark} /> : <Text style={[styles.actionText, { color: colors.dark }]}>{t('requestDetails.skip')}</Text>}
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.primaryButton, isSubmitting && styles.actionButtonDisabled]}
-              onPress={() => submitClose(false)}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? <ActivityIndicator color={colors.white} /> : <Text style={[styles.actionText, { color: colors.white }]}>{t('requestDetails.confirmClose')}</Text>}
-            </TouchableOpacity>
+              loading={isSubmitting}
+              buttonTitleColor={'#b91c1c'}
+              backgroundColor={'#fff5f5'}
+              style={[styles.actionButton]}
+            />
           </View>
+          {/* <Text style={styles.undoNote}>{t('requestDetails.undoPrompt')}</Text> */}
+          <ActionButton
+            buttonIcon="close-circle-outline"
+            buttonTitle={t('common.cancel')}
+            onPress={onClose}
+            buttonTitleColor={colors.grey}
+            backgroundColor={colors.white}
+            style={styles.cancelButton}
+          />
         </View>
       </Pressable>
       <SafeBottomBanner />
@@ -232,7 +234,7 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: spacing.lg,
   },
   headerIcon: {
@@ -279,10 +281,11 @@ const styles = StyleSheet.create({
   providerCard: {
     backgroundColor: colors.paper,
     borderRadius: radius.lg,
-    padding: spacing.mdPlus,
+    padding: spacing.md,
     marginBottom: spacing.md,
-    borderWidth: 2,
-    borderColor: colors.greyLight,
+    borderWidth: 1,
+    borderColor: colors.greyBorder,
+    boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1)',
   },
   providerCardSelected: {
     borderColor: colors.primary,
@@ -291,27 +294,6 @@ const styles = StyleSheet.create({
   providerCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  avatarImage: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    marginRight: spacing.md,
-    backgroundColor: colors.greyLight,
-  },
-  avatarText: {
-    fontWeight: '700',
-    color: colors.primary,
-    fontSize: 17,
   },
   noneAvatar: {
     width: 52,
@@ -403,30 +385,16 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     marginTop: spacing.lg,
+    gap: spacing.md,
   },
   actionButton: {
     flex: 1,
-    minHeight: 50,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  actionButtonDisabled: {
-    opacity: 0.7,
-  },
-  outlineButton: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.greyBorder,
-    marginRight: spacing.sm,
-  },
-  primaryButton: {
-    backgroundColor: colors.primary,
-    marginLeft: spacing.sm,
-  },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '600',
+
+  cancelButton: {
+    alignSelf: 'center',
+    marginTop: spacing.mdPlus,
+    minWidth: 160,
   },
 });
 

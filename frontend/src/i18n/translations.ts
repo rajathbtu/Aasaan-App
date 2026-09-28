@@ -195,7 +195,7 @@ export const translations = {
       boost: 'Boost',
     },
     requestDetails: {
-      title: 'Request Details',
+      title: 'Work Request',
       notFound: 'Request not found',
       statusActive: 'Active',
       boost: 'Boost Request',
@@ -215,7 +215,8 @@ export const translations = {
       noneHelpedTitle: 'None of these helped me',
       noneHelpedSubtitle: 'Someone else or no one helped',
       skip: 'Skip & Close',
-      confirmClose: 'Confirm & Close',
+      confirmClose: 'Close Request',
+      undoPrompt: 'You can\'t undo this action.',
       closedTitle: 'Closed',
       closedDesc: 'Your request has been closed',
       ok: 'OK',

@@ -6,7 +6,6 @@ import {
   Alert,
   ScrollView,
   Linking,
-  Image,
   ActivityIndicator, // Import loader component
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -24,6 +23,7 @@ import SafeBottomBanner from '../components/SafeBottomBanner';
 import ReviewRatingModal from '../components/ReviewRatingModal';
 import ActionButton from '../components/ActionButton';
 import SkeletonLoader from '../components/SkeletonLoader';
+import ProfileAvatar from '../components/ProfileAvatar';
 
 const getProfileAge = (birthYear: number, now = new Date()): number => now.getFullYear() - birthYear;
 
@@ -172,15 +172,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
               return (
                 <View key={p.id || p.providerId || index} style={styles.providerCard}>
                   <View style={styles.providerHeader}>
-                        {avatarUri ? (
-                          <View style={styles.avatarImageWrapper}>
-                            <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
-                          </View>
-                        ) : (
-                          <View style={styles.providerAvatar}>
-                            <Text style={styles.providerAvatarText}>{String(displayName).charAt(0).toUpperCase()}</Text>
-                          </View>
-                        )}
+                        <ProfileAvatar profilePic={avatarUri} profileName={displayName} />
                         <View style={styles.providerDetails}>
                           <Text style={styles.providerName}>{displayName}</Text>
                           <View style={styles.ratingRow}>
@@ -191,7 +183,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
                           </View>
                         </View>
                         <ActionButton
-                          buttonIcon={<Ionicons name="call" size={18} color={colors.white} />}
+                          buttonIcon="call"
                           buttonTitle={t('requestDetails.call')}
                           showRightArrow = {false}
                           buttonTitleColor={colors.white}
@@ -245,7 +237,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
         {!isCompleted && (
           <View style={styles.actionButtonsRow}>
             <ActionButton
-              buttonIcon={<Ionicons name="flash" size={18} color={colors.accent} />}
+              buttonIcon="flash"
               buttonTitle={t('requestDetails.boost')}
               buttonSubTitle={t('requestDetails.boostSubtitle')}
               showRightArrow = {false}
@@ -253,7 +245,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
               backgroundColor="#fff7ed"
               onPress={handleBoost} />
             <ActionButton
-              buttonIcon={<Ionicons name="close-circle-outline" size={18} color={colors.error} />}
+              buttonIcon="close-circle-outline"
               buttonTitle={t('requestDetails.close')}
               buttonSubTitle={t('requestDetails.closeSubtitle')}
               showRightArrow = {false}
@@ -367,33 +359,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
-  providerAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  providerAvatarText: {
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  avatarImageWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    overflow: 'hidden',
-    marginRight: spacing.md,
-    backgroundColor: colors.greyLight,
-  },
   providerDetails: {
     flex: 1,
-  },
-  avatarImage: {
-    width: '100%',
-    height: '100%',
   },
   providerName: {
     fontSize: 16,

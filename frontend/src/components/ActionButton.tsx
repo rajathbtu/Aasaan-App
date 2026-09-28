@@ -1,5 +1,6 @@
-import React, { type ReactNode } from 'react';
+import React from 'react';
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -21,35 +22,45 @@ const darkenColor = (color: string, amount = 0.14) => {
 };
 
 interface ActionButtonProps {
-  buttonIcon: ReactNode;
   buttonTitle: string;
+  buttonIcon: React.ComponentProps<typeof Ionicons>['name'];
   buttonSubTitle?: string;
   showRightArrow?: boolean;
   buttonTitleColor?: string;
   buttonSubtitleColor?: string;
   backgroundColor?: string;
   onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
 const ActionButton: React.FC<ActionButtonProps> = ({
-  buttonIcon,
   buttonTitle,
+  buttonIcon,
   buttonSubTitle,
   showRightArrow = false,
   buttonTitleColor = colors.dark,
   buttonSubtitleColor = colors.grey,
   backgroundColor = colors.white,
   onPress,
+  disabled = false,
+  loading = false,
   style,
 }) => (
   <TouchableOpacity
     style={[styles.button, { backgroundColor, borderColor: darkenColor(backgroundColor) }, style]}
     onPress={onPress}
+    disabled={disabled}
     activeOpacity={0.8}
     accessibilityRole="button"
+    accessibilityState={{ disabled, busy: loading }}
   >
-    {buttonIcon}
+    {loading ? (
+      <ActivityIndicator color={buttonTitleColor} />
+    ) : (
+      <Ionicons name={buttonIcon} size={18} color={buttonTitleColor} />
+    )}
     <View style={styles.textContainer}>
       <Text style={[styles.title, { color: buttonTitleColor }]}>{buttonTitle}</Text>
       {buttonSubTitle ? (
@@ -64,6 +75,7 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: radius.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
@@ -71,6 +83,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignSelf: 'flex-start',
     minWidth: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 2,
   },
   textContainer: {
     flexShrink: 1,
