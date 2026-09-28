@@ -184,7 +184,8 @@ const ProfileScreen: React.FC = () => {
 
   const currentYear = new Date().getFullYear();
   const workSinceYears = Array.from({ length: currentYear - 1949 }, (_, index) => String(currentYear - index));
-  const birthYears = Array.from({ length: currentYear - 1945 }, (_, index) => String(currentYear - index));
+  const latestEligibleBirthYear = currentYear - 14; // allow minimum age of 14 for service providers
+  const birthYears = Array.from({ length: latestEligibleBirthYear - 1945 + 1 }, (_, index) => String(latestEligibleBirthYear - index));
   const selectorConfig: Record<ProfileSelector, {
     title: string; options: { label: string; value: string }[]; value: string;
     onSelect: (value: string) => void;
@@ -228,7 +229,8 @@ const ProfileScreen: React.FC = () => {
                 <Image source={{ uri: user.avatarUrl }} style={{ width: '100%', height: '100%' }} />
               ) : (
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name="person" size={56} color={colors.greyMuted} />
+                  <Ionicons name={pendingGender === 'male' ? 'man' : pendingGender === 'female' ? 'woman' : 'person'}
+                    size={56} color={colors.greyMuted} />
                 </View>
               )}
             </View>

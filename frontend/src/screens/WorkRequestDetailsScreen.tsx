@@ -159,9 +159,9 @@ const WorkRequestDetailsScreen: React.FC = () => {
               const phone = provider.phoneNumber || '';
               const avatarUri = provider.avatarUrl || undefined;
               const providerInfo = provider.serviceProviderInfo || {};
-              const genderKey = providerInfo.gender === 'male' ? 
-                    'Male' : providerInfo.gender === 'female'
-                          ? 'Female' : null;
+              const currentYear = new Date().getFullYear();
+              const age = providerInfo.birthYear ? currentYear - providerInfo.birthYear : '';
+              const workExperience = providerInfo.workSinceYear ? currentYear - providerInfo.workSinceYear : '';
               return (
                 <View key={p.id || p.providerId || index} style={styles.providerRow}>
                   {avatarUri ? (
@@ -175,14 +175,14 @@ const WorkRequestDetailsScreen: React.FC = () => {
                   )}
                   <View style={styles.providerDetails}>
                     <Text style={styles.providerName}>{displayName}</Text>
-                    {!!providerInfo.workSinceYear && (
-                      <Text style={styles.providerMeta}>{t('requestDetails.workingSince', { year: providerInfo.workSinceYear })}</Text>
+                    {!!workExperience && (
+                      <Text style={styles.providerMeta}>{t('requestDetails.workExp', { years: workExperience })}</Text>
                     )}
-                    {!!providerInfo.birthYear && (
-                      <Text style={styles.providerMeta}>{t('requestDetails.bornIn', { year: providerInfo.birthYear })}</Text>
+                    {!!age && (
+                      <Text style={styles.providerMeta}>{t('requestDetails.age', { age })}</Text>
                     )}
-                    {!!genderKey && (
-                      <Text style={styles.providerMeta}>{t('requestDetails.genderLabel', { gender: t(`requestDetails.gender${genderKey}`) })}</Text>
+                    {!!providerInfo.gender && (
+                      <Text style={styles.providerMeta}>{providerInfo.gender =='male'? t('requestDetails.genderMale') : t('requestDetails.genderFemale')}</Text>
                     )}
                     {!!providerInfo.bio && (
                       <Text style={styles.providerBio} numberOfLines={2}>{providerInfo.bio}</Text>
