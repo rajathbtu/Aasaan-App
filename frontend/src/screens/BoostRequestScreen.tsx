@@ -11,7 +11,7 @@ import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import InfoBanner from '../components/InfoBanner';
-import { buildTimeAgo } from '../utils/time';
+import { buildTimeAgo } from '../utils/commonUtils';
 
 const API = realApi;
 

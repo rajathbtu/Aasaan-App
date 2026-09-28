@@ -19,7 +19,7 @@ import EmptyState from '../components/EmptyState';
 import { useNotificationCount } from '../contexts/NotificationCountContext';
 import ErrorBanner from '../components/ErrorBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
-import { buildTimeAgo } from '../utils/time';
+import { buildTimeAgo } from '../utils/commonUtils';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import { getNotificationNavigationTarget } from '../utils/notificationNavigation';
 

@@ -16,7 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import { colors, spacing } from '../theme';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
-import { buildTimeAgo } from '../utils/time';
+import { buildTimeAgo } from '../utils/commonUtils';
 import SkeletonLoader from '../components/SkeletonLoader';
 
 const API = realApi;

@@ -3,10 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   Alert,
   ScrollView,
-  // SafeAreaView, // removed to avoid double safe-area with shared Header
   Linking,
   Image,
   ActivityIndicator, // Import loader component
@@ -21,16 +19,20 @@ import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import WorkRequestCard from '../components/WorkRequestCard';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
-import { buildTimeAgo } from '../utils/time';
+import { buildTimeAgo, getDistanceKm } from '../utils/commonUtils';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import ReviewRatingModal from '../components/ReviewRatingModal';
+import ActionButton from '../components/ActionButton';
+import SkeletonLoader from '../components/SkeletonLoader';
+
+const getProfileAge = (birthYear: number, now = new Date()): number => now.getFullYear() - birthYear;
 
 const WorkRequestDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { token, user } = useAuth();
   const { t } = useI18n();
-  const timeAgo = buildTimeAgo(t, { absoluteAfterDays: 7 });
+  const timeAgo = buildTimeAgo(t);
   const [request, setRequest] = useState(route.params?.request || null);
   const [closeVisible, setCloseVisible] = useState(false);
   const [loadingStage, setLoadingStage] = useState<'initial' | 'details' | 'idle'>(
@@ -111,11 +113,8 @@ const WorkRequestDetailsScreen: React.FC = () => {
   };
 
   const status = (request.status || 'active').toString().toLowerCase();
-  const isActive = status === 'active';
   const isCompleted = status === 'completed' || status === 'closed';
-  const serviceName = request.serviceName || request.service;
   const acceptedCount = request.acceptedProviders?.length || 0;
-  const acceptedLabel = t('requestDetails.acceptedBy', { count: acceptedCount }).replace(/\s*\([^)]*\)\s*:?[\s]*$/, '');
 
   return (
       <View style={styles.screen}>
@@ -127,32 +126,19 @@ const WorkRequestDetailsScreen: React.FC = () => {
           showResponseStatus = {false}
           containerStyle={styles.summaryCard}  />
 
-        {!isCompleted && (
-          <View style={styles.actionButtonsRow}>
-            <TouchableOpacity style={[styles.actionButton, styles.boostButton]} onPress={handleBoost}>
-              <Ionicons name="flash" size={17} color={colors.white} style={styles.actionIcon} />
-              <Text style={styles.boostButtonText}>{t('requestDetails.boost')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionButton, styles.closeButton]} onPress={handleClose}>
-              <Ionicons name="close-circle-outline" size={17} color={colors.dark} style={styles.actionIcon} />
-              <Text style={styles.closeButtonText}>{t('requestDetails.close')}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {(loadingStage === 'details' || (request.acceptedProviders && request.acceptedProviders.length > 0)) && (
           <View style={styles.acceptedSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.acceptedTitle}>{t('requestDetails.providers')}</Text>
+              <View style={styles.acceptedCountBadge} accessibilityLabel={`${acceptedCount} service providers`}>
+                <Ionicons name="people-outline" size={16} color={colors.primary} />
+                <Text style={styles.acceptedCount}>{acceptedCount}</Text>
+              </View>
+            </View>
             {loadingStage === 'details' ? (
-              <ActivityIndicator size="small" color={colors.primary} />
+              <SkeletonLoader count={1}/>
             ) : (
-              <>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.acceptedTitle}>{acceptedLabel}</Text>
-                  <View style={styles.acceptedCountBadge} accessibilityLabel={`${acceptedCount} service providers`}>
-                    <Ionicons name="people-outline" size={16} color={colors.primary} />
-                    <Text style={styles.acceptedCount}>{acceptedCount}</Text>
-                  </View>
-                </View>
+              <> 
                 {request.acceptedProviders.map((p: any, index: number) => {
               const provider = p.provider || {};
               const displayName = provider.name || p.providerId || t('requestDetails.provider');
@@ -160,66 +146,120 @@ const WorkRequestDetailsScreen: React.FC = () => {
               const avatarUri = provider.avatarUrl || undefined;
               const providerInfo = provider.serviceProviderInfo || {};
               const currentYear = new Date().getFullYear();
-              const age = providerInfo.birthYear ? currentYear - providerInfo.birthYear : '';
+              const age = providerInfo.birthYear ? getProfileAge(providerInfo.birthYear) : '';
               const workExperience = providerInfo.workSinceYear ? currentYear - providerInfo.workSinceYear : '';
+              const providerLocation = providerInfo.location;
+              const hasRequestLocation = Number.isFinite(request.locationLat) && Number.isFinite(request.locationLng);
+              const hasProviderLocation = Number.isFinite(providerLocation?.lat) && Number.isFinite(providerLocation?.lng);
+              const distance = hasRequestLocation && hasProviderLocation
+                ? getDistanceKm(request.locationLat, request.locationLng, providerLocation.lat, providerLocation.lng)
+                : null;
+              const distanceLabel = distance? distance>2 ? t('requestDetails.distanceKm', { distance: distance.toFixed(1)}): t('requestDetails.nearYou')
+                : null;
+              const joinedDate = provider.createdAt ? new Date(provider.createdAt) : null;
+              const tenureLabel = joinedDate && Number.isFinite(joinedDate.getTime())
+                ? t('requestDetails.membersince', { timeAgo: timeAgo(joinedDate) })
+                : t('requestDetails.unavailable');
+              const rating = Number(provider.rating ?? provider.averageRating ?? 4);
+              const reviewCount = provider.reviewCount ?? provider.ratingCount ?? 20;
+              const experienceLabel = workExperience ? t('requestDetails.experience', { years: workExperience })
+                : null;
+              const ageLabel = age? t('requestDetails.ageShort', { age }): null;
+                
+              const genderIcon = providerInfo.gender === 'female' ? 'woman' : providerInfo.gender === 'male' ? 'man' : 'person-outline';
+              const genderColor = providerInfo.gender === 'female'? '#ec4899' 
+                  : providerInfo.gender === 'male'? '#2a47ea' : colors.grey;
               return (
-                <View key={p.id || p.providerId || index} style={styles.providerRow}>
-                  {avatarUri ? (
-                    <View style={styles.avatarImageWrapper}>
-                      <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                <View key={p.id || p.providerId || index} style={styles.providerCard}>
+                  <View style={styles.providerHeader}>
+                        {avatarUri ? (
+                          <View style={styles.avatarImageWrapper}>
+                            <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                          </View>
+                        ) : (
+                          <View style={styles.providerAvatar}>
+                            <Text style={styles.providerAvatarText}>{String(displayName).charAt(0).toUpperCase()}</Text>
+                          </View>
+                        )}
+                        <View style={styles.providerDetails}>
+                          <Text style={styles.providerName}>{displayName}</Text>
+                          <View style={styles.ratingRow}>
+                            {[1, 2, 3, 4, 5].map((i) => (
+                              <Ionicons key={i} name={i <= Math.round(rating) ? 'star' : 'star-outline'} size={16} color={i <= Math.round(rating) ? colors.secondary : colors.greyMuted} style={styles.ratingIcon} />
+                            ))}
+                            <Text style={styles.ratingText}>{rating.toFixed(1)} ({reviewCount})</Text>
+                          </View>
+                        </View>
+                        <ActionButton
+                          buttonIcon={<Ionicons name="call" size={18} color={colors.white} />}
+                          buttonTitle={t('requestDetails.call')}
+                          showRightArrow = {false}
+                          buttonTitleColor={colors.white}
+                          backgroundColor={colors.primary}
+                          onPress={() => {
+                            Linking.openURL(`tel:${phone}`).catch(() => Alert.alert(t('requestDetails.callFailedTitle'), t('requestDetails.callFailedDesc')));
+                          }}/>
+                  </View>
+                  <View style={styles.providerMetaRow}>
+                    {ageLabel !== null && (
+                      <View style={styles.providerMetaItem}>
+                        <Ionicons name={genderIcon as keyof typeof Ionicons.glyphMap} size={12} color={genderColor} />
+                        <Text style={styles.providerMeta}>{ageLabel}</Text>
+                      </View>
+                    )}
+                    {experienceLabel !== null && (
+                      <View style={styles.providerMetaItem}>
+                        <Ionicons name="briefcase-outline" size={12} color={colors.grey} />
+                        <Text style={styles.providerMeta}>{experienceLabel}</Text>
+                      </View>
+                    )}
+                    {distanceLabel !== null && (
+                      <View style={styles.providerMetaItem}>
+                        <Ionicons name="location-outline" size={12} color={colors.grey} />
+                        <Text style={styles.providerMeta}>{distanceLabel}</Text>
+                      </View>
+                    )}
+                    <View style={styles.providerMetaItem}>
+                      <Ionicons name="shield-checkmark-outline" size={12} color={colors.grey} />
+                      <Text style={styles.providerMeta}>{t('requestDetails.verified')}</Text>
                     </View>
-                  ) : (
-                    <View style={styles.providerAvatar}>
-                      <Text style={styles.providerAvatarText}>{String(displayName).charAt(0).toUpperCase()}</Text>
+                    <View style={styles.providerMetaItem}>
+                      <Ionicons name="time-outline" size={12} color={colors.grey} />
+                      <Text style={styles.providerMeta}>{tenureLabel}</Text>
+                    </View>
+                  </View>
+                  {typeof providerInfo.bio === 'string' && providerInfo.bio.trim().length > 0 && (
+                    <View style={styles.providerBioBand}>
+                      <Text style={styles.providerQuote}>❝</Text>
+                      <Text style={styles.providerBio} numberOfLines={2}>{providerInfo.bio}</Text>
                     </View>
                   )}
-                  <View style={styles.providerDetails}>
-                    <Text style={styles.providerName}>{displayName}</Text>
-                    {!!workExperience && (
-                      <Text style={styles.providerMeta}>{t('requestDetails.workExp', { years: workExperience })}</Text>
-                    )}
-                    {!!age && (
-                      <Text style={styles.providerMeta}>{t('requestDetails.age', { age })}</Text>
-                    )}
-                    {!!providerInfo.gender && (
-                      <Text style={styles.providerMeta}>{providerInfo.gender =='male'? t('requestDetails.genderMale') : t('requestDetails.genderFemale')}</Text>
-                    )}
-                    {!!providerInfo.bio && (
-                      <Text style={styles.providerBio} numberOfLines={2}>{providerInfo.bio}</Text>
-                    )}
-                    <View style={styles.ratingRow}>
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <Ionicons key={i} name={i <= 4 ? 'star' : 'star-outline'} size={12} color={i <= 4 ? colors.secondary : colors.greyMuted} style={{ marginRight: 2 }} />
-                      ))}
-                      <Text style={styles.ratingText}> (20)</Text>
-                    </View>
-                  </View>
-                  <View style={styles.providerActions}>
-                    <TouchableOpacity
-                      style={styles.callButton}
-                      accessibilityRole="button"
-                      accessibilityLabel={t('requestDetails.call')}
-                      onPress={() => {
-                        if (!phone) { Alert.alert(t('requestDetails.callUnavailableTitle'), t('requestDetails.callUnavailableDesc')); return; }
-                        Linking.openURL(`tel:${phone}`).catch(() => Alert.alert(t('requestDetails.callFailedTitle'), t('requestDetails.callFailedDesc')));
-                      }}
-                    >
-                      <Ionicons name="call" size={18} color={colors.white} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.infoButton}
-                      accessibilityRole="button"
-                      accessibilityLabel={t('requestDetails.provider')}
-                      onPress={() => Alert.alert(t('requestDetails.provider'), displayName)}
-                    >
-                      <Ionicons name="information-circle" size={18} color={colors.dark} />
-                    </TouchableOpacity>
-                  </View>
                 </View>
               );
                 })}
               </>
             )}
+          </View>
+        )}
+
+        {!isCompleted && (
+          <View style={styles.actionButtonsRow}>
+            <ActionButton
+              buttonIcon={<Ionicons name="flash" size={18} color={colors.accent} />}
+              buttonTitle={t('requestDetails.boost')}
+              buttonSubTitle={t('requestDetails.boostSubtitle')}
+              showRightArrow = {false}
+              buttonTitleColor="#c2410c"
+              backgroundColor="#fff7ed"
+              onPress={handleBoost} />
+            <ActionButton
+              buttonIcon={<Ionicons name="close-circle-outline" size={18} color={colors.error} />}
+              buttonTitle={t('requestDetails.close')}
+              buttonSubTitle={t('requestDetails.closeSubtitle')}
+              showRightArrow = {false}
+              buttonTitleColor="#b91c1c"
+              backgroundColor="#fff5f5"
+              onPress={handleClose} />
           </View>
         )}
       </ScrollView>
@@ -277,39 +317,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: spacing.lg,
     gap: spacing.md,
-    marginTop: spacing.md,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 48,
-    borderRadius: radius.md,
-  },
-  actionIcon: {
-    marginRight: spacing.sm,
-  },
-  boostButton: {
-    backgroundColor: colors.primary,
-  },
-  boostButtonText: {
-    color: colors.white,
-    fontWeight: '600',
-  },
-  closeButton: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.greyBorder,
-  },
-  closeButtonText: {
-    color: colors.dark,
-    fontWeight: '600',
+    marginTop: spacing.sm,
+    marginBottom: spacing.xl,
   },
   acceptedSection: {
     marginHorizontal: spacing.lg,
     marginTop: spacing.xl,
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -336,15 +350,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  providerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  providerCard: {
     backgroundColor: colors.white,
     borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
     borderWidth: 1,
     borderColor: colors.greyLight,
+    elevation: 2,
+    shadowColor: colors.dark,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  providerHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
   providerAvatar: {
     width: 48,
@@ -370,11 +391,6 @@ const styles = StyleSheet.create({
   providerDetails: {
     flex: 1,
   },
-  providerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
   avatarImage: {
     width: '100%',
     height: '100%',
@@ -387,12 +403,40 @@ const styles = StyleSheet.create({
   providerMeta: {
     fontSize: 12,
     color: colors.grey,
-    marginTop: 2,
+    flexShrink: 1,
+  },
+  providerMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  providerMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  providerBioBand: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginTop: spacing.md,
+  },
+  providerQuote: {
+    color: colors.amber,
+    fontSize: 40,
+    lineHeight: 30,
+    fontWeight: '500',
+    marginRight: spacing.sm,
   },
   providerBio: {
+    flex: 1,
     fontSize: 12,
-    color: colors.dark,
-    marginTop: spacing.xs,
+    lineHeight: 18,
+    color: colors.grey,
   },
   ratingRow: {
     flexDirection: 'row',
@@ -404,21 +448,8 @@ const styles = StyleSheet.create({
     color: colors.grey,
     marginLeft: 4,
   },
-  callButton: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.xl,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  infoButton: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.greyLight,
+  ratingIcon: {
+    marginRight: 2,
   },
 });
 

@@ -67,12 +67,19 @@ async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<
           name: true,
           phoneNumber: true,
           avatarUrl: true,
+          createdAt: true,
           serviceProviderInfo: {
             select: {
               workSinceYear: true,
               birthYear: true,
               gender: true,
               bio: true,
+              location: {
+                select: {
+                  lat: true,
+                  lng: true,
+                },
+              },
             },
           },
         },

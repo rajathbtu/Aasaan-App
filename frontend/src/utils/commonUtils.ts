@@ -31,3 +31,17 @@ export function buildTimeAgo(t: Translate, options: TimeAgoOptions = {}) {
     return t('common.relative.dayAgo', { count: Math.floor(hours / 24) });
   };
 }
+
+/** Computes the distance between two latitude/longitude pairs in kilometres. */
+export const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const earthRadius = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadius * c;
+};

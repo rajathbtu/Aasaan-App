@@ -10,7 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
 import { colors, radius, spacing } from '../theme';
-import { buildTimeAgo } from '../utils/time';
+import { buildTimeAgo } from '../utils/commonUtils';
 import ServiceIcon from './ServiceIcon';
 
 type WorkRequestCardProps = {
