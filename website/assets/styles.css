@@ -224,6 +224,7 @@ em{font-style:normal}
 .nav a{
   position:relative;z-index:1;padding:8px 15px;border-radius:var(--r-pill);
   font-size:.92rem;font-weight:500;color:var(--text-2);
+  white-space:nowrap;   /* nav labels must never wrap to a second line */
   transition:color .25s var(--ease);
 }
 .nav a::before{
@@ -729,7 +730,7 @@ em{font-style:normal}
   .stat:nth-child(-n+2){border-bottom:1px solid var(--line)}
 }
 
-@media (max-width:1000px){
+@media (max-width:1050px){
   /* Full-screen drawer with a dark plate, numbered links and staggered entrance */
   .nav{
     position:fixed;inset:0;width:100%;height:100%;z-index:99;
@@ -812,6 +813,11 @@ em{font-style:normal}
 
 @media (max-width:560px){
   body{font-size:16px}
+  /* "Get the app" is 175px in English but only 127px in Hindi, which pushed
+     the header 23px past a 320px viewport. Tighten the CTA on the narrowest
+     phones so both languages clear the edge. */
+  .header-actions{gap:7px}
+  .header-cta{padding-inline:12px;font-size:.8rem}
   .hero h1{letter-spacing:-.035em}
   .hero-actions .btn{width:100%}
   .stat{font-size:.8rem}
@@ -974,15 +980,33 @@ em{font-style:normal}
 .lang-switch-foot .lang-btn.is-on .lang-code{background:rgba(8,9,13,.2);color:var(--ink)}
 .lang-switch-foot .lang-name{display:inline}
 
-/* Below ~1000px the nav is still a horizontal row and there is no
-   room for a third control beside it, so the header copy steps aside
-   and the drawer copy (shown from 760px) carries the switch instead. */
-@media (max-width:1000px){
+/* Below 1050px the nav collapses into the full-screen drawer, so the header
+   copy of the switch steps aside and the drawer copy carries it instead. */
+@media (max-width:1050px){
   .header-actions .lang-switch{display:none}
 }
-@media (min-width:1001px) and (max-width:1179px){
+@media (min-width:1051px) and (max-width:1179px){
   /* Codes only, so the pill stays narrow enough to clear the CTA. */
   .lang-name{display:none}
+}
+/* Nav labels must never wrap, and the English set is wider than the Hindi one
+   ("3 Simple steps" / "How it works"). At the default .92rem/15px padding the
+   three header groups need 1216px, but .wrap is capped at --wrap (1240px) and
+   loses 2*48px of gutter, so only 1144px is ever available -- at any viewport
+   width, since the cap is already reached at 1240px. Without this the CTA
+   overflowed the bar at 1600px as well as at 1001px. Measured: 1123px needed
+   vs 1144px available, so English fits with ~21px to spare. */
+/* Even trimmed, the English header needs 978px, so 1001-1050px still clipped
+   the CTA (978 needed vs 905 available at 1001px). The drawer breakpoint sits
+   at 1050px for that reason: above it the pill nav always fits, below it the
+   drawer carries the links and the language switch. */
+@media (min-width:1051px){
+  .nav a{padding:8px 10px;font-size:.88rem}
+  .header-actions{gap:8px}
+}
+@media (min-width:1051px) and (max-width:1179px){
+  .nav a{padding:8px 7px;font-size:.85rem}
+  .header-actions{gap:7px}
 }
 
 /* ============================================================

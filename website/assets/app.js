@@ -68,14 +68,15 @@
     });
 
     // matchMedia is absent in some embedded engines, so fall back to resize.
+    // 1050px is the drawer's max-width in the stylesheet; keep the two in step.
     if (window.matchMedia) {
-      var mq = window.matchMedia('(min-width: 1001px)');
+      var mq = window.matchMedia('(min-width: 1051px)');
       var change = function (e) { if (e.matches) setOpen(false); };
       if (mq.addEventListener) mq.addEventListener('change', change);
       else if (mq.addListener) mq.addListener(change);
     } else {
       window.addEventListener('resize', function () {
-        if (window.innerWidth > 1000) setOpen(false);
+        if (window.innerWidth > 1050) setOpen(false);
       });
     }
   })();
