@@ -42,4 +42,6 @@ export interface User {
   creditPoints: number;
   plan: 'free' | 'basic' | 'pro';
   createdAt: Date;
+  ratingsScoreSum?: number;
+  ratingsCount?: number;
 }

@@ -62,11 +62,11 @@ export async function createUser(params: Omit<User, 'id' | 'createdAt'>) {
  * Create a new work request.  Applies a simple 7‑day expiry and default values.
  */
 export async function createWorkRequest(
-  params: Omit<WorkRequest, 'id' | 'createdAt' | 'status' | 'boosted' | 'acceptedProviders'>
+  params: Omit<WorkRequest, 'id' | 'createdAt' | 'status' | 'boosted' | 'acceptedProviders' | 'selectedProviderId' | 'ratings'>
 ) {
-  const { rating: _ignoreRating, ...rest } = params;
+  const rest = params;
 
-  // Create WorkRequest without `rating` on creation
+  // Create the request without its related ratings or selected provider.
   const wr = await pAny.workRequest.create({
     data: {
       userId: rest.userId,

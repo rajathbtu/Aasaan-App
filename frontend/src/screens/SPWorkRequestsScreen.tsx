@@ -28,6 +28,8 @@ import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/o
 import { buildTimeAgo, getDistanceKm } from '../utils/commonUtils';
 import Spinner from '../components/Spinner';
 import SegmentedTabs from '../components/SegmentedTabs';
+import RateEndUserModal from '../components/RateEndUserModal';
+import ActionButton from '../components/ActionButton';
 
 const API = realApi;
   
@@ -58,7 +60,11 @@ const SPWorkRequestsScreen: React.FC = () => {
   const timeAgo = buildTimeAgo(t);
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<'all' | 'accepted'>('all');
+  const [tab, setTab] = useState<'all' | 'accepted' | 'closed'>('all');
+  const [closedRequests, setClosedRequests] = useState<any[]>([]);
+  const [closedLoading, setClosedLoading] = useState(false);
+  const [closedRequestsLoaded, setClosedRequestsLoaded] = useState(false);
+  const [ratingRequest, setRatingRequest] = useState<any | null>(null);
   const [filter, setFilter] = useState<'all' | 'today' | 'within3'>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
@@ -70,6 +76,7 @@ const SPWorkRequestsScreen: React.FC = () => {
   const listRef = useRef<FlatList<any>>(null);
   const userId = user?.id;
   const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
+  const closedRequestsCacheKey = userId ? offlineCacheKey('provider-closed-requests', userId) : null;
   
   const filterOptions = [
     { value: 'all', labelKey: 'spRequests.filterAll', iconName: 'apps-outline' },
@@ -123,6 +130,25 @@ const SPWorkRequestsScreen: React.FC = () => {
       setRequestError(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchClosedRequests = async () => {
+    if (!token || !closedRequestsCacheKey) return;
+    try {
+      setClosedLoading(true);
+      const cached = await readOfflineCache<any[]>(closedRequestsCacheKey);
+      if (cached) setClosedRequests(cached);
+      const list = await API.listWorkRequests(token, 'closed');
+      const nextRequests = Array.isArray(list) ? list : list.requests || [];
+      setClosedRequests(nextRequests);
+      await writeOfflineCache(closedRequestsCacheKey, nextRequests);
+      setClosedRequestsLoaded(true);
+      setRequestError(null);
+    } catch (err) {
+      setRequestError(err);
+    } finally {
+      setClosedLoading(false);
     }
   };
 
@@ -275,12 +301,16 @@ const SPWorkRequestsScreen: React.FC = () => {
    * and Call actions with a clear visual hierarchy.
    */
   const renderRequest = ({ item }: { item: any }) => {
+    const isClosedRequest = tab === 'closed';
     const accepted = isAcceptedByUser(item);
+    const rateEndUserLabel = t('requestDetails.rateEndUserNamed', {
+      name: item.endUserName || t('requestDetails.endUser'),
+    });
     const highlighted = item.id === highlightedRequestId;
     const accepting = acceptingId === item.id;
     const timeLabel = timeAgo(item.createdAt);
     // Fresh requests (under 2 hours old) get a "New" badge
-    const isNew =
+    const isNew = !isClosedRequest &&
       !accepted && Date.now() - new Date(item.createdAt).getTime() < 2 * 60 * 60 * 1000;
     // Compute distance if provider location is available
     let distanceLabel: string | null = null;
@@ -333,19 +363,19 @@ const SPWorkRequestsScreen: React.FC = () => {
           {accepted && (
             <View style={styles.acceptedChip}>
               <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-              <Text style={styles.acceptedChipText}>{t('spRequests.acceptedChip')}</Text>
+              <Text style={styles.acceptedChipText}>{t(isClosedRequest ? 'spRequests.closedChip' : 'spRequests.acceptedChip')}</Text>
             </View>
           )}
         </View>
-        {/* Location and requester */}
+        {/* Location and end user */}
         <View style={styles.infoRow}>
           <Ionicons name="location-sharp" size={15} color={colors.grey} />
           <Text style={styles.infoText} numberOfLines={2}>{item.locationName}</Text>
         </View>
-        {!!item.requesterName && (
+        {!!item.endUserName && (
           <View style={styles.infoRow}>
             <Ionicons name="person-outline" size={15} color={colors.greyMuted} />
-            <Text style={styles.infoTextMuted} numberOfLines={1}>{item.requesterName}</Text>
+            <Text style={styles.infoTextMuted} numberOfLines={1}>{item.endUserName}</Text>
           </View>
         )}
         {/* Tags */}
@@ -360,8 +390,20 @@ const SPWorkRequestsScreen: React.FC = () => {
         )}
         {/* Action buttons: all CTAs share the same size in every state;
             only the background/label colours change. */}
-        <View style={styles.divider} />
-        <View style={styles.actionRow}>
+        {(!isClosedRequest || item.canRateEndUser) && <>
+          <View style={styles.divider} />
+          <View style={styles.actionRow}>
+          {isClosedRequest ? (
+            <ActionButton
+              buttonIcon="star"
+              buttonTitle={rateEndUserLabel}
+              showRightArrow={false}
+              buttonTitleColor={colors.white}
+              backgroundColor={colors.primary}
+              onPress={() => setRatingRequest(item)}
+            />
+          ) : (
+          <>
           {!accepted && (
             <TouchableOpacity
               style={[styles.ctaButton, styles.ctaFilled]}
@@ -404,8 +446,8 @@ const SPWorkRequestsScreen: React.FC = () => {
           <TouchableOpacity
             style={[styles.ctaButton, accepted ? styles.ctaFilled : styles.ctaTintedSecondary]}
             onPress={() => {
-              if (item.requesterPhone) {
-                Linking.openURL(`tel:${item.requesterPhone}`);
+              if (item.endUserPhone) {
+                Linking.openURL(`tel:${item.endUserPhone}`);
               } else {
                 Alert.alert('Error', 'Requester phone number is not available.');
               }
@@ -427,14 +469,32 @@ const SPWorkRequestsScreen: React.FC = () => {
               {accepted ? t('spRequests.callNow') : t('spRequests.call')}
             </Text>
           </TouchableOpacity>
-        </View>
+          </>
+          )}
+          </View>
+        </>}
       </View>
     );
+  };
+
+  const submitEndUserRating = async (stars: number) => {
+    if (!token || !ratingRequest) return;
+    await API.rateEndUser(token, ratingRequest.id, stars);
+    setClosedRequests(current => current.map(request => request.id === ratingRequest.id
+      ? { ...request, canRateEndUser: false }
+      : request));
+    setRatingRequest(null);
   };
 
   // Pull-to-refresh handler
   const onRefresh = async () => {
     if (!token || !requestsCacheKey) return;
+    if (tab === 'closed') {
+      setRefreshing(true);
+      await fetchClosedRequests();
+      setRefreshing(false);
+      return;
+    }
     try {
       setRefreshing(true);
       const latestRequests = await API.listWorkRequests(token);
@@ -475,6 +535,7 @@ const SPWorkRequestsScreen: React.FC = () => {
   // Counts for segmented control
   const totalCount = requests.length;
   const acceptedCount = requests.filter(r => isAcceptedByUser(r)).length;
+  const displayedRequests = tab === 'closed' ? closedRequests : filteredRequests;
 
   return (
     <View style={{ flex: 1 }}>
@@ -491,16 +552,19 @@ const SPWorkRequestsScreen: React.FC = () => {
         <SegmentedTabs
           activeKey={tab}
           onChange={(key) => {
-            setTab(key as 'all' | 'accepted');
+            const nextTab = key as 'all' | 'accepted' | 'closed';
+            setTab(nextTab);
+            if (nextTab === 'closed' && !closedRequestsLoaded && !closedLoading) fetchClosedRequests();
             listRef.current?.scrollToOffset({ offset: 0, animated: true });
           }}
           tabs={[
             { key: 'all', label: t('spRequests.allTab'), count: totalCount },
             { key: 'accepted', label: t('spRequests.acceptedTab'), count: acceptedCount },
+            { key: 'closed', label: t('spRequests.closedTab'), count: closedRequests.length },
           ]}
         />
         {/* Filter chips */}
-        <View style={styles.filterRow}>
+        {tab !== 'closed' && <View style={styles.filterRow}>
           {filterOptions.map(({ value, labelKey, iconName }) => {
             const active = filter === value;
             return (
@@ -515,7 +579,7 @@ const SPWorkRequestsScreen: React.FC = () => {
               </TouchableOpacity>
             );
           })}
-        </View>
+        </View>}
         {/* Loading indicator when few requests are available */}
         {loading && requests.length > 0 && (
           <View style={styles.loadingRow}>
@@ -523,15 +587,17 @@ const SPWorkRequestsScreen: React.FC = () => {
           </View>
         )}
         {/* List */}
-        {filteredRequests.length === 0 ? (
+        {tab === 'closed' && closedLoading && closedRequests.length === 0 ? (
+          <SkeletonLoader count={4} />
+        ) : displayedRequests.length === 0 ? (
           <EmptyState
             icon="briefcase-outline"
-            title={t(tab === 'accepted' ? 'spRequests.emptyAccepted' : 'spRequests.empty')}
-            description={t(tab === 'accepted' ? 'spRequests.emptyHintAccepted' : 'spRequests.emptyHint')} />
+            title={t(tab === 'closed' ? 'spRequests.emptyClosed' : tab === 'accepted' ? 'spRequests.emptyAccepted' : 'spRequests.empty')}
+            description={t(tab === 'closed' ? 'spRequests.emptyClosedHint' : tab === 'accepted' ? 'spRequests.emptyHintAccepted' : 'spRequests.emptyHint')} />
         ) : (
           <FlatList
             ref={listRef}
-            data={filteredRequests}
+            data={displayedRequests}
             keyExtractor={(item: any) => item.id}
             renderItem={renderRequest}
             onScrollToIndexFailed={({ index, averageItemLength }) => {
@@ -562,7 +628,13 @@ const SPWorkRequestsScreen: React.FC = () => {
             onClose={() => setShowProBanner(false)}
           />
         )}
-        <ErrorBanner error={requestError} onRetry={fetchRequests} />
+        <ErrorBanner error={requestError} onRetry={tab === 'closed' ? fetchClosedRequests : fetchRequests} />
+        <RateEndUserModal
+          visible={!!ratingRequest}
+          endUserName={ratingRequest?.endUserName || t('requestDetails.endUser')}
+          onClose={() => setRatingRequest(null)}
+          onSubmit={submitEndUserRating}
+        />
         {/* Safe area overlay to prevent content overlap with device buttons */}
         <SafeBottomBanner />
       </View>

@@ -20,7 +20,7 @@ import WorkRequestCard from '../components/WorkRequestCard';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo, getDistanceKm } from '../utils/commonUtils';
 import SafeBottomBanner from '../components/SafeBottomBanner';
-import ReviewRatingModal from '../components/ReviewRatingModal';
+import RateServiceProviderModal from '../components/RateServiceProviderModal';
 import ActionButton from '../components/ActionButton';
 import SkeletonLoader from '../components/SkeletonLoader';
 import ProfileAvatar from '../components/ProfileAvatar';
@@ -160,8 +160,8 @@ const WorkRequestDetailsScreen: React.FC = () => {
               const tenureLabel = joinedDate && Number.isFinite(joinedDate.getTime())
                 ? t('requestDetails.membersince', { timeAgo: timeAgo(joinedDate) })
                 : t('requestDetails.unavailable');
-              const rating = Number(provider.rating ?? provider.averageRating ?? 4);
-              const reviewCount = provider.reviewCount ?? provider.ratingCount ?? 20;
+              const reviewCount = provider.providerRating?.count ?? 0;
+              const rating = provider.providerRating?.average;
               const experienceLabel = workExperience ? t('requestDetails.experience', { years: workExperience })
                 : null;
               const ageLabel = age? t('requestDetails.ageShort', { age }): null;
@@ -176,10 +176,16 @@ const WorkRequestDetailsScreen: React.FC = () => {
                         <View style={styles.providerDetails}>
                           <Text style={styles.providerName}>{displayName}</Text>
                           <View style={styles.ratingRow}>
-                            {[1, 2, 3, 4, 5].map((i) => (
-                              <Ionicons key={i} name={i <= Math.round(rating) ? 'star' : 'star-outline'} size={16} color={i <= Math.round(rating) ? colors.secondary : colors.greyMuted} style={styles.ratingIcon} />
-                            ))}
-                            <Text style={styles.ratingText}>{rating.toFixed(1)} ({reviewCount})</Text>
+                            {reviewCount > 0 && rating !== null && rating !== undefined ? (
+                              <>
+                                {[1, 2, 3, 4, 5].map((i) => (
+                                  <Ionicons key={i} name={i <= Math.round(rating) ? 'star' : 'star-outline'} size={16} color={i <= Math.round(rating) ? colors.secondary : colors.greyMuted} style={styles.ratingIcon} />
+                                ))}
+                                <Text style={styles.ratingText}>{rating.toFixed(1)} ({reviewCount})</Text>
+                              </>
+                            ) : (
+                              <Text style={styles.ratingText}>{t('requestDetails.noRatings')}</Text>
+                            )}
                           </View>
                         </View>
                         <ActionButton
@@ -256,7 +262,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
         )}
       </ScrollView>
 
-      <ReviewRatingModal
+      <RateServiceProviderModal
         visible={closeVisible}
         request={request}
         token={token}

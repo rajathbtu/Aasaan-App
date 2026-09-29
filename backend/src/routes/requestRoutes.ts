@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/authMiddleware';
-import { create, list, getById, accept, close } from '../controllers/requestController';
+import { create, list, getById, accept, close, rateEndUser } from '../controllers/requestController';
 
 const router = Router();
 
@@ -16,5 +16,7 @@ router.get('/:id', getById);
 router.put('/:id/accept', accept);
 // Close a work request (end user only)
 router.put('/:id/close', close);
+// Rate the end user after a selected provider's work request is closed
+router.put('/:id/rate-end-user', rateEndUser);
 
 export default router;

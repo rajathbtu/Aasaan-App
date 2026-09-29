@@ -204,13 +204,14 @@ const ProfileScreen: React.FC = () => {
     },
     gender: {
       title: t('profile.gender'),
-      options: [  { label: t('profile.genderMale'), value: 'male' },
-                  { label: t('profile.genderFemale'), value: 'female' }],
+      options: [{ label: t('profile.genderMale'), value: 'male' },
+      { label: t('profile.genderFemale'), value: 'female' }],
       value: pendingGender,
       onSelect: setPendingGender,
     },
   };
   const activeSelection = activeSelector ? selectorConfig[activeSelector] : null;
+  const ratingCount = user.userRating?.count ?? 0;
 
   const selectOption = (value: string) => {
     activeSelection?.onSelect(value);
@@ -247,6 +248,21 @@ const ProfileScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
           <Text style={styles.photoNote}>{t('profile.tapToChangePhoto')}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.ratingSummary}>
+            <Text style={styles.ratingSummaryTitle}>{t('profile.yourRating')}</Text>
+            <View style={styles.ratingValue}>
+              <Ionicons name="star" size={17} color={colors.secondary} />
+              <Text style={styles.ratingAverage}>
+                {ratingCount ? `${user.userRating?.average?.toFixed(1) ?? '0.0'} / 5` : '—'}
+              </Text>
+              <Text style={styles.ratingCount}>
+                {ratingCount ? t('profile.ratingCount', { count: ratingCount }) : t('profile.noRatingsYet')}
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* Full Name */}
@@ -504,6 +520,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     marginTop: 0,
     marginBottom: spacing.md,
+  },
+  ratingSummary: {
+    backgroundColor: colors.greyLight,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ratingSummaryTitle: {
+    color: colors.dark,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  ratingValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  ratingAverage: {
+    color: colors.dark,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  ratingCount: {
+    color: colors.grey,
+    fontSize: 12,
   },
   profileFieldContent: {
     flex: 1,

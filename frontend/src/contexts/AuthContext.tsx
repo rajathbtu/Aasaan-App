@@ -22,6 +22,7 @@ interface User {
     gender?: 'male' | 'female' | null;
     bio?: string | null;
   } | null;
+  userRating?: { average: number | null; count: number } | null;
   creditPoints: number;
   plan: 'free' | 'basic' | 'pro';
   avatarUrl?: string | null;
