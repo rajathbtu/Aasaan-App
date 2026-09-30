@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import { Ionicons } from '@expo/vector-icons';
 
 import { sendOtp } from '../api';
 import { useI18n } from '../i18n';
@@ -99,7 +99,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ phone, language, onOtpChange, loadi
   const resendDisabled = seconds > 0 || loading || resending;
 
   return (
-    <>
+    <View style={styles.otpField}>
       {/* 4 boxed inputs */}
       <View style={styles.otpRow}>
         {Array.from({ length: OTP_LENGTH }, (_, i) => (
@@ -115,6 +115,8 @@ const OtpInput: React.FC<OtpInputProps> = ({ phone, language, onOtpChange, loadi
             onKeyPress={(e) => onKeyPress(e, i)}
             style={styles.otpBox}
             returnKeyType="next"
+            placeholder="0"
+            placeholderTextColor={colors.greyMuted}
           />
         ))}
       </View>
@@ -122,7 +124,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ phone, language, onOtpChange, loadi
       {/* Auto-read indicator */}
       {showAutoRead && (
         <View style={styles.autoReadRow}>
-          <Icon name="mobile" size={14} color={colors.primary} style={{ marginRight: 6 }} />
+          <Ionicons name="phone-portrait-outline" size={14} color={colors.primary} style={styles.autoReadIcon} />
           <Text style={styles.autoReadText}>{t('otp.autoRead')}</Text>
         </View>
       )}
@@ -130,7 +132,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ phone, language, onOtpChange, loadi
       {/* Resend */}
       <View style={styles.resendBlock}>
         <Text style={styles.resendHint}>
-          {t('otp.didntReceive')} {timerText ? <Text style={styles.resendTimer}>{timerText}</Text> : null}
+          {t('otp.didntReceive')}{' '}{timerText ? <Text style={styles.resendTimer}>{timerText}</Text> : null}
         </Text>
         <TouchableOpacity onPress={handleResend} disabled={resendDisabled}>
           <Text style={[styles.resendLink, resendDisabled && styles.resendLinkDisabled]}>
@@ -138,35 +140,46 @@ const OtpInput: React.FC<OtpInputProps> = ({ phone, language, onOtpChange, loadi
           </Text>
         </TouchableOpacity>
       </View>
-    </>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  otpField: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 260,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: 0,
+  },
   otpRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: spacing.xl + spacing.sm,
-    marginBottom: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
   },
   otpBox: {
-    width: 56,
-    height: 56,
-    marginHorizontal: spacing.xs + 2,
+    flex: 1,
+    maxWidth: 52,
+    height: 52,
     textAlign: 'center',
     fontSize: 20,
     fontWeight: '700',
     color: colors.dark,
     backgroundColor: colors.white,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: colors.greyBorder,
-    borderRadius: radius.lg,
+    borderRadius: radius.md,
+    paddingVertical: 0,
   },
   autoReadRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginTop: spacing.md,
+  },
+  autoReadIcon: {
+    marginRight: 6,
   },
   autoReadText: {
     fontSize: 13,
@@ -174,8 +187,11 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   resendBlock: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.xl,
+    flexWrap: 'wrap',
+    marginTop: spacing.md,
   },
   resendHint: {
     fontSize: 13,
@@ -186,7 +202,7 @@ const styles = StyleSheet.create({
     color: colors.dark,
   },
   resendLink: {
-    marginTop: spacing.xs,
+    marginLeft: spacing.xs,
     fontSize: 14,
     color: colors.primary,
     fontWeight: '600',

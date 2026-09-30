@@ -2,15 +2,13 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
   ScrollView,
-  Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import { Ionicons } from '@expo/vector-icons';
 
 import { registerUser } from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,6 +16,8 @@ import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import BlockingLoader from '../components/BlockingLoader';
 import ActionButton from '../components/ActionButton';
+import FormField from '../components/FormField';
+import CountryCodePrefix from '../components/CountryCodePrefix';
 import OtpInput from '../components/OtpInput';
 import { spacing, colors, radius } from '../theme';
 
@@ -84,50 +84,35 @@ const NameOTPValidationScreen: React.FC = () => {
           <View style={styles.separator} />
 
           {/* Full name */}
-          <View style={styles.block}>
-            <Text style={styles.label}>
-              <Icon name="user" size={12} color={colors.primary} /> {t('nameReg.fullName')}
-            </Text>
-            <TextInput
-              placeholder={t('nameReg.fullNamePlaceholder')}
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholderTextColor={colors.greyMuted}
-            />
-          </View>
+          <FormField
+            icon="person"
+            label={t('nameReg.fullName')}
+            value={name}
+            onChangeText={setName}
+            placeholder={t('nameReg.fullNamePlaceholder')}
+            containerStyle={styles.block}/>
 
           {/* Phone (read-only display) */}
-          <View style={styles.block}>
-            <Text style={styles.label}>
-              <Icon name="phone" size={12} color={colors.primary} /> {t('nameReg.mobileNumber')}
-            </Text>
-            <View style={styles.phoneRow}>
-                {/* Country code (non-editable) */}
-                <View style={styles.ccBox}>
-                <View style={styles.flag}>
-                  <Image source={require('../../assets/indian-flag.png')}
-                  style={{ width: 18, height: 12 }} resizeMode="contain"/>
-                </View>
-                <Text style={styles.ccText}>+91</Text>
-                </View>
-              <View style={styles.phoneBox}>
-                <Text style={styles.phoneText}>{phone}</Text>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                  <Text style={styles.changeLink}>{t('common.change')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
+          <FormField
+            icon="call"
+            label={t('nameReg.mobileNumber')}
+            value={String(phone || '')}
+            editable={false}
+            containerStyle={styles.block}
+            prefix={<CountryCodePrefix />}
+            trailing={
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Text style={styles.changeLink}>{t('common.change')}</Text>
+              </TouchableOpacity>
+            }/>
 
-          {/* OTP: 4 boxed inputs + auto-read hint + resend */}
-          <View style={[styles.block, { marginBottom: 24 }]}>
-            <Text style={styles.label}>
-              <Icon name="shield" size={12} color={colors.primary} /> {t('nameReg.verificationCode')}
-            </Text>
-            <Text style={styles.otpHelp}>
-              {t('nameReg.sentHint')}
-            </Text>
+          {/* OTP: styled to match the rest of the form fields */}
+          <View style={styles.otpSection}>
+            <View style={styles.otpHeader}>
+              <Ionicons name="lock-closed" size={16} color={colors.greyMuted} style={styles.otpHeaderIcon} />
+              <Text style={styles.otpLabel}>{t('nameReg.verificationCode')}</Text>
+            </View>
+            <Text style={styles.otpHelp}>{t('nameReg.sentHint')}</Text>
 
             <OtpInput
               phone={String(phone || '')}
@@ -162,7 +147,7 @@ const NameOTPValidationScreen: React.FC = () => {
 
         {/* Security info pinned visually near bottom */}
         <View style={styles.securityInfo}>
-          <Icon name="shield" size={12} color={colors.grey} style={{ marginRight: 6 }} />
+          <Ionicons name="shield-checkmark-outline" size={12} color={colors.greyMuted} style={{ marginRight: 6 }} />
           <Text style={styles.securityText}>{t('nameReg.help')}</Text>
         </View>
         <BlockingLoader visible={loading} />
@@ -176,59 +161,32 @@ const styles = StyleSheet.create({
   separator: { height: 1, backgroundColor: colors.greyLight, marginBottom: 16 },
 
   block: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: colors.dark, marginBottom: 8 },
 
-  input: {
-    width: '100%',
-    borderWidth: 2,
-    borderColor: colors.greyBorder,
-    borderRadius: radius.lg,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    backgroundColor: colors.white,
-    shadowColor: colors.black,
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 1,
-  },
-
-  // Phone row
-  phoneRow: { flexDirection: 'row', alignItems: 'center' },
-  ccBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.light,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 2,
-    borderColor: colors.greyBorder,
-    borderRightWidth: 1,
-    borderTopLeftRadius: radius.lg,
-    borderBottomLeftRadius: radius.lg,
-  },
-  flag: { width: 18, height: 12, marginRight: 8 },
-  ccText: { color: colors.dark, fontWeight: '600' },
-  phoneBox: {
-    flex: 1,
-    borderWidth: 2,
-    borderColor: colors.greyBorder,
-    borderLeftWidth: 0,
-    borderTopRightRadius: radius.lg,
-    borderBottomRightRadius: radius.lg,
-    backgroundColor: colors.light,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  phoneText: { fontSize: 16, fontWeight: '600', color: colors.dark },
   changeLink: { color: colors.primary, fontWeight: '600' },
 
   // OTP visuals
-  otpHelp: { fontSize: 12, color: colors.grey, marginBottom: 10 },
+  otpSection: {
+    marginBottom: 24,
+    paddingTop: 2,
+  },
+  otpHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  otpHeaderIcon: {
+    marginRight: 8,
+  },
+  otpLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.dark,
+  },
+  otpHelp: {
+    fontSize: 12,
+    color: colors.grey,
+    marginBottom: 12,
+  },
 
   // CTA
   cta: {
