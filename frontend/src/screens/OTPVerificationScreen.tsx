@@ -19,6 +19,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { useI18n } from '../i18n';
 import { WebView } from 'react-native-webview';
 import Header from '../components/Header';
+import ActionButton from '../components/ActionButton';
 import { spacing, colors, radius } from '../theme';
 
 const API = realApi;
@@ -201,16 +202,16 @@ const OTPVerificationScreen: React.FC = () => {
           </View>
 
           {/* Verify button */}
-          <TouchableOpacity style={[styles.verifyBtn, loading && { opacity: 0.85 }]} onPress={handleVerify} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <View style={styles.verifyInner}>
-                <Icon name="check-circle" size={16} color={colors.white} style={{ marginRight: 8 }} />
-                <Text style={styles.verifyText}>{t('otp.verifyAndContinue')}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <ActionButton
+            fullWidth
+            buttonIcon="checkmark-circle-outline"
+            buttonTitle={t('otp.verifyAndContinue')}
+            buttonTitleColor={colors.white}
+            backgroundColor={colors.primary}
+            onPress={handleVerify}
+            loading={loading}
+            style={styles.verifyBtn}
+          />
 
           {/* Help text */}
           <Text style={styles.helpText}>
@@ -370,20 +371,8 @@ const styles = StyleSheet.create({
      fontWeight: '600',
   },
   verifyBtn: {
-    backgroundColor: colors.primary,
     borderRadius: radius.lg,
     paddingVertical: spacing.md,
-     alignItems: 'center',
-     justifyContent: 'center',
-  },
-  verifyInner: {
-     flexDirection: 'row',
-     alignItems: 'center',
-  },
-  verifyText: {
-    color: colors.white,
-     fontSize: 16,
-     fontWeight: '600',
   },
   helpText: {
      textAlign: 'center',

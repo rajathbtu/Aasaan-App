@@ -24,6 +24,7 @@ import { getLanguageDisplay } from '../data/languages';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import BlockingLoader from '../components/BlockingLoader';
+import ActionButton from '../components/ActionButton';
 import { spacing, colors, radius } from '../theme';
 import { TRUECALLER_APP_KEY } from '../config';
 
@@ -242,21 +243,16 @@ const MobileInputScreen: React.FC = () => {
           </Text>
 
           {/* Send OTP */}
-          <TouchableOpacity
-            style={[styles.cta, loading && { opacity: 0.7 }]}
+          <ActionButton
+            fullWidth
+            buttonIcon="arrow-forward"
+            buttonTitle={t('mobile.sendOtp')}
+            buttonTitleColor={colors.white}
+            backgroundColor={colors.primary}
             onPress={handleSendOtp}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <>
-                <Text style={styles.ctaText}>{t('mobile.sendOtp')}</Text>
-                <Icon name="arrow-right" size={14} color={colors.white} style={{ marginLeft: 8 }} />
-              </>
-            )}
-          </TouchableOpacity>
+            loading={loading}
+            style={styles.cta}
+          />
 
           {/* Motivation */}
           <View style={styles.motivation}>
@@ -437,16 +433,10 @@ const styles = StyleSheet.create({
 
   // CTA
   cta: {
-    width: '100%',
-    backgroundColor: colors.primary,
     borderRadius: radius.lg,
     paddingVertical: spacing.mdPlus,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
     marginBottom: spacing.md,
   },
-  ctaText: { color: colors.white, fontSize: 16, fontWeight: '600' },
 
   // Motivation
   motivation: {

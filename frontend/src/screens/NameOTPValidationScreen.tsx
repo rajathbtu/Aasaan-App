@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
@@ -22,6 +21,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import BlockingLoader from '../components/BlockingLoader';
+import ActionButton from '../components/ActionButton';
 import { spacing, colors, radius } from '../theme';
 
 const API = realApi;
@@ -205,21 +205,16 @@ const NameOTPValidationScreen: React.FC = () => {
           </View>
 
           {/* Verify & Continue (uses existing handle) */}
-          <TouchableOpacity
-            style={[styles.cta, loading && { opacity: 0.7 }]}
+          <ActionButton
+            fullWidth
+            buttonIcon="shield-checkmark-outline"
+            buttonTitle={t('nameReg.verifyAndContinue')}
+            buttonTitleColor={colors.white}
+            backgroundColor={colors.primary}
             onPress={handleContinue}
-            disabled={loading}
-            activeOpacity={0.9}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <>
-                <Icon name="shield" size={14} color={colors.white} style={{ marginRight: 8 }} />
-                <Text style={styles.ctaText}>{t('nameReg.verifyAndContinue')}</Text>
-              </>
-            )}
-          </TouchableOpacity>
+            loading={loading}
+            style={styles.cta}
+          />
 
           {/* Help text */}
           <View style={styles.help}>
@@ -340,16 +335,10 @@ const styles = StyleSheet.create({
 
   // CTA
   cta: {
-    width: '100%',
-    backgroundColor: colors.primary,
     borderRadius: radius.lg,
     paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
     marginTop: 4,
   },
-  ctaText: { color: colors.white, fontSize: 16, fontWeight: '600' },
 
   // Help
   help: { alignItems: 'center', marginTop: 10 },
