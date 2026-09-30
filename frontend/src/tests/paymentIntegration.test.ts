@@ -9,7 +9,6 @@ import {
   verifyBoostPayment,
   verifySubscriptionPayment 
 } from '../api/razorpay';
-import { RazorpayWebPaymentOptions } from '../api/razorpayWeb';
 
 // Mock user details for testing
 const mockUserDetails = {

@@ -220,13 +220,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.greyLight,
     zIndex: 5,
   },
-  subtitle: {
-    fontSize: 14,
-    color: colors.grey,
-    marginLeft: spacing.lg,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
-  },
   selectionBannerWrap: {
     paddingBottom: spacing.sm,
   },
@@ -268,10 +261,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 14,
     fontWeight: '700',
-  },
-  selectionMeta: {
-    fontSize: 12,
-    color: colors.grey,
   },
 });
 

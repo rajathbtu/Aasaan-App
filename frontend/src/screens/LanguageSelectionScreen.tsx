@@ -133,43 +133,12 @@ const LanguageSelectionScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.light,
-  },
   container: {
     flex: 1,
     backgroundColor: colors.light,
   },
-  header: {
-    height: 48,
-    backgroundColor: colors.white,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.greyLight,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.primary,
-    textAlign: 'center',
-  },
-  headerBack: {
-    width: 32,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-  },
   languageSelection: {
     padding: 16,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,

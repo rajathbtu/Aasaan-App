@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import * as realApi from '../api';
+import { acceptWorkRequest, listWorkRequests } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
@@ -30,8 +30,6 @@ import SegmentedTabs from '../components/SegmentedTabs';
 import RateAndReviewModal from '../components/RateAndReviewModal';
 import ActionButton from '../components/ActionButton';
 
-const API = realApi;
-  
 /** Helper: ensure provider has completed profile before using this screen */
 function validateProviderProfile(user: any): { ok: boolean; next: 'services' | 'location' | null } {
   if (!user || user.role !== 'serviceProvider') return { ok: true, next: null };
@@ -93,7 +91,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         setRequests(cached);
         setLoading(false);
       }
-      const list = await API.listWorkRequests(token);
+      const list = await listWorkRequests(token);
       const nextRequests = Array.isArray(list) ? list : list.requests || [];
       setRequests(nextRequests);
       await writeOfflineCache(requestsCacheKey, nextRequests);
@@ -138,7 +136,7 @@ const SPWorkRequestsScreen: React.FC = () => {
       setClosedLoading(true);
       const cached = await readOfflineCache<any[]>(closedRequestsCacheKey);
       if (cached) setClosedRequests(cached);
-      const list = await API.listWorkRequests(token, 'closed');
+      const list = await listWorkRequests(token, 'closed');
       const nextRequests = Array.isArray(list) ? list : list.requests || [];
       setClosedRequests(nextRequests);
       await writeOfflineCache(closedRequestsCacheKey, nextRequests);
@@ -175,7 +173,7 @@ const SPWorkRequestsScreen: React.FC = () => {
     if (!token || acceptingId) return;
     setAcceptingId(item.id);
     try {
-      await API.acceptWorkRequest(token, item.id);
+      await acceptWorkRequest(token, item.id);
       setRequestError(null);
       // Refreshing the list flips this card to the green "Accepted" state,
       // which acts as the visual confirmation (no blocking alert needed).
@@ -463,7 +461,7 @@ const SPWorkRequestsScreen: React.FC = () => {
     }
     try {
       setRefreshing(true);
-      const latestRequests = await API.listWorkRequests(token);
+      const latestRequests = await listWorkRequests(token);
       const latest = Array.isArray(latestRequests) ? latestRequests : latestRequests.requests || [];
       setRequests(prevRequests => {
         const newRequests = latest.filter(

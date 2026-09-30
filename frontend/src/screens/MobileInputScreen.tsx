@@ -18,7 +18,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { WebView } from 'react-native-webview';
 import { Image } from 'react-native';
 
-import * as realApi from '../api';
+import { checkUserRegistration, getTruecallerLoginStatus, sendOtp, startTruecallerLogin } from '../api';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
 import { useAuth } from '../contexts/AuthContext';
@@ -27,8 +27,6 @@ import BlockingLoader from '../components/BlockingLoader';
 import ActionButton from '../components/ActionButton';
 import { spacing, colors, radius } from '../theme';
 import { TRUECALLER_APP_KEY } from '../config';
-
-const API = realApi;
 
 /**
  * Screen to collect the user's mobile number and send an OTP.
@@ -70,11 +68,11 @@ const MobileInputScreen: React.FC = () => {
     }
     try {
       setLoading(true);
-      const result = await API.checkUserRegistration(trimmed); // Check if user is registered
+      const result = await checkUserRegistration(trimmed); // Check if user is registered
 
       if (result.isRegistered) {
         // Navigate to OTPVerificationScreen if user is registered
-        await API.sendOtp(trimmed);
+        await sendOtp(trimmed);
         navigation.navigate('OTPVerification', { phone: trimmed, language });
       } else {
         // Navigate to NameOTPValidationScreen if user is not registered
@@ -121,7 +119,7 @@ const MobileInputScreen: React.FC = () => {
     setTruecallerStarted(false);
     setTruecallerInitializing(true);
     try {
-      const result = await API.startTruecallerLogin();
+      const result = await startTruecallerLogin();
       setTruecallerRequestId(result.requestId);
     } catch {
       setTruecallerInitializing(false);
@@ -145,7 +143,7 @@ const MobileInputScreen: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, delay));
         if (cancelled) return;
         try {
-          const result = await API.getTruecallerLoginStatus(truecallerRequestId);
+          const result = await getTruecallerLoginStatus(truecallerRequestId);
           if (result.status === 'complete') {
             await login(result.token, result.user);
             return;
@@ -315,33 +313,12 @@ const MobileInputScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
   scrollContent: {
     paddingBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
     backgroundColor: colors.white,
   },
 
-  // Header
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.white,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: {
-    marginLeft: spacing.md,
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.primary,
-  },
   langChip: {
     backgroundColor: colors.surface,
     paddingVertical: spacing.sm,
@@ -355,11 +332,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.dark,
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.greyLight,
-    marginBottom: spacing.lg,
   },
 
   // Illustration

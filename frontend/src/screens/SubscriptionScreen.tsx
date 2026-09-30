@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import * as realApi from '../api';
+import { subscribePlan } from '../api';
 import { createSubscriptionPaymentOptions, verifySubscriptionPayment } from '../api/razorpay';
 import { RazorpayWebPaymentOptions, RazorpayWebResponse } from '../api/razorpayWeb';
 import RazorpayWebView from '../components/RazorpayWebView';
@@ -19,8 +19,6 @@ import Header from '../components/Header';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import InfoBanner from '../components/InfoBanner';
 import ActionButton from '../components/ActionButton';
-
-const API = realApi;
 
 // Pricing config
 const PLAN_PRICING: Record<'basic' | 'pro', { priceInr: number; points: number }> = {
@@ -73,7 +71,7 @@ const SubscriptionScreen: React.FC = () => {
     try {
       if (useCredits) {
         // Use existing credit-based flow
-        await API.subscribePlan(token, plan, useCredits);
+        await subscribePlan(token, plan, useCredits);
         await refreshUser();
         Alert.alert(t('subscription.subscribedTitle'), t('subscription.subscribedDesc', { plan: t(`subscription.plan.${plan}`) }));
         setSelectedPlan(null);
@@ -405,25 +403,6 @@ const SubscriptionScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.greyLight,
-    backgroundColor: colors.white,
-  },
-  backBtn: {
-    padding: spacing.sm,
-    marginRight: spacing.sm,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.primary,
-  },
   hero: {
     backgroundColor: colors.violetStrong,
     borderRadius: radius.xl,

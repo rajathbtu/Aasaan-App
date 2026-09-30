@@ -13,18 +13,15 @@ import {
   Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
-import * as realApi from '../api';
+import { registerUser } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import BlockingLoader from '../components/BlockingLoader';
 import ActionButton from '../components/ActionButton';
 import { spacing, colors, radius } from '../theme';
-
-const API = realApi;
 
 /**
  * Collects the user's full name after successful OTP verification.
@@ -96,7 +93,7 @@ const NameOTPValidationScreen: React.FC = () => {
 
     try {
       setLoading(true);
-      const result: any = await API.registerUser(
+      const result: any = await registerUser(
         phone,
         name_trimmed,
         language || 'en',
@@ -238,25 +235,9 @@ const NameOTPValidationScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  safeArea: { flex: 1, backgroundColor: colors.white },
   scroll: { paddingHorizontal: 16, paddingBottom: 16, backgroundColor: colors.white },
 
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.white,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { marginLeft: 12, fontSize: 18, fontWeight: '700', color: colors.primary },
   separator: { height: 1, backgroundColor: colors.greyLight, marginBottom: 16 },
-
-  formHeader: { alignItems: 'center', marginBottom: 16 },
-  formTitle: { fontSize: 20, fontWeight: '700', color: colors.dark, marginBottom: 6 },
-  formSub: { fontSize: 14, color: colors.grey, textAlign: 'center' },
 
   block: { marginBottom: 16 },
   label: { fontSize: 13, fontWeight: '600', color: colors.dark, marginBottom: 8 },
@@ -292,7 +273,6 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: radius.lg,
   },
   flag: { width: 18, height: 12, marginRight: 8 },
-  flagStripe: { flex: 1 },
   ccText: { color: colors.dark, fontWeight: '600' },
   phoneBox: {
     flex: 1,

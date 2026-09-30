@@ -65,10 +65,6 @@ const styles = StyleSheet.create({
     color: colors.grey,
     marginBottom: spacing.lg,
   },
-  hint: {
-    fontSize: 12,
-    color: colors.grey,
-  },
   footer: {
     position: 'absolute',
     bottom: 150,

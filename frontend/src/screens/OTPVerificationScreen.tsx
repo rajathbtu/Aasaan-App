@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import * as realApi from '../api';
+import { sendOtp, verifyOtp } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useI18n } from '../i18n';
@@ -21,8 +21,6 @@ import { WebView } from 'react-native-webview';
 import Header from '../components/Header';
 import ActionButton from '../components/ActionButton';
 import { spacing, colors, radius } from '../theme';
-
-const API = realApi;
 
 const OTPVerificationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -80,7 +78,7 @@ const OTPVerificationScreen: React.FC = () => {
     }
     try {
       setLoading(true);
-      const result: any = await API.verifyOtp(phone, Number(otpValue));
+      const result: any = await verifyOtp(phone, Number(otpValue));
       if (result.needsRegistration) {
         navigation.navigate('NameOTPValidation', { phone, language: lang });
       } else if (result.token) {
@@ -111,7 +109,7 @@ const OTPVerificationScreen: React.FC = () => {
   const handleResend = async () => {
     try {
       setLoading(true);
-      await API.sendOtp(phone);
+      await sendOtp(phone);
       setOtp(['', '', '', '']);
       inputsRef.current[0]?.focus();
       setSeconds(30);
@@ -260,28 +258,6 @@ const OTPVerificationScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  page: {
-    flex: 1,
-    backgroundColor: colors.light, // gray-50
-  },
-  header: {
-    backgroundColor: colors.white,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    marginLeft: 12,
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.primary,
-  },
   separator: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.greyLight,
@@ -383,24 +359,6 @@ const styles = StyleSheet.create({
   helpLink: {
     color: colors.primary,
      fontWeight: '600',
-  },
-  menu: {
-     position: 'absolute',
-     top: '100%',
-     right: 0,
-    backgroundColor: colors.white,
-     borderRadius: 8,
-     overflow: 'hidden',
-     elevation: 2,
-     zIndex: 100,
-  },
-  menuItem: {
-    paddingVertical: spacing.sm + 2,
-    paddingHorizontal: spacing.lg,
-  },
-  menuItemText: {
-    fontSize: 16,
-    color: colors.dark,
   },
   terms: {
      textAlign: 'center',

@@ -1,7 +1,7 @@
 // WebView-based Razorpay integration for Expo Go compatibility
 import { api } from './index';
 import { CreateOrderResponse, VerifyPaymentRequest, VerifyPaymentResponse } from '../types/razorpay';
-import { RazorpayWebPaymentOptions, RazorpayWebResponse } from './razorpayWeb';
+import { RazorpayWebPaymentOptions } from './razorpayWeb';
 
 // Razorpay configuration
 const RAZORPAY_KEY_ID = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_your_key_id';

@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, 
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import SafeBottomBanner from '../components/SafeBottomBanner';
 
 interface BottomCTAProps {
   isSticky?: boolean;

@@ -2,15 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import * as realApi from '../api';
+import { createWorkRequest } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import { useI18n } from '../i18n';
 import BottomCTA from '../components/BottomCTA';
 import ErrorBanner from '../components/ErrorBanner';
-
-const API = realApi;
 
 /**
  * Screen for users to select tags for their work request.
@@ -61,7 +59,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
     try {
       const locName = selectedLocation.name || selectedLocation.description;
       const placeId = selectedLocation.place_id || selectedLocation.placeId;
-      const wr: any = await API.createWorkRequest(token, {
+      const wr: any = await createWorkRequest(token, {
         service: service.id,
         location: { name: locName, lat: selectedLocation.lat, lng: selectedLocation.lng, placeId },
         tags: selectedTags,
@@ -152,20 +150,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
-  },
-  cardShadow: {
-    shadowColor: colors.black,
-    shadowOpacity: 0.07,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  },
-  sectionCard: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',

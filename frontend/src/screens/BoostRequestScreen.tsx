@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import * as realApi from '../api';
+import { boostWorkRequest } from '../api';
 import { createBoostPaymentOptions, verifyBoostPayment } from '../api/razorpay';
 import { RazorpayWebPaymentOptions, RazorpayWebResponse } from '../api/razorpayWeb';
 import RazorpayWebView from '../components/RazorpayWebView';
@@ -13,8 +13,6 @@ import Header from '../components/Header';
 import InfoBanner from '../components/InfoBanner';
 import ActionButton from '../components/ActionButton';
 import { buildTimeAgo } from '../utils/commonUtils';
-
-const API = realApi;
 
 const MONEY_PRICE_INR = 100;
 const CREDIT_COST = 100;
@@ -43,7 +41,7 @@ const BoostRequestScreen: React.FC = () => {
     try {
       if (useCredits) {
         // Use existing credit-based flow
-        await API.boostWorkRequest(token, request.id, useCredits);
+        await boostWorkRequest(token, request.id, useCredits);
         await refreshUser();
         Alert.alert(t('common.success'), t('boostRequest.successDesc'));
         navigation.navigate('Main', { screen: 'MyRequests' });
