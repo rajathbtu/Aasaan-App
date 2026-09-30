@@ -5,7 +5,6 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   Alert,
   RefreshControl,
   Linking,
@@ -405,46 +404,30 @@ const SPWorkRequestsScreen: React.FC = () => {
           ) : (
           <>
           {!accepted && (
-            <TouchableOpacity
-              style={[styles.ctaButton, styles.ctaFilled]}
+            <ActionButton
+              buttonIcon="checkmark"
+              buttonTitle={t('spRequests.accept')}
+              buttonTitleColor={colors.white}
+              backgroundColor={colors.primary}
               onPress={() => handleAccept(item)}
-              disabled={accepting}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel={t('spRequests.accept')}
-            >
-              {accepting ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark" size={16} color="white" style={{ marginRight: 6 }} />
-                  <Text style={styles.ctaLabelLight} numberOfLines={1}>{t('spRequests.accept')}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity // @todo: Navigate CTA may be dangerous for app engagement as users are redirected to external maps app... so should be used with caution
-            style={[styles.ctaButton, accepted ? styles.ctaTintedSecondary : styles.ctaTintedPrimary]}
-            onPress={() => handleNavigate(item)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={t('spRequests.navigate') || 'Navigate'}
-          >
-            <Ionicons
-              name="navigate"
-              size={16}
-              color={accepted ? colors.secondary : colors.primary}
-              style={{ marginRight: 6 }}
+              loading={accepting}
+              style={styles.ctaSpacing}
             />
-            <Text
-              style={[styles.ctaLabel, { color: accepted ? colors.secondary : colors.primary }]}
-              numberOfLines={1}
-            >
-              {t('spRequests.navigate') || 'Navigate'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.ctaButton, accepted ? styles.ctaFilled : styles.ctaTintedSecondary]}
+          )}
+          {/* @todo: Navigate CTA may be dangerous for app engagement as users are redirected to external maps app... so should be used with caution */}
+          <ActionButton
+            buttonIcon="navigate"
+            buttonTitle={t('spRequests.navigate') || 'Navigate'}
+            buttonTitleColor={accepted ? colors.secondary : colors.primary}
+            backgroundColor={accepted ? colors.successLight : colors.primarySoft}
+            onPress={() => handleNavigate(item)}
+            style={styles.ctaSpacing}
+          />
+          <ActionButton
+            buttonIcon="call"
+            buttonTitle={accepted ? t('spRequests.callNow') : t('spRequests.call')}
+            buttonTitleColor={accepted ? colors.white : colors.secondary}
+            backgroundColor={accepted ? colors.primary : colors.successLight}
             onPress={() => {
               if (item.endUserPhone) {
                 Linking.openURL(`tel:${item.endUserPhone}`);
@@ -452,23 +435,8 @@ const SPWorkRequestsScreen: React.FC = () => {
                 Alert.alert('Error', 'Requester phone number is not available.');
               }
             }}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={accepted ? t('spRequests.callNow') : t('spRequests.call')}
-          >
-            <Ionicons
-              name="call"
-              size={16}
-              color={accepted ? 'white' : colors.secondary}
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              style={accepted ? styles.ctaLabelLight : [styles.ctaLabel, { color: colors.secondary }]}
-              numberOfLines={1}
-            >
-              {accepted ? t('spRequests.callNow') : t('spRequests.call')}
-            </Text>
-          </TouchableOpacity>
+            style={styles.ctaSpacing}
+          />
           </>
           )}
           </View>
@@ -812,32 +780,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: spacing.sm,
   },
-  ctaButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.md,
+  // Spacing-only; the button shape itself now comes from ActionButton.
+  ctaSpacing: {
     marginRight: spacing.sm,
-  },
-  ctaFilled: {
-    backgroundColor: colors.primary,
-  },
-  ctaTintedPrimary: {
-    backgroundColor: colors.primarySoft,
-  },
-  ctaTintedSecondary: {
-    backgroundColor: colors.successLight,
-  },
-  ctaLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  ctaLabelLight: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '700',
   },
 });
 

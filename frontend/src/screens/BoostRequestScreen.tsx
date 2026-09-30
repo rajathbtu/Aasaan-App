@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as realApi from '../api';
@@ -11,6 +11,7 @@ import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import InfoBanner from '../components/InfoBanner';
+import ActionButton from '../components/ActionButton';
 import { buildTimeAgo } from '../utils/commonUtils';
 
 const API = realApi;
@@ -283,23 +284,22 @@ const BoostRequestScreen: React.FC = () => {
         </View>
 
         {/* Call to Action */}
-        <TouchableOpacity
-          style={[styles.ctaButton, alreadyBoosted && { backgroundColor: colors.greyLight }]}
+        <ActionButton
+          fullWidth
+          buttonTitle={
+            alreadyBoosted
+              ? t('boostRequest.ctaAlreadyBoosted')
+              : selectedOption === 'credits'
+              ? t('boostRequest.ctaUseCredits')
+              : t('boostRequest.ctaPay', { price: MONEY_PRICE_INR })
+          }
+          buttonTitleColor={alreadyBoosted ? colors.dark : colors.white}
+          backgroundColor={alreadyBoosted ? colors.greyLight : colors.primary}
           onPress={() => handleBoost(selectedOption === 'credits')}
+          loading={loading}
           disabled={loading || (selectedOption === 'credits' && !hasEnoughCredits) || alreadyBoosted}
-        >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.ctaText}>
-              {alreadyBoosted
-                ? t('boostRequest.ctaAlreadyBoosted')
-                : selectedOption === 'credits'
-                ? t('boostRequest.ctaUseCredits')
-                : t('boostRequest.ctaPay', { price: MONEY_PRICE_INR })}
-            </Text>
-          )}
-        </TouchableOpacity>
+          style={styles.ctaButton}
+        />
       </ScrollView>
 
       {/* Razorpay WebView for payments */}
@@ -438,18 +438,8 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   ctaButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: spacing.md,
     marginBottom: spacing.md,
-  },
-  ctaText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

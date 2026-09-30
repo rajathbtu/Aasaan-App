@@ -23,7 +23,7 @@ const darkenColor = (color: string, amount = 0.14) => {
 
 interface ActionButtonProps {
   buttonTitle: string;
-  buttonIcon: React.ComponentProps<typeof Ionicons>['name'];
+  buttonIcon?: React.ComponentProps<typeof Ionicons>['name'];
   buttonSubTitle?: string;
   showRightArrow?: boolean;
   buttonTitleColor?: string;
@@ -32,6 +32,12 @@ interface ActionButtonProps {
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
+  fullWidth?: boolean;
+  /**
+   * Optional content rendered after the title — used for trailing badges such
+   * as an unread count. Mutually exclusive with `showRightArrow`.
+   */
+  trailing?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -46,30 +52,43 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   onPress,
   disabled = false,
   loading = false,
+  fullWidth = false,
+  trailing,
   style,
-}) => (
-  <TouchableOpacity
-    style={[styles.button, { backgroundColor, borderColor: darkenColor(backgroundColor) }, style]}
-    onPress={onPress}
-    disabled={disabled}
-    activeOpacity={0.8}
-    accessibilityRole="button"
-    accessibilityState={{ disabled, busy: loading }}
-  >
-    {loading ? (
-      <ActivityIndicator color={buttonTitleColor} />
-    ) : (
-      <Ionicons name={buttonIcon} size={18} color={buttonTitleColor} />
-    )}
-    <View style={styles.textContainer}>
-      <Text style={[styles.title, { color: buttonTitleColor }]}>{buttonTitle}</Text>
-      {buttonSubTitle ? (
-        <Text style={[styles.subtitle, { color: buttonSubtitleColor }]}>{buttonSubTitle}</Text>
+}) => {
+  const isInactive = disabled || loading;
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.button,
+        { backgroundColor, borderColor: darkenColor(backgroundColor) },
+        fullWidth && styles.fullWidth,
+        isInactive && styles.inactive,
+        style,
+      ]}
+      onPress={onPress}
+      disabled={isInactive}
+      activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isInactive, busy: loading }}
+    >
+      {loading ? (
+        <ActivityIndicator color={buttonTitleColor} />
+      ) : buttonIcon ? (
+        <Ionicons name={buttonIcon} size={18} color={buttonTitleColor} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"/>
       ) : null}
-    </View>
-    {showRightArrow ? <Ionicons name="chevron-forward" size={16} color={buttonTitleColor} /> : null}
-  </TouchableOpacity>
-);
+      <View style={styles.textContainer}>
+        <Text numberOfLines={1} style={[styles.title, { color: buttonTitleColor }]}>{buttonTitle}</Text>
+        {buttonSubTitle ? (
+          <Text numberOfLines={2} style={[styles.subtitle, { color: buttonSubtitleColor }]}>{buttonSubTitle}</Text>
+        ) : null}
+      </View>
+      {showRightArrow ? (<Ionicons name="chevron-forward" size={16} color={buttonTitleColor} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"/>) : null}
+      {trailing}
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
   button: {
@@ -88,6 +107,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 2,
     elevation: 2,
+  },
+  fullWidth: {
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  inactive: {
+    opacity: 0.55,
   },
   textContainer: {
     flexShrink: 1,

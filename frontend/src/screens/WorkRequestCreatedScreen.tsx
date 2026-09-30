@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import WorkRequestCard from '../components/WorkRequestCard';
+import ActionButton from '../components/ActionButton';
 
 /**
  * Confirmation screen displayed after a work request has been created.
@@ -41,9 +42,13 @@ const WorkRequestCreatedScreen: React.FC = () => {
       <View style={styles.emptyContainer}>
         <Ionicons name="checkmark-circle" size={64} color={colors.success} style={{ marginBottom: spacing.lg }} />
         <Text style={styles.emptyTitle}>{t('createRequest.created.title')}</Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={goToMyRequests}>
-          <Text style={styles.primaryButtonText}>{t('createRequest.created.goToMyRequests')}</Text>
-        </TouchableOpacity>
+        <ActionButton
+          buttonTitle={t('createRequest.created.goToMyRequests')}
+          buttonTitleColor={colors.white}
+          backgroundColor={colors.primary}
+          onPress={goToMyRequests}
+          style={styles.primaryButton}
+        />
       </View>
     );
   }
@@ -91,9 +96,14 @@ const WorkRequestCreatedScreen: React.FC = () => {
       <View style={styles.boostCard}>
         <Text style={styles.boostTitle}>{t('createRequest.created.boostTitle')}</Text>
         <Text style={styles.boostSubtitle}>{t('createRequest.created.boostSubtitle')}</Text>
-        <TouchableOpacity style={styles.boostButton} onPress={handleBoost}>
-          <Text style={styles.boostButtonText}>{t('createRequest.created.boostButton')}</Text>
-        </TouchableOpacity>
+        <ActionButton
+          fullWidth
+          buttonTitle={t('createRequest.created.boostButton')}
+          buttonTitleColor={colors.white}
+          backgroundColor={colors.primary}
+          onPress={handleBoost}
+          style={styles.boostButton}
+        />
       </View>
       
       <TouchableOpacity onPress={goToMyRequests} style={{ alignSelf: 'center', marginTop: spacing.lg, marginBottom: spacing.xl }}>
@@ -126,17 +136,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   primaryButton: {
-    backgroundColor: colors.primary,
+    // ActionButton hugs its content by default; this empty state centres it.
+    alignSelf: 'center',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
   },
   successIconContainer: {
     width: 88,
@@ -223,15 +226,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   boostButton: {
-    backgroundColor: colors.primary,
     paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-    alignItems: 'center',
-  },
-  boostButtonText: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: '600',
   },
   viewRequestsText: {
     fontSize: 14,

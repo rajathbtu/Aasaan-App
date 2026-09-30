@@ -21,6 +21,7 @@ import ErrorBanner from '../components/ErrorBanner';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo } from '../utils/commonUtils';
 import SafeBottomBanner from '../components/SafeBottomBanner';
+import ActionButton from '../components/ActionButton';
 import { getNotificationNavigationTarget } from '../utils/notificationNavigation';
 
 const API = realApi;
@@ -284,27 +285,20 @@ const NotificationsScreen: React.FC = () => {
         showBackButton={true}
         showNotification={false}
         customRightComponent={
-          <TouchableOpacity
+          <ActionButton
+            buttonIcon="checkmark-done"
+            buttonTitle={t('notifications.markAllRead')}
+            buttonTitleColor={unreadCount === 0 ? colors.greyMuted : colors.primary}
+            backgroundColor={unreadCount === 0 ? colors.surface : colors.primaryLight}
             onPress={markAllRead}
             disabled={unreadCount === 0}
-            style={[styles.markAllButton, unreadCount === 0 && styles.markAllButtonDisabled]}
-            accessibilityRole="button"
-            accessibilityLabel={t('notifications.markAllRead')}
-          >
-            <Ionicons
-              name="checkmark-done"
-              size={16}
-              color={unreadCount === 0 ? colors.greyMuted : colors.primary}
-            />
-            <Text style={[styles.markAllText, unreadCount === 0 && styles.markAllTextDisabled]}>
-              {t('notifications.markAllRead')}
-            </Text>
-            {unreadCount > 0 && (
+            trailing={unreadCount > 0 ? (
               <View style={styles.markAllBadge}>
                 <Text style={styles.markAllBadgeText}>{unreadCount}</Text>
               </View>
-            )}
-          </TouchableOpacity>
+            ) : undefined}
+            style={styles.markAllButton}
+          />
         }
       />
       {/* Small spacer to prevent overlap and keep consistent spacing below header */}
@@ -345,24 +339,10 @@ const styles = StyleSheet.create({
   },
   /* Header mark-all-read pill */
   markAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    // Header's row centres on the cross axis; undo ActionButton's flex-start.
+    alignSelf: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
     borderRadius: radius.lg,
-    backgroundColor: colors.primaryLight,
-    gap: spacing.xs,
-  },
-  markAllButtonDisabled: {
-    backgroundColor: colors.surface,
-  },
-  markAllText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
-  },
-  markAllTextDisabled: {
-    color: colors.greyMuted,
   },
   markAllBadge: {
     minWidth: 20,

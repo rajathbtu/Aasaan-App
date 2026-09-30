@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView, Image, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView, Image, Switch } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,6 +14,7 @@ import SafeBottomBanner from '../components/SafeBottomBanner';
 import UpgradeProBanner from '../components/UpgradeProBanner';
 import BlockingLoader from '../components/BlockingLoader';
 import ProfileField from '../components/ProfileField';
+import ActionButton from '../components/ActionButton';
 import SingleSelectRadioModal from '../components/SingleSelectRadioModal';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
@@ -277,10 +278,14 @@ const ProfileScreen: React.FC = () => {
           onPress={() => { setEditing(true); setEditingBio(false); }}
           fieldEditIcon={'pencil'}
           trailingContent={canSave ? (
-            <TouchableOpacity onPress={onSave} style={styles.inlineSaveBtn} activeOpacity={0.8} disabled={isSavingName}>
-              {isSavingName && <ActivityIndicator size="small" color={colors.white} />}
-              <Text style={styles.inlineSaveBtnText}>{t('common.saveChanges')}</Text>
-            </TouchableOpacity>
+            <ActionButton
+              buttonTitle={t('common.saveChanges')}
+              buttonTitleColor={colors.white}
+              backgroundColor={colors.primary}
+              onPress={onSave}
+              loading={isSavingName}
+              style={styles.inlineSaveBtn}
+            />
           ) : undefined}/>
 
         {/* Mobile Number */}
@@ -560,19 +565,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   inlineSaveBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.sm,
-    padding: spacing.sm,
+    // Compact pill slotted into ProfileField's trailing slot.
+    alignSelf: 'center',
     paddingVertical: 6,
-    flexDirection: 'row',
-    gap: spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inlineSaveBtnText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '700',
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm,
   },
   servicesChipsRow: {
     flexDirection: 'row',

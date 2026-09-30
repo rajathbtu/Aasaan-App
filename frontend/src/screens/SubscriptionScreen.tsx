@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
   Alert,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +18,7 @@ import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import InfoBanner from '../components/InfoBanner';
+import ActionButton from '../components/ActionButton';
 
 const API = realApi;
 
@@ -326,14 +325,15 @@ const SubscriptionScreen: React.FC = () => {
                     </View>
 
                     {!selected && (
-                      <TouchableOpacity
-                        style={[styles.selectButton, isPro && styles.selectButtonPro]}
+                      <ActionButton
+                        fullWidth
+                        buttonTitle={t('subscription.selectPlan')}
+                        buttonTitleColor={colors.white}
+                        backgroundColor={isPro ? colors.violetStrong : colors.primary}
                         onPress={() => setSelectedPlan(plan.key)}
                         disabled={loading}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={styles.selectButtonText}>{t('subscription.selectPlan')}</Text>
-                      </TouchableOpacity>
+                        style={styles.selectButton}
+                      />
                     )}
                   </View>
 
@@ -345,40 +345,30 @@ const SubscriptionScreen: React.FC = () => {
                         <Text style={styles.payPanelTitle}>{t('subscription.paymentMethodTitle')}</Text>
                       </View>
 
-                      <TouchableOpacity
-                        style={styles.payPrimaryBtn}
+                      <ActionButton
+                        fullWidth
+                        buttonIcon="lock-closed"
+                        buttonTitle={t('subscription.payMoney', { price: PLAN_PRICING[plan.key].priceInr })}
+                        buttonTitleColor={colors.white}
+                        backgroundColor={colors.violetStrong}
                         onPress={() => subscribe(plan.key, false)}
-                        disabled={loading}
-                        activeOpacity={0.85}
-                      >
-                        {loading ? <ActivityIndicator color={colors.white} /> : (
-                          <>
-                            <Ionicons name="lock-closed" size={16} color={colors.white} style={{ marginRight: spacing.sm }} />
-                            <Text style={styles.payPrimaryText}>
-                              {t('subscription.payMoney', { price: PLAN_PRICING[plan.key].priceInr })}
-                            </Text>
-                          </>
-                        )}
-                      </TouchableOpacity>
+                        loading={loading}
+                        style={styles.payPrimaryBtn}
+                      />
 
-                      <TouchableOpacity
-                        style={[styles.payCreditsBtn, !hasEnoughCredits && styles.payBtnDisabled]}
+                      <ActionButton
+                        fullWidth
+                        buttonIcon={hasEnoughCredits ? 'diamond' : 'diamond-outline'}
+                        buttonTitle={hasEnoughCredits
+                          ? t('subscription.useCredits', { points: PLAN_PRICING[plan.key].points })
+                          : t('subscription.needMore', { diff: PLAN_PRICING[plan.key].points - credits })}
+                        buttonTitleColor={hasEnoughCredits ? '#047857' : colors.greyMuted}
+                        backgroundColor={hasEnoughCredits ? colors.successLight : colors.surface}
                         onPress={() => subscribe(plan.key, true)}
+                        loading={loading}
                         disabled={loading || !hasEnoughCredits}
-                        activeOpacity={0.85}
-                      >
-                        <Ionicons
-                          name={hasEnoughCredits ? 'diamond' : 'diamond-outline'}
-                          size={16}
-                          color={hasEnoughCredits ? colors.success : colors.greyMuted}
-                          style={{ marginRight: spacing.sm }}
-                        />
-                        <Text style={[styles.payCreditsText, !hasEnoughCredits && styles.payCreditsTextDisabled]}>
-                          {hasEnoughCredits
-                            ? t('subscription.useCredits', { points: PLAN_PRICING[plan.key].points })
-                            : t('subscription.needMore', { diff: PLAN_PRICING[plan.key].points - credits })}
-                        </Text>
-                      </TouchableOpacity>
+                        style={styles.payCreditsBtn}
+                      />
 
                       <View style={styles.creditNoteRow}>
                         <Ionicons name="information-circle" size={12} color={colors.greyMuted} />
@@ -668,26 +658,8 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   selectButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
     borderRadius: radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: spacing.md,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  selectButtonPro: {
-    backgroundColor: colors.violetStrong,
-    shadowColor: VIOLET_DEEP,
-  },
-  selectButtonText: {
-    color: colors.white,
-    fontSize: 14,
-    fontWeight: '700',
   },
   payPanel: {
     backgroundColor: colors.white,
@@ -716,42 +688,13 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   payPrimaryBtn: {
-    backgroundColor: colors.violetStrong,
     borderRadius: radius.lg,
     paddingVertical: spacing.mdPlus,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    shadowColor: VIOLET_DEEP,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  payPrimaryText: {
-    color: colors.white,
-    fontSize: 14.5,
-    fontWeight: '700',
   },
   payCreditsBtn: {
-    backgroundColor: colors.successLight,
     borderRadius: radius.lg,
     paddingVertical: spacing.mdPlus,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
     marginTop: spacing.sm,
-  },
-  payBtnDisabled: {
-    backgroundColor: colors.surface,
-  },
-  payCreditsText: {
-    color: '#047857',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  payCreditsTextDisabled: {
-    color: colors.greyMuted,
   },
   creditNoteRow: {
     flexDirection: 'row',

@@ -115,6 +115,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
   const status = (request.status || 'active').toString().toLowerCase();
   const isCompleted = status === 'completed' || status === 'closed';
   const acceptedCount = request.acceptedProviders?.length || 0;
+  const hasListResponses = Number(request.responseCount) > 0;
 
   return (
       <View style={styles.screen}>
@@ -126,7 +127,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
           showResponseStatus = {false}
           containerStyle={styles.summaryCard}  />
 
-        {(loadingStage === 'details' || (request.acceptedProviders && request.acceptedProviders.length > 0)) && (
+        {((loadingStage === 'details' && hasListResponses) || acceptedCount > 0) && (
           <View style={styles.acceptedSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.acceptedTitle}>{t('requestDetails.providers')}</Text>
@@ -135,7 +136,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
                 <Text style={styles.acceptedCount}>{acceptedCount}</Text>
               </View>
             </View>
-            {loadingStage === 'details' ? (
+            {loadingStage === 'details' && hasListResponses ? (
               <SkeletonLoader count={1}/>
             ) : (
               <> 
