@@ -20,7 +20,7 @@ import WorkRequestCard from '../components/WorkRequestCard';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo, getDistanceKm } from '../utils/commonUtils';
 import SafeBottomBanner from '../components/SafeBottomBanner';
-import RateServiceProviderModal from '../components/RateServiceProviderModal';
+import RateAndReviewModal from '../components/RateAndReviewModal';
 import ActionButton from '../components/ActionButton';
 import SkeletonLoader from '../components/SkeletonLoader';
 import ProfileAvatar from '../components/ProfileAvatar';
@@ -262,7 +262,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
         )}
       </ScrollView>
 
-      <RateServiceProviderModal
+      <RateAndReviewModal
         visible={closeVisible}
         request={request}
         token={token}

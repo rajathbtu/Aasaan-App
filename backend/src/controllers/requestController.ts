@@ -250,7 +250,7 @@ export async function list(req: Request, res: Response): Promise<void> {
         orderBy: { closedAt: 'desc' },
         take: 50,
         include: {
-          user: { select: { name: true } },
+          user: { select: { name: true, avatarUrl: true } },
           ratings: {
             where: { submittedByUserId: user.id },
             select: { id: true },
@@ -266,6 +266,7 @@ export async function list(req: Request, res: Response): Promise<void> {
           serviceIcon: service?.icon || null,
           serviceColor: service?.color || null,
           endUserName: endUser.name,
+          endUserAvatarUrl: endUser.avatarUrl,
           canRateEndUser: request.selectedProviderId === user.id && ratings.length === 0,
         };
       }));

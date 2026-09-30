@@ -28,7 +28,7 @@ import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/o
 import { buildTimeAgo, getDistanceKm } from '../utils/commonUtils';
 import Spinner from '../components/Spinner';
 import SegmentedTabs from '../components/SegmentedTabs';
-import RateEndUserModal from '../components/RateEndUserModal';
+import RateAndReviewModal from '../components/RateAndReviewModal';
 import ActionButton from '../components/ActionButton';
 
 const API = realApi;
@@ -477,13 +477,11 @@ const SPWorkRequestsScreen: React.FC = () => {
     );
   };
 
-  const submitEndUserRating = async (stars: number) => {
-    if (!token || !ratingRequest) return;
-    await API.rateEndUser(token, ratingRequest.id, stars);
+  const handleEndUserRatingSuccess = () => {
+    if (!ratingRequest) return;
     setClosedRequests(current => current.map(request => request.id === ratingRequest.id
       ? { ...request, canRateEndUser: false }
       : request));
-    setRatingRequest(null);
   };
 
   // Pull-to-refresh handler
@@ -629,11 +627,13 @@ const SPWorkRequestsScreen: React.FC = () => {
           />
         )}
         <ErrorBanner error={requestError} onRetry={tab === 'closed' ? fetchClosedRequests : fetchRequests} />
-        <RateEndUserModal
+        <RateAndReviewModal
+          mode="endUser"
           visible={!!ratingRequest}
-          endUserName={ratingRequest?.endUserName || t('requestDetails.endUser')}
+          request={ratingRequest}
+          token={token}
           onClose={() => setRatingRequest(null)}
-          onSubmit={submitEndUserRating}
+          onSuccess={handleEndUserRatingSuccess}
         />
         {/* Safe area overlay to prevent content overlap with device buttons */}
         <SafeBottomBanner />
