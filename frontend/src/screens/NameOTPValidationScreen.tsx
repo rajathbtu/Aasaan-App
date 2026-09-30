@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
   ScrollView,
   Image,
 } from 'react-native';
@@ -21,57 +18,22 @@ import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import BlockingLoader from '../components/BlockingLoader';
 import ActionButton from '../components/ActionButton';
+import OtpInput from '../components/OtpInput';
 import { spacing, colors, radius } from '../theme';
 
 /**
  * Collects the user's full name after successful OTP verification.
- * BUSINESS LOGIC UNCHANGED — UI only styled to match HTML mockup.
+ * BUSINESS LOGIC UNCHANGED â€” UI only styled to match HTML mockup.
  */
 const NameOTPValidationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { phone, language } = (route.params as any) || {};
-  const { t } = useI18n(language);
+  const { t, lang } = useI18n(language);
   const [name, setName] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [seconds, setSeconds] = useState(30);
-  const inputsRef = useRef<(TextInput | null)[]>([]);
   const { login } = useAuth();
-
-  const otpValue = useMemo(() => otp.join(''), [otp]);
-
-  useEffect(() => {
-    if (seconds <= 0) return;
-    const id = setInterval(() => setSeconds((s) => s - 1), 1000);
-    return () => clearInterval(id);
-  }, [seconds]);
-
-  const focusNext = (index: number) => {
-    if (index < inputsRef.current.length - 1) {
-      inputsRef.current[index + 1]?.focus();
-    }
-  };
-
-  const focusPrev = (index: number) => {
-    if (index > 0) {
-      inputsRef.current[index - 1]?.focus();
-    }
-  };
-
-  const onChangeDigit = (text: string, index: number) => {
-    const sanitized = text.replace(/\D/g, '').slice(0, 1);
-    const next = [...otp];
-    next[index] = sanitized;
-    setOtp(next);
-    if (sanitized) focusNext(index);
-  };
-
-  const onKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !otp[index]) {
-      focusPrev(index);
-    }
-  };
 
   const handleContinue = async () => {
     const nameRegex = /^[\p{L}\s]+$/u; // Allow only letters and spaces
@@ -86,7 +48,7 @@ const NameOTPValidationScreen: React.FC = () => {
       return;
     }
 
-    if (otpValue.length < 4) {
+    if (otp.length < 4) {
       Alert.alert(t('common.invalidOtp'), t('common.invalidOtpDesc'));
       return;
     }
@@ -98,7 +60,7 @@ const NameOTPValidationScreen: React.FC = () => {
         name_trimmed,
         language || 'en',
         null, // Pass null for role
-        otpValue // Pass OTP to the API
+        otp // Pass OTP to the API
       );
       await login(result.token, result.user);
       navigation.navigate('RoleSelect');
@@ -158,7 +120,7 @@ const NameOTPValidationScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* OTP visual section (UI only, ignored by logic) */}
+          {/* OTP: 4 boxed inputs + auto-read hint + resend */}
           <View style={[styles.block, { marginBottom: 24 }]}>
             <Text style={styles.label}>
               <Icon name="shield" size={12} color={colors.primary} /> {t('nameReg.verificationCode')}
@@ -167,38 +129,12 @@ const NameOTPValidationScreen: React.FC = () => {
               {t('nameReg.sentHint')}
             </Text>
 
-            <View style={styles.otpRow}>
-              {[0, 1, 2, 3].map((i) => (
-                <TextInput
-                  key={i}
-                  ref={(el) => {
-                    inputsRef.current[i] = el;
-                  }}
-                  keyboardType="number-pad"
-                  maxLength={1}
-                  value={otp[i]}
-                  onChangeText={(t) => onChangeDigit(t, i)}
-                  onKeyPress={(e) => onKeyPress(e, i)}
-                  style={styles.otpBox}
-                  returnKeyType="next"
-                />
-              ))}
-            </View>
-
-            <View style={styles.autoRead}>
-              <Icon name="mobile" size={14} color={colors.primary} style={{ marginRight: 6 }} />
-              <Text style={styles.autoReadText}>{t('nameReg.autoRead')}</Text>
-            </View>
-
-            <View style={styles.resendWrap}>
-              <Text style={styles.resendInfo}>
-                {t('nameReg.didntReceive')}{' '}
-                {seconds > 0 ? <Text style={{ fontWeight: '600' }}>00:{String(seconds).padStart(2, '0')}</Text> : null}
-              </Text>
-              <TouchableOpacity onPress={() => setSeconds(30)} disabled={seconds > 0 || loading}>
-                <Text style={[styles.resendBtn, (seconds > 0 || loading) && { opacity: 0.5 }]}>{t('common.resendOtp')}</Text>
-              </TouchableOpacity>
-            </View>
+            <OtpInput
+              phone={String(phone || '')}
+              language={lang}
+              onOtpChange={setOtp}
+              loading={loading}
+            />
           </View>
 
           {/* Verify & Continue (uses existing handle) */}
@@ -293,25 +229,6 @@ const styles = StyleSheet.create({
 
   // OTP visuals
   otpHelp: { fontSize: 12, color: colors.grey, marginBottom: 10 },
-  otpRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 12 },
-  otpBox: {
-    width: 48,
-    height: 48,
-    borderWidth: 2,
-    borderColor: colors.greyBorder,
-    borderRadius: 10,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '700',
-    marginHorizontal: 6,
-    color: colors.dark,
-  },
-  autoRead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  autoReadText: { color: colors.primary, fontSize: 12 },
-
-  resendWrap: { alignItems: 'center' },
-  resendInfo: { color: colors.grey, fontSize: 12 },
-  resendBtn: { color: colors.primary, fontSize: 12, marginTop: 4 },
 
   // CTA
   cta: {
