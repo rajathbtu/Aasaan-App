@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { LayoutAnimation, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing } from '../theme';
+import { borders, colors, spacing, surfaces } from '../theme';
 import { getServices } from '../api';
 import ServiceIcon from './ServiceIcon';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
@@ -139,22 +139,16 @@ const styles = StyleSheet.create({
   categoryTitle: { fontSize: 16, fontWeight: '700', color: colors.dark },
   gridRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', columnGap: spacing.lg },
   serviceCard: {
+    ...surfaces.tile,
     width: '30%',
     marginBottom: 10,
-    borderRadius: 18,
     paddingHorizontal: spacing.xs,
     paddingTop: 12,
     paddingBottom: 8,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    backgroundColor: colors.white,
-    shadowColor: colors.black,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
   },
-  serviceCardSelected: { borderWidth: 2, borderColor: colors.primary, backgroundColor: colors.primarySoft },
+  serviceCardSelected: { ...borders.selected, backgroundColor: colors.primarySoft },
   serviceName: { fontSize: 13, lineHeight: 16, fontWeight: '600', letterSpacing: 0.1, textAlign: 'center', color: colors.dark, minHeight: 36 },
   serviceNameSelected: { color: colors.primary, fontWeight: '700' },
   checkBadge: {

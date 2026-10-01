@@ -12,7 +12,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../api';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, spacing, radius, tints } from '../theme';
+import { colors, spacing, radius, surfaces, tints } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import EmptyState from '../components/EmptyState';
@@ -45,7 +45,7 @@ const TYPE_STYLES: Record<string, TypeStyle> = {
   ratingPrompt: { accent: colors.amber, tint: tints.amberSoft, icon: 'star' },
   boostPromotion: { accent: colors.accent, tint: tints.orangeSoft, icon: 'flash' },
   autoClosed: { accent: colors.grey, tint: colors.surface, icon: 'lock-closed' },
-  planPromotion: { accent: colors.violet, tint: tints.purpleSoft, icon: 'trophy' },
+  planPromotion: { accent: colors.violet, tint: '#f5f3ff', icon: 'trophy' },
 };
 
 const DEFAULT_TYPE_STYLE: TypeStyle = {
@@ -396,24 +396,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   cardRead: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    shadowColor: colors.black,
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
+    ...surfaces.card,
   },
   cardUnread: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+    ...surfaces.highlight,
   },
   iconCircle: {
     width: 44,
@@ -495,9 +481,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   skeletonCard: {
-    elevation: 0,
-    shadowOpacity: 0,
-    borderWidth: 0,
+    ...surfaces.flat,
   },
   skeletonBlock: {
     backgroundColor: colors.greyLight,

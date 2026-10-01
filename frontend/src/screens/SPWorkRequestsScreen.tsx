@@ -14,7 +14,7 @@ import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/nativ
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { acceptWorkRequest, listWorkRequests } from '../api';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, spacing, radius } from '../theme';
+import { colors, spacing, radius, surfaces } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
@@ -657,16 +657,9 @@ const styles = StyleSheet.create({
   },
   // --- Request cards ---
   card: {
-    borderWidth: 1,
-    borderRadius: radius.xl,
+    ...surfaces.card,
     padding: spacing.md,
     marginBottom: spacing.md,
-    backgroundColor: colors.white,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
   },
   cardAccepted: {
     backgroundColor: '#f0fdf4',

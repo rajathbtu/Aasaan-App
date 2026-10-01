@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
-import { colors, radius, spacing } from '../theme';
+import { colors, radius, spacing, surfaces } from '../theme';
 import { buildTimeAgo } from '../utils/commonUtils';
 import ServiceIcon from './ServiceIcon';
 import ActionButton from './ActionButton';
@@ -148,15 +148,10 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    ...surfaces.card,
     marginHorizontal: spacing.md,
     marginBottom: spacing.md,
     padding: spacing.md,
-    borderRadius: radius.xl + 4,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.025)',
-    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',

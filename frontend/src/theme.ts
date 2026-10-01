@@ -1,3 +1,5 @@
+import type { ViewStyle } from 'react-native';
+
 // Centralised theme definitions for colours, spacing and other constants.
 // This file centralises colour palette and common spacing values used
 // throughout the application to ensure a consistent look and feel.  If you
@@ -83,3 +85,107 @@ export const tints = {
   orangeSoft: '#ffedd5',
   amberSoft: '#fffbeb',
 };
+
+
+export const shadows = {
+  /** Hairline lift — used for resting cards such as work request cards. */
+  sm: {
+    boxShadow: '0px 1px 3px rgba(17, 24, 39, 0.05)',
+    shadowColor: colors.dark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  /** Default lift for interactive surfaces: grid tiles, search bars, banners. */
+  md: {
+    boxShadow: '0px 2px 6px rgba(17, 24, 39, 0.06)',
+    shadowColor: colors.dark,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  /** Stronger lift for floating/hero surfaces. */
+  lg: {
+    boxShadow: '0px 6px 16px rgba(17, 24, 39, 0.08)',
+    shadowColor: colors.dark,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  /** Brand tinted glow used to highlight important/active surfaces. */
+  focus: {
+    boxShadow: '0px 4px 12px rgba(37, 99, 235, 0.18)',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+} as const;
+
+
+
+export const borders = {
+  /** Neutral hairline — default for elevated cards. */
+  subtle: {
+    borderWidth: 1,
+    borderColor: colors.greyLight,
+  },
+  /** Slightly darker hairline for denser lists. */
+  strong: {
+    borderWidth: 1,
+    borderColor: colors.greyBorder,
+  },
+  /** Brand tinted edge for selected/active items. */
+  accent: {
+    borderWidth: 2,
+    borderColor: colors.primaryBorder,
+  },
+  /** Emphasised selection ring (thicker on purpose). */
+  selected: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+} as const;
+
+
+export const surfaces = {
+  /** Resting card surface: white fill, hairline border, soft shadow. */
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: radius.xl,
+    ...borders.subtle,
+    ...shadows.sm,
+  },
+  /** Grid tile surface: slightly larger radius and a stronger lift. */
+  tile: {
+    backgroundColor: colors.white,
+    borderRadius: radius.xl + 2,
+    ...borders.subtle,
+    ...shadows.md,
+  },
+  /** Input/search field surface: pill‑ish radius, soft lift. */
+  field: {
+    backgroundColor: colors.white,
+    borderRadius: radius.xl,
+    ...borders.subtle,
+    ...shadows.md,
+  },
+  /** Accented surface for highlighted/active content (unread rows etc). */
+  highlight: {
+    backgroundColor: colors.white,
+    borderRadius: radius.xl,
+    ...borders.accent,
+    ...shadows.sm,
+  },
+  /** Removes the lift again — useful for skeletons or pressed states. */
+  flat: {
+    elevation: 0,
+    shadowOpacity: 0,
+    boxShadow: 'none',
+    borderWidth: 0,
+  } as ViewStyle,
+} satisfies Record<string, ViewStyle>;

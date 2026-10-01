@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colors, spacing, radius } from '../theme';
+import { colors, spacing, radius, shadows } from '../theme';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import { Service, ServiceCard, ServiceCategoryGrid, useServiceCatalog } from '../components/ServiceSelection';
@@ -129,7 +129,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
           {/* Trust banner */}
           {hasData && query.trim() === '' && (
-            <View style={[styles.trustBanner, styles.shadow]}>
+            <View style={styles.trustBanner}>
               <View style={styles.trustIconWrap}>
                 <Ionicons name="sparkles-outline" size={26} color={colors.primary} />
               </View>
@@ -207,16 +207,9 @@ const styles = StyleSheet.create({
     columnGap: spacing.lg,
   },
 
-  shadow: {
-    shadowColor: colors.black,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
-  },
-
   // -- Trust banner --
   trustBanner: {
+    ...shadows.md,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.primarySoft,
