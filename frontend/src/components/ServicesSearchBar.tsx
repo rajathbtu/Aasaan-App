@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleProp, StyleSheet, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '../theme';
+import { colors, spacing, surfaces } from '../theme';
 
 type ServicesSearchBarProps = {
   value: string;
@@ -36,7 +36,7 @@ const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
     : placeholder;
 
   return (
-    <View style={[styles.wrapper, styles.shadow, style]}>
+    <View style={[styles.wrapper, style]}>
       <Ionicons name="search" size={20} color={colors.greyMuted} style={styles.searchIcon} />
       <TextInput
         style={styles.input}
@@ -56,9 +56,8 @@ const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
 
 const styles = StyleSheet.create({
   wrapper: {
+    ...surfaces.field,
     position: 'relative',
-    backgroundColor: colors.white,
-    borderRadius: radius.xl,
   },
   searchIcon: {
     position: 'absolute',
@@ -78,13 +77,6 @@ const styles = StyleSheet.create({
     right: spacing.md,
     top: 10,
     padding: 4,
-  },
-  shadow: {
-    shadowColor: colors.black,
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
   },
 });
 

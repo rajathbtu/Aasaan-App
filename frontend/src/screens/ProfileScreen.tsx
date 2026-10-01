@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView, Image, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, Switch } from 'react-native';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,6 +14,7 @@ import SafeBottomBanner from '../components/SafeBottomBanner';
 import UpgradeProBanner from '../components/UpgradeProBanner';
 import BlockingLoader from '../components/BlockingLoader';
 import ProfileField from '../components/ProfileField';
+import ActionButton from '../components/ActionButton';
 import SingleSelectRadioModal from '../components/SingleSelectRadioModal';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
@@ -184,7 +185,8 @@ const ProfileScreen: React.FC = () => {
 
   const currentYear = new Date().getFullYear();
   const workSinceYears = Array.from({ length: currentYear - 1949 }, (_, index) => String(currentYear - index));
-  const birthYears = Array.from({ length: currentYear - 1945 }, (_, index) => String(currentYear - index));
+  const latestEligibleBirthYear = currentYear - 14; // allow minimum age of 14 for service providers
+  const birthYears = Array.from({ length: latestEligibleBirthYear - 1945 + 1 }, (_, index) => String(latestEligibleBirthYear - index));
   const selectorConfig: Record<ProfileSelector, {
     title: string; options: { label: string; value: string }[]; value: string;
     onSelect: (value: string) => void;
@@ -203,13 +205,14 @@ const ProfileScreen: React.FC = () => {
     },
     gender: {
       title: t('profile.gender'),
-      options: [  { label: t('profile.genderMale'), value: 'male' },
-                  { label: t('profile.genderFemale'), value: 'female' }],
+      options: [{ label: t('profile.genderMale'), value: 'male' },
+      { label: t('profile.genderFemale'), value: 'female' }],
       value: pendingGender,
       onSelect: setPendingGender,
     },
   };
   const activeSelection = activeSelector ? selectorConfig[activeSelector] : null;
+  const ratingCount = user.userRating?.count ?? 0;
 
   const selectOption = (value: string) => {
     activeSelection?.onSelect(value);
@@ -228,7 +231,8 @@ const ProfileScreen: React.FC = () => {
                 <Image source={{ uri: user.avatarUrl }} style={{ width: '100%', height: '100%' }} />
               ) : (
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name="person" size={56} color={colors.greyMuted} />
+                  <Ionicons name={pendingGender === 'male' ? 'man' : pendingGender === 'female' ? 'woman' : 'person'}
+                    size={56} color={colors.greyMuted} />
                 </View>
               )}
             </View>
@@ -247,6 +251,21 @@ const ProfileScreen: React.FC = () => {
           <Text style={styles.photoNote}>{t('profile.tapToChangePhoto')}</Text>
         </View>
 
+        <View style={styles.section}>
+          <View style={styles.ratingSummary}>
+            <Text style={styles.ratingSummaryTitle}>{t('profile.yourRating')}</Text>
+            <View style={styles.ratingValue}>
+              <Ionicons name="star" size={17} color={colors.secondary} />
+              <Text style={styles.ratingAverage}>
+                {ratingCount ? `${user.userRating?.average?.toFixed(1) ?? '0.0'} / 5` : '—'}
+              </Text>
+              <Text style={styles.ratingCount}>
+                {ratingCount ? t('profile.ratingCount', { count: ratingCount }) : t('profile.noRatingsYet')}
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {/* Full Name */}
         <ProfileField
           title={t('profile.yourName')}
@@ -259,10 +278,14 @@ const ProfileScreen: React.FC = () => {
           onPress={() => { setEditing(true); setEditingBio(false); }}
           fieldEditIcon={'pencil'}
           trailingContent={canSave ? (
-            <TouchableOpacity onPress={onSave} style={styles.inlineSaveBtn} activeOpacity={0.8} disabled={isSavingName}>
-              {isSavingName && <ActivityIndicator size="small" color={colors.white} />}
-              <Text style={styles.inlineSaveBtnText}>{t('common.saveChanges')}</Text>
-            </TouchableOpacity>
+            <ActionButton
+              buttonTitle={t('common.saveChanges')}
+              buttonTitleColor={colors.white}
+              backgroundColor={colors.primary}
+              onPress={onSave}
+              loading={isSavingName}
+              style={styles.inlineSaveBtn}
+            />
           ) : undefined}/>
 
         {/* Mobile Number */}
@@ -503,6 +526,34 @@ const styles = StyleSheet.create({
     marginTop: 0,
     marginBottom: spacing.md,
   },
+  ratingSummary: {
+    backgroundColor: colors.greyLight,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ratingSummaryTitle: {
+    color: colors.dark,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  ratingValue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  ratingAverage: {
+    color: colors.dark,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  ratingCount: {
+    color: colors.grey,
+    fontSize: 12,
+  },
   profileFieldContent: {
     flex: 1,
     backgroundColor: colors.greyLight,
@@ -514,19 +565,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   inlineSaveBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.sm,
-    padding: spacing.sm,
+    // Compact pill slotted into ProfileField's trailing slot.
+    alignSelf: 'center',
     paddingVertical: 6,
-    flexDirection: 'row',
-    gap: spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  inlineSaveBtnText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '700',
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm,
   },
   servicesChipsRow: {
     flexDirection: 'row',

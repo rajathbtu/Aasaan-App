@@ -8,6 +8,13 @@ import { getReqLang, t } from '../utils/i18n';
 const providerGenders = new Set(['male', 'female']);
 const minimumProfileYear = 1940;
 
+function getRatingSummary(user: { ratingsScoreSum: number; ratingsCount: number }) {
+  return {
+    average: user.ratingsCount > 0 ? user.ratingsScoreSum / user.ratingsCount : null,
+    count: user.ratingsCount,
+  };
+}
+
 export async function getProfile(req: Request, res: Response): Promise<void> {
   const authUser = (req as any).user as { id: string };
   const lang = getReqLang(req);
@@ -15,7 +22,8 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
     const user = await prisma.user.findUnique({ where: { id: authUser.id } });
     if (!user) { res.status(404).json({ message: t(lang, 'user.notFound') }); return; }
     const sp = await prisma.serviceProviderInfo.findUnique({ where: { userId: user.id }, include: { location: true } }).catch(() => null);
-    res.json({ ...user, role: user.role ?? null, serviceProviderInfo: sp || null });
+    const userRating = getRatingSummary(user);
+    res.json({ ...user, role: user.role ?? null, serviceProviderInfo: sp || null, userRating });
   } catch {
     res.status(500).json({ message: t(lang, 'user.profileFetchFailed') });
   }
@@ -148,7 +156,8 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
       data: { ...data, ...(spUpdate ? { serviceProviderInfo: spUpdate } : {}) },
     });
     const sp = await (prisma as any).serviceProviderInfo.findUnique({ where: { userId: updated.id }, include: { location: true } }).catch(() => null);
-    res.json({ ...updated, serviceProviderInfo: sp || null });
+    const userRating = getRatingSummary(updated);
+    res.json({ ...updated, serviceProviderInfo: sp || null, userRating });
   } catch (e) {
     console.error('Error updating profile:', e);
     res.status(500).json({ message: t(lang, 'user.updateFailed') });

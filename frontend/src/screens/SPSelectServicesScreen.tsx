@@ -8,11 +8,12 @@ import { Service, ServiceCategoryGrid, useServiceCatalog } from '../components/S
 import InfoBanner from '../components/InfoBanner';
 import ErrorBanner from '../components/ErrorBanner';
 import ServicesSearchBar from '../components/ServicesSearchBar';
-import { colors, spacing, radius } from '../theme';
+import { colors, spacing } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import BlockingLoader from '../components/BlockingLoader';
+import ActionButton from '../components/ActionButton';
 
 const SPSelectServicesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -186,14 +187,15 @@ const SPSelectServicesScreen: React.FC = () => {
           ))}
         </View>
         <ErrorBanner error={saveError} onRetry={handleContinue} />
-        <TouchableOpacity
-          style={[styles.continueButton, selected.length === 0 && { opacity: 0.6 } ]}
+        <ActionButton
+          fullWidth
+          buttonIcon="arrow-forward"
+          buttonTitle={t('common.confirm')}
+          buttonTitleColor={colors.white}
+          backgroundColor={colors.primary}
           onPress={handleContinue}
           disabled={selected.length === 0}
-        >
-          <Text style={styles.continueText}>{t('common.confirm')}</Text>
-          <Ionicons name="arrow-forward" size={18} color={colors.white} style={{ marginLeft: 8 }} />
-        </TouchableOpacity>
+        />
       </View>
       <SafeBottomBanner />
       <BlockingLoader visible={saving} />
@@ -217,13 +219,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.greyLight,
     zIndex: 5,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.grey,
-    marginLeft: spacing.lg,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
   },
   selectionBannerWrap: {
     paddingBottom: spacing.sm,
@@ -266,23 +261,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 14,
     fontWeight: '700',
-  },
-  selectionMeta: {
-    fontSize: 12,
-    color: colors.grey,
-  },
-  continueButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 14,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  continueText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

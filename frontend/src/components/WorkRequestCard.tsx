@@ -9,9 +9,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../i18n';
-import { colors, radius, spacing } from '../theme';
-import { buildTimeAgo } from '../utils/time';
+import { colors, radius, spacing, surfaces } from '../theme';
+import { buildTimeAgo } from '../utils/commonUtils';
 import ServiceIcon from './ServiceIcon';
+import ActionButton from './ActionButton';
+
+/** Accent orange used by the "boost" affordance on this card. */
+const BOOST_ORANGE = '#fb923c';
 
 type WorkRequestCardProps = {
   request: any;
@@ -122,19 +126,19 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
                 </Text>
               </View>
               {onBoostPress && (
-                <TouchableOpacity
-                  style={styles.boostButton}
-                  activeOpacity={0.8}
+                <ActionButton
+                  buttonIcon="flash"
+                  buttonTitle={t('userRequests.boost')}
+                  buttonTitleColor={BOOST_ORANGE}
+                  backgroundColor={colors.white}
                   onPress={onBoostPress}
-                >
-                  <Ionicons name="flash" size={13} color="#fb923c" />
-                  <Text style={styles.boostButtonText}>{t('userRequests.boost')}</Text>
-                </TouchableOpacity>
+                  style={styles.boostButton}
+                />
               )}
             </>
           )}
           <View style={[styles.bandChevron, !hasResponses && styles.bandChevronEmpty]}>
-            <Ionicons name="chevron-forward" size={17} color={hasResponses ? colors.primary : '#fb923c'} />
+            <Ionicons name="chevron-forward" size={17} color={hasResponses ? colors.primary : BOOST_ORANGE} />
           </View>
         </View>
       )}
@@ -144,15 +148,10 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    ...surfaces.card,
     marginHorizontal: spacing.md,
     marginBottom: spacing.md,
     padding: spacing.md,
-    borderRadius: radius.xl + 4,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.025)',
-    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -262,25 +261,17 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#fb923c',
+    backgroundColor: BOOST_ORANGE,
     alignItems: 'center',
     justifyContent: 'center',
   },
   boostButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: '#fdba74',
+    // Outline pill: keep the orange edge, tinted background and tighter
+    // padding this card has always used rather than ActionButton's defaults.
+    borderColor: BOOST_ORANGE,
     borderRadius: radius.xl,
     paddingHorizontal: spacing.md,
-    paddingVertical: 7,
-  },
-  boostButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#fb923c',
-    marginLeft: 4,
+    paddingVertical: 6,
   },
   bandChevron: {
     width: 30,

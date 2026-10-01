@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
@@ -16,18 +15,18 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { WebView } from 'react-native-webview';
-import { Image } from 'react-native';
 
-import * as realApi from '../api';
+import { checkUserRegistration, getTruecallerLoginStatus, sendOtp, startTruecallerLogin } from '../api';
 import { useI18n } from '../i18n';
 import { getLanguageDisplay } from '../data/languages';
 import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import BlockingLoader from '../components/BlockingLoader';
+import ActionButton from '../components/ActionButton';
+import FormField from '../components/FormField';
+import CountryCodePrefix from '../components/CountryCodePrefix';
 import { spacing, colors, radius } from '../theme';
 import { TRUECALLER_APP_KEY } from '../config';
-
-const API = realApi;
 
 /**
  * Screen to collect the user's mobile number and send an OTP.
@@ -69,16 +68,15 @@ const MobileInputScreen: React.FC = () => {
     }
     try {
       setLoading(true);
-      const result = await API.checkUserRegistration(trimmed); // Check if user is registered
+      const result = await checkUserRegistration(trimmed); // Check if user is registered
 
-      if (result.isRegistered) {
-        // Navigate to OTPVerificationScreen if user is registered
-        await API.sendOtp(trimmed);
+      await sendOtp(trimmed);// OTP must be issued for BOTH login & sign up flows
+      
+      if (result.isRegistered) 
         navigation.navigate('OTPVerification', { phone: trimmed, language });
-      } else {
-        // Navigate to NameOTPValidationScreen if user is not registered
+      else 
         navigation.navigate('NameOTPValidation', { phone: trimmed, language });
-      }
+      
     } catch (err: any) {
       Alert.alert(t('common.error'), err.message || 'Failed to process request');
     } finally {
@@ -120,7 +118,7 @@ const MobileInputScreen: React.FC = () => {
     setTruecallerStarted(false);
     setTruecallerInitializing(true);
     try {
-      const result = await API.startTruecallerLogin();
+      const result = await startTruecallerLogin();
       setTruecallerRequestId(result.requestId);
     } catch {
       setTruecallerInitializing(false);
@@ -144,7 +142,7 @@ const MobileInputScreen: React.FC = () => {
         await new Promise(resolve => setTimeout(resolve, delay));
         if (cancelled) return;
         try {
-          const result = await API.getTruecallerLoginStatus(truecallerRequestId);
+          const result = await getTruecallerLoginStatus(truecallerRequestId);
           if (result.status === 'complete') {
             await login(result.token, result.user);
             return;
@@ -200,40 +198,21 @@ const MobileInputScreen: React.FC = () => {
             </Text>
           </View>
 
-          {/* Labeled input with country box */}
-          <View style={styles.inputBlock}>
-            <Text style={styles.label}>{t('mobile.label')}</Text>
-
-            <View style={styles.inputGroup}>
-              {/* Country code (non-editable) */}
-              <View style={styles.ccBox}>
-                <View style={styles.flag}>
-                  <Image source={require('../../assets/indian-flag.png')}
-                    style={{ width: 18, height: 12 }} resizeMode="contain"/>
-                </View>
-                <Text style={styles.ccText}>+91</Text>
-              </View>
-
-              {/* Phone input */}
-              <TextInput
-                placeholder={t('mobile.placeholder')}
-                keyboardType="phone-pad"
-                style={styles.input}
-                value={phone}
-                maxLength={10}
-                onChangeText={(text) => setPhone(text.replace(/[^0-9]/g, ''))}
-                placeholderTextColor={colors.greyMuted}
-                onBlur={handleBlur}
-                onFocus={handleFocus}
-              />
-            </View>
-
-            {!isFocused && errorMessage !== '' && (
-              <Text style={styles.errorText}>
-                <Icon name="exclamation-circle" size={12} color={colors.error} /> {errorMessage}
-              </Text>
-            )}
-          </View>
+          {/* Mobile number — country code is fixed to India */}
+          <FormField
+            icon="call"
+            label={t('mobile.label')}
+            value={phone}
+            onChangeText={(text) => setPhone(text.replace(/[^0-9]/g, ''))}
+            placeholder={t('mobile.placeholder')}
+            keyboardType="phone-pad"
+            maxLength={10}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            error={!isFocused && errorMessage !== '' ? errorMessage : undefined}
+            containerStyle={styles.inputBlock}
+            prefix={<CountryCodePrefix />}
+          />
 
           {/* Terms */}
           <Text style={styles.terms}>
@@ -242,21 +221,16 @@ const MobileInputScreen: React.FC = () => {
           </Text>
 
           {/* Send OTP */}
-          <TouchableOpacity
-            style={[styles.cta, loading && { opacity: 0.7 }]}
+          <ActionButton
+            fullWidth
+            buttonIcon="arrow-forward"
+            buttonTitle={t('mobile.sendOtp')}
+            buttonTitleColor={colors.white}
+            backgroundColor={colors.primary}
             onPress={handleSendOtp}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <>
-                <Text style={styles.ctaText}>{t('mobile.sendOtp')}</Text>
-                <Icon name="arrow-right" size={14} color={colors.white} style={{ marginLeft: 8 }} />
-              </>
-            )}
-          </TouchableOpacity>
+            loading={loading}
+            style={styles.cta}
+          />
 
           {/* Motivation */}
           <View style={styles.motivation}>
@@ -319,33 +293,12 @@ const MobileInputScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
   scrollContent: {
     paddingBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
     backgroundColor: colors.white,
   },
 
-  // Header
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.white,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: {
-    marginLeft: spacing.md,
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.primary,
-  },
   langChip: {
     backgroundColor: colors.surface,
     paddingVertical: spacing.sm,
@@ -359,11 +312,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.dark,
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.greyLight,
-    marginBottom: spacing.lg,
   },
 
   // Illustration
@@ -382,48 +330,8 @@ const styles = StyleSheet.create({
   welcome: { fontSize: 20, fontWeight: '700', color: colors.dark, marginBottom: spacing.xs },
   instructionSub: { fontSize: 14, color: colors.grey, textAlign: 'center' },
 
-  // Input block
-  inputBlock: { marginTop: spacing.sm, marginBottom: spacing.lg },
-  label: { fontSize: 13, fontWeight: '600', color: colors.dark, marginBottom: spacing.sm },
-  inputGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.greyBorder,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    backgroundColor: colors.white,
-    elevation: 1,
-    shadowColor: colors.black,
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-  },
-  ccBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.light,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    borderRightWidth: 1,
-    borderRightColor: colors.greyLight,
-  },
-  flag: { width: 18, height: 12, marginRight: spacing.sm },
-  ccText: { color: colors.dark, fontWeight: '600' },
-
-  input: {
-    flex: 1,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-    fontSize: 16,
-    color: colors.dark,
-  },
-
-  errorText: {
-    color: colors.error,
-    fontSize: 12,
-    marginTop: spacing.sm,
-  },
+  // Phone field
+  inputBlock: { marginTop: spacing.sm, marginBottom: 0 },
 
   // Terms
   terms: {
@@ -437,16 +345,10 @@ const styles = StyleSheet.create({
 
   // CTA
   cta: {
-    width: '100%',
-    backgroundColor: colors.primary,
     borderRadius: radius.lg,
     paddingVertical: spacing.mdPlus,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
     marginBottom: spacing.md,
   },
-  ctaText: { color: colors.white, fontSize: 16, fontWeight: '600' },
 
   // Motivation
   motivation: {

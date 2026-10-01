@@ -1,5 +1,3 @@
-import { Alert } from 'react-native';
-
 export interface RazorpayWebPaymentOptions {
   key: string;
   amount: number;

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator, BackHandler } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, BackHandler } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '../components/Header';
@@ -239,34 +239,6 @@ const styles = StyleSheet.create({
   motivationText: {
     flex: 1,
     fontSize: 13,
-    color: colors.grey,
-  },
-  bottomBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    padding: spacing.lg,
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.greyLight,
-  },
-  confirmBtn: {
-    height: 48,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  confirmText: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  noteText: {
-    marginBottom: spacing.md,
-    textAlign: 'center',
-    fontSize: 12,
     color: colors.grey,
   },
   langPill: {

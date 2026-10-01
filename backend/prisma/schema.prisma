@@ -24,8 +24,13 @@ model User {
   plan                Plan     @default(free)
   createdAt           DateTime @default(now())
   workRequests        WorkRequest[] @relation("UserWorkRequests")
+  workRequestsAsSelectedProvider WorkRequest[] @relation("SelectedWorkRequests")
   notifications       Notification[]
   payments            Payment[] @relation("UserPayments")
+  submittedRatings    Rating[] @relation("RatingSubmitter")
+  receivedRatings     Rating[] @relation("RatingRecipient")
+  ratingsScoreSum     Int      @default(0)
+  ratingsCount        Int      @default(0)
   avatarUrl           String?
   pushToken           String?
   pushTokenPlatform   String?
@@ -67,11 +72,14 @@ model WorkRequest {
   status            WorkRequestStatus @default(active)
   boosted           Boolean  @default(false)
   acceptedProviders AcceptedProvider[]
-  rating            Rating?
+  ratings           Rating[]
+  selectedProvider  User?    @relation("SelectedWorkRequests", fields: [selectedProviderId], references: [id], onDelete: SetNull)
+  selectedProviderId String?
   closedAt          DateTime?
 
   @@index([status, service, createdAt])
   @@index([userId, createdAt])
+  @@index([selectedProviderId, status, closedAt])
 }
 
 model AcceptedProvider {
@@ -82,15 +90,22 @@ model AcceptedProvider {
   workRequestId String
 
   @@unique([providerId, workRequestId])
+  @@index([workRequestId])
 }
 
 model Rating {
   id           String   @id @default(uuid())
-  providerId   String
+  ratedUserId  String
+  ratedUser    User     @relation("RatingRecipient", fields: [ratedUserId], references: [id])
+  submittedByUserId String
+  submittedBy  User     @relation("RatingSubmitter", fields: [submittedByUserId], references: [id])
   stars        Int
   review       String?
   workRequest  WorkRequest @relation(fields: [workRequestId], references: [id])
-  workRequestId String   @unique
+  workRequestId String
+
+  @@unique([workRequestId, submittedByUserId])
+  @@index([ratedUserId])
 }
 
 model Notification {

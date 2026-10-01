@@ -132,6 +132,14 @@ export async function closeWorkRequest(
   return res.data;
 }
 
+/** Rate the end user after the selected provider's work request is closed. */
+export async function rateEndUser(token: string, id: string, stars: number, review?: string) {
+  const res = await api.put(`/work-requests/${id}/rate-end-user`, { stars, review }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
+
 /**
  * Boost a work request by paying or using credits.
  */

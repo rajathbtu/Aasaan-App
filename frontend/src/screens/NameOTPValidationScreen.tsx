@@ -1,80 +1,39 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
   ScrollView,
-  Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import { Ionicons } from '@expo/vector-icons';
 
-import * as realApi from '../api';
+import { registerUser } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import BlockingLoader from '../components/BlockingLoader';
+import ActionButton from '../components/ActionButton';
+import FormField from '../components/FormField';
+import CountryCodePrefix from '../components/CountryCodePrefix';
+import OtpInput from '../components/OtpInput';
 import { spacing, colors, radius } from '../theme';
-
-const API = realApi;
 
 /**
  * Collects the user's full name after successful OTP verification.
- * BUSINESS LOGIC UNCHANGED — UI only styled to match HTML mockup.
+ * BUSINESS LOGIC UNCHANGED â€” UI only styled to match HTML mockup.
  */
 const NameOTPValidationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { phone, language } = (route.params as any) || {};
-  const { t } = useI18n(language);
+  const { t, lang } = useI18n(language);
   const [name, setName] = useState('');
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [seconds, setSeconds] = useState(30);
-  const inputsRef = useRef<(TextInput | null)[]>([]);
   const { login } = useAuth();
-
-  const otpValue = useMemo(() => otp.join(''), [otp]);
-
-  useEffect(() => {
-    if (seconds <= 0) return;
-    const id = setInterval(() => setSeconds((s) => s - 1), 1000);
-    return () => clearInterval(id);
-  }, [seconds]);
-
-  const focusNext = (index: number) => {
-    if (index < inputsRef.current.length - 1) {
-      inputsRef.current[index + 1]?.focus();
-    }
-  };
-
-  const focusPrev = (index: number) => {
-    if (index > 0) {
-      inputsRef.current[index - 1]?.focus();
-    }
-  };
-
-  const onChangeDigit = (text: string, index: number) => {
-    const sanitized = text.replace(/\D/g, '').slice(0, 1);
-    const next = [...otp];
-    next[index] = sanitized;
-    setOtp(next);
-    if (sanitized) focusNext(index);
-  };
-
-  const onKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !otp[index]) {
-      focusPrev(index);
-    }
-  };
 
   const handleContinue = async () => {
     const nameRegex = /^[\p{L}\s]+$/u; // Allow only letters and spaces
@@ -89,19 +48,19 @@ const NameOTPValidationScreen: React.FC = () => {
       return;
     }
 
-    if (otpValue.length < 4) {
+    if (otp.length < 4) {
       Alert.alert(t('common.invalidOtp'), t('common.invalidOtpDesc'));
       return;
     }
 
     try {
       setLoading(true);
-      const result: any = await API.registerUser(
+      const result: any = await registerUser(
         phone,
         name_trimmed,
         language || 'en',
         null, // Pass null for role
-        otpValue // Pass OTP to the API
+        otp // Pass OTP to the API
       );
       await login(result.token, result.user);
       navigation.navigate('RoleSelect');
@@ -125,101 +84,55 @@ const NameOTPValidationScreen: React.FC = () => {
           <View style={styles.separator} />
 
           {/* Full name */}
-          <View style={styles.block}>
-            <Text style={styles.label}>
-              <Icon name="user" size={12} color={colors.primary} /> {t('nameReg.fullName')}
-            </Text>
-            <TextInput
-              placeholder={t('nameReg.fullNamePlaceholder')}
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholderTextColor={colors.greyMuted}
+          <FormField
+            icon="person"
+            label={t('nameReg.fullName')}
+            value={name}
+            onChangeText={setName}
+            placeholder={t('nameReg.fullNamePlaceholder')}
+            containerStyle={styles.block}/>
+
+          {/* Phone (read-only display) */}
+          <FormField
+            icon="call"
+            label={t('nameReg.mobileNumber')}
+            value={String(phone || '')}
+            editable={false}
+            containerStyle={styles.block}
+            prefix={<CountryCodePrefix />}
+            trailing={
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Text style={styles.changeLink}>{t('common.change')}</Text>
+              </TouchableOpacity>
+            }/>
+
+          {/* OTP: styled to match the rest of the form fields */}
+          <View style={styles.otpSection}>
+            <View style={styles.otpHeader}>
+              <Ionicons name="lock-closed" size={16} color={colors.greyMuted} style={styles.otpHeaderIcon} />
+              <Text style={styles.otpLabel}>{t('nameReg.verificationCode')}</Text>
+            </View>
+            <Text style={styles.otpHelp}>{t('nameReg.sentHint')}</Text>
+
+            <OtpInput
+              phone={String(phone || '')}
+              language={lang}
+              onOtpChange={setOtp}
+              loading={loading}
             />
           </View>
 
-          {/* Phone (read-only display) */}
-          <View style={styles.block}>
-            <Text style={styles.label}>
-              <Icon name="phone" size={12} color={colors.primary} /> {t('nameReg.mobileNumber')}
-            </Text>
-            <View style={styles.phoneRow}>
-                {/* Country code (non-editable) */}
-                <View style={styles.ccBox}>
-                <View style={styles.flag}>
-                  <Image source={require('../../assets/indian-flag.png')}
-                  style={{ width: 18, height: 12 }} resizeMode="contain"/>
-                </View>
-                <Text style={styles.ccText}>+91</Text>
-                </View>
-              <View style={styles.phoneBox}>
-                <Text style={styles.phoneText}>{phone}</Text>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                  <Text style={styles.changeLink}>{t('common.change')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* OTP visual section (UI only, ignored by logic) */}
-          <View style={[styles.block, { marginBottom: 24 }]}>
-            <Text style={styles.label}>
-              <Icon name="shield" size={12} color={colors.primary} /> {t('nameReg.verificationCode')}
-            </Text>
-            <Text style={styles.otpHelp}>
-              {t('nameReg.sentHint')}
-            </Text>
-
-            <View style={styles.otpRow}>
-              {[0, 1, 2, 3].map((i) => (
-                <TextInput
-                  key={i}
-                  ref={(el) => {
-                    inputsRef.current[i] = el;
-                  }}
-                  keyboardType="number-pad"
-                  maxLength={1}
-                  value={otp[i]}
-                  onChangeText={(t) => onChangeDigit(t, i)}
-                  onKeyPress={(e) => onKeyPress(e, i)}
-                  style={styles.otpBox}
-                  returnKeyType="next"
-                />
-              ))}
-            </View>
-
-            <View style={styles.autoRead}>
-              <Icon name="mobile" size={14} color={colors.primary} style={{ marginRight: 6 }} />
-              <Text style={styles.autoReadText}>{t('nameReg.autoRead')}</Text>
-            </View>
-
-            <View style={styles.resendWrap}>
-              <Text style={styles.resendInfo}>
-                {t('nameReg.didntReceive')}{' '}
-                {seconds > 0 ? <Text style={{ fontWeight: '600' }}>00:{String(seconds).padStart(2, '0')}</Text> : null}
-              </Text>
-              <TouchableOpacity onPress={() => setSeconds(30)} disabled={seconds > 0 || loading}>
-                <Text style={[styles.resendBtn, (seconds > 0 || loading) && { opacity: 0.5 }]}>{t('common.resendOtp')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
           {/* Verify & Continue (uses existing handle) */}
-          <TouchableOpacity
-            style={[styles.cta, loading && { opacity: 0.7 }]}
+          <ActionButton
+            fullWidth
+            buttonIcon="shield-checkmark-outline"
+            buttonTitle={t('nameReg.verifyAndContinue')}
+            buttonTitleColor={colors.white}
+            backgroundColor={colors.primary}
             onPress={handleContinue}
-            disabled={loading}
-            activeOpacity={0.9}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <>
-                <Icon name="shield" size={14} color={colors.white} style={{ marginRight: 8 }} />
-                <Text style={styles.ctaText}>{t('nameReg.verifyAndContinue')}</Text>
-              </>
-            )}
-          </TouchableOpacity>
+            loading={loading}
+            style={styles.cta}
+          />
 
           {/* Help text */}
           <View style={styles.help}>
@@ -234,7 +147,7 @@ const NameOTPValidationScreen: React.FC = () => {
 
         {/* Security info pinned visually near bottom */}
         <View style={styles.securityInfo}>
-          <Icon name="shield" size={12} color={colors.grey} style={{ marginRight: 6 }} />
+          <Ionicons name="shield-checkmark-outline" size={12} color={colors.greyMuted} style={{ marginRight: 6 }} />
           <Text style={styles.securityText}>{t('nameReg.help')}</Text>
         </View>
         <BlockingLoader visible={loading} />
@@ -243,113 +156,44 @@ const NameOTPValidationScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  safeArea: { flex: 1, backgroundColor: colors.white },
   scroll: { paddingHorizontal: 16, paddingBottom: 16, backgroundColor: colors.white },
 
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.white,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { marginLeft: 12, fontSize: 18, fontWeight: '700', color: colors.primary },
   separator: { height: 1, backgroundColor: colors.greyLight, marginBottom: 16 },
 
-  formHeader: { alignItems: 'center', marginBottom: 16 },
-  formTitle: { fontSize: 20, fontWeight: '700', color: colors.dark, marginBottom: 6 },
-  formSub: { fontSize: 14, color: colors.grey, textAlign: 'center' },
-
   block: { marginBottom: 16 },
-  label: { fontSize: 13, fontWeight: '600', color: colors.dark, marginBottom: 8 },
 
-  input: {
-    width: '100%',
-    borderWidth: 2,
-    borderColor: colors.greyBorder,
-    borderRadius: radius.lg,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontSize: 16,
-    backgroundColor: colors.white,
-    shadowColor: colors.black,
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 1,
-  },
-
-  // Phone row
-  phoneRow: { flexDirection: 'row', alignItems: 'center' },
-  ccBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.light,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 2,
-    borderColor: colors.greyBorder,
-    borderRightWidth: 1,
-    borderTopLeftRadius: radius.lg,
-    borderBottomLeftRadius: radius.lg,
-  },
-  flag: { width: 18, height: 12, marginRight: 8 },
-  flagStripe: { flex: 1 },
-  ccText: { color: colors.dark, fontWeight: '600' },
-  phoneBox: {
-    flex: 1,
-    borderWidth: 2,
-    borderColor: colors.greyBorder,
-    borderLeftWidth: 0,
-    borderTopRightRadius: radius.lg,
-    borderBottomRightRadius: radius.lg,
-    backgroundColor: colors.light,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  phoneText: { fontSize: 16, fontWeight: '600', color: colors.dark },
   changeLink: { color: colors.primary, fontWeight: '600' },
 
   // OTP visuals
-  otpHelp: { fontSize: 12, color: colors.grey, marginBottom: 10 },
-  otpRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 12 },
-  otpBox: {
-    width: 48,
-    height: 48,
-    borderWidth: 2,
-    borderColor: colors.greyBorder,
-    borderRadius: 10,
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '700',
-    marginHorizontal: 6,
+  otpSection: {
+    marginBottom: 24,
+    paddingTop: 2,
+  },
+  otpHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  otpHeaderIcon: {
+    marginRight: 8,
+  },
+  otpLabel: {
+    fontSize: 16,
+    fontWeight: '600',
     color: colors.dark,
   },
-  autoRead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  autoReadText: { color: colors.primary, fontSize: 12 },
-
-  resendWrap: { alignItems: 'center' },
-  resendInfo: { color: colors.grey, fontSize: 12 },
-  resendBtn: { color: colors.primary, fontSize: 12, marginTop: 4 },
+  otpHelp: {
+    fontSize: 12,
+    color: colors.grey,
+    marginBottom: 12,
+  },
 
   // CTA
   cta: {
-    width: '100%',
-    backgroundColor: colors.primary,
     borderRadius: radius.lg,
     paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
     marginTop: 4,
   },
-  ctaText: { color: colors.white, fontSize: 16, fontWeight: '600' },
 
   // Help
   help: { alignItems: 'center', marginTop: 10 },

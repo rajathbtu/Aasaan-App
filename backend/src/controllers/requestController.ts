@@ -33,7 +33,7 @@ export interface FullWorkRequest {
   status?: string;
   boosted?: boolean;
   acceptedProviders?: any[];
-  rating?: any | null;
+  selectedProviderId?: string | null;
   closedAt?: Date | null;
   [key: string]: any; // allow forward compatibility
 }
@@ -49,9 +49,8 @@ async function getServiceMap(serviceIds: string[]): Promise<Map<string, any>> {
 async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<FullWorkRequest | null> {
   const wr = existingRequest || await pAny.workRequest.findUnique({ where: { id } });
   if (!wr) return null;
-  const [acceptedProviders, rating, serviceMap] = await Promise.all([
+  const [acceptedProviders, serviceMap] = await Promise.all([
     pAny.acceptedProvider?.findMany ? pAny.acceptedProvider.findMany({ where: { workRequestId: id } }) : [],
-    pAny.rating?.findFirst ? pAny.rating.findFirst({ where: { workRequestId: id } }) : null,
     getServiceMap((wr as any).service ? [(wr as any).service] : []),
   ]);
 
@@ -67,12 +66,21 @@ async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<
           name: true,
           phoneNumber: true,
           avatarUrl: true,
+          createdAt: true,
+          ratingsScoreSum: true,
+          ratingsCount: true,
           serviceProviderInfo: {
             select: {
               workSinceYear: true,
               birthYear: true,
               gender: true,
               bio: true,
+              location: {
+                select: {
+                  lat: true,
+                  lng: true,
+                },
+              },
             },
           },
         },
@@ -80,7 +88,16 @@ async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<
       const uMap = new Map(users.map((u: any) => [u.id, u]));
       acceptedWithDetails = (acceptedProviders || []).map((p: any) => ({
         ...p,
-        provider: uMap.get(p.providerId) || null,
+        provider: (() => {
+          const provider = uMap.get(p.providerId) as any;
+          if (!provider) return null;
+          const { ratingsScoreSum, ratingsCount, ...profile } = provider;
+          return {...profile, providerRating: {
+                                average: ratingsCount > 0 ? ratingsScoreSum / ratingsCount : null,
+                                count: ratingsCount,
+                              },
+          };
+        })(),
       }));
     }
   } catch {}
@@ -88,7 +105,6 @@ async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<
   return {
     ...(wr as any),
     acceptedProviders: acceptedWithDetails,
-    rating,
     serviceName: serviceMap.get((wr as any).service)?.name || (wr as any).service,
   } as FullWorkRequest;
 }
@@ -222,6 +238,44 @@ export async function list(req: Request, res: Response): Promise<void> {
     });
     return;
   }
+  // Fetch recent requests accepted by this provider & with closed status now
+  if (req.query.status === 'closed') {
+    try {
+      const requests = await pAny.workRequest.findMany({
+        where: {
+          status: 'closed',
+          createdAt: { gte: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000) },
+          acceptedProviders: { some: { providerId: user.id } },
+        },
+        orderBy: { closedAt: 'desc' },
+        take: 50,
+        include: {
+          user: { select: { name: true, avatarUrl: true } },
+          ratings: {
+            where: { submittedByUserId: user.id },
+            select: { id: true },
+          },
+        },
+      });
+      const serviceMap = await getServiceMap(Array.from(new Set(requests.map((request: any) => request.service))));
+      res.json(requests.map(({ ratings, user: endUser, ...request }: any) => {
+        const service = serviceMap.get(request.service);
+        return {
+          ...request,
+          serviceName: service?.name || request.service,
+          serviceIcon: service?.icon || null,
+          serviceColor: service?.color || null,
+          endUserName: endUser.name,
+          endUserAvatarUrl: endUser.avatarUrl,
+          canRateEndUser: request.selectedProviderId === user.id && ratings.length === 0,
+        };
+      }));
+    } catch (error) {
+      console.error('Failed to fetch closed work requests', error);
+      res.status(500).json({ message: t(getReqLang(req), 'request.fetchFailed') });
+    }
+    return;
+  }
 
   const providerInfo = await pAny.serviceProviderInfo?.findUnique?.({ where: { userId: user.id } });
   if (!providerInfo) {
@@ -261,8 +315,8 @@ export async function list(req: Request, res: Response): Promise<void> {
                wr."locationName" AS location_name,
                wr."locationLat" AS location_lat,
                wr."locationLng" AS location_lng,
-               usr.name AS requester_name,
-               usr."phoneNumber" AS requester_phone,
+               usr.name AS end_user_name,
+               usr."phoneNumber" AS end_user_phone,
                CASE WHEN ap.id IS NULL THEN false ELSE true END AS accepted_by_provider
         FROM "WorkRequest" wr
         JOIN "User" usr ON wr."userId" = usr."id"
@@ -291,8 +345,8 @@ export async function list(req: Request, res: Response): Promise<void> {
           location_name,
           location_lat,
           location_lng,
-          requester_name,
-          requester_phone,
+          end_user_name,
+          end_user_phone,
           ...rest
         } = request;
 
@@ -305,8 +359,8 @@ export async function list(req: Request, res: Response): Promise<void> {
           locationName: location_name || null,
           locationLat: location_lat || null,
           locationLng: location_lng || null,
-          requesterName: requester_name || null,
-          requesterPhone: requester_phone || null,
+          endUserName: end_user_name || null,
+          endUserPhone: end_user_phone || null,
         };
       });
 
@@ -359,6 +413,7 @@ export async function accept(req: Request, res: Response): Promise<void> {
     if (!providerInfo) { res.status(400).json({ message: t(lang, 'request.accept.providerProfileIncomplete') }); return; }
     const wr = await pAny.workRequest.findUnique({ where: { id } });
     if (!wr) { res.status(404).json({ message: t(lang, 'request.notFound') }); return; }
+    if ((wr as any).userId === user.id) { res.status(403).json({ message: t(lang, 'request.accept.notEligible') }); return; }
     if (!providerInfo.services.includes((wr as any).service)) { res.status(403).json({ message: t(lang, 'request.accept.notEligible') }); return; }
     const already = await pAny.acceptedProvider?.findFirst?.({ where: { workRequestId: id, providerId: user.id } });
     if (already) { res.status(409).json({ message: t(lang, 'request.accept.alreadyAccepted') }); return; }
@@ -371,8 +426,7 @@ export async function accept(req: Request, res: Response): Promise<void> {
       params: { name: user.name, service: (wr as any).service },
       data: { requestId: (wr as any).id, providerId: user.id }
     });
-    const full = await buildFullWorkRequest(id);
-    res.json(full);
+    res.status(204).end();
   } catch { res.status(500).json({ message: t(lang, 'request.accept.failed') }); }
 }
 
@@ -387,25 +441,48 @@ export async function close(req: Request, res: Response): Promise<void> {
     const lang = getReqLang(req);
     if (user.role !== 'endUser') { res.status(403).json({ message: t(lang, 'request.close.onlyEndUsers') }); return; }
     const { id } = req.params;
-    const { providerId, stars, review } = req.body as any;
+    const { providerId, stars: rating, review } = req.body as any;
+    if (providerId !== undefined && (typeof providerId !== 'string' || !providerId)) {
+      res.status(400).json({ message: t(lang, 'request.close.providerDidNotAccept') });
+      return;
+    }
+    if (rating !== undefined && (!providerId || typeof rating !== 'number' || !Number.isInteger(rating) || rating < 1 || rating > 5)) {
+      res.status(400).json({ message: t(lang, 'request.close.invalidStarRating') });
+      return;
+    }
     const wr = await pAny.workRequest.findFirst({ where: { id, userId: user.id } });
     if (!wr) { res.status(404).json({ message: t(lang, 'request.notFound') }); return; }
     if ((wr as any).status === 'closed') { res.status(409).json({ message: t(lang, 'request.close.alreadyClosed') }); return; }
 
-    await pAny.workRequest.update({ where: { id }, data: { status: 'closed', closedAt: new Date() } });
-
-    if (providerId && stars !== undefined) {
-      const s = Number(stars);
-      if (!Number.isInteger(s) || s < 1 || s > 5) { res.status(400).json({ message: t(lang, 'request.close.invalidStarRating') }); return; }
-      // Optional: ensure providerId actually accepted this request
+    if (providerId) {
       const accepted = await pAny.acceptedProvider.findFirst({ where: { workRequestId: id, providerId } });
       if (!accepted) { res.status(400).json({ message: t(lang, 'request.close.providerDidNotAccept') }); return; }
-      try {
-        await pAny.rating?.create?.({ data: { workRequestId: id, providerId, stars: s, review } });
-      } catch (err) {
-        console.warn('rating create failed, ignoring', err);
-      }
     }
+
+    const closed = await prisma.$transaction(async (tx) => {
+      const update = await tx.workRequest.updateMany({
+        where: { id, userId: user.id, status: 'active' },
+        data: { status: 'closed', closedAt: new Date(), selectedProviderId: providerId || null },
+      });
+      if (update.count !== 1) return false;
+      if (rating !== undefined && providerId) {
+        await tx.rating.create({
+          data: {
+            workRequestId: id,
+            submittedByUserId: user.id,
+            ratedUserId: providerId,
+            stars: rating,
+            review: typeof review === 'string' ? review : undefined,
+          },
+        });
+        await tx.user.update({
+          where: { id: providerId },
+          data: { ratingsScoreSum: { increment: rating }, ratingsCount: { increment: 1 } },
+        });
+      }
+      return true;
+    });
+    if (!closed) { res.status(409).json({ message: t(lang, 'request.close.alreadyClosed') }); return; }
 
     const full = await buildFullWorkRequest(id);
     res.json(full);
@@ -413,5 +490,76 @@ export async function close(req: Request, res: Response): Promise<void> {
     console.error('close error', e);
     const lang = getReqLang(req);
     res.status(500).json({ message: t(lang, 'request.close.failed') });
+  }
+}
+
+export async function rateEndUser(req: Request, res: Response): Promise<void> {
+  const user = (req as any).user;
+  const lang = getReqLang(req);
+  if (user.role !== 'serviceProvider') {
+    res.status(403).json({ message: t(lang, 'request.rate.onlyProviders') });
+    return;
+  }
+
+  const { id } = req.params;
+  const stars = (req.body as any)?.stars;
+  const review = (req.body as any)?.review;
+  if (typeof stars !== 'number' || !Number.isInteger(stars) || stars < 1 || stars > 5) {
+    res.status(400).json({ message: t(lang, 'request.close.invalidStarRating') });
+    return;
+  }
+
+  try {
+    const request = await pAny.workRequest.findUnique({ where: { id } });
+    if (!request) { res.status(404).json({ message: t(lang, 'request.notFound') }); return; }
+    if (request.status !== 'closed') {
+      res.status(409).json({ message: t(lang, 'request.rate.mustBeClosed') });
+      return;
+    }
+    if (request.selectedProviderId !== user.id) {
+      res.status(403).json({ message: t(lang, 'request.rate.notSelected') });
+      return;
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const eligibleRequest = await tx.workRequest.findFirst({
+        where: {
+          id,
+          status: 'closed',
+          selectedProviderId: user.id,
+          acceptedProviders: { some: { providerId: user.id } },
+          ratings: { none: { submittedByUserId: user.id } },
+        },
+        select: { userId: true },
+      });
+      if (!eligibleRequest) return null;
+      await tx.rating.create({
+        data: {
+          workRequestId: id,
+          submittedByUserId: user.id,
+          ratedUserId: eligibleRequest.userId,
+          stars,
+          review: typeof review === 'string' ? review : undefined,
+        },
+      });
+      await tx.user.update({
+        where: { id: eligibleRequest.userId },
+        data: { ratingsScoreSum: { increment: stars }, ratingsCount: { increment: 1 } },
+      });
+      return true;
+    });
+    if (!result) {
+      res.status(409).json({ message: t(lang, 'request.rate.alreadyRated') });
+      return;
+    }
+
+    res.status(204).end();
+  } catch (error: any) {
+    if (error?.code === 'P2002') {
+      res.status(409).json({ message: t(lang, 'request.rate.alreadyRated') });
+      return;
+    }
+    console.error('rateEndUser error', error);
+    res.status(500).json({ message: t(lang, 'request.rate.failed') });
   }
 }

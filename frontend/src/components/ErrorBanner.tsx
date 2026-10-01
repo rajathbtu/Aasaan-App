@@ -1,9 +1,13 @@
 import React from 'react';
 import axios from 'axios';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme';
+import { colors, spacing } from '../theme';
 import { useI18n } from '../i18n';
+import ActionButton from './ActionButton';
+
+/** Warm red used by the banner's surfaces and the retry pill. */
+const RETRY_BG = '#fd7b7b';
 
 type ErrorBannerProps = {
   error: unknown | null;
@@ -33,14 +37,13 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
         <Text style={styles.errorMessage}>{t(messageKey)}</Text>
       </View>
       {onRetry && (
-        <TouchableOpacity
-          style={styles.retryButton}
+        <ActionButton
+          buttonTitle={retryLabel}
+          buttonTitleColor={colors.white}
+          backgroundColor={RETRY_BG}
           onPress={onRetry}
-          accessibilityRole="button"
-          accessibilityLabel={retryLabel}
-        >
-          <Text style={styles.retryButtonText}>{retryLabel}</Text>
-        </TouchableOpacity>
+          style={styles.retryButton}
+        />
       )}
     </View>
   );
@@ -88,16 +91,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   retryButton: {
+    // ActionButton defaults to alignSelf:'flex-start'; this banner centres its
+    // children on the cross axis, so restore that for the compact retry pill.
+    alignSelf: 'center',
+    marginLeft: spacing.sm,
     paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#fd7b7b',
-    marginLeft: 8,
-  },
-  retryButtonText: {
-    color: colors.white,
-    fontSize: 13,
-    fontWeight: '700',
+    paddingVertical: 6,
   },
 });
 

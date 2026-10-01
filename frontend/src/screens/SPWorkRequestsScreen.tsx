@@ -5,7 +5,6 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   Alert,
   RefreshControl,
   Linking,
@@ -13,9 +12,9 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import * as realApi from '../api';
+import { acceptWorkRequest, listWorkRequests } from '../api';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, spacing, radius } from '../theme';
+import { colors, spacing, radius, surfaces } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
@@ -25,28 +24,11 @@ import SkeletonLoader from '../components/SkeletonLoader';
 import UpgradeProBanner from '../components/UpgradeProBanner';
 import EmptyState from '../components/EmptyState';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
-import { buildTimeAgo } from '../utils/time';
+import { buildTimeAgo, getDistanceKm } from '../utils/commonUtils';
 import Spinner from '../components/Spinner';
 import SegmentedTabs from '../components/SegmentedTabs';
-
-const API = realApi;
-  
-/**
- * Computes the distance between two latitude/longitude pairs using the
- * haversine formula.  Returns the distance in kilometres.
- */
-const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  const earthRadius = 6371; // Earth radius in km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return earthRadius * c;
-};
+import RateAndReviewModal from '../components/RateAndReviewModal';
+import ActionButton from '../components/ActionButton';
 
 /** Helper: ensure provider has completed profile before using this screen */
 function validateProviderProfile(user: any): { ok: boolean; next: 'services' | 'location' | null } {
@@ -75,7 +57,11 @@ const SPWorkRequestsScreen: React.FC = () => {
   const timeAgo = buildTimeAgo(t);
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<'all' | 'accepted'>('all');
+  const [tab, setTab] = useState<'all' | 'accepted' | 'closed'>('all');
+  const [closedRequests, setClosedRequests] = useState<any[]>([]);
+  const [closedLoading, setClosedLoading] = useState(false);
+  const [closedRequestsLoaded, setClosedRequestsLoaded] = useState(false);
+  const [ratingRequest, setRatingRequest] = useState<any | null>(null);
   const [filter, setFilter] = useState<'all' | 'today' | 'within3'>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
@@ -87,6 +73,7 @@ const SPWorkRequestsScreen: React.FC = () => {
   const listRef = useRef<FlatList<any>>(null);
   const userId = user?.id;
   const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
+  const closedRequestsCacheKey = userId ? offlineCacheKey('provider-closed-requests', userId) : null;
   
   const filterOptions = [
     { value: 'all', labelKey: 'spRequests.filterAll', iconName: 'apps-outline' },
@@ -104,7 +91,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         setRequests(cached);
         setLoading(false);
       }
-      const list = await API.listWorkRequests(token);
+      const list = await listWorkRequests(token);
       const nextRequests = Array.isArray(list) ? list : list.requests || [];
       setRequests(nextRequests);
       await writeOfflineCache(requestsCacheKey, nextRequests);
@@ -143,6 +130,25 @@ const SPWorkRequestsScreen: React.FC = () => {
     }
   };
 
+  const fetchClosedRequests = async () => {
+    if (!token || !closedRequestsCacheKey) return;
+    try {
+      setClosedLoading(true);
+      const cached = await readOfflineCache<any[]>(closedRequestsCacheKey);
+      if (cached) setClosedRequests(cached);
+      const list = await listWorkRequests(token, 'closed');
+      const nextRequests = Array.isArray(list) ? list : list.requests || [];
+      setClosedRequests(nextRequests);
+      await writeOfflineCache(closedRequestsCacheKey, nextRequests);
+      setClosedRequestsLoaded(true);
+      setRequestError(null);
+    } catch (err) {
+      setRequestError(err);
+    } finally {
+      setClosedLoading(false);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       // Guard: ensure provider profile completeness before loading data
@@ -167,7 +173,7 @@ const SPWorkRequestsScreen: React.FC = () => {
     if (!token || acceptingId) return;
     setAcceptingId(item.id);
     try {
-      await API.acceptWorkRequest(token, item.id);
+      await acceptWorkRequest(token, item.id);
       setRequestError(null);
       // Refreshing the list flips this card to the green "Accepted" state,
       // which acts as the visual confirmation (no blocking alert needed).
@@ -292,12 +298,16 @@ const SPWorkRequestsScreen: React.FC = () => {
    * and Call actions with a clear visual hierarchy.
    */
   const renderRequest = ({ item }: { item: any }) => {
+    const isClosedRequest = tab === 'closed';
     const accepted = isAcceptedByUser(item);
+    const rateEndUserLabel = t('requestDetails.rateEndUserNamed', {
+      name: item.endUserName || t('requestDetails.endUser'),
+    });
     const highlighted = item.id === highlightedRequestId;
     const accepting = acceptingId === item.id;
     const timeLabel = timeAgo(item.createdAt);
     // Fresh requests (under 2 hours old) get a "New" badge
-    const isNew =
+    const isNew = !isClosedRequest &&
       !accepted && Date.now() - new Date(item.createdAt).getTime() < 2 * 60 * 60 * 1000;
     // Compute distance if provider location is available
     let distanceLabel: string | null = null;
@@ -308,7 +318,8 @@ const SPWorkRequestsScreen: React.FC = () => {
         item.locationLat,
         item.locationLng
       );
-      distanceLabel = t('spRequests.distanceAway', { distance: d.toFixed(1) });
+      distanceLabel = d <= 1
+        ? t('spRequests.withinOneKm') : t('spRequests.distanceAway', { distance: d.toFixed(1) });
     }
 
     return (
@@ -350,19 +361,19 @@ const SPWorkRequestsScreen: React.FC = () => {
           {accepted && (
             <View style={styles.acceptedChip}>
               <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-              <Text style={styles.acceptedChipText}>{t('spRequests.acceptedChip')}</Text>
+              <Text style={styles.acceptedChipText}>{t(isClosedRequest ? 'spRequests.closedChip' : 'spRequests.acceptedChip')}</Text>
             </View>
           )}
         </View>
-        {/* Location and requester */}
+        {/* Location and end user */}
         <View style={styles.infoRow}>
           <Ionicons name="location-sharp" size={15} color={colors.grey} />
           <Text style={styles.infoText} numberOfLines={2}>{item.locationName}</Text>
         </View>
-        {!!item.requesterName && (
+        {!!item.endUserName && (
           <View style={styles.infoRow}>
             <Ionicons name="person-outline" size={15} color={colors.greyMuted} />
-            <Text style={styles.infoTextMuted} numberOfLines={1}>{item.requesterName}</Text>
+            <Text style={styles.infoTextMuted} numberOfLines={1}>{item.endUserName}</Text>
           </View>
         )}
         {/* Tags */}
@@ -377,84 +388,81 @@ const SPWorkRequestsScreen: React.FC = () => {
         )}
         {/* Action buttons: all CTAs share the same size in every state;
             only the background/label colours change. */}
-        <View style={styles.divider} />
-        <View style={styles.actionRow}>
-          {!accepted && (
-            <TouchableOpacity
-              style={[styles.ctaButton, styles.ctaFilled]}
-              onPress={() => handleAccept(item)}
-              disabled={accepting}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel={t('spRequests.accept')}
-            >
-              {accepting ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <>
-                  <Ionicons name="checkmark" size={16} color="white" style={{ marginRight: 6 }} />
-                  <Text style={styles.ctaLabelLight} numberOfLines={1}>{t('spRequests.accept')}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity // @todo: Navigate CTA may be dangerous for app engagement as users are redirected to external maps app... so should be used with caution
-            style={[styles.ctaButton, accepted ? styles.ctaTintedSecondary : styles.ctaTintedPrimary]}
-            onPress={() => handleNavigate(item)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={t('spRequests.navigate') || 'Navigate'}
-          >
-            <Ionicons
-              name="navigate"
-              size={16}
-              color={accepted ? colors.secondary : colors.primary}
-              style={{ marginRight: 6 }}
+        {(!isClosedRequest || item.canRateEndUser) && <>
+          <View style={styles.divider} />
+          <View style={styles.actionRow}>
+          {isClosedRequest ? (
+            <ActionButton
+              buttonIcon="star"
+              buttonTitle={rateEndUserLabel}
+              showRightArrow={false}
+              buttonTitleColor={colors.white}
+              backgroundColor={colors.primary}
+              onPress={() => setRatingRequest(item)}
             />
-            <Text
-              style={[styles.ctaLabel, { color: accepted ? colors.secondary : colors.primary }]}
-              numberOfLines={1}
-            >
-              {t('spRequests.navigate') || 'Navigate'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.ctaButton, accepted ? styles.ctaFilled : styles.ctaTintedSecondary]}
+          ) : (
+          <>
+          {!accepted && (
+            <ActionButton
+              buttonIcon="checkmark"
+              buttonTitle={t('spRequests.accept')}
+              buttonTitleColor={colors.white}
+              backgroundColor={colors.primary}
+              onPress={() => handleAccept(item)}
+              loading={accepting}
+              style={styles.ctaSpacing}
+            />
+          )}
+          {/* @todo: Navigate CTA may be dangerous for app engagement as users are redirected to external maps app... so should be used with caution */}
+          <ActionButton
+            buttonIcon="navigate"
+            buttonTitle={t('spRequests.navigate') || 'Navigate'}
+            buttonTitleColor={accepted ? colors.secondary : colors.primary}
+            backgroundColor={accepted ? colors.successLight : colors.primarySoft}
+            onPress={() => handleNavigate(item)}
+            style={styles.ctaSpacing}
+          />
+          <ActionButton
+            buttonIcon="call"
+            buttonTitle={accepted ? t('spRequests.callNow') : t('spRequests.call')}
+            buttonTitleColor={accepted ? colors.white : colors.secondary}
+            backgroundColor={accepted ? colors.primary : colors.successLight}
             onPress={() => {
-              if (item.requesterPhone) {
-                Linking.openURL(`tel:${item.requesterPhone}`);
+              if (item.endUserPhone) {
+                Linking.openURL(`tel:${item.endUserPhone}`);
               } else {
                 Alert.alert('Error', 'Requester phone number is not available.');
               }
             }}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={accepted ? t('spRequests.callNow') : t('spRequests.call')}
-          >
-            <Ionicons
-              name="call"
-              size={16}
-              color={accepted ? 'white' : colors.secondary}
-              style={{ marginRight: 6 }}
-            />
-            <Text
-              style={accepted ? styles.ctaLabelLight : [styles.ctaLabel, { color: colors.secondary }]}
-              numberOfLines={1}
-            >
-              {accepted ? t('spRequests.callNow') : t('spRequests.call')}
-            </Text>
-          </TouchableOpacity>
-        </View>
+            style={styles.ctaSpacing}
+          />
+          </>
+          )}
+          </View>
+        </>}
       </View>
     );
+  };
+
+  const handleEndUserRatingSuccess = () => {
+    if (!ratingRequest) return;
+    setClosedRequests(current => current.map(request => request.id === ratingRequest.id
+      ? { ...request, canRateEndUser: false }
+      : request));
   };
 
   // Pull-to-refresh handler
   const onRefresh = async () => {
     if (!token || !requestsCacheKey) return;
+    if (tab === 'closed') {
+      setRefreshing(true);
+      await fetchClosedRequests();
+      setRefreshing(false);
+      return;
+    }
     try {
       setRefreshing(true);
-      const latestRequests = await API.listWorkRequests(token);
+      const latestRequests = await listWorkRequests(token);
       const latest = Array.isArray(latestRequests) ? latestRequests : latestRequests.requests || [];
       setRequests(prevRequests => {
         const newRequests = latest.filter(
@@ -492,6 +500,7 @@ const SPWorkRequestsScreen: React.FC = () => {
   // Counts for segmented control
   const totalCount = requests.length;
   const acceptedCount = requests.filter(r => isAcceptedByUser(r)).length;
+  const displayedRequests = tab === 'closed' ? closedRequests : filteredRequests;
 
   return (
     <View style={{ flex: 1 }}>
@@ -508,16 +517,19 @@ const SPWorkRequestsScreen: React.FC = () => {
         <SegmentedTabs
           activeKey={tab}
           onChange={(key) => {
-            setTab(key as 'all' | 'accepted');
+            const nextTab = key as 'all' | 'accepted' | 'closed';
+            setTab(nextTab);
+            if (nextTab === 'closed' && !closedRequestsLoaded && !closedLoading) fetchClosedRequests();
             listRef.current?.scrollToOffset({ offset: 0, animated: true });
           }}
           tabs={[
             { key: 'all', label: t('spRequests.allTab'), count: totalCount },
             { key: 'accepted', label: t('spRequests.acceptedTab'), count: acceptedCount },
+            { key: 'closed', label: t('spRequests.closedTab'), count: closedRequests.length },
           ]}
         />
         {/* Filter chips */}
-        <View style={styles.filterRow}>
+        {tab !== 'closed' && <View style={styles.filterRow}>
           {filterOptions.map(({ value, labelKey, iconName }) => {
             const active = filter === value;
             return (
@@ -532,7 +544,7 @@ const SPWorkRequestsScreen: React.FC = () => {
               </TouchableOpacity>
             );
           })}
-        </View>
+        </View>}
         {/* Loading indicator when few requests are available */}
         {loading && requests.length > 0 && (
           <View style={styles.loadingRow}>
@@ -540,15 +552,17 @@ const SPWorkRequestsScreen: React.FC = () => {
           </View>
         )}
         {/* List */}
-        {filteredRequests.length === 0 ? (
+        {tab === 'closed' && closedLoading && closedRequests.length === 0 ? (
+          <SkeletonLoader count={4} />
+        ) : displayedRequests.length === 0 ? (
           <EmptyState
             icon="briefcase-outline"
-            title={t(tab === 'accepted' ? 'spRequests.emptyAccepted' : 'spRequests.empty')}
-            description={t(tab === 'accepted' ? 'spRequests.emptyHintAccepted' : 'spRequests.emptyHint')} />
+            title={t(tab === 'closed' ? 'spRequests.emptyClosed' : tab === 'accepted' ? 'spRequests.emptyAccepted' : 'spRequests.empty')}
+            description={t(tab === 'closed' ? 'spRequests.emptyClosedHint' : tab === 'accepted' ? 'spRequests.emptyHintAccepted' : 'spRequests.emptyHint')} />
         ) : (
           <FlatList
             ref={listRef}
-            data={filteredRequests}
+            data={displayedRequests}
             keyExtractor={(item: any) => item.id}
             renderItem={renderRequest}
             onScrollToIndexFailed={({ index, averageItemLength }) => {
@@ -579,7 +593,15 @@ const SPWorkRequestsScreen: React.FC = () => {
             onClose={() => setShowProBanner(false)}
           />
         )}
-        <ErrorBanner error={requestError} onRetry={fetchRequests} />
+        <ErrorBanner error={requestError} onRetry={tab === 'closed' ? fetchClosedRequests : fetchRequests} />
+        <RateAndReviewModal
+          mode="endUser"
+          visible={!!ratingRequest}
+          request={ratingRequest}
+          token={token}
+          onClose={() => setRatingRequest(null)}
+          onSuccess={handleEndUserRatingSuccess}
+        />
         {/* Safe area overlay to prevent content overlap with device buttons */}
         <SafeBottomBanner />
       </View>
@@ -635,16 +657,9 @@ const styles = StyleSheet.create({
   },
   // --- Request cards ---
   card: {
-    borderWidth: 1,
-    borderRadius: radius.xl,
+    ...surfaces.card,
     padding: spacing.md,
     marginBottom: spacing.md,
-    backgroundColor: colors.white,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
   },
   cardAccepted: {
     backgroundColor: '#f0fdf4',
@@ -757,32 +772,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginTop: spacing.sm,
   },
-  ctaButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.md,
+  // Spacing-only; the button shape itself now comes from ActionButton.
+  ctaSpacing: {
     marginRight: spacing.sm,
-  },
-  ctaFilled: {
-    backgroundColor: colors.primary,
-  },
-  ctaTintedPrimary: {
-    backgroundColor: colors.primarySoft,
-  },
-  ctaTintedSecondary: {
-    backgroundColor: colors.successLight,
-  },
-  ctaLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  ctaLabelLight: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '700',
   },
 });
 

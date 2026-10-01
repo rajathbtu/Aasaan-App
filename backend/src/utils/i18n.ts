@@ -88,6 +88,13 @@ const translations: Record<Locale, Record<string, any>> = {
         invalidStarRating: 'Invalid star rating (1-5)',
         providerDidNotAccept: 'Selected provider did not accept this request',
         failed: 'Close failed',
+      },
+      rate: {
+        onlyProviders: 'Only service providers can rate the end user',
+        mustBeClosed: 'The work request must be closed before rating',
+        notSelected: 'Only the selected provider can rate the end user',
+        alreadyRated: 'You have already rated this end user',
+        failed: 'Rating submission failed',
       }
     },
     payment: {

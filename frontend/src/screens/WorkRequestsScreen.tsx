@@ -11,15 +11,14 @@ import ErrorBanner from '../components/ErrorBanner';
 import WorkRequestCard from '../components/WorkRequestCard';
 import SegmentedTabs from '../components/SegmentedTabs';
 import EmptyState from '../components/EmptyState';
-import * as realApi from '../api';
+import { listWorkRequests } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import { colors, spacing } from '../theme';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
-import { buildTimeAgo } from '../utils/time';
+import { buildTimeAgo } from '../utils/commonUtils';
 import SkeletonLoader from '../components/SkeletonLoader';
 
-const API = realApi;
 type RequestTab = 'active' | 'completed';
 type RequestsByTab = Record<RequestTab, any[]>;
 
@@ -66,7 +65,7 @@ const WorkRequestsScreen: React.FC = () => {
           setLoading(false);
         }
       }
-      const result = await API.listWorkRequests(token, status);
+      const result = await listWorkRequests(token, status);
       const nextRequests = result.requests || result;
       setRequestError(null);
       setRequestsByTab((current) => ({

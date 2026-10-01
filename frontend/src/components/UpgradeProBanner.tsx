@@ -8,6 +8,7 @@ import {
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, radius, tints } from '../theme';
 import { useI18n } from '../i18n';
+import ActionButton from './ActionButton';
 
 /**
  * Shared "Go Professional / Upgrade" promotional component used by
@@ -41,6 +42,9 @@ const FEATURE_KEYS = [
   'profile.featRadius',
   'profile.featPriority',
 ] as const;
+
+/** `onPress` is optional; the CTA still needs a handler. */
+const noop = () => {};
 
 const UpgradeProBanner: React.FC<Props> = ({ variant = 'card', onPress, onClose }) => {
   const { t } = useI18n();
@@ -150,10 +154,14 @@ const UpgradeProBanner: React.FC<Props> = ({ variant = 'card', onPress, onClose 
           <Text numberOfLines={1} style={styles.cardPrice}>
             {t('profile.startingFrom', { price: '₹100' })}
           </Text>
-          <View style={styles.cardCta}>
-            <Text style={styles.cardCtaText}>{t('profile.viewPlans')}</Text>
-            <Ionicons name="arrow-forward" size={14} color={colors.white} />
-          </View>
+          <ActionButton
+            buttonTitle={t('profile.viewPlans')}
+            buttonTitleColor={colors.white}
+            backgroundColor={colors.violetStrong}
+            onPress={onPress ?? noop}
+            style={styles.cardCta}
+            showRightArrow
+          />
         </View>
       </View>
     </TouchableOpacity>
@@ -381,22 +389,12 @@ const styles = StyleSheet.create({
     color: VIOLET_INK,
   },
   cardCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.violetStrong,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
     paddingVertical: 10,
+    paddingHorizontal: spacing.lg,
     shadowColor: VIOLET_DEEP,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
-  },
-  cardCtaText: {
-    color: colors.white,
-    fontSize: 13,
-    fontWeight: '700',
-    marginRight: spacing.xs,
   },
 });
