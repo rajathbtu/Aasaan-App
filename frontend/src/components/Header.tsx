@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing } from '../theme';
+import { colors, shadows, spacing } from '../theme';
 import { useNotificationCount } from '../contexts/NotificationCountContext';
 
 type HeaderProps = {
@@ -123,11 +123,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.greyLight,
-    shadowColor: colors.black,
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2, // Android shadow
+    ...shadows.md,
   },
   headerRow: {
     flexDirection: 'row',

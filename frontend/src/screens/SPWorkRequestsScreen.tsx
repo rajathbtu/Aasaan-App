@@ -525,7 +525,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           tabs={[
             { key: 'all', label: t('spRequests.allTab'), count: totalCount },
             { key: 'accepted', label: t('spRequests.acceptedTab'), count: acceptedCount },
-            { key: 'closed', label: t('spRequests.closedTab'), count: closedRequests.length },
+            { key: 'closed', label: t('spRequests.closedTab'), count: closedRequestsLoaded ? closedRequests.length : undefined },
           ]}
         />
         {/* Filter chips */}
@@ -571,7 +571,7 @@ const SPWorkRequestsScreen: React.FC = () => {
                 animated: true,
               });
             }}
-            contentContainerStyle={{ paddingBottom: spacing.xl * 3 }}
+            contentContainerStyle={{ marginTop: spacing.md, paddingBottom: spacing.xl * 3 }}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
   // --- Filter chips ---
   filterRow: {
     flexDirection: 'row',
-    marginBottom: spacing.md,
+    marginTop: spacing.sm,
   },
   filterChip: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, View, StyleSheet } from 'react-native';
 import { colors, spacing, radius } from '../theme';
 
 type Props = {
@@ -14,24 +14,41 @@ type Props = {
  * can keep their header/chrome visible instead of flashing a full-screen
  * spinner.
  */
-const SkeletonLoader: React.FC<Props> = ({ count = 3 }) => (
-  <View>
-    {Array.from({ length: count }).map((_, index) => (
-      <View key={index} style={styles.card}>
-        <View style={styles.headerRow}>
-          <View style={styles.iconCircle} />
-          <View style={{ flex: 1 }}>
-            <View style={[styles.bar, styles.titleBar]} />
-            <View style={[styles.bar, styles.subtitleBar]} />
-          </View>
+const SkeletonLoader: React.FC<Props> = ({ count = 3 }) => {
+  const opacity = useRef(new Animated.Value(0.2)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 1, duration: 750, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.2, duration: 750, useNativeDriver: true }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [opacity]);
+
+  return (
+    <View>
+      {Array.from({ length: count }).map((_, index) => (
+        <View key={index} style={styles.card}>
+          <Animated.View style={{ opacity }}>
+            <View style={styles.headerRow}>
+              <View style={styles.iconCircle} />
+              <View style={{ flex: 1 }}>
+                <View style={[styles.bar, styles.titleBar]} />
+                <View style={[styles.bar, styles.subtitleBar]} />
+              </View>
+            </View>
+            <View style={[styles.bar, styles.lineBar]} />
+            <View style={[styles.bar, styles.shortLineBar]} />
+            <View style={styles.actionBar} />
+          </Animated.View>
         </View>
-        <View style={[styles.bar, styles.lineBar]} />
-        <View style={[styles.bar, styles.shortLineBar]} />
-        <View style={styles.actionBar} />
-      </View>
-    ))}
-  </View>
-);
+      ))}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   card: {
