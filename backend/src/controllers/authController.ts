@@ -209,7 +209,7 @@ export function sendOtp(req: Request, res: Response): void {
     return;
   }
   // const otp = generateOTP();
-  const otp = 8891; // TODO: Fixed OTP for testing; revert to generateOTP() for production
+  const otp = 2026; // TODO: Fixed OTP for testing; revert to generateOTP() for production
   pendingOtps.set(phone, otp);
   // In a real app you would send the OTP via SMS here
   console.log(`Generated OTP ${otp} for phone ${phone}`);
@@ -267,7 +267,7 @@ export async function register(req: Request, res: Response): Promise<void> {
   }
 
   const expectedOtp = pendingOtps.get(phone);
-  if (false && (!expectedOtp || expectedOtp !== otp)) { // @todo: Remove harcoded OTP & harcoded false
+  if (!expectedOtp || expectedOtp !== Number(otp)) {
     res.status(401).json({ message: t(lang, 'auth.incorrectOtp') });
     return;
   }

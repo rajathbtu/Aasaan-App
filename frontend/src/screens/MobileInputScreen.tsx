@@ -70,14 +70,13 @@ const MobileInputScreen: React.FC = () => {
       setLoading(true);
       const result = await checkUserRegistration(trimmed); // Check if user is registered
 
-      if (result.isRegistered) {
-        // Navigate to OTPVerificationScreen if user is registered
-        await sendOtp(trimmed);
+      await sendOtp(trimmed);// OTP must be issued for BOTH login & sign up flows
+      
+      if (result.isRegistered) 
         navigation.navigate('OTPVerification', { phone: trimmed, language });
-      } else {
-        // Navigate to NameOTPValidationScreen if user is not registered
+      else 
         navigation.navigate('NameOTPValidation', { phone: trimmed, language });
-      }
+      
     } catch (err: any) {
       Alert.alert(t('common.error'), err.message || 'Failed to process request');
     } finally {
