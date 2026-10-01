@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { sendOtp } from '../api';
@@ -13,6 +13,11 @@ const OTP_LENGTH = 4;
 const RESEND_SECONDS = 30;
 /** How long the "auto-reading SMS" hint stays visible. */
 const AUTO_READ_HINT_MS = 2500;
+const FIELD_HEIGHT = 52;
+const FIELD_WIDTH = 232;
+const CARET_BLINK_MS = 500;/** Cadence of the blinking caret drawn in the slot awaiting the next digit. */
+const BULLET = '\u2022';/** Placeholder glyph for every slot that has not been typed into yet. */
+
 
 export type OtpInputProps = {
   /** Phone number the OTP was sent to — used when resending. */
@@ -29,24 +34,33 @@ export type OtpInputProps = {
  * Shared 4-digit OTP entry used by the OTP verification and name+OTP
  * registration screens.
  *
- * It owns the digit state, focus handling, resend countdown and the resend
- * request itself so both screens stay visually and behaviourally identical.
- * The verify CTA intentionally stays with the parent screen — the code is
- * surfaced through `onOtpChange`.
+ * A single `TextInput` collects the code, but the digits you see are drawn by
+ * an overlay of `OTP_LENGTH` slots laid over it. 
+ * 
+ * The input's own text is transparent (`color: 'transparent'`) and it is the
+ * overlay that renders each digit or its bullet placeholder, so a typed digit
+ * replaces exactly one bullet and the remaining bullets stay put.
+ *
+ * It owns the code state, resend countdown and the resend request itself so
+ * both screens stay visually and behaviourally identical. The verify CTA
+ * intentionally stays with the parent screen — the code is surfaced through
+ * `onOtpChange`.
  */
 const OtpInput: React.FC<OtpInputProps> = ({ phone, language, onOtpChange, loading = false }) => {
   const { t } = useI18n(language);
   const { showToast } = useToast();
-  const [digits, setDigits] = useState<string[]>(() => Array(OTP_LENGTH).fill(''));
+  const [otp, setOtp] = useState('');
+  const [focused, setFocused] = useState(false);
   const [seconds, setSeconds] = useState(RESEND_SECONDS);
   const [showAutoRead, setShowAutoRead] = useState(true);
   const [resending, setResending] = useState(false);
-  const inputsRef = useRef<Array<TextInput | null>>([]);
+  const inputRef = useRef<TextInput>(null);
+  const caretOpacity = useRef(new Animated.Value(1)).current;
 
-  /** Store the digits locally and hand the joined code up to the screen. */
-  const applyDigits = (next: string[]) => {
-    setDigits(next);
-    onOtpChange(next.join(''));
+  /** Store the code locally and hand it up to the screen. */
+  const applyOtp = (next: string) => {
+    setOtp(next);
+    onOtpChange(next);
   };
 
   useEffect(() => {
@@ -60,32 +74,33 @@ const OtpInput: React.FC<OtpInputProps> = ({ phone, language, onOtpChange, loadi
     return () => clearInterval(id);
   }, [seconds]);
 
-  const focusNext = (index: number) => {
-    if (index < OTP_LENGTH - 1) inputsRef.current[index + 1]?.focus();
-  };
+  /** Blink the caret only while the field holds focus. */
+  useEffect(() => {
+    if (!focused) {
+      caretOpacity.setValue(1);
+      return;
+    }
+    const blink = Animated.loop(
+      Animated.sequence([
+        Animated.timing(caretOpacity, { toValue: 0, duration: CARET_BLINK_MS, useNativeDriver: true }),
+        Animated.timing(caretOpacity, { toValue: 1, duration: CARET_BLINK_MS, useNativeDriver: true }),
+      ]),
+    );
+    blink.start();
+    return () => blink.stop();
+  }, [focused, caretOpacity]);
 
-  const focusPrev = (index: number) => {
-    if (index > 0) inputsRef.current[index - 1]?.focus();
-  };
-
-  const onChangeDigit = (text: string, index: number) => {
-    const sanitized = text.replace(/\D/g, '').slice(0, 1);
-    const next = [...digits];
-    next[index] = sanitized;
-    applyDigits(next);
-    if (sanitized) focusNext(index);
-  };
-
-  const onKeyPress = (e: any, index: number) => {
-    if (e.nativeEvent.key === 'Backspace' && !digits[index]) focusPrev(index);
+  /** Keep only digits, capped at the code length (pastes can be longer). */
+  const onChangeOtp = (text: string) => {
+    applyOtp(text.replace(/\D/g, '').slice(0, OTP_LENGTH));
   };
 
   const handleResend = async () => {
     try {
       setResending(true);
       await sendOtp(phone);
-      applyDigits(Array(OTP_LENGTH).fill(''));
-      inputsRef.current[0]?.focus();
+      applyOtp('');
+      inputRef.current?.focus();
       setSeconds(RESEND_SECONDS);
       showToast(t('common.otpSentDesc'));
     } catch (err: any) {
@@ -100,25 +115,50 @@ const OtpInput: React.FC<OtpInputProps> = ({ phone, language, onOtpChange, loadi
 
   return (
     <View style={styles.otpField}>
-      {/* 4 boxed inputs */}
-      <View style={styles.otpRow}>
-        {Array.from({ length: OTP_LENGTH }, (_, i) => (
+      {/* One field, one TextInput — the slots below draw what it contains. */}
+      <View style={styles.otpBox}>
+        {/*
+          The input is a keystroke catcher only, so this layer is fully
+          transparent. Hiding it with the layer's opacity (rather than a
+          transparent text colour) is what actually works reliably on Android,
+          where the native EditText keeps drawing its own glyphs.
+        */}
+        <View style={styles.otpInputLayer} pointerEvents="box-none">
           <TextInput
-            key={i}
-            ref={(el) => {
-              inputsRef.current[i] = el;
-            }}
+            ref={inputRef}
+            style={styles.otpInput}
+            value={otp}
+            onChangeText={onChangeOtp}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             keyboardType="number-pad"
-            maxLength={1}
-            value={digits[i]}
-            onChangeText={(text) => onChangeDigit(text, i)}
-            onKeyPress={(e) => onKeyPress(e, i)}
-            style={styles.otpBox}
-            returnKeyType="next"
-            placeholder="0"
-            placeholderTextColor={colors.greyMuted}
+            maxLength={OTP_LENGTH}
+            returnKeyType="done"
+            textContentType="oneTimeCode"
+            autoComplete="sms-otp"
+            selectionColor="transparent"
+            caretHidden
+            accessibilityLabel={t('otp.title')}
           />
-        ))}
+        </View>
+
+        {/* Spaced slots: a digit once typed, a bullet until then. */}
+        <View style={styles.otpSlots} pointerEvents="none">
+          {Array.from({ length: OTP_LENGTH }, (_, i) => {
+            const digit = otp[i];
+            const isActive = focused && i === otp.length;
+            return (
+              <View key={i} style={styles.otpSlot}>
+                {digit ? (
+                  <Text style={styles.otpDigit}>{digit}</Text>
+                ) : (
+                  <Text style={styles.otpBullet}>{BULLET}</Text>
+                )}
+                {isActive && <Animated.View style={[styles.otpCaret, { opacity: caretOpacity }]} />}
+              </View>
+            );
+          })}
+        </View>
       </View>
 
       {/* Auto-read indicator */}
@@ -152,25 +192,68 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     paddingHorizontal: 0,
   },
-  otpRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 6,
-  },
   otpBox: {
-    flex: 1,
-    maxWidth: 52,
-    height: 52,
-    textAlign: 'center',
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.dark,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: FIELD_WIDTH,
+    height: FIELD_HEIGHT,
+    justifyContent: 'center',
     backgroundColor: colors.white,
     borderWidth: 1.5,
     borderColor: colors.greyBorder,
     borderRadius: radius.md,
+  },
+  /**
+   * Fades the whole native input out. Doing it on a wrapper `View` instead of
+   * `color: 'transparent'` on the input itself, because Android's EditText can
+   * keep rendering its glyphs over our drawn slots.
+   */
+  otpInputLayer: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0,
+  },
+  /** Kept measurable so the caret/selection maths still line up. */
+  otpInput: {
+    flex: 1,
+    color: 'transparent',
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '700',
     paddingVertical: 0,
+  },
+  /** Row of `OTP_LENGTH` equal cells — this is the digit spacing. */
+  otpSlots: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  otpSlot: {
+    flex: 1,
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  otpDigit: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.dark,
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  otpBullet: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.greyMuted,
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  /** Blinking marker for the slot the next digit will land in. */
+  otpCaret: {
+    position: 'absolute',
+    height: 24,
+    width: 2,
+    borderRadius: 1,
+    backgroundColor: colors.dark,
   },
   autoReadRow: {
     flexDirection: 'row',
