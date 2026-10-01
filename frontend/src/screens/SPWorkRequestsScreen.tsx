@@ -318,7 +318,8 @@ const SPWorkRequestsScreen: React.FC = () => {
         item.locationLat,
         item.locationLng
       );
-      distanceLabel = t('spRequests.distanceAway', { distance: d.toFixed(1) });
+      distanceLabel = d <= 1
+        ? t('spRequests.withinOneKm') : t('spRequests.distanceAway', { distance: d.toFixed(1) });
     }
 
     return (
