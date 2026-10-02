@@ -13,6 +13,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum PicModeration {
+  under_review
+  approved
+  blocked
+
+  @@map("pic_moderation_status")
+}
+
 model User {
   id                  String   @id @default(uuid())
   name                String
@@ -31,7 +39,9 @@ model User {
   receivedRatings     Rating[] @relation("RatingRecipient")
   ratingsScoreSum     Int      @default(0)
   ratingsCount        Int      @default(0)
-  avatarUrl           String?
+  picUrl              String?
+  picAssetId           String?
+  picModeration       PicModeration @default(approved) @map("pic_moderation")
   pushToken           String?
   pushTokenPlatform   String?
   pushTokenUpdatedAt  DateTime?

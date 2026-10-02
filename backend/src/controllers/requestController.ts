@@ -54,7 +54,7 @@ async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<
     getServiceMap((wr as any).service ? [(wr as any).service] : []),
   ]);
 
-  // Enrich accepted providers with user profile (name, phone, avatarUrl)
+  // Enrich accepted providers with user profile (name, phone, picUrl)
   let acceptedWithDetails: any[] = acceptedProviders || [];
   try {
     const ids = Array.from(new Set((acceptedProviders || []).map((p: any) => p.providerId)));
@@ -65,7 +65,8 @@ async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<
           id: true,
           name: true,
           phoneNumber: true,
-          avatarUrl: true,
+          picUrl: true,
+          picModeration: true,
           createdAt: true,
           ratingsScoreSum: true,
           ratingsCount: true,
@@ -91,8 +92,11 @@ async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<
         provider: (() => {
           const provider = uMap.get(p.providerId) as any;
           if (!provider) return null;
-          const { ratingsScoreSum, ratingsCount, ...profile } = provider;
-          return {...profile, providerRating: {
+          const { ratingsScoreSum, ratingsCount, picModeration, ...profile } = provider;
+          return {
+            ...profile,
+            picUrl: picModeration === 'approved' ? profile.picUrl : null,
+            providerRating: {
                                 average: ratingsCount > 0 ? ratingsScoreSum / ratingsCount : null,
                                 count: ratingsCount,
                               },
@@ -250,7 +254,7 @@ export async function list(req: Request, res: Response): Promise<void> {
         orderBy: { closedAt: 'desc' },
         take: 50,
         include: {
-          user: { select: { name: true, avatarUrl: true } },
+          user: { select: { name: true, picUrl: true, picModeration: true } },
           ratings: {
             where: { submittedByUserId: user.id },
             select: { id: true },
@@ -266,7 +270,7 @@ export async function list(req: Request, res: Response): Promise<void> {
           serviceIcon: service?.icon || null,
           serviceColor: service?.color || null,
           endUserName: endUser.name,
-          endUserAvatarUrl: endUser.avatarUrl,
+          endUserPicUrl: endUser.picModeration === 'approved' ? endUser.picUrl : null,
           canRateEndUser: request.selectedProviderId === user.id && ratings.length === 0,
         };
       }));

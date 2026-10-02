@@ -48,7 +48,7 @@ const RateAndReviewModal: React.FC<RateAndReviewModalProps> = ({
   const ratedProvider = acceptedProviders.find((item: any) => item.providerId === selectedProviderId);
   const ratedProviderName = ratedProvider?.provider?.name || ratedProvider?.providerId || t('requestDetails.provider');
   const ratedEndUserName = request?.endUserName || request?.user?.name || t('requestDetails.endUser');
-  const ratedEndUserAvatarUrl = request?.endUserAvatarUrl || request?.user?.avatarUrl;
+  const ratedEndUserPicUrl = request?.endUserPicUrl || request?.user?.picUrl;
   const ratedEndUserLocation = request?.locationName || request?.endUserLocation;
 
   useEffect(() => {
@@ -126,7 +126,7 @@ const RateAndReviewModal: React.FC<RateAndReviewModalProps> = ({
           {isRatingEndUser ? (
             <View style={styles.providerCard}>
               <View style={styles.providerCardHeader}>
-                <ProfileAvatar profilePic={ratedEndUserAvatarUrl} profileName={ratedEndUserName} />
+                <ProfileAvatar picUrl={ratedEndUserPicUrl} profileName={ratedEndUserName} />
                 <View style={styles.providerDetails}>
                   <Text style={styles.providerName} numberOfLines={1}>{ratedEndUserName}</Text>
                   {ratedEndUserLocation ? (
@@ -154,7 +154,7 @@ const RateAndReviewModal: React.FC<RateAndReviewModalProps> = ({
                     accessibilityRole="radio"
                     accessibilityState={{ selected: isSelected }}>
                     <View style={styles.providerCardHeader}>
-                      <ProfileAvatar profilePic={provider.avatarUrl} profileName={name} />
+                      <ProfileAvatar picUrl={provider.picUrl} profileName={name} />
                       <View style={styles.providerDetails}>
                         <Text style={styles.providerName} numberOfLines={1}>{name}</Text>
                         {provider.serviceName ? <Text style={styles.providerSubtitle} numberOfLines={1}>{provider.serviceName}</Text> : null}

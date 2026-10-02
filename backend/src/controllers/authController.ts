@@ -22,6 +22,12 @@ const TRUECALLER_PROFILE_HOSTS = new Set([
   'profile4-eu.truecaller.com',
 ]);
 
+function sanitizeUserPhoto<T extends { picUrl?: string | null; picModeration?: string }>(user: T): T {
+  return {
+    ...user, picUrl: user.picModeration === 'approved' ? user.picUrl ?? null : null,
+  };
+}
+
 function getExpiry(): number {
   return Date.now() + TRUECALLER_PROFILE_TTL_MS;
 }
@@ -181,7 +187,7 @@ export function truecallerStatus(req: Request, res: Response): void {
     res.status(404).json({ message: 'Truecaller login request expired' });
     return;
   }
-  res.json(state);
+  res.json(state.status === 'complete' ? { ...state, user: sanitizeUserPhoto(state.user as any) } : state);
   if (state.status === 'complete' || state.status === 'failed') {
     truecallerLogins.delete(req.params.requestId);
   }
@@ -239,7 +245,7 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
   if (existing) {
     // Consume OTP only when logging in an existing user
     pendingOtps.delete(phone);
-    res.json({ token: existing.id, user: existing });
+    res.json({ token: existing.id, user: sanitizeUserPhoto(existing) });
     return;
   }
   // Keep OTP so that /auth/register can verify presence
@@ -293,7 +299,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       plan: 'free', // Default value
     });
     pendingOtps.delete(phone); // Consume OTP after successful registration
-    res.json({ token: user.id, user });
+    res.json({ token: user.id, user: sanitizeUserPhoto(user) });
   } catch (error) {
     console.error('Error registering user:', error);
     res.status(500).json({ message: t(lang, 'common.internalError') });
@@ -346,7 +352,7 @@ export async function completeOnboarding(req: Request, res: Response): Promise<v
       creditPoints: 0,
       plan: 'free',
     });
-    res.json({ token: user.id, user });
+    res.json({ token: user.id, user: sanitizeUserPhoto(user) });
   } catch (error) {
     console.error('Error completing onboarding:', error);
     res.status(400).json({ message: 'Invalid onboarding token' });

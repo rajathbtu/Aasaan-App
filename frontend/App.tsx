@@ -32,6 +32,7 @@ import WorkRequestsScreen from './src/screens/WorkRequestsScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import ProfileImageModerationScreen from './src/screens/ProfileImageModerationScreen';
 import SPSelectServicesScreen from './src/screens/SPSelectServicesScreen';
 import SPOnboardSimpleScreen from './src/screens/SPOnboardSimpleScreen';
 import LocationSelectScreen from './src/screens/LocationSelectScreen';
@@ -165,6 +166,7 @@ function RootNavigator() {
             <Stack.Screen name="WorkRequestDetails" component={WorkRequestDetailsScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+            <Stack.Screen name="ProfileImageModeration" component={ProfileImageModerationScreen} />
             {/* Provider tools */}
             <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
             <Stack.Screen name="SPOnboardSimple" component={SPOnboardSimpleScreen} />

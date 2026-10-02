@@ -1,9 +1,11 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { colors, spacing } from '../theme';
+import { getOptimizedProfileImageUrl } from '../utils/profileImage';
 
 type ProfileAvatarProps = {
-  profilePic?: string | null;
+  picUrl?: string | null;
   profileName: string;
 };
 
@@ -18,14 +20,19 @@ const initialColors = [
   { background: '#E2E8F0', text: '#334155' },
 ];
 
-const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ profilePic, profileName }) => {
+const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ picUrl, profileName }) => {
   const initial = String(profileName).charAt(0).toUpperCase();
   const colorIndex = (initial.charCodeAt(0) || 0) % initialColors.length;
   const initialColor = initialColors[colorIndex];
 
-  return profilePic ? (
+  return picUrl ? (
     <View style={styles.imageWrapper}>
-      <Image source={{ uri: profilePic }} style={styles.image} />
+      <Image
+        source={{ uri: getOptimizedProfileImageUrl(picUrl) }}
+        style={styles.image}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+      />
     </View>
   ) : (
     <View style={[styles.placeholder, { backgroundColor: initialColor.background }]}>
