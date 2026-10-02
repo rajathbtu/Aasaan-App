@@ -321,6 +321,7 @@ export async function list(req: Request, res: Response): Promise<void> {
                wr."locationLng" AS location_lng,
                usr.name AS end_user_name,
                usr."phoneNumber" AS end_user_phone,
+               CASE WHEN usr."pic_moderation" = 'approved' THEN usr."picUrl" ELSE NULL END AS end_user_pic_url,
                CASE WHEN ap.id IS NULL THEN false ELSE true END AS accepted_by_provider
         FROM "WorkRequest" wr
         JOIN "User" usr ON wr."userId" = usr."id"
@@ -351,6 +352,7 @@ export async function list(req: Request, res: Response): Promise<void> {
           location_lng,
           end_user_name,
           end_user_phone,
+          end_user_pic_url,
           ...rest
         } = request;
 
@@ -365,6 +367,7 @@ export async function list(req: Request, res: Response): Promise<void> {
           locationLng: location_lng || null,
           endUserName: end_user_name || null,
           endUserPhone: end_user_phone || null,
+          endUserPicUrl: end_user_pic_url || null,
         };
       });
 

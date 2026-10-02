@@ -19,6 +19,7 @@ import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import ServiceIcon from '../components/ServiceIcon';
+import ProfileAvatar from '../components/ProfileAvatar';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import SkeletonLoader from '../components/SkeletonLoader';
 import UpgradeProBanner from '../components/UpgradeProBanner';
@@ -372,7 +373,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         </View>
         {!!item.endUserName && (
           <View style={styles.infoRow}>
-            <Ionicons name="person-outline" size={15} color={colors.greyMuted} />
+            <ProfileAvatar picUrl={item.endUserPicUrl} profileName={item.endUserName} size={32} />
             <Text style={styles.infoTextMuted} numberOfLines={1}>{item.endUserName}</Text>
           </View>
         )}
@@ -404,7 +405,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           <>
           {!accepted && (
             <ActionButton
-              buttonIcon="checkmark"
+              buttonIcon="checkmark-circle-outline"
               buttonTitle={t('spRequests.accept')}
               buttonTitleColor={colors.white}
               backgroundColor={colors.primary}
@@ -413,18 +414,9 @@ const SPWorkRequestsScreen: React.FC = () => {
               style={styles.ctaSpacing}
             />
           )}
-          {/* @todo: Navigate CTA may be dangerous for app engagement as users are redirected to external maps app... so should be used with caution */}
           <ActionButton
-            buttonIcon="navigate"
-            buttonTitle={t('spRequests.navigate') || 'Navigate'}
-            buttonTitleColor={accepted ? colors.secondary : colors.primary}
-            backgroundColor={accepted ? colors.successLight : colors.primarySoft}
-            onPress={() => handleNavigate(item)}
-            style={styles.ctaSpacing}
-          />
-          <ActionButton
-            buttonIcon="call"
-            buttonTitle={accepted ? t('spRequests.callNow') : t('spRequests.call')}
+            buttonIcon="call-outline"
+            buttonTitle={t('spRequests.call')}
             buttonTitleColor={accepted ? colors.white : colors.secondary}
             backgroundColor={accepted ? colors.primary : colors.successLight}
             onPress={() => {
@@ -434,6 +426,15 @@ const SPWorkRequestsScreen: React.FC = () => {
                 Alert.alert('Error', 'Requester phone number is not available.');
               }
             }}
+            style={styles.ctaSpacing}
+          />
+          {/* @todo: Navigate CTA may be dangerous for app engagement as users are redirected to external maps app... so should be used with caution */}
+          <ActionButton
+            buttonIcon="navigate-outline"
+            buttonTitle={t('spRequests.navigate') || 'Navigate'}
+            buttonTitleColor={accepted ? colors.secondary : colors.primary}
+            backgroundColor={accepted ? colors.successLight : colors.primarySoft}
+            onPress={() => handleNavigate(item)}
             style={styles.ctaSpacing}
           />
           </>
@@ -741,7 +742,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     color: colors.grey,
-    marginLeft: 6,
   },
   tagContainer: {
     flexDirection: 'row',
@@ -775,6 +775,7 @@ const styles = StyleSheet.create({
   // Spacing-only; the button shape itself now comes from ActionButton.
   ctaSpacing: {
     marginRight: spacing.sm,
+    paddingLeft: spacing.mdPlus,
   },
 });
 

@@ -7,6 +7,7 @@ import { getOptimizedProfileImageUrl } from '../utils/profileImage';
 type ProfileAvatarProps = {
   picUrl?: string | null;
   profileName: string;
+  size?: number;
 };
 
 const initialColors = [
@@ -20,13 +21,14 @@ const initialColors = [
   { background: '#E2E8F0', text: '#334155' },
 ];
 
-const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ picUrl, profileName }) => {
+const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ picUrl, profileName, size = 48 }) => {
   const initial = String(profileName).charAt(0).toUpperCase();
   const colorIndex = (initial.charCodeAt(0) || 0) % initialColors.length;
   const initialColor = initialColors[colorIndex];
+  const avatarSize = { width: size, height: size, borderRadius: size / 2 };
 
   return picUrl ? (
-    <View style={styles.imageWrapper}>
+    <View style={[styles.imageWrapper, avatarSize]}>
       <Image
         source={{ uri: getOptimizedProfileImageUrl(picUrl) }}
         style={styles.image}
@@ -35,33 +37,22 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ picUrl, profileName }) =>
       />
     </View>
   ) : (
-    <View style={[styles.placeholder, { backgroundColor: initialColor.background }]}>
+    <View style={[styles.imageWrapper, avatarSize, { backgroundColor: initialColor.background }]}>
       <Text style={[styles.initial, { color: initialColor.text }]}>{initial}</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  placeholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
   initial: {
     fontWeight: '700',
     color: colors.primary,
   },
   imageWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
     overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: spacing.md,
-    backgroundColor: colors.greyLight,
   },
   image: {
     width: '100%',
