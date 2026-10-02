@@ -1,13 +1,14 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
-import { colors, spacing } from '../theme';
+import { colors, spacing, borders } from '../theme';
 import { getOptimizedProfileImageUrl } from '../utils/profileImage';
 
 type ProfileAvatarProps = {
   picUrl?: string | null;
   profileName: string;
   size?: number;
+  containerStyle?: StyleProp<ViewStyle>;
 };
 
 const initialColors = [
@@ -21,14 +22,14 @@ const initialColors = [
   { background: '#E2E8F0', text: '#334155' },
 ];
 
-const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ picUrl, profileName, size = 48 }) => {
+const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ picUrl, profileName, size = 48 ,containerStyle,}) => {
   const initial = String(profileName).charAt(0).toUpperCase();
   const colorIndex = (initial.charCodeAt(0) || 0) % initialColors.length;
   const initialColor = initialColors[colorIndex];
   const avatarSize = { width: size, height: size, borderRadius: size / 2 };
 
   return picUrl ? (
-    <View style={[styles.imageWrapper, avatarSize]}>
+    <View style={[styles.imageWrapper, avatarSize, containerStyle]}>
       <Image
         source={{ uri: getOptimizedProfileImageUrl(picUrl) }}
         style={styles.image}
@@ -37,7 +38,7 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ picUrl, profileName, size
       />
     </View>
   ) : (
-    <View style={[styles.imageWrapper, avatarSize, { backgroundColor: initialColor.background }]}>
+    <View style={[styles.imageWrapper, avatarSize, { backgroundColor: initialColor.background }, containerStyle]}>
       <Text style={[styles.initial, { color: initialColor.text }]}>{initial}</Text>
     </View>
   );
@@ -53,6 +54,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
+    ...borders.subtle,
   },
   image: {
     width: '100%',
