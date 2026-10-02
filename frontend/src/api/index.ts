@@ -153,6 +153,14 @@ export async function acceptWorkRequest(token: string, id: string) {
   return res.data;
 }
 
+/** Undo the service provider's acceptance of a work request. */
+export async function undoAccept(token: string, id: string) {
+  const res = await api.delete(`/work-requests/${id}/accept`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
+
 /**
  * Close a work request (end user).  Optionally include a rating.
  */

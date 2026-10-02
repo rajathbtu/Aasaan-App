@@ -437,6 +437,46 @@ export async function accept(req: Request, res: Response): Promise<void> {
   } catch { res.status(500).json({ message: t(lang, 'request.accept.failed') }); }
 }
 
+export async function undoAccept(req: Request, res: Response): Promise<void> {
+  const user = (req as any).user;
+  const lang = getReqLang(req);
+  if (user.role !== 'serviceProvider') {
+    res.status(403).json({ message: t(lang, 'request.undoAccept.onlyProviders') });
+    return;
+  }
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const requests = await tx.$queryRaw<Array<{ id: string; status: string }>>`
+        SELECT "id", "status"
+        FROM "WorkRequest"
+        WHERE "id" = ${req.params.id}
+        FOR UPDATE
+      `;
+      const request = requests[0];
+      if (!request) return 'notFound';
+      if (request.status !== 'active') return 'closed';
+
+      await tx.acceptedProvider.deleteMany({
+        where: { workRequestId: request.id, providerId: user.id },
+      });
+      return 'withdrawn';
+    });
+
+    if (result === 'notFound') {
+      res.status(404).json({ message: t(lang, 'request.notFound') });
+      return;
+    }
+    if (result === 'closed') {
+      res.status(409).json({ message: t(lang, 'request.close.alreadyClosed') });
+      return;
+    }
+    res.status(204).end();
+  } catch {
+    res.status(500).json({ message: t(lang, 'request.undoAccept.failed') });
+  }
+}
+
 /**
  * Close a work request and optionally record a rating.  Only the end
  * user who created the request can close it.  Providers remain visible
@@ -457,21 +497,29 @@ export async function close(req: Request, res: Response): Promise<void> {
       res.status(400).json({ message: t(lang, 'request.close.invalidStarRating') });
       return;
     }
-    const wr = await pAny.workRequest.findFirst({ where: { id, userId: user.id } });
-    if (!wr) { res.status(404).json({ message: t(lang, 'request.notFound') }); return; }
-    if ((wr as any).status === 'closed') { res.status(409).json({ message: t(lang, 'request.close.alreadyClosed') }); return; }
-
-    if (providerId) {
-      const accepted = await pAny.acceptedProvider.findFirst({ where: { workRequestId: id, providerId } });
-      if (!accepted) { res.status(400).json({ message: t(lang, 'request.close.providerDidNotAccept') }); return; }
-    }
-
     const closed = await prisma.$transaction(async (tx) => {
+      const requests = await tx.$queryRaw<Array<{ id: string; status: string }>>`
+        SELECT "id", "status"
+        FROM "WorkRequest"
+        WHERE "id" = ${id} AND "userId" = ${user.id}
+        FOR UPDATE
+      `;
+      const request = requests[0];
+      if (!request) return 'notFound';
+      if (request.status === 'closed') return 'alreadyClosed';
+
+      if (providerId) {
+        const accepted = await tx.acceptedProvider.findFirst({
+          where: { workRequestId: id, providerId },
+        });
+        if (!accepted) return 'providerDidNotAccept';
+      }
+
       const update = await tx.workRequest.updateMany({
         where: { id, userId: user.id, status: 'active' },
         data: { status: 'closed', closedAt: new Date(), selectedProviderId: providerId || null },
       });
-      if (update.count !== 1) return false;
+      if (update.count !== 1) return 'alreadyClosed';
       if (rating !== undefined && providerId) {
         await tx.rating.create({
           data: {
@@ -487,9 +535,14 @@ export async function close(req: Request, res: Response): Promise<void> {
           data: { ratingsScoreSum: { increment: rating }, ratingsCount: { increment: 1 } },
         });
       }
-      return true;
+      return 'closed';
     });
-    if (!closed) { res.status(409).json({ message: t(lang, 'request.close.alreadyClosed') }); return; }
+    if (closed === 'notFound') { res.status(404).json({ message: t(lang, 'request.notFound') }); return; }
+    if (closed === 'alreadyClosed') { res.status(409).json({ message: t(lang, 'request.close.alreadyClosed') }); return; }
+    if (closed === 'providerDidNotAccept') {
+      res.status(400).json({ message: t(lang, 'request.close.providerDidNotAccept') });
+      return;
+    }
 
     const full = await buildFullWorkRequest(id);
     res.json(full);

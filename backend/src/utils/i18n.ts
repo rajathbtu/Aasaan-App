@@ -81,6 +81,10 @@ const translations: Record<Locale, Record<string, any>> = {
         alreadyAccepted: 'Already accepted',
         failed: 'Accept failed',
       },
+      undoAccept: {
+        onlyProviders: 'Only service providers can undo acceptance',
+        failed: 'Undo acceptance failed',
+      },
       close: {
         onlyEndUsers: 'Only end users can close requests',
         alreadyClosed: 'Already closed',
