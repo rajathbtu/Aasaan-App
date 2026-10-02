@@ -7,56 +7,44 @@
  * rejects an upload whose versionCode is not strictly greater than the one
  * already published, so every build would collide after the first release.
  *
- * Strategy (in order of preference):
- *   1. EAS remote version -- used if `eas build:version:get` succeeds and
- *      `eas.json` has `appVersionSource: "remote"`. This is the source of truth
- *      once the app is published through EAS.
- *   2. Git-derived counter  -- `1000 + <number of commits reachable from the
- *      built ref>`. This is strictly increasing along the branch history, so
- *      every commit on main yields a higher versionCode than its ancestors, and
- *      it is far above the hand-maintained app.json values (currently 3) so it
- *      can never regress below a previously published build.
+ * Strategy:
+ *   1. Explicit override -- set the repository variable
+ *      `AASAAN_ANDROID_VERSION_CODE` to take full manual control (useful when
+ *      you need to match a version already on Play).
+ *   2. Git-derived counter -- number of commits on the branch AFTER
+ *      BASELINE_COMMIT. The first release build produces versionCode 1 and
+ *      each later merge increments from there.
  *
  * Emits `versionCode=<n>` to the GITHUB_OUTPUT file when running in Actions,
- * and always prints a human-readable summary. No secrets are read or printed.
+ * and always prints a human-readable summary. No secret values are printed.
  */
 
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const ANDROID_VERSION_CODE_BASE = 1000;
+// The last commit on `main` before this CI change landed. Release builds count
+// the commits that come after it, so the FIRST release build produces
+// versionCode 1 and each subsequent one increments from there.
+const BASELINE_COMMIT = 'b904420';
 
-function gitCommitCount(ref) {
+/**
+ * Number of commits on `ref` that are NOT in BASELINE_COMMIT.
+ * Returns null if the baseline cannot be resolved (e.g. shallow clone).
+ */
+function commitsSinceBaseline(ref) {
   try {
-    const out = execFileSync('git', ['rev-list', '--count', ref], {
+    execFileSync('git', ['cat-file', '-e', `${BASELINE_COMMIT}^{commit}`], { stdio: 'ignore' });
+  } catch {
+    return null;
+  }
+  try {
+    const out = execFileSync('git', ['rev-list', '--count', `${BASELINE_COMMIT}..${ref}`], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     });
     const n = parseInt(out.trim(), 10);
-    return Number.isInteger(n) && n > 0 ? n : null;
-  } catch {
-    return null;
-  }
-}
-
-function easRemoteVersion() {
-  // Opt-in only. `eas build:version:get` needs EAS credentials and a network
-  // round-trip, so it is skipped unless EXPO_TOKEN is present in the
-  // environment. This keeps the default CI path fast and dependency-free.
-  if (!process.env.EXPO_TOKEN || process.env.AASAAN_USE_EAS_VERSION === 'false') {
-    return null;
-  }
-  // `eas.json` sets appVersionSource: "remote". If the call fails (not logged
-  // in, not linked yet, etc.) we fall back to the git-derived counter.
-  try {
-    const out = execFileSync(
-      'npx',
-      ['--yes', 'eas-cli', 'build:version:get', '--platform', 'android', '--non-interactive'],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 120000 }
-    );
-    const m = out.match(/versionCode[:=\s]+(\d+)/i) || out.match(/\b(\d{3,})\b/);
-    return m ? parseInt(m[1], 10) : null;
+    return Number.isInteger(n) && n >= 0 ? n : null;
   } catch {
     return null;
   }
@@ -64,39 +52,37 @@ function easRemoteVersion() {
 
 function main() {
   const ref = process.env.GITHUB_SHA || 'HEAD';
-  const base = ANDROID_VERSION_CODE_BASE;
 
   let versionCode;
   let source;
 
-  const eas = easRemoteVersion();
-  if (eas) {
-    // Bump so this build is strictly greater than what EAS last recorded.
-    versionCode = eas + 1;
-    source = `EAS remote versionCode (${eas}) + 1`;
+  // 1. Manual override wins over everything.
+  const override = parseInt(process.env.AASAAN_ANDROID_VERSION_CODE || '', 10);
+  if (Number.isInteger(override) && override > 0) {
+    versionCode = override;
+    source = 'AASAAN_ANDROID_VERSION_CODE variable (manual override)';
   } else {
-    const commits = gitCommitCount(ref);
-    if (commits) {
-      versionCode = base + commits;
-      source = `${base} + commit count (${commits}) for ${ref.slice(0, 7)}`;
+    // 2. Count commits made after the baseline, so numbering starts at 1.
+    const commits = commitsSinceBaseline(ref);
+    if (commits !== null) {
+      versionCode = commits;
+      source = `commit count since ${BASELINE_COMMIT.slice(0, 7)} (${commits})`;
     } else {
-      // Last resort: still monotonic within a workflow run via run_number.
+      // 3. Fallback that is still monotonic within the workflow.
       const runNumber = parseInt(process.env.GITHUB_RUN_NUMBER || '0', 10);
-      versionCode = base + 100000 + (Number.isInteger(runNumber) ? runNumber : 0);
-      source = `${base} + 100000 + run_number (git unavailable)`;
+      versionCode = 100000 + (Number.isInteger(runNumber) ? runNumber : 0);
+      source = '100000 + run_number (baseline commit unavailable)';
     }
   }
 
-  const versionName = process.env.GITHUB_REF_NAME
-    ? `${process.env.GITHUB_REF_NAME}-${process.env.GITHUB_SHA.slice(0, 7)}`
-    : 'ci';
+  const versionName = '1.0.0';
 
   console.log(`[release-version] versionCode : ${versionCode}`);
-  console.log(`[release-version] derived from: ${source}`);
   console.log(`[release-version] versionName : ${versionName}`);
+  console.log(`[release-version] derived from: ${source}`);
   console.log(
-    '[release-version] NOTE: confirm this versionCode is greater than the last ' +
-      'one published in Play Console before the first upload.'
+    '[release-version] Google Play requires each upload to have a strictly ' +
+      'greater versionCode than the last published one.'
   );
 
   const ghOutput = process.env.GITHUB_OUTPUT;
@@ -106,3 +92,4 @@ function main() {
 }
 
 main();
+
