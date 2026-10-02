@@ -306,6 +306,12 @@ jobs:
 
       - name: Compute release version
         id: version
+        env:
+          # Optional manual override. Set this as a repository VARIABLE (not a
+          # secret) named AASAAN_ANDROID_VERSION_CODE to pin the versionCode --
+          # useful to make the first release exactly 1, or to jump ahead. When
+          # unset, the script counts commits and numbering stays automatic.
+          AASAAN_ANDROID_VERSION_CODE: ${{ vars.AASAAN_ANDROID_VERSION_CODE }}
         run: node scripts/compute-release-version.js
 
       - name: Expo prebuild (Android)
