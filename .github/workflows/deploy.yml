@@ -10,7 +10,20 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Builds frontend/.env from GitHub Secrets before Expo runs.
+#
+# `.env` is git-ignored (it holds real API credentials), but Expo/prebuild
+# needs those EXPO_PUBLIC_* values present at build time or the values get
+# baked into the app as empty/placeholder strings. Writing the file here keeps
+# credentials out of the repository while still producing correct builds.
+#
+# Required repository secrets (all optional -- missing ones are simply skipped):
+#   EXPO_PUBLIC_API_BASE_URL
+#   EXPO_PUBLIC_GOOGLE_PLACES_API_KEY
+#   EXPO_PUBLIC_TRUECALLER_APP_KEY
+#   EXPO_PUBLIC_RAZORPAY_KEY_ID
 jobs:
+
   # Builds the web bundle on EVERY branch and PR so a broken web build is
   # caught before merge, without touching production. Uploads the bundle as
   # an artifact instead of publishing it.
@@ -34,6 +47,29 @@ jobs:
 
       - name: Install dependencies
         run: npm ci --no-audit --prefer-offline
+
+      - name: Materialise .env from secrets
+        env:
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
+          EXPO_PUBLIC_GOOGLE_PLACES_API_KEY: ${{ secrets.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY }}
+          EXPO_PUBLIC_TRUECALLER_APP_KEY: ${{ secrets.EXPO_PUBLIC_TRUECALLER_APP_KEY }}
+          EXPO_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.EXPO_PUBLIC_RAZORPAY_KEY_ID }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : > .env
+          for name in EXPO_PUBLIC_API_BASE_URL EXPO_PUBLIC_GOOGLE_PLACES_API_KEY \
+                      EXPO_PUBLIC_TRUECALLER_APP_KEY EXPO_PUBLIC_RAZORPAY_KEY_ID; do
+            # Indirect expansion so the value is read from the env, not the name.
+            value="${!name:-}"
+            if [ -n "$value" ]; then
+              printf '%s=%s\n' "$name" "$value" >> .env
+              echo "  set $name (len=${#value})"
+            else
+              echo "  WARNING: $name is not configured in repository secrets" >&2
+            fi
+          done
+          echo '.env written (values not printed)'
 
       - name: Build Expo Web
         env:
@@ -77,6 +113,29 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --prefer-offline
 
+      - name: Materialise .env from secrets
+        env:
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
+          EXPO_PUBLIC_GOOGLE_PLACES_API_KEY: ${{ secrets.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY }}
+          EXPO_PUBLIC_TRUECALLER_APP_KEY: ${{ secrets.EXPO_PUBLIC_TRUECALLER_APP_KEY }}
+          EXPO_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.EXPO_PUBLIC_RAZORPAY_KEY_ID }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : > .env
+          for name in EXPO_PUBLIC_API_BASE_URL EXPO_PUBLIC_GOOGLE_PLACES_API_KEY \
+                      EXPO_PUBLIC_TRUECALLER_APP_KEY EXPO_PUBLIC_RAZORPAY_KEY_ID; do
+            # Indirect expansion so the value is read from the env, not the name.
+            value="${!name:-}"
+            if [ -n "$value" ]; then
+              printf '%s=%s\n' "$name" "$value" >> .env
+              echo "  set $name (len=${#value})"
+            else
+              echo "  WARNING: $name is not configured in repository secrets" >&2
+            fi
+          done
+          echo '.env written (values not printed)'
+
       - name: Build Expo Web
         env:
           EXPO_NO_TELEMETRY: 1
@@ -94,8 +153,11 @@ jobs:
           publish_branch: gh-pages
           publish_dir: frontend/dist
 
+  # Debug APK for every branch/PR -- fast inner-loop artifact for QA.
+  # NOTE: this is intentionally NOT a release build and must never be uploaded
+  # to Google Play. The Play-ready signed AAB is produced by android-release.
   android:
-    name: Android APK & AAB
+    name: Android Debug APK
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -123,6 +185,29 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --prefer-offline
 
+      - name: Materialise .env from secrets
+        env:
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
+          EXPO_PUBLIC_GOOGLE_PLACES_API_KEY: ${{ secrets.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY }}
+          EXPO_PUBLIC_TRUECALLER_APP_KEY: ${{ secrets.EXPO_PUBLIC_TRUECALLER_APP_KEY }}
+          EXPO_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.EXPO_PUBLIC_RAZORPAY_KEY_ID }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : > .env
+          for name in EXPO_PUBLIC_API_BASE_URL EXPO_PUBLIC_GOOGLE_PLACES_API_KEY \
+                      EXPO_PUBLIC_TRUECALLER_APP_KEY EXPO_PUBLIC_RAZORPAY_KEY_ID; do
+            # Indirect expansion so the value is read from the env, not the name.
+            value="${!name:-}"
+            if [ -n "$value" ]; then
+              printf '%s=%s\n' "$name" "$value" >> .env
+              echo "  set $name (len=${#value})"
+            else
+              echo "  WARNING: $name is not configured in repository secrets" >&2
+            fi
+          done
+          echo '.env written (values not printed)'
+
       - name: Expo prebuild (Android)
         env:
           EXPO_NO_TELEMETRY: '1'
@@ -144,33 +229,183 @@ jobs:
           cd android
           ./gradlew --no-daemon assembleDebug
 
-      - name: Build Release APK (assembleRelease)
+      - name: Upload Debug APK artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: android-debug-apk
+          path: frontend/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+  # Production, Play Store-ready Android App Bundle.
+  #
+  # Runs on main only. Produces a RELEASE AAB signed with the real upload
+  # keystore held in GitHub Secrets (never in the repo), with a monotonically
+  # increasing versionCode, attached as a workflow artifact for manual upload to
+  # Play Console. It does NOT publish to Play automatically.
+  android-release:
+    name: Android Release AAB (signed)
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/latest-main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          # Full history so `git rev-list --count HEAD` yields a stable,
+          # strictly increasing commit counter for versioning.
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install dependencies
+        run: npm ci --no-audit --prefer-offline
+
+      - name: Materialise .env from secrets
+        env:
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
+          EXPO_PUBLIC_GOOGLE_PLACES_API_KEY: ${{ secrets.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY }}
+          EXPO_PUBLIC_TRUECALLER_APP_KEY: ${{ secrets.EXPO_PUBLIC_TRUECALLER_APP_KEY }}
+          EXPO_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.EXPO_PUBLIC_RAZORPAY_KEY_ID }}
         run: |
-          cd android
-          ./gradlew --no-daemon assembleRelease
+          set -euo pipefail
+          umask 077
+          : > .env
+          for name in EXPO_PUBLIC_API_BASE_URL EXPO_PUBLIC_GOOGLE_PLACES_API_KEY \
+                      EXPO_PUBLIC_TRUECALLER_APP_KEY EXPO_PUBLIC_RAZORPAY_KEY_ID; do
+            # Indirect expansion so the value is read from the env, not the name.
+            value="${!name:-}"
+            if [ -n "$value" ]; then
+              printf '%s=%s\n' "$name" "$value" >> .env
+              echo "  set $name (len=${#value})"
+            else
+              echo "  WARNING: $name is not configured in repository secrets" >&2
+            fi
+          done
+          echo '.env written (values not printed)'
+
+      # Existing validation for this project: tsconfig.json sets
+      # "strict": true and "noEmit": true.
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Compute release version
+        id: version
+        run: node scripts/compute-release-version.js
+
+      - name: Expo prebuild (Android)
+        env:
+          EXPO_NO_TELEMETRY: '1'
+          CI: '1'
+          # Consumed by app.config.js during prebuild.
+          AASAAN_ANDROID_VERSION_CODE: ${{ steps.version.outputs.versionCode }}
+          AASAAN_IOS_BUILD_NUMBER: ${{ steps.version.outputs.versionCode }}
+        run: npx expo prebuild --platform android --clean --non-interactive
+
+      # Injects signingConfigs.release into the freshly generated
+      # android/app/build.gradle (Expo's template points `release` at the DEBUG
+      # key, which Play Console rejects). --require makes the job fail loudly
+      # when secrets are missing, so an unsigned AAB can never be produced.
+      - name: Configure release signing
+        env:
+          AASAAN_ANDROID_KEYSTORE_BASE64: ${{ secrets.AASAAN_ANDROID_KEYSTORE_BASE64 }}
+          AASAAN_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.AASAAN_ANDROID_KEYSTORE_PASSWORD }}
+          AASAAN_ANDROID_KEY_ALIAS: ${{ secrets.AASAAN_ANDROID_KEY_ALIAS }}
+          AASAAN_ANDROID_KEY_PASSWORD: ${{ secrets.AASAAN_ANDROID_KEY_PASSWORD }}
+        run: node scripts/configure-android-release-signing.js --require
+
+      - name: Cache Gradle
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Build Release AAB (bundleRelease)
         run: |
           cd android
           ./gradlew --no-daemon bundleRelease
 
-      - name: Upload Debug APK artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: android-debug-apk
-          path: frontend/android/app/build/outputs/apk/debug/*.apk
+      # Proves the bundle is a RELEASE build and is genuinely signed, without
+      # printing any secret value. Fails the job if signing is missing.
+      # NOTE: `apksigner verify` cannot be used here -- it expects an APK with a
+      # root AndroidManifest.xml, which an AAB does not have. An AAB is signed
+      # with a JAR (v1-style) signature, so we verify that instead and read the
+      # signing certificate directly out of META-INF.
+      - name: Verify AAB is a signed release bundle
+        run: |
+          set -euo pipefail
+          cd android/app/build/outputs/bundle/release
+          ls -l ./*.aab
+          AAB=$(ls ./*.aab | head -n1)
+          echo "AAB file: $AAB"
 
-      - name: Upload Release APK artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: android-apk
-          path: frontend/android/app/build/outputs/apk/release/*.apk
+          # Guard against shipping unresolved config placeholders. These are
+          # baked into the merged AndroidManifest at prebuild time, so they
+          # must be caught before the bundle is offered for upload.
+          echo '--- placeholder check ---'
+          MERGED=app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml
+          if [ -f "$MERGED" ] && grep -q 'YOUR_GOOGLE_PLACES_API_KEY' "$MERGED"; then
+            echo 'ERROR: Google Places API key is still the <YOUR_GOOGLE_PLACES_API_KEY> placeholder.' >&2
+            echo '       Set EXPO_PUBLIC_GOOGLE_PLACES_API_KEY in frontend/.env before building.' >&2
+            exit 1
+          fi
+          echo 'No unresolved placeholders in the release manifest.'
 
-      - name: Upload Release AAB artifact
+          echo '--- release variant + versionCode from AndroidManifest ---'
+          "$ANDROID_HOME"/build-tools/*/aapt2 dump badging "$AAB" 2>/dev/null \
+            | grep -E "^package:|native-code" || true
+          grep -aoE 'versionCode[^0-9]{0,4}[0-9]+' "$AAB" | head -3 || true
+
+          echo '--- META-INF signature entries (must exist) ---'
+          unzip -l "$AAB" | grep -Ei 'META-INF/[^/]*\.(RSA|DSA|EC|SF|MF)' \
+            | grep -v 'OSGI-INF' || {
+            echo 'ERROR: no JAR signature found in AAB -- it is NOT signed.' >&2
+            exit 1
+          }
+
+          echo '--- Signing certificate (subject only; no key material) ---'
+          unzip -p "$AAB" 'META-INF/*.RSA' > /tmp/aab-cert.rsa
+          keytool -printcert -file /tmp/aab-cert.rsa \
+            | grep -E 'Owner|Issuer|Valid from|Signature algorithm' || true
+          rm -f /tmp/aab-cert.rsa
+
+          echo '--- Confirm it is NOT the React Native debug certificate ---'
+          unzip -p "$AAB" 'META-INF/*.RSA' > /tmp/aab-cert.rsa
+          if keytool -printcert -file /tmp/aab-cert.rsa | grep -q 'CN=Android Debug'; then
+            echo 'ERROR: AAB is signed with the Android debug key. Not Play-ready.' >&2
+            rm -f /tmp/aab-cert.rsa
+            exit 1
+          fi
+          rm -f /tmp/aab-cert.rsa
+          echo 'Verified: AAB is signed with a non-debug release certificate.'
+
+      - name: Upload signed release AAB
         uses: actions/upload-artifact@v6
         with:
-          name: android-aab
+          name: aasaan-android-release
           path: frontend/android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+          retention-days: 90
+
 
   ios-simulator:
     name: iOS Simulator .app (no signing)
@@ -191,6 +426,29 @@ jobs:
 
       - name: Install dependencies
         run: npm install --no-audit --prefer-offline
+
+      - name: Materialise .env from secrets
+        env:
+          EXPO_PUBLIC_API_BASE_URL: ${{ secrets.EXPO_PUBLIC_API_BASE_URL }}
+          EXPO_PUBLIC_GOOGLE_PLACES_API_KEY: ${{ secrets.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY }}
+          EXPO_PUBLIC_TRUECALLER_APP_KEY: ${{ secrets.EXPO_PUBLIC_TRUECALLER_APP_KEY }}
+          EXPO_PUBLIC_RAZORPAY_KEY_ID: ${{ secrets.EXPO_PUBLIC_RAZORPAY_KEY_ID }}
+        run: |
+          set -euo pipefail
+          umask 077
+          : > .env
+          for name in EXPO_PUBLIC_API_BASE_URL EXPO_PUBLIC_GOOGLE_PLACES_API_KEY \
+                      EXPO_PUBLIC_TRUECALLER_APP_KEY EXPO_PUBLIC_RAZORPAY_KEY_ID; do
+            # Indirect expansion so the value is read from the env, not the name.
+            value="${!name:-}"
+            if [ -n "$value" ]; then
+              printf '%s=%s\n' "$name" "$value" >> .env
+              echo "  set $name (len=${#value})"
+            else
+              echo "  WARNING: $name is not configured in repository secrets" >&2
+            fi
+          done
+          echo '.env written (values not printed)'
 
       - name: Expo prebuild (iOS)
         env:
