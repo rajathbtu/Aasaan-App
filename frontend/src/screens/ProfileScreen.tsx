@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Image, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Switch, Platform } from 'react-native';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +12,8 @@ import { getLanguageDisplay } from '../data/languages';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import { getServices } from '../api';
+import { uploadProfileImage } from '../services/profileImageUpload';
+import { getOptimizedProfileImageUrl } from '../utils/profileImage';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import UpgradeProBanner from '../components/UpgradeProBanner';
 import BlockingLoader from '../components/BlockingLoader';
@@ -28,7 +32,7 @@ type ProfileSelector = 'workSinceYear' | 'birthYear' | 'gender';
  */
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { user, updateUser, logout, setLanguage: setGlobalLanguage, refreshUser } = useAuth();
+  const { user, token, updateUser, logout, setLanguage: setGlobalLanguage, refreshUser } = useAuth();
   const { t, lang } = useI18n();
   const { showToast } = useToast();
   const isBottomTabsDisplayed = useNavigationState(state => state.type === 'tab');
@@ -92,6 +96,8 @@ const ProfileScreen: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSavingName, setIsSavingName] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isPhotoSourcePickerVisible, setIsPhotoSourcePickerVisible] = useState(false);
   const [activeSelector, setActiveSelector] = useState<ProfileSelector | null>(null);
 
   useEffect(() => {
@@ -219,6 +225,49 @@ const ProfileScreen: React.FC = () => {
     setActiveSelector(null);
   };
 
+  const chooseProfilePhoto = async (source: 'camera' | 'library') => {
+    if (!token || isUploadingPhoto) return;
+    try {
+      if (source === 'camera') {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          showToast(t('profile.cameraPermissionRequired'));
+          return;
+        }
+      } else {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          showToast(t('profile.photoLibraryPermissionRequired'));
+          return;
+        }
+      }
+
+      const options: ImagePicker.ImagePickerOptions = {
+        mediaTypes: ['images'],
+        allowsEditing: source === 'library',
+        aspect: [1, 1],
+        quality: 0.9,
+        exif: false,
+      };
+      const result = source === 'camera'
+        ? await ImagePicker.launchCameraAsync({ ...options, cameraType: ImagePicker.CameraType.front })
+        : await ImagePicker.launchImageLibraryAsync(options);
+      if (result.canceled || !result.assets[0]) return;
+
+      setIsUploadingPhoto(true);
+      await uploadProfileImage(token, result.assets[0]);
+      await refreshUser();
+      setProfileError(null);
+      showToast(t('profile.photoSubmitted'));
+    } catch (error) {
+      setProfileError(error);
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const showPhotoSourceOptions = () => setIsPhotoSourcePickerVisible(true);
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.white }}>
       <Header title={t('profile.header')} showBackButton={true} showNotification={false} />
@@ -227,8 +276,11 @@ const ProfileScreen: React.FC = () => {
         <View style={styles.photoSection}>
           <View style={{ position: 'relative', marginBottom: spacing.xs }}>
             <View style={styles.avatarShell}>
-              {user.avatarUrl ? (
-                <Image source={{ uri: user.avatarUrl }} style={{ width: '100%', height: '100%' }} />
+              {user.picUrl ? (
+                <Image
+                  source={{ uri: getOptimizedProfileImageUrl(user.picUrl) }}
+                  style={{ width: '100%', height: '100%' }}
+                  contentFit="cover" cachePolicy="memory-disk" />
               ) : (
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                   <Ionicons name={pendingGender === 'male' ? 'man' : pendingGender === 'female' ? 'woman' : 'person'}
@@ -236,20 +288,36 @@ const ProfileScreen: React.FC = () => {
                 </View>
               )}
             </View>
-            <TouchableOpacity
-              style={styles.cameraBtn}
-              onPress={async () => {
-                Alert.prompt?.(t('profile.changePhotoTitle'), t('profile.changePhotoDesc'), [
-                  { text: t('common.cancel'), style: 'cancel' },
-                  { text: t('common.save'), onPress: async (value?: string) => { if (!value) return; try { await updateUser({ avatarUrl: value }); setProfileError(null); } catch (error) { setProfileError(error); } } },
-                ], 'plain-text');
-              }}
-            >
-              <Ionicons name="camera" size={14} color={colors.white} />
-            </TouchableOpacity>
+            {Platform.OS !== 'web' && (
+              <TouchableOpacity
+                style={styles.cameraBtn}
+                onPress={showPhotoSourceOptions}
+                disabled={isUploadingPhoto}
+                accessibilityRole="button" accessibilityLabel={t('profile.changePhotoTitle')}>
+                <Ionicons name="camera" size={14} color={colors.white} />
+              </TouchableOpacity>
+            )}
           </View>
-          <Text style={styles.photoNote}>{t('profile.tapToChangePhoto')}</Text>
+          {Platform.OS !== 'web' && (
+            <Text style={styles.photoNote}>
+              {user.picModeration === 'under_review'
+                ? t('profile.photoUnderReview') : user.picModeration === 'blocked'
+                  ? t('profile.photoBlocked') : t('profile.tapToChangePhoto')}
+            </Text>
+          )}
         </View>
+
+        {user.isModerator && (
+          <TouchableOpacity
+            style={styles.moderationLink}
+            onPress={() => navigation.navigate('ProfileImageModeration')}
+            accessibilityRole="button"
+          >
+            <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
+            <Text style={styles.moderationLinkText}>{t('profilePhotoModeration.openQueue')}</Text>
+            <Ionicons name="chevron-forward" size={17} color={colors.grey} />
+          </TouchableOpacity>
+        )}
 
         <View style={styles.section}>
           <View style={styles.ratingSummary}>
@@ -475,9 +543,25 @@ const ProfileScreen: React.FC = () => {
         onSelect={selectOption}
         onClose={() => setActiveSelector(null)}/>
 
+      <SingleSelectRadioModal
+        visible={isPhotoSourcePickerVisible}
+        title={t('profile.changePhotoTitle')}
+        options={[
+          { label: t('profile.takePhoto'), value: 'camera', icon: 'camera-outline' },
+          { label: t('profile.chooseFromLibrary'), value: 'library', icon: 'images-outline' },
+          { label: t('common.cancel'), value: 'cancel', icon: 'close-outline' },
+        ]}
+        selectedValue=""
+        showRadio={false}
+        onSelect={(source) => {
+          setIsPhotoSourcePickerVisible(false);
+          if (source === 'camera' || source === 'library') void chooseProfilePhoto(source);
+        }}
+        onClose={() => setIsPhotoSourcePickerVisible(false)}/>
+
       <ErrorBanner error={profileError} onRetry={refreshUser} />
       {!isBottomTabsDisplayed && <SafeBottomBanner />}
-      <BlockingLoader visible={isUpdating} />
+      <BlockingLoader visible={isUpdating || isUploadingPhoto} />
     </View>
   );
 };
@@ -517,6 +601,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.grey,
   },
+  moderationLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  moderationLinkText: { flex: 1, color: colors.primary, fontSize: 14, fontWeight: '600' },
   section: {
     paddingHorizontal: spacing.lg,
     marginTop: spacing.xl,

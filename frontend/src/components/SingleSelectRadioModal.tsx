@@ -1,15 +1,17 @@
 import React from 'react';
 import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing } from '../theme';
 import SafeBottomBanner from './SafeBottomBanner';
 
-type Option = { label: string; value: string };
+type Option = { label: string; value: string; icon?: keyof typeof Ionicons.glyphMap };
 
 type Props = {
   visible: boolean;
   title: string;
   options: Option[];
   selectedValue: string;
+  showRadio?: boolean;
   onSelect: (value: string) => void;
   onClose: () => void;
 };
@@ -19,6 +21,7 @@ const SingleSelectRadioModal: React.FC<Props> = ({
   title,
   options,
   selectedValue,
+  showRadio = true,
   onSelect,
   onClose,
 }) => (
@@ -45,12 +48,17 @@ const SingleSelectRadioModal: React.FC<Props> = ({
               <TouchableOpacity
                 style={styles.option}
                 onPress={() => onSelect(item.value)}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: selected }}>
-                <Text style={styles.optionText}>{item.label}</Text>
-                <View style={[styles.radio, selected && styles.radioSelected]}>
-                  {selected && <View style={styles.radioDot} />}
+                accessibilityRole={showRadio ? 'radio' : 'button'}
+                accessibilityState={showRadio ? { checked: selected } : undefined}>
+                <View style={styles.optionLabel}>
+                  {item.icon && <Ionicons name={item.icon} size={20} color={colors.primary} />}
+                  <Text style={styles.optionText}>{item.label}</Text>
                 </View>
+                {showRadio && (
+                  <View style={[styles.radio, selected && styles.radioSelected]}>
+                    {selected && <View style={styles.radioDot} />}
+                  </View>
+                )}
               </TouchableOpacity>
             );
           }}/>
@@ -94,6 +102,7 @@ const styles = StyleSheet.create({
     color: colors.dark,
     fontSize: 16,
   },
+  optionLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   radio: {
     width: 22,
     height: 22,

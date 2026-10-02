@@ -93,8 +93,7 @@ const WorkRequestsScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Header title={t('userRequests.title')} showNotification={true} showBackButton={false} />
-      <View style={{ height: spacing.sm }} />
-
+    
       <SegmentedTabs
         activeKey={activeTab}
         onChange={(key: string) => {
@@ -152,8 +151,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.light,
   },
   listContent: {
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.xxl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
   },
 });
 

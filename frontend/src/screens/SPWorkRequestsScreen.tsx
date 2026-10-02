@@ -12,13 +12,14 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { acceptWorkRequest, listWorkRequests } from '../api';
+import { acceptWorkRequest, listWorkRequests, undoAccept } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius, surfaces } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import ServiceIcon from '../components/ServiceIcon';
+import ProfileAvatar from '../components/ProfileAvatar';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import SkeletonLoader from '../components/SkeletonLoader';
 import UpgradeProBanner from '../components/UpgradeProBanner';
@@ -64,7 +65,7 @@ const SPWorkRequestsScreen: React.FC = () => {
   const [ratingRequest, setRatingRequest] = useState<any | null>(null);
   const [filter, setFilter] = useState<'all' | 'today' | 'within3'>('all');
   const [refreshing, setRefreshing] = useState(false);
-  const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<unknown | null>(null);
   const [showProBanner, setShowProBanner] = useState(true);
   const notificationRequestId = route.params?.highlightedRequestId as string | undefined;
@@ -170,8 +171,8 @@ const SPWorkRequestsScreen: React.FC = () => {
    * success.  Shows an alert if the operation fails.
    */
   const handleAccept = async (item: any) => {
-    if (!token || acceptingId) return;
-    setAcceptingId(item.id);
+    if (!token || processingRequestId) return;
+    setProcessingRequestId(item.id);
     try {
       await acceptWorkRequest(token, item.id);
       setRequestError(null);
@@ -181,9 +182,32 @@ const SPWorkRequestsScreen: React.FC = () => {
     } catch (err: any) {
       setRequestError(err);
     } finally {
-      setAcceptingId(null);
+      setProcessingRequestId(null);
     }
   };
+
+  const confirmWithdraw = async (item: any) => {
+    if (!token || processingRequestId) return;
+    setProcessingRequestId(item.id);
+    try {
+      await undoAccept(token, item.id);
+      setRequestError(null);
+      await fetchRequests();
+    } catch (err: any) {
+      setRequestError(err);
+    } finally {
+      setProcessingRequestId(null);
+    }
+  };
+
+  const handleWithdraw = (item: any) => Alert.alert(
+    t('spRequests.undoAcceptTitle'),
+    t('spRequests.undoAcceptConfirmation'),
+    [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('spRequests.undoAccept'), style: 'destructive', onPress: () => { void confirmWithdraw(item); } },
+    ],
+  );
 
   /**
    * Open directions from SP's base location to the work request location.
@@ -304,7 +328,7 @@ const SPWorkRequestsScreen: React.FC = () => {
       name: item.endUserName || t('requestDetails.endUser'),
     });
     const highlighted = item.id === highlightedRequestId;
-    const accepting = acceptingId === item.id;
+    const processing = processingRequestId === item.id;
     const timeLabel = timeAgo(item.createdAt);
     // Fresh requests (under 2 hours old) get a "New" badge
     const isNew = !isClosedRequest &&
@@ -372,7 +396,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         </View>
         {!!item.endUserName && (
           <View style={styles.infoRow}>
-            <Ionicons name="person-outline" size={15} color={colors.greyMuted} />
+            <ProfileAvatar picUrl={item.endUserPicUrl} profileName={item.endUserName} size={32} />
             <Text style={styles.infoTextMuted} numberOfLines={1}>{item.endUserName}</Text>
           </View>
         )}
@@ -402,29 +426,20 @@ const SPWorkRequestsScreen: React.FC = () => {
             />
           ) : (
           <>
-          {!accepted && (
-            <ActionButton
-              buttonIcon="checkmark"
-              buttonTitle={t('spRequests.accept')}
-              buttonTitleColor={colors.white}
-              backgroundColor={colors.primary}
-              onPress={() => handleAccept(item)}
-              loading={accepting}
-              style={styles.ctaSpacing}
-            />
-          )}
-          {/* @todo: Navigate CTA may be dangerous for app engagement as users are redirected to external maps app... so should be used with caution */}
+          
           <ActionButton
-            buttonIcon="navigate"
-            buttonTitle={t('spRequests.navigate') || 'Navigate'}
-            buttonTitleColor={accepted ? colors.secondary : colors.primary}
-            backgroundColor={accepted ? colors.successLight : colors.primarySoft}
-            onPress={() => handleNavigate(item)}
+            buttonIcon={accepted ? "checkmark-circle" : "checkmark-circle-outline"}
+            buttonTitle={(accepted)? t('spRequests.accept') : t('spRequests.accept')}
+            buttonTitleColor={colors.white}
+            backgroundColor={accepted? colors.success : colors.primary}
+            onPress={() => accepted ? handleWithdraw(item) : handleAccept(item)}
+            loading={processing}
             style={styles.ctaSpacing}
           />
+          
           <ActionButton
-            buttonIcon="call"
-            buttonTitle={accepted ? t('spRequests.callNow') : t('spRequests.call')}
+            buttonIcon="call-outline"
+            buttonTitle={t('spRequests.call')}
             buttonTitleColor={accepted ? colors.white : colors.secondary}
             backgroundColor={accepted ? colors.primary : colors.successLight}
             onPress={() => {
@@ -434,6 +449,15 @@ const SPWorkRequestsScreen: React.FC = () => {
                 Alert.alert('Error', 'Requester phone number is not available.');
               }
             }}
+            style={styles.ctaSpacing}
+          />
+          {/* @todo: Navigate CTA may be dangerous for app engagement as users are redirected to external maps app... so should be used with caution */}
+          <ActionButton
+            buttonIcon="navigate-outline"
+            buttonTitle={t('spRequests.navigate') || 'Navigate'}
+            buttonTitleColor={accepted ? colors.secondary : colors.primary}
+            backgroundColor={accepted ? colors.successLight : colors.primarySoft}
+            onPress={() => handleNavigate(item)}
             style={styles.ctaSpacing}
           />
           </>
@@ -525,7 +549,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           tabs={[
             { key: 'all', label: t('spRequests.allTab'), count: totalCount },
             { key: 'accepted', label: t('spRequests.acceptedTab'), count: acceptedCount },
-            { key: 'closed', label: t('spRequests.closedTab'), count: closedRequests.length },
+            { key: 'closed', label: t('spRequests.closedTab'), count: closedRequestsLoaded ? closedRequests.length : undefined },
           ]}
         />
         {/* Filter chips */}
@@ -571,7 +595,7 @@ const SPWorkRequestsScreen: React.FC = () => {
                 animated: true,
               });
             }}
-            contentContainerStyle={{ paddingBottom: spacing.xl * 3 }}
+            contentContainerStyle={{ marginTop: spacing.md, paddingBottom: spacing.xl * 3 }}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
@@ -633,7 +657,7 @@ const styles = StyleSheet.create({
   // --- Filter chips ---
   filterRow: {
     flexDirection: 'row',
-    marginBottom: spacing.md,
+    marginTop: spacing.sm,
   },
   filterChip: {
     flexDirection: 'row',
@@ -741,7 +765,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     color: colors.grey,
-    marginLeft: 6,
   },
   tagContainer: {
     flexDirection: 'row',
@@ -775,6 +798,7 @@ const styles = StyleSheet.create({
   // Spacing-only; the button shape itself now comes from ActionButton.
   ctaSpacing: {
     marginRight: spacing.sm,
+    paddingLeft: spacing.mdPlus,
   },
 });
 

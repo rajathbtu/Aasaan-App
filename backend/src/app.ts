@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes';
 import userRoutes from './routes/userRoutes';
+import profileImageModerationRoutes from './routes/profileImageModerationRoutes';
 import requestRoutes from './routes/requestRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import paymentRoutes from './routes/paymentRoutes';
@@ -85,6 +86,7 @@ app.use((req, res, next) => {
 // Routes
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
+app.use('/moderation/profile-images', profileImageModerationRoutes);
 app.use('/work-requests', requestRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/payments', paymentRoutes);

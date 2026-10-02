@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, radius } from '../theme';
+import { colors, spacing, radius, surfaces } from '../theme';
 import { getWorkRequest } from '../api/index';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
@@ -144,7 +144,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
               const provider = p.provider || {};
               const displayName = provider.name || p.providerId || t('requestDetails.provider');
               const phone = provider.phoneNumber || '';
-              const avatarUri = provider.avatarUrl || undefined;
+              const avatarUri = provider.picUrl || undefined;
               const providerInfo = provider.serviceProviderInfo || {};
               const currentYear = new Date().getFullYear();
               const age = providerInfo.birthYear ? getProfileAge(providerInfo.birthYear) : '';
@@ -173,7 +173,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
               return (
                 <View key={p.id || p.providerId || index} style={styles.providerCard}>
                   <View style={styles.providerHeader}>
-                        <ProfileAvatar profilePic={avatarUri} profileName={displayName} />
+                        <ProfileAvatar picUrl={avatarUri} profileName={displayName} />
                         <View style={styles.providerDetails}>
                           <Text style={styles.providerName}>{displayName}</Text>
                           <View style={styles.ratingRow}>
@@ -306,11 +306,8 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     marginHorizontal: spacing.lg,
-    backgroundColor: colors.white,
     borderRadius: radius.xl,
     padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
   },
   actionButtonsRow: {
     flexDirection: 'row',
@@ -350,17 +347,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   providerCard: {
-    backgroundColor: colors.white,
+    ...surfaces.card,
     borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    elevation: 2,
-    shadowColor: colors.dark,
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
   },
   providerHeader: {
     flexDirection: 'row',

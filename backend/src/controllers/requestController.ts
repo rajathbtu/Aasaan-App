@@ -54,7 +54,7 @@ async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<
     getServiceMap((wr as any).service ? [(wr as any).service] : []),
   ]);
 
-  // Enrich accepted providers with user profile (name, phone, avatarUrl)
+  // Enrich accepted providers with user profile (name, phone, picUrl)
   let acceptedWithDetails: any[] = acceptedProviders || [];
   try {
     const ids = Array.from(new Set((acceptedProviders || []).map((p: any) => p.providerId)));
@@ -65,7 +65,8 @@ async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<
           id: true,
           name: true,
           phoneNumber: true,
-          avatarUrl: true,
+          picUrl: true,
+          picModeration: true,
           createdAt: true,
           ratingsScoreSum: true,
           ratingsCount: true,
@@ -91,8 +92,11 @@ async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<
         provider: (() => {
           const provider = uMap.get(p.providerId) as any;
           if (!provider) return null;
-          const { ratingsScoreSum, ratingsCount, ...profile } = provider;
-          return {...profile, providerRating: {
+          const { ratingsScoreSum, ratingsCount, picModeration, ...profile } = provider;
+          return {
+            ...profile,
+            picUrl: picModeration === 'approved' ? profile.picUrl : null,
+            providerRating: {
                                 average: ratingsCount > 0 ? ratingsScoreSum / ratingsCount : null,
                                 count: ratingsCount,
                               },
@@ -250,7 +254,7 @@ export async function list(req: Request, res: Response): Promise<void> {
         orderBy: { closedAt: 'desc' },
         take: 50,
         include: {
-          user: { select: { name: true, avatarUrl: true } },
+          user: { select: { name: true, picUrl: true, picModeration: true } },
           ratings: {
             where: { submittedByUserId: user.id },
             select: { id: true },
@@ -266,7 +270,7 @@ export async function list(req: Request, res: Response): Promise<void> {
           serviceIcon: service?.icon || null,
           serviceColor: service?.color || null,
           endUserName: endUser.name,
-          endUserAvatarUrl: endUser.avatarUrl,
+          endUserPicUrl: endUser.picModeration === 'approved' ? endUser.picUrl : null,
           canRateEndUser: request.selectedProviderId === user.id && ratings.length === 0,
         };
       }));
@@ -317,6 +321,7 @@ export async function list(req: Request, res: Response): Promise<void> {
                wr."locationLng" AS location_lng,
                usr.name AS end_user_name,
                usr."phoneNumber" AS end_user_phone,
+               CASE WHEN usr."pic_moderation" = 'approved' THEN usr."picUrl" ELSE NULL END AS end_user_pic_url,
                CASE WHEN ap.id IS NULL THEN false ELSE true END AS accepted_by_provider
         FROM "WorkRequest" wr
         JOIN "User" usr ON wr."userId" = usr."id"
@@ -347,6 +352,7 @@ export async function list(req: Request, res: Response): Promise<void> {
           location_lng,
           end_user_name,
           end_user_phone,
+          end_user_pic_url,
           ...rest
         } = request;
 
@@ -361,6 +367,7 @@ export async function list(req: Request, res: Response): Promise<void> {
           locationLng: location_lng || null,
           endUserName: end_user_name || null,
           endUserPhone: end_user_phone || null,
+          endUserPicUrl: end_user_pic_url || null,
         };
       });
 
@@ -430,6 +437,46 @@ export async function accept(req: Request, res: Response): Promise<void> {
   } catch { res.status(500).json({ message: t(lang, 'request.accept.failed') }); }
 }
 
+export async function undoAccept(req: Request, res: Response): Promise<void> {
+  const user = (req as any).user;
+  const lang = getReqLang(req);
+  if (user.role !== 'serviceProvider') {
+    res.status(403).json({ message: t(lang, 'request.undoAccept.onlyProviders') });
+    return;
+  }
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const requests = await tx.$queryRaw<Array<{ id: string; status: string }>>`
+        SELECT "id", "status"
+        FROM "WorkRequest"
+        WHERE "id" = ${req.params.id}
+        FOR UPDATE
+      `;
+      const request = requests[0];
+      if (!request) return 'notFound';
+      if (request.status !== 'active') return 'closed';
+
+      await tx.acceptedProvider.deleteMany({
+        where: { workRequestId: request.id, providerId: user.id },
+      });
+      return 'withdrawn';
+    });
+
+    if (result === 'notFound') {
+      res.status(404).json({ message: t(lang, 'request.notFound') });
+      return;
+    }
+    if (result === 'closed') {
+      res.status(409).json({ message: t(lang, 'request.close.alreadyClosed') });
+      return;
+    }
+    res.status(204).end();
+  } catch {
+    res.status(500).json({ message: t(lang, 'request.undoAccept.failed') });
+  }
+}
+
 /**
  * Close a work request and optionally record a rating.  Only the end
  * user who created the request can close it.  Providers remain visible
@@ -450,21 +497,29 @@ export async function close(req: Request, res: Response): Promise<void> {
       res.status(400).json({ message: t(lang, 'request.close.invalidStarRating') });
       return;
     }
-    const wr = await pAny.workRequest.findFirst({ where: { id, userId: user.id } });
-    if (!wr) { res.status(404).json({ message: t(lang, 'request.notFound') }); return; }
-    if ((wr as any).status === 'closed') { res.status(409).json({ message: t(lang, 'request.close.alreadyClosed') }); return; }
-
-    if (providerId) {
-      const accepted = await pAny.acceptedProvider.findFirst({ where: { workRequestId: id, providerId } });
-      if (!accepted) { res.status(400).json({ message: t(lang, 'request.close.providerDidNotAccept') }); return; }
-    }
-
     const closed = await prisma.$transaction(async (tx) => {
+      const requests = await tx.$queryRaw<Array<{ id: string; status: string }>>`
+        SELECT "id", "status"
+        FROM "WorkRequest"
+        WHERE "id" = ${id} AND "userId" = ${user.id}
+        FOR UPDATE
+      `;
+      const request = requests[0];
+      if (!request) return 'notFound';
+      if (request.status === 'closed') return 'alreadyClosed';
+
+      if (providerId) {
+        const accepted = await tx.acceptedProvider.findFirst({
+          where: { workRequestId: id, providerId },
+        });
+        if (!accepted) return 'providerDidNotAccept';
+      }
+
       const update = await tx.workRequest.updateMany({
         where: { id, userId: user.id, status: 'active' },
         data: { status: 'closed', closedAt: new Date(), selectedProviderId: providerId || null },
       });
-      if (update.count !== 1) return false;
+      if (update.count !== 1) return 'alreadyClosed';
       if (rating !== undefined && providerId) {
         await tx.rating.create({
           data: {
@@ -480,9 +535,14 @@ export async function close(req: Request, res: Response): Promise<void> {
           data: { ratingsScoreSum: { increment: rating }, ratingsCount: { increment: 1 } },
         });
       }
-      return true;
+      return 'closed';
     });
-    if (!closed) { res.status(409).json({ message: t(lang, 'request.close.alreadyClosed') }); return; }
+    if (closed === 'notFound') { res.status(404).json({ message: t(lang, 'request.notFound') }); return; }
+    if (closed === 'alreadyClosed') { res.status(409).json({ message: t(lang, 'request.close.alreadyClosed') }); return; }
+    if (closed === 'providerDidNotAccept') {
+      res.status(400).json({ message: t(lang, 'request.close.providerDidNotAccept') });
+      return;
+    }
 
     const full = await buildFullWorkRequest(id);
     res.json(full);

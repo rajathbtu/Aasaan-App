@@ -23,6 +23,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Aasaan uses your location to show nearby services.",
+        "NSCameraUsageDescription": "Aasaan uses the camera to capture a profile photo.",
+        "NSPhotoLibraryUsageDescription": "Aasaan uses your photo gallery to let you select a profile photo.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -32,7 +34,8 @@
       "versionCode": 3,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "CAMERA"
       ]
     },
     "web": {
@@ -50,7 +53,15 @@
         }
       ],
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Aasaan to select a profile photo.",
+          "cameraPermission": "Allow Aasaan to take a profile photo.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "extra": {
       "eas": {

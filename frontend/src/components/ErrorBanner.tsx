@@ -14,6 +14,14 @@ type ErrorBannerProps = {
   onRetry?: () => void;
 };
 
+function getErrorDetails(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    const responseMessage = (error.response?.data as { message?: unknown } | undefined)?.message;
+    return typeof responseMessage === 'string' ? responseMessage : error.message;
+  }
+  return error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+}
+
 const ErrorBanner: React.FC<ErrorBannerProps> = ({
   error,
   onRetry,
@@ -26,6 +34,7 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
   const titleKey = `errorBanner.titles.${errorType}`;
   const messageKey = `errorBanner.messages.${errorType}`;
   const retryLabel = t('errorBanner.retry');
+  const errorDetails = __DEV__ ? getErrorDetails(error) : '';
 
   return (
     <View style={styles.errorBanner} accessibilityRole="alert">
@@ -34,7 +43,9 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
       </View>
       <View style={styles.errorMessageContainer}>
         <Text style={styles.errorTitle}>{t(titleKey)}</Text>
-        <Text style={styles.errorMessage}>{t(messageKey)}</Text>
+        <Text style={styles.errorMessage}>
+          {t(messageKey)}{errorDetails ? `\nDev Mode Debug:\n${errorDetails}` : ''}
+        </Text>
       </View>
       {onRetry && (
         <ActionButton

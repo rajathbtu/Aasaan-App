@@ -35,7 +35,6 @@ const translations: Record<Locale, Record<string, any>> = {
     user: {
       notFound: 'Not found',
       profileFetchFailed: 'Profile fetch failed',
-      invalidAvatarUrl: 'Invalid avatarUrl',
       invalidServicesArray: 'Services must be a non-empty string array',
       invalidRadius: 'Invalid radius value',
       invalidLocation: 'Invalid location',
@@ -81,6 +80,10 @@ const translations: Record<Locale, Record<string, any>> = {
         notEligible: 'Not eligible for this request',
         alreadyAccepted: 'Already accepted',
         failed: 'Accept failed',
+      },
+      undoAccept: {
+        onlyProviders: 'Only service providers can undo acceptance',
+        failed: 'Undo acceptance failed',
       },
       close: {
         onlyEndUsers: 'Only end users can close requests',
@@ -130,7 +133,6 @@ const translations: Record<Locale, Record<string, any>> = {
     user: {
       notFound: 'नहीं मिला',
       profileFetchFailed: 'प्रोफ़ाइल प्राप्त करने में विफल',
-      invalidAvatarUrl: 'अमान्य avatarUrl',
       invalidServicesArray: 'सेवाएँ वैध स्ट्रिंग सूची होनी चाहिए',
       invalidRadius: 'अमान्य त्रिज्या मान',
       invalidLocation: 'अमान्य स्थान',
@@ -207,7 +209,6 @@ const translations: Record<Locale, Record<string, any>> = {
     user: {
       notFound: 'મળ્યો નથી',
       profileFetchFailed: 'પ્રોફાઇલ મેળવવામાં નિષ્ફળ',
-      invalidAvatarUrl: 'અમાન્ય avatarUrl',
       invalidServicesArray: 'સેવાઓ માન્ય સ્ટ્રિંગ સૂચિ હોવી જોઈએ',
       invalidRadius: 'અમાન્ય વ્યાસ મૂલ્ય',
       invalidLocation: 'અમાન્ય સ્થાન',
@@ -284,7 +285,6 @@ const translations: Record<Locale, Record<string, any>> = {
     user: {
       notFound: 'सापडले नाही',
       profileFetchFailed: 'प्रोफाइल मिळवणे अयशस्वी',
-      invalidAvatarUrl: 'अवैध avatarUrl',
       invalidServicesArray: 'सेवा वैध स्ट्रिंग यादी असावी',
       invalidRadius: 'अवैध त्रिज्या मूल्य',
       invalidLocation: 'अवैध स्थान',
@@ -361,7 +361,6 @@ const translations: Record<Locale, Record<string, any>> = {
     user: {
       notFound: 'காணப்படவில்லை',
       profileFetchFailed: 'சுயவிவரம் பெற முடியவில்லை',
-      invalidAvatarUrl: 'தவறான avatarUrl',
       invalidServicesArray: 'சேவைகள் செல்லுபடியாகும் சரம் பட்டியலாக இருக்க வேண்டும்',
       invalidRadius: 'செல்லுபடியாகாத விட்ட மதிப்பு',
       invalidLocation: 'தவறான இடம்',
@@ -438,7 +437,6 @@ const translations: Record<Locale, Record<string, any>> = {
     user: {
       notFound: 'దొరకలేదు',
       profileFetchFailed: 'ప్రొఫైల్ తీసుకురావడంలో వైఫల్యం',
-      invalidAvatarUrl: 'చెల్లని avatarUrl',
       invalidServicesArray: 'సేవలు చెల్లుబాటు అయ్యే స్ట్రింగ్ జాబితాగా ఉండాలి',
       invalidRadius: 'చెల్లని వ్యాసార్థం విలువ',
       invalidLocation: 'చెల్లని స్థానం',
@@ -515,7 +513,6 @@ const translations: Record<Locale, Record<string, any>> = {
     user: {
       notFound: 'ಕಂಡುಬಂದಿಲ್ಲ',
       profileFetchFailed: 'ಪ್ರೊಫೈಲ್ ಪಡೆಯುವಲ್ಲಿ ವಿಫಲ',
-      invalidAvatarUrl: 'ಅಮಾನ್ಯ avatarUrl',
       invalidServicesArray: 'ಸೇವೆಗಳು ಸರಿಯಾದ ಸ್ಟ್ರಿಂಗ್ ಪಟ್ಟಿಯಾಗಿರಬೇಕು',
       invalidRadius: 'ಅಮಾನ್ಯ ವ್ಯಾಪ್ತಿ ಮೌಲ್ಯ',
       invalidLocation: 'ಅಮಾನ್ಯ ಸ್ಥಳ',

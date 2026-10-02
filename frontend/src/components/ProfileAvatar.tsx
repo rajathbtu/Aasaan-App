@@ -1,10 +1,14 @@
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { colors, spacing } from '../theme';
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Image } from 'expo-image';
+import { colors, spacing, borders } from '../theme';
+import { getOptimizedProfileImageUrl } from '../utils/profileImage';
 
 type ProfileAvatarProps = {
-  profilePic?: string | null;
+  picUrl?: string | null;
   profileName: string;
+  size?: number;
+  containerStyle?: StyleProp<ViewStyle>;
 };
 
 const initialColors = [
@@ -18,43 +22,39 @@ const initialColors = [
   { background: '#E2E8F0', text: '#334155' },
 ];
 
-const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ profilePic, profileName }) => {
+const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ picUrl, profileName, size = 48 ,containerStyle,}) => {
   const initial = String(profileName).charAt(0).toUpperCase();
   const colorIndex = (initial.charCodeAt(0) || 0) % initialColors.length;
   const initialColor = initialColors[colorIndex];
+  const avatarSize = { width: size, height: size, borderRadius: size / 2 };
 
-  return profilePic ? (
-    <View style={styles.imageWrapper}>
-      <Image source={{ uri: profilePic }} style={styles.image} />
+  return picUrl ? (
+    <View style={[styles.imageWrapper, avatarSize, containerStyle]}>
+      <Image
+        source={{ uri: getOptimizedProfileImageUrl(picUrl) }}
+        style={styles.image}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+      />
     </View>
   ) : (
-    <View style={[styles.placeholder, { backgroundColor: initialColor.background }]}>
+    <View style={[styles.imageWrapper, avatarSize, { backgroundColor: initialColor.background }, containerStyle]}>
       <Text style={[styles.initial, { color: initialColor.text }]}>{initial}</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  placeholder: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
   initial: {
     fontWeight: '700',
     color: colors.primary,
   },
   imageWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
     overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: spacing.md,
-    backgroundColor: colors.greyLight,
+    ...borders.subtle,
   },
   image: {
     width: '100%',
