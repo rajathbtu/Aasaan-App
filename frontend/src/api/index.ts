@@ -73,6 +73,41 @@ export async function updateProfile(
   return res.data;
 }
 
+export async function getProfileImageUploadAuthorization(token: string) {
+  const res = await api.get('/users/me/profile-image-upload-auth', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
+
+export async function submitProfileImage(token: string, fileId: string) {
+  const res = await api.post('/users/me/profile-image', { fileId }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
+
+export async function listProfileImagesForReview(token: string) {
+  const res = await api.get('/moderation/profile-images', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
+
+export async function approveProfileImage(token: string, userId: string) {
+  const res = await api.post(`/moderation/profile-images/${encodeURIComponent(userId)}/approve`, {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
+
+export async function blockProfileImage(token: string, userId: string) {
+  const res = await api.post(`/moderation/profile-images/${encodeURIComponent(userId)}/block`, {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
+
 /**
  * Create a new work request.
  */
@@ -113,6 +148,14 @@ export async function getWorkRequest(token: string, id: string) {
  */
 export async function acceptWorkRequest(token: string, id: string) {
   const res = await api.put(`/work-requests/${id}/accept`, {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+}
+
+/** Undo the service provider's acceptance of a work request. */
+export async function undoAccept(token: string, id: string) {
+  const res = await api.delete(`/work-requests/${id}/accept`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;

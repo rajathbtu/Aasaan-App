@@ -12,7 +12,7 @@ import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import InfoBanner from '../components/InfoBanner';
 import ActionButton from '../components/ActionButton';
-import { buildTimeAgo } from '../utils/commonUtils';
+import WorkRequestCard from '../components/WorkRequestCard';
 
 const MONEY_PRICE_INR = 100;
 const CREDIT_COST = 100;
@@ -23,7 +23,6 @@ const BoostRequestScreen: React.FC = () => {
   const { request } = (route.params as any) || {};
   const { token, user, refreshUser } = useAuth();
   const { t } = useI18n();
-  const timeAgo = buildTimeAgo(t);
   const [loading, setLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState<'money' | 'credits'>('money');
   const [showPaymentWebView, setShowPaymentWebView] = useState(false);
@@ -176,44 +175,16 @@ const BoostRequestScreen: React.FC = () => {
     );
   }
 
-  const renderRequestSummary = () => {
-    const createdText = request.createdAt ? timeAgo(request.createdAt) : t('common.relative.justNow');
-    return (
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryIconContainer}>
-            <Ionicons name="flash" size={20} color="white" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.summaryService}>{request.serviceName}</Text>
-            {request.tags && request.tags.length > 0 && (
-              <View style={styles.summaryTagsRow}>
-                {request.tags.slice(0, 2).map((t: string) => (
-                  <View key={t} style={styles.tagPill}>
-                    <Text style={styles.tagPillText}>{t}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-            {request.locationName && (
-              <Text style={styles.summaryLocation}>{request.locationName}</Text>
-            )}
-          </View>
-          <Text style={styles.summaryTime}>{createdText}</Text>
-        </View>
-      </View>
-    );
-  };
-
   const alreadyBoosted = !!request.boosted;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       <Header title={t('boostRequest.title')} showBackButton={true} showNotification={false} />
-      <View style={{ height: spacing.sm }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xl + 40 }}>
-        {/* Request Summary */}
-        {renderRequestSummary()}
+        <WorkRequestCard
+          request={request}
+          containerStyle={{ marginHorizontal: 0, marginBottom: spacing.lg }}
+        />
 
         {/* Already boosted banner */}
         {alreadyBoosted && (
@@ -324,51 +295,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     color: colors.dark,
-  },
-  summaryCard: {
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  summaryIconContainer: {
-    backgroundColor: colors.primary,
-    padding: spacing.sm,
-    borderRadius: radius.md,
-    marginRight: spacing.md,
-  },
-  summaryService: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.dark,
-  },
-  summaryTagsRow: {
-    flexDirection: 'row',
-    marginTop: 4,
-  },
-  tagPill: {
-    backgroundColor: colors.primaryLight,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radius.lg,
-    marginRight: spacing.sm,
-  },
-  tagPillText: {
-    fontSize: 12,
-    color: colors.primary,
-  },
-  summaryLocation: {
-    fontSize: 12,
-    color: colors.grey,
-    marginTop: 4,
-  },
-  summaryTime: {
-    fontSize: 12,
-    color: colors.grey,
   },
   section: {
     marginBottom: spacing.lg,

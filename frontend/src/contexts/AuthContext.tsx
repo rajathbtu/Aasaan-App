@@ -25,10 +25,13 @@ interface User {
   userRating?: { average: number | null; count: number } | null;
   creditPoints: number;
   plan: 'free' | 'basic' | 'pro';
-  avatarUrl?: string | null;
+  picUrl?: string | null;
+  picAssetId?: string | null;
+  picModeration?: 'under_review' | 'approved' | 'blocked';
+  isModerator?: boolean;
 }
 
-type UpdatePayload = Partial<User> & {
+type UpdatePayload = Omit<Partial<User>, 'picUrl' | 'picAssetId' | 'picModeration' | 'isModerator'> & {
   services?: string[];
   location?: { name: string; lat: number; lng: number; placeId?: string } | null;
   radius?: number;
@@ -39,7 +42,6 @@ type UpdatePayload = Partial<User> & {
   plan?: 'free' | 'basic' | 'pro';
   role?: 'endUser' | 'serviceProvider';
   language?: string;
-  avatarUrl?: string | null;
 };
 
 interface AuthContextProps {

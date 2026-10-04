@@ -4,6 +4,8 @@ import { isValidName, isValidRadius } from '../utils/validation';
 import prisma from '../utils/prisma';
 import { Role } from '../models/User';
 import { getReqLang, t } from '../utils/i18n';
+import { getVisibleProfilePhotoUrl } from '../utils/profilePhoto';
+import { isModerator } from '../utils/moderator';
 
 const providerGenders = new Set(['male', 'female']);
 const minimumProfileYear = 1940;
@@ -23,7 +25,14 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
     if (!user) { res.status(404).json({ message: t(lang, 'user.notFound') }); return; }
     const sp = await prisma.serviceProviderInfo.findUnique({ where: { userId: user.id }, include: { location: true } }).catch(() => null);
     const userRating = getRatingSummary(user);
-    res.json({ ...user, role: user.role ?? null, serviceProviderInfo: sp || null, userRating });
+    res.json({
+      ...user,
+      picUrl: getVisibleProfilePhotoUrl(user.picModeration, user.picUrl),
+      role: user.role ?? null,
+      serviceProviderInfo: sp || null,
+      userRating,
+      isModerator: isModerator(user.id),
+    });
   } catch {
     res.status(500).json({ message: t(lang, 'user.profileFetchFailed') });
   }
@@ -32,7 +41,7 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
 export async function updateProfile(req: Request, res: Response): Promise<void> {
   const authUser = (req as any).user as { id: string };
   const lang = getReqLang(req);
-  const { name, language, role, services, location, radius, plan, avatarUrl, workSinceYear, birthYear, gender, bio } = req.body as {
+  const { name, language, role, services, location, radius, plan, workSinceYear, birthYear, gender, bio } = req.body as {
     name?: string;
     language?: string;
     role?: Role;
@@ -40,12 +49,16 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     location?: { name: string; lat: number; lng: number } | null;
     radius?: number;
     plan?: 'free' | 'basic' | 'pro';
-    avatarUrl?: string | null;
     workSinceYear?: number | null;
     birthYear?: number | null;
     gender?: 'male' | 'female' | null;
     bio?: string | null;
   };
+
+  if (Object.prototype.hasOwnProperty.call(req.body, 'picUrl')) {
+    res.status(400).json({ message: 'Profile photos must be uploaded for moderation.' });
+    return;
+  }
 
   const data: any = {};
   if (name !== undefined) {
@@ -55,11 +68,6 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
   if (language !== undefined) data.language = language;
   if (plan !== undefined) data.plan = plan;
   if (role !== undefined) data.role = role;
-  if (avatarUrl !== undefined) {
-    if (avatarUrl !== null && typeof avatarUrl !== 'string') { res.status(400).json({ message: t(lang, 'user.invalidAvatarUrl') }); return; }
-    data.avatarUrl = avatarUrl;
-  }
-
   const currentYear = new Date().getFullYear();
   const isValidProfileYear = (value: number | null | undefined) => (
     value === undefined || value === null || (
@@ -157,7 +165,13 @@ export async function updateProfile(req: Request, res: Response): Promise<void> 
     });
     const sp = await (prisma as any).serviceProviderInfo.findUnique({ where: { userId: updated.id }, include: { location: true } }).catch(() => null);
     const userRating = getRatingSummary(updated);
-    res.json({ ...updated, serviceProviderInfo: sp || null, userRating });
+    res.json({
+      ...updated,
+      picUrl: getVisibleProfilePhotoUrl(updated.picModeration, updated.picUrl),
+      serviceProviderInfo: sp || null,
+      userRating,
+      isModerator: isModerator(updated.id),
+    });
   } catch (e) {
     console.error('Error updating profile:', e);
     res.status(500).json({ message: t(lang, 'user.updateFailed') });

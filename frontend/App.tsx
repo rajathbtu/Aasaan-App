@@ -32,12 +32,14 @@ import WorkRequestsScreen from './src/screens/WorkRequestsScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import ProfileImageModerationScreen from './src/screens/ProfileImageModerationScreen';
 import SPSelectServicesScreen from './src/screens/SPSelectServicesScreen';
 import SPOnboardSimpleScreen from './src/screens/SPOnboardSimpleScreen';
 import LocationSelectScreen from './src/screens/LocationSelectScreen';
 import SPWorkRequestsScreen from './src/screens/SPWorkRequestsScreen';
 import { getNotificationNavigationTarget, NotificationUserRole } from './src/utils/notificationNavigation';
 import { linking, documentTitle} from './src/navigation/linking';
+import ProfileAvatar from './src/components/ProfileAvatar';
 
 // Define stack navigators
 const Stack = createNativeStackNavigator();
@@ -165,6 +167,7 @@ function RootNavigator() {
             <Stack.Screen name="WorkRequestDetails" component={WorkRequestDetailsScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+            <Stack.Screen name="ProfileImageModeration" component={ProfileImageModerationScreen} />
             {/* Provider tools */}
             <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
             <Stack.Screen name="SPOnboardSimple" component={SPOnboardSimpleScreen} />
@@ -206,6 +209,14 @@ function MainTabs() {
   const insets = useSafeAreaInsets();
   if (!user) return null;
   const isProvider = user.role === 'serviceProvider';
+  const tabIconContainerStyle = {
+    width: 50,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.lg,
+  } as const;
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -228,6 +239,18 @@ function MainTabs() {
           fontWeight: '700',
         },
         tabBarIcon: ({ focused, color, size }) => {
+          if (route.name === 'Profile' && user?.picUrl) {
+            return ( 
+              <View style={tabIconContainerStyle}>
+                <ProfileAvatar
+                  picUrl={user?.picUrl}
+                  profileName={user?.name || 'User'}
+                  size={32}
+                  containerStyle={{ marginRight: 0, borderWidth: 1, borderColor: focused ? colors.primary : colors.grey }}/> 
+              </View>
+            );
+          }
+
           let iconName: keyof typeof Ionicons.glyphMap;
           if (route.name === 'Create') {
             iconName = focused ? 'add-circle' : 'add-circle-outline';
@@ -239,13 +262,7 @@ function MainTabs() {
             iconName = focused ? 'person-circle' : 'person-circle-outline';
           }
           return (
-          <View style={{
-                width: 50,
-                height: 28,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: radius.lg,
-                backgroundColor: focused ? colors.primaryLight : 'transparent',}}>
+            <View style={[tabIconContainerStyle, { backgroundColor: focused ? colors.primaryLight : 'transparent' }]}>
               <Ionicons name={iconName} size={size} color={color} />
             </View>
           );

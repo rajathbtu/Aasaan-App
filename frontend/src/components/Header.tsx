@@ -3,8 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, spacing } from '../theme';
+import { colors, shadows, spacing } from '../theme';
+import { useAuth } from '../contexts/AuthContext';
 import { useNotificationCount } from '../contexts/NotificationCountContext';
+import ProfileAvatar from './ProfileAvatar';
 
 type HeaderProps = {
   title: string;
@@ -38,6 +40,7 @@ const Header: React.FC<HeaderProps> = ({
   titleStyle,
 }) => {
   const navigation = useNavigation<any>();
+  const { user } = useAuth();
   const { unreadCount } = useNotificationCount();
 
   const handleBackPress = useCallback(
@@ -88,7 +91,17 @@ const Header: React.FC<HeaderProps> = ({
                 accessibilityRole="button"
                 accessibilityLabel="Open profile"
               >
-                <Ionicons name="person-circle-outline" size={24} color={colors.dark} />
+                {user?.picUrl ? (
+                  <ProfileAvatar
+                    picUrl={user?.picUrl}
+                    profileName={user?.name || 'User'}
+                    size={ICON_BUTTON_SIZE}
+                    containerStyle={styles.profileAvatarContainer}
+                  />
+                ) : (
+                  <Ionicons name="person-circle-outline" size={24} color={colors.dark} />
+                )}
+                
               </TouchableOpacity>
             )}
             {showNotification && (
@@ -123,11 +136,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.greyLight,
-    shadowColor: colors.black,
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2, // Android shadow
+    ...shadows.md,
   },
   headerRow: {
     flexDirection: 'row',
@@ -143,6 +152,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  profileAvatarContainer: {
+    marginRight: 0,
+    borderWidth: 1,
+    borderColor: colors.greyMuted,
   },
   titleContainer: {
     flex: 1,

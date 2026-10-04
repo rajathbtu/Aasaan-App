@@ -300,6 +300,8 @@ server secret here.
 | `EXPO_PUBLIC_GOOGLE_PLACES_API_KEY` | Places autocomplete + Android Maps key |
 | `EXPO_PUBLIC_RAZORPAY_KEY_ID` | Razorpay public key (safe to expose) |
 
+Profile-photo uploads require no ImageKit secret in the frontend bundle.
+
 If `EXPO_PUBLIC_API_BASE_URL` is unset, `src/config.ts` falls back to a
 hard-coded dev ngrok URL or the production Render URL.
 
@@ -337,6 +339,15 @@ WHATSAPP_API_VERSION=...
 SMS_API_KEY=...
 SMS_API_URL=...
 
+# ImageKit profile photos
+IMAGEKIT_PRIVATE_KEY=...                 # server secret; never expose to Expo
+IMAGEKIT_PUBLIC_KEY=...
+IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_imagekit_id
+PROFILE_IMAGE_MAX_BYTES=           # optional; 
+
+# Moderator user ids for reviewing the photos, review etc
+ADMIN_MODERATOR_USER_IDS=...      # comma-separated Aasaan user IDs
+
 # Misc
 GOOGLE_PLACES_API_KEY=...            # server-side proxy usage
 NGROK_AUTHTOKEN=...                  # for dev:tunnel
@@ -347,6 +358,12 @@ DEBUG=
 
 See `backend/src/communications/voiceAI/SARVAM_INTEGRATION.md` for the full
 voice-AI variable reference.
+
+ImageKit profile photos upload to a shared folder and are transformed to
+100x100 before storage. Photos remain hidden in Aasaan responses until an
+allowlisted moderator approves them. ImageKit URLs themselves are public to
+anyone who has the URL. The client-side size check is backed by the signed
+ImageKit Upload API v2 policy; v2 is currently documented as beta.
 
 ---
 
@@ -509,7 +526,7 @@ Defined in `backend/prisma/schema.prisma` (PostgreSQL).
 
 | Model | Purpose | Key fields |
 |---|---|---|
-| **User** | End user or SP account | `phoneNumber` (unique), `name`, `language`, `role`, `creditPoints`, `avatarUrl`, `pushToken` |
+| **User** | End user or SP account | `phoneNumber` (unique), `name`, `language`, `role`, `creditPoints`, `picUrl`, `pushToken` |
 | **ServiceProviderInfo** | SP profile extension | `services[]`, `radius`, `locationId` |
 | **Location** | Saved coordinates | `name`, `lat`, `lng` |
 | **WorkRequest** | A job posted by a user | `service`, `locationName/Lat/Lng`, `tags[]`, `boosted`, `closedAt` |
