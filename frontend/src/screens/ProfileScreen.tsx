@@ -319,6 +319,17 @@ const ProfileScreen: React.FC = () => {
           </TouchableOpacity>
         )}
 
+        {/* Aadhaar offline e-KYC via UIDAI OTP (Sandbox) */}
+        <TouchableOpacity
+          style={styles.moderationLink}
+          onPress={() => navigation.navigate('AadhaarKyc')}
+          accessibilityRole="button"
+        >
+          <Ionicons name="finger-print-outline" size={18} color={colors.primary} />
+          <Text style={styles.moderationLinkText}>Verify Aadhaar with OTP</Text>
+          <Ionicons name="chevron-forward" size={17} color={colors.grey} />
+        </TouchableOpacity>
+
         <View style={styles.section}>
           <View style={styles.ratingSummary}>
             <Text style={styles.ratingSummaryTitle}>{t('profile.yourRating')}</Text>

@@ -6,6 +6,7 @@ import profileImageModerationRoutes from './routes/profileImageModerationRoutes'
 import requestRoutes from './routes/requestRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import paymentRoutes from './routes/paymentRoutes';
+import sandboxAadhaarOfflineEkycRoutes from './kyc/sandbox/aadhaarOfflineEkyc/routes';
 import serviceRoutes from './routes/serviceRoutes';
 import googlePlacesRoutes from './routes/googlePlacesRoutes';
 import whatsappRoutes from './communications/whatsapp/routes';
@@ -66,10 +67,17 @@ app.use(express.json());
 app.use((req, res, next) => {
   const time = new Date().toLocaleTimeString('en-GB');
   try {
-    // Log request & response for debugging
+    /* Log request & response for debugging
+    *  Voice webhooks carry raw transcripts and Aadhaar KYC bodies carry a
+    *  12-digit Aadhaar number plus a live OTP, so neither may be printed.
+    */
     const isVoiceWebhook = req.path.startsWith('/webhooks/sarvam') || req.path.startsWith('/api/sarvam');
-    const bodyPreview = isVoiceWebhook ? '<redacted>' : req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : '{}';
+    const isAadhaarKyc = req.path.startsWith('/aadhaar-kyc');
     
+    const shouldRedact = isVoiceWebhook || isAadhaarKyc;
+    
+    const bodyPreview = shouldRedact ? '<redacted>' : req.body && Object.keys(req.body).length ? JSON.stringify(req.body) : '{}';
+
     console.log(`# # # REQUEST  # # #   ${time} ${req.method} ${req.originalUrl} body=${bodyPreview}`);
   } catch (err) {
     console.log(`# # # REQUEST  # # #   ${time} ${req.method} ${req.originalUrl} body=<unserializable>`);
@@ -90,6 +98,7 @@ app.use('/moderation/profile-images', profileImageModerationRoutes);
 app.use('/work-requests', requestRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/payments', paymentRoutes);
+app.use('/aadhaar-kyc/sandbox/aadhaar-offline-ekyc', sandboxAadhaarOfflineEkycRoutes);
 app.use('/services', serviceRoutes);
 app.use('/google-places', googlePlacesRoutes); // Web-only proxy for Google Places Web Service endpoints (see googlePlacesProxyController). Native apps call Google directly.
 app.use('/whatsapp', whatsappRoutes); // WhatsApp Cloud API (Meta): inbound webhooks only
