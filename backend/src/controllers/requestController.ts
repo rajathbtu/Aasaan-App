@@ -125,10 +125,11 @@ export async function create(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
   const lang = getReqLang(req);
   if (user.role !== 'endUser') { res.status(403).json({ message: t(lang, 'request.onlyEndUsersCreate') }); return; }
-  const { service, location, tags } = req.body as any;
+  const { service, location, tags, phoneConsent } = req.body as any;
   if (!service || typeof service !== 'string') { res.status(400).json({ message: t(lang, 'request.serviceRequired') }); return; }
   if (!location || typeof location.name !== 'string' || typeof location.lat !== 'number' || typeof location.lng !== 'number') { res.status(400).json({ message: t(lang, 'user.invalidLocation') }); return; }
   if (tags && !areValidTags(tags)) { res.status(400).json({ message: t(lang, 'request.invalidTags') }); return; }
+  if (phoneConsent !== undefined && typeof phoneConsent !== 'boolean') { res.status(400).json({ message: 'phoneConsent must be a boolean.' }); return; }
   try {
     const since = new Date(Date.now() - 24*60*60*1000);
     const recent = await prisma.workRequest.count({ where: { userId: user.id, createdAt: { gt: since } } });
@@ -141,6 +142,7 @@ export async function create(req: Request, res: Response): Promise<void> {
         locationLat: location.lat,
         locationLng: location.lng,
         tags: tags || [],
+        phoneConsent: phoneConsent === true,
       },
     });
     // Notify eligible providers (service match + radius parity)
@@ -321,7 +323,7 @@ export async function list(req: Request, res: Response): Promise<void> {
                wr."locationLat" AS location_lat,
                wr."locationLng" AS location_lng,
                usr.name AS end_user_name,
-               usr."phoneNumber" AS end_user_phone,
+               CASE WHEN wr."phoneConsent" IS TRUE THEN usr."phoneNumber" ELSE NULL END AS end_user_phone,
                CASE WHEN usr."pic_moderation" = 'approved' THEN usr."picUrl" ELSE NULL END AS end_user_pic_url,
                CASE WHEN ap.id IS NULL THEN false ELSE true END AS accepted_by_provider
         FROM "WorkRequest" wr

@@ -81,6 +81,7 @@ model WorkRequest {
   locationLat       Float
   locationLng       Float
   tags              String[]
+  phoneConsent      Boolean  @default(false)
   createdAt         DateTime @default(now())
   status            WorkRequestStatus @default(active)
   boosted           Boolean  @default(false)

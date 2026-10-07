@@ -339,6 +339,7 @@ export const translations = {
         // headerSubTitle: 'What best describes your work?',
         tagsTitle: 'Select Tags',
         tagHint: 'Select tags that describe your work',
+        phoneConsent: 'Let eligible service providers who can view this request, call me directly about this work.',
         confirmButton: 'Confirm Request',
         noTagsAvailable: 'No tags available for this service',
       },

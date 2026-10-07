@@ -437,20 +437,22 @@ const SPWorkRequestsScreen: React.FC = () => {
             style={styles.ctaSpacing}
           />
           
-          <ActionButton
-            buttonIcon="call-outline"
-            buttonTitle={t('spRequests.call')}
-            buttonTitleColor={accepted ? colors.white : colors.secondary}
-            backgroundColor={accepted ? colors.primary : colors.successLight}
-            onPress={() => {
-              if (item.endUserPhone) {
-                Linking.openURL(`tel:${item.endUserPhone}`);
-              } else {
-                Alert.alert('Error', 'Requester phone number is not available.');
-              }
-            }}
-            style={styles.ctaSpacing}
-          />
+          {item.phoneConsent === true && item.endUserPhone && (
+            <ActionButton
+              buttonIcon="call-outline"
+              buttonTitle={t('spRequests.call')}
+              buttonTitleColor={accepted ? colors.white : colors.secondary}
+              backgroundColor={accepted ? colors.primary : colors.successLight}
+              onPress={() => {
+                if (item.endUserPhone) {
+                  Linking.openURL(`tel:${item.endUserPhone}`);
+                } else {
+                  Alert.alert('Error', 'Requester phone number is not available.');
+                }
+              }}
+              style={styles.ctaSpacing}
+            />
+          )}
           {/* @todo: Navigate CTA may be dangerous for app engagement as users are redirected to external maps app... so should be used with caution */}
           <ActionButton
             buttonIcon="navigate-outline"

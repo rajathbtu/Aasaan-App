@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Switch } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { createWorkRequest } from '../api';
@@ -21,6 +21,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
   const { serviceId, serviceName, serviceTags, selectedLocation } = (route.params as any) || {};
   const service = { id: serviceId, name: serviceName, tags: (serviceTags || []) as string[] };
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [phoneConsent, setPhoneConsent] = useState(false);
   const { token } = useAuth();
   const { t } = useI18n();
   const [requestInProgress, setRequestInProgress] = useState(false);
@@ -63,6 +64,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
         service: service.id,
         location: { name: locName, lat: selectedLocation.lat, lng: selectedLocation.lng, placeId },
         tags: selectedTags,
+        phoneConsent,
       });
       navigation.navigate('WorkRequestCreated', {
         request: wr,
@@ -124,6 +126,24 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
               <Text style={styles.noTagsText}>{t('createRequest.selectTags.noTagsAvailable')}</Text>
             </View>
           )}
+          <TouchableOpacity
+            style={styles.consentCard}
+            onPress={() => setPhoneConsent(current => !current)}
+            activeOpacity={0.8} accessibilityRole="switch"
+            accessibilityState={{ checked: phoneConsent }}>
+            <Ionicons name="call-outline" size={20} color={colors.primary} />
+            <Text style={styles.consentText}>
+              {t('createRequest.selectTags.phoneConsent')}
+            </Text>
+            <Switch
+              value={phoneConsent}
+              onValueChange={setPhoneConsent}
+              trackColor={{ false: colors.greyLight, true: colors.primaryBorder }}
+              thumbColor={phoneConsent ? colors.primary : colors.white}
+              pointerEvents="none"
+              accessibilityLabel={t('createRequest.selectTags.phoneConsent')}
+            />
+          </TouchableOpacity>
       </ScrollView>
 
       <ErrorBanner error={requestError} onRetry={handleConfirm} />
@@ -235,6 +255,24 @@ const styles = StyleSheet.create({
     color: colors.grey,
     marginLeft: spacing.sm,
     textAlign: 'center',
+  },
+  consentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.greyLight,
+  },
+  consentText: {
+    flex: 1,
+    marginLeft: spacing.sm,
+    marginRight: spacing.sm,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.dark,
   },
   guardBody: {
     flex: 1,

@@ -113,7 +113,7 @@ export async function blockProfileImage(token: string, userId: string) {
  */
 export async function createWorkRequest(
   token: string,
-  payload: { service: string; location: any; tags: string[]; force?: boolean }
+  payload: { service: string; location: any; tags: string[]; phoneConsent: boolean; force?: boolean }
 ) {
   const res = await api.post('/work-requests', payload, {
     headers: { Authorization: `Bearer ${token}` },

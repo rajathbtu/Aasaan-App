@@ -1,0 +1,2 @@
+ALTER TABLE "WorkRequest"
+ADD COLUMN "phoneConsent" BOOLEAN NOT NULL DEFAULT false;

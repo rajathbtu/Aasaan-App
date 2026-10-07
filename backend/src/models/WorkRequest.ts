@@ -13,6 +13,7 @@ export interface WorkRequest {
   locationLat: number;
   locationLng: number;
   tags: string[];
+  phoneConsent: boolean;
   createdAt: Date;
   status: 'active' | 'closed';
   boosted: boolean;
