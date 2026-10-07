@@ -8,6 +8,9 @@ import {
   maskAadhaarNumber,
   verifyAadhaarOtp,
 } from './client';
+import { buildKycPayload, toVerifiedIdentityData } from './mapper';
+import { saveVerifiedIdentity } from '../../verifiedIdentityService';
+import { KycEncryptionConfigurationError } from '../../../utils/kycEncryption';
 
 /**
  * Sandbox reports *every* verify outcome as HTTP 200, distinguishing success
@@ -138,15 +141,21 @@ export async function generateAadhaarOtpHandler(req: Request, res: Response): Pr
 /**
  * Step 2 — submit the OTP and return the verified e-KYC record.
  *
- * NOTE: the result is intentionally NOT persisted. It is returned to the
- * client, held in component state, and discarded on unmount — no Prisma model
- * and no database writes were added for this feature.
+ * The provider response is normalized by the Sandbox mapper; persistence and
+ * profile updates are delegated to the provider-agnostic identity service.
  */
 export async function verifyAadhaarOtpHandler(req: Request, res: Response): Promise<void> {
   try {
+    const authUser = (req as any).user as { id: string };
     const referenceId = String(req.body?.reference_id ?? '').trim();
     if (!referenceId) {
       res.status(400).json({ message: 'A reference id is required.', code: 'reference_id_missing' });
+      return;
+    }
+
+    const aadhaarLast4 = String(req.body?.aadhaar_last4 ?? '').trim();
+    if (!/^\d{4}$/.test(aadhaarLast4)) {
+      res.status(400).json({ message: 'Aadhaar last four digits are required.', code: 'invalid_aadhaar_suffix' });
       return;
     }
 
@@ -160,55 +169,13 @@ export async function verifyAadhaarOtpHandler(req: Request, res: Response): Prom
 
     console.log('[SandboxAadhaarOfflineEkyc] Verification succeeded');
 
-    res.json({ status: 'VERIFIED', kyc: buildKycPayload(data) });
+    const kyc = buildKycPayload(data);
+    await saveVerifiedIdentity(authUser.id, aadhaarLast4, toVerifiedIdentityData(kyc));
+
+    res.json({ status: 'VERIFIED', kyc, aadhaarVerified: true });
   } catch (error) {
     handleSandboxError(res, error, 'Unable to verify the Aadhaar OTP.');
   }
-}
-
-/**
- * UIDAI occasionally wraps the base64 payload of `photo` across lines. That
- * whitespace is not valid base64 and makes native decoders fail, so it is
- * stripped server-side. Returns undefined for anything that is not a usable
- * `data:image/...;base64,` URI, so the client can skip rendering it.
- */
-function sanitizePhoto(photo: unknown): string | undefined {
-  if (typeof photo !== 'string') return undefined;
-  const match = /^data:(image\/[a-z+]+);base64,([\s\S]*)$/i.exec(photo.trim());
-  if (!match) return undefined;
-
-  const payload = match[2].replace(/\s+/g, '');
-  if (payload.length < 32) return undefined;
-  return `data:${match[1].toLowerCase()};base64,${payload}`;
-}
-
-/** Converts Sandbox's snake_case record into the camelCase shape the app uses. */
-function buildKycPayload(data: VerifyOtpData) {
-  const address = data.address || {};
-  const addressLine =
-    [
-      address.house,
-      address.street,
-      address.landmark,
-      address.post_office || address.vtc,
-      address.district,
-      address.state,
-      address.pincode,
-    ]
-      .filter(Boolean)
-      .join(', ') || data.full_address;
-
-  return {
-    name: data.name,
-    gender: data.gender,
-    dateOfBirth: data.date_of_birth,
-    yearOfBirth: data.year_of_birth,
-    careOf: data.care_of,
-    address: addressLine,
-    state: address.state,
-    pincode: address.pincode,
-    photo: sanitizePhoto(data.photo),
-  };
 }
 
 /** Preserves the upstream `code` so the client can show specific guidance. */
@@ -216,6 +183,14 @@ function handleSandboxError(res: Response, error: unknown, fallbackMessage: stri
   if (error instanceof SandboxError) {
     console.error(`[SandboxAadhaarOfflineEkyc] Provider error: ${error.code}`);
     res.status(error.statusCode).json({ message: error.message, code: error.code });
+    return;
+  }
+  if (error instanceof KycEncryptionConfigurationError) {
+    console.error('[SandboxAadhaarOfflineEkyc] Encryption key is not configured correctly');
+    res.status(503).json({
+      message: error.message,
+      code: 'kyc_encryption_not_configured',
+    });
     return;
   }
   console.error('[SandboxAadhaarOfflineEkyc] Unexpected failure');

@@ -7,10 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-// expo-image (not the core Image) is used throughout this app and is required
-// here: UIDAI's photo arrives as a large base64 data URI, which the core
-// Image fails to decode on Android — it renders as an empty box.
-import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
 import Header from '../../../components/Header';
@@ -27,22 +23,6 @@ import {
   verifySandboxAadhaarOfflineEkycOtp,
 } from '../../../api/kyc/sandbox/aadhaarOfflineEkyc';
 
-/**
- * UIDAI returns the portrait as a `data:` URI but sometimes wraps the base64
- * payload across lines. Embedded newlines and spaces are not valid base64 and
- * make the decoder fail silently, producing an empty box. Strip all
- * whitespace from the payload and repair the prefix before handing it to the
- * image component.
- */
-function normalizePhotoDataUrl(photo: string): string {
-  const match = /^data:(image\/[a-z+]+);base64,([\s\S]*)$/i.exec(photo.trim());
-  if (!match) return photo.trim();
-
-  const mimeType = match[1].toLowerCase();
-  const payload = match[2].replace(/\s+/g, '');
-  return `data:${mimeType};base64,${payload}`;
-}
-
 /** Stages the screen moves through during a verification attempt. */
 type KycState = 'idle' | 'sending' | 'awaiting_otp' | 'verifying' | 'success' | 'failed';
 
@@ -57,12 +37,6 @@ const GENDER_LABEL: Record<string, string> = {
   T: 'Transgender',
 };
 
-/** Joins whichever address fields came back into one readable line. */
-function formatAddress(kyc: SandboxAadhaarOfflineEkycResult): string | undefined {
-  if (kyc.address) return kyc.address;
-  return [kyc.state, kyc.pincode].filter(Boolean).join(' - ') || undefined;
-}
-
 /**
  * Aadhaar offline e-KYC over UIDAI, via Sandbox (sandbox.co.in).
  *
@@ -70,11 +44,11 @@ function formatAddress(kyc: SandboxAadhaarOfflineEkycResult): string | undefined
  * (delivered to the Aadhaar-registered mobile) -> submit it -> show the
  * verified e-KYC record.
  *
- * The verified record is deliberately NOT persisted. It lives in component
- * state and is discarded on unmount, so nothing reaches the database.
+ * Sandbox performs the provider exchange; verified fields are saved through
+ * the backend's provider-agnostic KYC service.
  */
 const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
-  const { token } = useAuth();
+  const { token, refreshUser } = useAuth();
 
   const [state, setState] = useState<KycState>('idle');
   const [aadhaar, setAadhaar] = useState('');
@@ -147,9 +121,11 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
       const result = await verifySandboxAadhaarOfflineEkycOtp(token as string, {
         referenceId: session.referenceId,
         otp,
+        aadhaarLast4: aadhaar.replace(/\D/g, '').slice(-4),
       });
       setKyc(result.kyc);
       setState('success');
+      void refreshUser().catch(() => {});
     } catch (err) {
       const { message, code } = readSandboxAadhaarOfflineEkycError(err);
       setState('failed');
@@ -162,7 +138,7 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
         setOtp('');
       }
     }
-  }, [session, otp, token]);
+  }, [session, otp, token, aadhaar, refreshUser]);
 
   const isBusy = state === 'sending' || state === 'verifying';
   const busyLabel =
@@ -176,8 +152,7 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
         ['Name', kyc.name],
         ['Date of birth', kyc.dateOfBirth],
         ['Gender', kyc.gender ? GENDER_LABEL[kyc.gender] || kyc.gender : undefined],
-        ['Guardian', kyc.careOf],
-        ['Address', formatAddress(kyc)],
+        ['Address', kyc.address],
       ] as Array<[string, string | undefined]>
     ).filter(([, value]) => Boolean(value));
 
@@ -188,15 +163,6 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
           <Text style={styles.cardTitle}>Verified Aadhaar details</Text>
         </View>
 
-        {kyc.photo ? (
-          <Image
-            source={normalizePhotoDataUrl(kyc.photo)}
-            style={styles.photo}
-            contentFit="cover"
-            cachePolicy="memory"
-          />
-        ) : null}
-
         {rows.map(([label, value]) => (
           <View key={label} style={styles.detailRow}>
             <Text style={styles.detailLabel}>{label}</Text>
@@ -205,8 +171,9 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
         ))}
 
         <Text style={styles.disclaimer}>
-          Verified with UIDAI using the OTP sent to your Aadhaar-registered mobile. This result is
-          shown for this session only and is not saved to your profile.
+          Verified with UIDAI using the OTP sent to your Aadhaar-registered mobile. Your name, date
+          of birth, gender, and address are encrypted in your profile. The full Aadhaar number and
+          portrait are not saved.
         </Text>
       </View>
     );
@@ -389,13 +356,6 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 15, fontWeight: '700', color: colors.dark, marginBottom: spacing.xs },
   cardBody: { fontSize: 13, color: colors.grey, lineHeight: 18, marginBottom: spacing.md },
   demoBanner: { marginBottom: spacing.md },
-  photo: {
-    width: 96,
-    height: 96,
-    borderRadius: radius.md,
-    alignSelf: 'center',
-    marginBottom: spacing.md,
-  },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

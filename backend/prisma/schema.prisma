@@ -45,6 +45,9 @@ model User {
   pushToken           String?
   pushTokenPlatform   String?
   pushTokenUpdatedAt  DateTime?
+  aadhaarKycData      String?  @map("aadhaar_kyc_data")
+  aadhaarVerified     Boolean  @default(false) @map("aadhaar_verified")
+  aadhaarLast4        String?  @map("aadhaar_last4")
 }
 
 model ServiceProviderInfo {

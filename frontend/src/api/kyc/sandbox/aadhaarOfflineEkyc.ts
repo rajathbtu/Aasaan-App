@@ -3,21 +3,15 @@ import { api } from '../../index';
 /**
  * Aadhaar offline e-KYC via Sandbox (https://developer.sandbox.co.in).
  *
- * Mirrors the camelCase payload the backend builds from Sandbox's snake_case
- * e-KYC record. Nothing here is persisted — the caller holds the result in
- * component state only.
+ * Mirrors the allowlisted profile fields the backend builds from Sandbox's
+ * snake_case e-KYC record. The portrait and guardian data are not returned.
  */
 export interface SandboxAadhaarOfflineEkycResult {
   name?: string;
   gender?: string;
   dateOfBirth?: string;
   yearOfBirth?: string;
-  careOf?: string;
   address?: string;
-  state?: string;
-  pincode?: string;
-  /** Base64 data URL. Kept in memory only; never uploaded or saved. */
-  photo?: string;
 }
 
 export interface SandboxAadhaarOfflineEkycOtpSession {
@@ -33,6 +27,7 @@ export interface SandboxAadhaarOfflineEkycOtpSession {
 
 export interface SandboxAadhaarOfflineEkycOtpVerification {
   status: 'VERIFIED';
+  aadhaarVerified: true;
   kyc: SandboxAadhaarOfflineEkycResult;
 }
 
@@ -47,6 +42,7 @@ export type SandboxAadhaarOfflineEkycErrorCode =
   | 'otp_expired'
   | 'verification_in_process'
   | 'reference_id_missing'
+  | 'invalid_aadhaar_suffix'
   | 'otp_request_outcome_unknown'
   | 'sandbox_source_unavailable'
   | 'sandbox_unreachable'
@@ -81,13 +77,14 @@ export async function generateSandboxAadhaarOfflineEkycOtp(
  */
 export async function verifySandboxAadhaarOfflineEkycOtp(
   token: string,
-  params: { referenceId: string; otp: string },
+  params: { referenceId: string; otp: string; aadhaarLast4: string },
 ): Promise<SandboxAadhaarOfflineEkycOtpVerification> {
   const res = await api.post(
     '/aadhaar-kyc/sandbox/aadhaar-offline-ekyc/verify-otp',
     {
       reference_id: params.referenceId,
       otp: params.otp,
+      aadhaar_last4: params.aadhaarLast4,
     },
     { headers: { Authorization: `Bearer ${token}` } },
   );

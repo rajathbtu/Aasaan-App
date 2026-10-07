@@ -212,7 +212,8 @@ const ProfileScreen: React.FC = () => {
     gender: {
       title: t('profile.gender'),
       options: [{ label: t('profile.genderMale'), value: 'male' },
-      { label: t('profile.genderFemale'), value: 'female' }],
+      { label: t('profile.genderFemale'), value: 'female' },
+      { label: t('profile.genderTransgender'), value: 'transgender' }],
       value: pendingGender,
       onSelect: setPendingGender,
     },
@@ -481,7 +482,11 @@ const ProfileScreen: React.FC = () => {
               fieldType="textfield"
               value={pendingGender === 'male'
                 ? t('profile.genderMale')
-                : pendingGender === 'female' ? t('profile.genderFemale') : t('profile.genderPlaceholder')}
+                : pendingGender === 'female'
+                  ? t('profile.genderFemale')
+                  : pendingGender === 'transgender'
+                    ? t('profile.genderTransgender')
+                    : t('profile.genderPlaceholder')}
               fieldEditIcon="pencil"
               containerStyle={styles.providerProfileField}
               onPress={() => setActiveSelector('gender')}/>

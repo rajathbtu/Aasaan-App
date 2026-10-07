@@ -1,8 +1,7 @@
 # Sandbox Aadhaar Offline e-KYC (OTP)
 
 Verifies a user's Aadhaar by sending an OTP to the mobile number registered with
-UIDAI, then returning this method's verified e-KYC fields (name, DOB, gender,
-address, and portrait).
+UIDAI, then returns the verified name, DOB, gender, and address.
 
 > ⚠️ **UIDAI has deprecated the Aadhaar offline e-KYC endpoint.** Sandbox's own
 > docs recommend the DigiLocker-based flow instead. Both endpoints still respond
@@ -30,6 +29,22 @@ The backend endpoint base is `/aadhaar-kyc/sandbox/aadhaar-offline-ekyc`:
 
 - `POST /generate-otp`
 - `POST /verify-otp`
+
+## Encrypted profile storage
+
+After a successful OTP verification, the backend stores the allowlisted name, date of birth, gender, and address as AES-256-GCM ciphertext in one user column.
+The verification flag and last four digits are separate columns. The full
+Aadhaar number, portrait, guardian details, OTP, and raw provider response are not persisted. Configure `AADHAAR_KYC_ENCRYPTION_KEY` as a base64-encoded, random 32-byte key in the backend secret manager before enabling the flow. For local development, generate one with:
+
+```powershell
+node -e "process.stdout.write(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Store the generated value as `AADHAAR_KYC_ENCRYPTION_KEY` in `backend/.env`
+and restart the backend. Keep the same key for as long as encrypted KYC data
+must remain readable; changing it makes existing records undecryptable.
+
+Do not commit the key. Losing it makes stored KYC ciphertext unreadable; key rotation requires decrypting and re-encrypting existing records. Confirm the storage purpose and retention rules for the applicable UIDAI/Sandbox flow before enabling persistence in production.
 
 ## Modes
 
@@ -184,9 +199,12 @@ The client switches on `code`, never on message text.
 - Verification logs contain only the outcome; they never include returned KYC
   fields such as name, birth date, address, portrait, or contact hashes.
 - The API secret is server-side only; the app talks exclusively to our backend.
-- **Results are not persisted.** No Prisma model, no writes. The record lives in
-  component state and is discarded when the screen unmounts. Adding storage
-  later would need a new table and a data-retention decision.
+- **Sensitive values stay out of logs and responses.** The encrypted profile
+  column is excluded from all API responses; the self-profile response exposes
+  only verification status and last four digits. Verification logs contain
+  only the outcome, never returned KYC fields.
+- The last-four value is supplied by the client and is display metadata only;
+  Sandbox verification status is determined solely by the provider response.
 
 ## Rate limits
 
