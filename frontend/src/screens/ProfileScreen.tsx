@@ -306,6 +306,13 @@ const ProfileScreen: React.FC = () => {
                   ? t('profile.photoBlocked') : t('profile.tapToChangePhoto')}
             </Text>
           )}
+          <View style={styles.aadhaarStatus}>
+            <Ionicons name={user.aadhaarVerified ? 'shield-checkmark' : 'shield-outline'}
+              size={14} color={user.aadhaarVerified ? '#15803d' : colors.grey} />
+            <Text style={[ styles.aadhaarStatusText, user.aadhaarVerified && styles.aadhaarStatusVerified]}>
+              {user.aadhaarVerified ? t('profile.aadhaarVerified') : t('profile.aadhaarNotVerified')}
+            </Text>
+          </View>
         </View>
 
         {user.isModerator && (
@@ -616,6 +623,20 @@ const styles = StyleSheet.create({
   photoNote: {
     fontSize: 12,
     color: colors.grey,
+  },
+  aadhaarStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  aadhaarStatusText: {
+    fontSize: 12,
+    color: colors.grey,
+  },
+  aadhaarStatusVerified: {
+    color: '#15803d',
+    fontWeight: '600',
   },
   moderationLink: {
     flexDirection: 'row',

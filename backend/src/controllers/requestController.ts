@@ -68,6 +68,7 @@ async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<
           picUrl: true,
           picModeration: true,
           createdAt: true,
+          aadhaarVerified: true,
           ratingsScoreSum: true,
           ratingsCount: true,
           serviceProviderInfo: {
