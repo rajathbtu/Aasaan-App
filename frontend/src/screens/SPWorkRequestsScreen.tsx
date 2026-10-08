@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View,
+  Animated,
+  PanResponder,
   Text,
   FlatList,
   TouchableOpacity,
@@ -16,6 +18,7 @@ import { acceptWorkRequest, listWorkRequests, undoAccept } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius, surfaces } from '../theme';
 import { useI18n } from '../i18n';
+import { useToast } from '../contexts/ToastContext';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import ServiceIcon from '../components/ServiceIcon';
@@ -43,10 +46,46 @@ function validateProviderProfile(user: any): { ok: boolean; next: 'services' | '
   return { ok: true, next: null };
 }
 
+const SwipeableRequestCard: React.FC<{
+  enabled: boolean;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
+  children: React.ReactNode;
+}> = ({ enabled, onSwipeLeft, onSwipeRight, children }) => {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const handlers = useRef({ enabled, onSwipeLeft, onSwipeRight });
+  handlers.current = { enabled, onSwipeLeft, onSwipeRight };
+  const panResponder = useRef(PanResponder.create({
+    onMoveShouldSetPanResponderCapture: (_, gesture) =>
+      handlers.current.enabled &&
+      Math.abs(gesture.dx) > 10 &&
+      Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
+    onPanResponderMove: (_, gesture) =>
+      translateX.setValue(Math.max(-50, Math.min(50, gesture.dx))),
+    onPanResponderRelease: (_, gesture) => {
+      if (gesture.dx >= 50) handlers.current.onSwipeRight?.();
+      if (gesture.dx <= -50) handlers.current.onSwipeLeft?.();
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
+    },
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderTerminate: () =>
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start(),
+  })).current;
+
+  return (
+    <Animated.View
+      {...panResponder.panHandlers}
+      style={{ transform: [{ translateX }] }}
+    >
+      {children}
+    </Animated.View>
+  );
+};
+
 /**
  * Service provider work requests screen.  Displays available and accepted
  * requests, allows filtering by date or distance, and lets providers
- * accept new requests.  The layout mirrors the provided mockup with a
+ * express interest in new requests.  The layout mirrors the provided mockup with a
  * header, segmented control, filter chips, stylised cards and a
  * promotional banner.
  */
@@ -55,6 +94,7 @@ const SPWorkRequestsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { t } = useI18n();
+  const { showToast } = useToast();
   const timeAgo = buildTimeAgo(t);
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -65,7 +105,8 @@ const SPWorkRequestsScreen: React.FC = () => {
   const [ratingRequest, setRatingRequest] = useState<any | null>(null);
   const [filter, setFilter] = useState<'all' | 'today' | 'within3'>('all');
   const [refreshing, setRefreshing] = useState(false);
-  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
+  const [processingRequestIds, setProcessingRequestIds] = useState<Set<string>>(() => new Set());
+  const processingRequestIdsRef = useRef(processingRequestIds);
   const [requestError, setRequestError] = useState<unknown | null>(null);
   const [showProBanner, setShowProBanner] = useState(true);
   const notificationRequestId = route.params?.highlightedRequestId as string | undefined;
@@ -75,6 +116,14 @@ const SPWorkRequestsScreen: React.FC = () => {
   const userId = user?.id;
   const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
   const closedRequestsCacheKey = userId ? offlineCacheKey('provider-closed-requests', userId) : null;
+
+  const updateRequestProcessing = (id: string, processing: boolean) => {
+    const next = new Set(processingRequestIdsRef.current);
+    if (processing) next.add(id);
+    else next.delete(id);
+    processingRequestIdsRef.current = next;
+    setProcessingRequestIds(next);
+  };
   
   const filterOptions = [
     { value: 'all', labelKey: 'spRequests.filterAll', iconName: 'apps-outline' },
@@ -167,28 +216,26 @@ const SPWorkRequestsScreen: React.FC = () => {
   );
 
   /**
-   * Accept a work request.  Invokes the API and refreshes the list on
-   * success.  Shows an alert if the operation fails.
+   * Express interest in a work request and refresh the list on success.
    */
   const handleAccept = async (item: any) => {
-    if (!token || processingRequestId) return;
-    setProcessingRequestId(item.id);
+    if (!token || processingRequestIdsRef.current.has(item.id)) return;
+    updateRequestProcessing(item.id, true);
     try {
       await acceptWorkRequest(token, item.id);
       setRequestError(null);
-      // Refreshing the list flips this card to the green "Accepted" state,
-      // which acts as the visual confirmation (no blocking alert needed).
+      // Refreshing the list updates this card to the interested state.
       await fetchRequests();
     } catch (err: any) {
       setRequestError(err);
     } finally {
-      setProcessingRequestId(null);
+      updateRequestProcessing(item.id, false);
     }
   };
 
   const confirmWithdraw = async (item: any) => {
-    if (!token || processingRequestId) return;
-    setProcessingRequestId(item.id);
+    if (!token || processingRequestIdsRef.current.has(item.id)) return;
+    updateRequestProcessing(item.id, true);
     try {
       await undoAccept(token, item.id);
       setRequestError(null);
@@ -196,7 +243,7 @@ const SPWorkRequestsScreen: React.FC = () => {
     } catch (err: any) {
       setRequestError(err);
     } finally {
-      setProcessingRequestId(null);
+      updateRequestProcessing(item.id, false);
     }
   };
 
@@ -316,9 +363,9 @@ const SPWorkRequestsScreen: React.FC = () => {
 
   /**
    * Renders a single work request card.  The card appearance and
-   * available actions depend on whether the request has been accepted
-   * by the current user.  Accepted cards show a green "Accepted" chip
-   * and a prominent call button.  Available cards show Accept, Navigate
+   * available actions depend on whether the provider has expressed interest.
+   * Interested cards show a green status chip and a prominent call button.
+   * Available cards show an interest action, Navigate
    * and Call actions with a clear visual hierarchy.
    */
   const renderRequest = ({ item }: { item: any }) => {
@@ -328,7 +375,7 @@ const SPWorkRequestsScreen: React.FC = () => {
       name: item.endUserName || t('requestDetails.endUser'),
     });
     const highlighted = item.id === highlightedRequestId;
-    const processing = processingRequestId === item.id;
+    const processing = processingRequestIds.has(item.id);
     const timeLabel = timeAgo(item.createdAt);
     // Fresh requests (under 2 hours old) get a "New" badge
     const isNew = !isClosedRequest &&
@@ -347,6 +394,15 @@ const SPWorkRequestsScreen: React.FC = () => {
     }
 
     return (
+      <SwipeableRequestCard
+        enabled={!isClosedRequest && !processing}
+        onSwipeRight={accepted
+          ? () => showToast(t('spRequests.alreadyAccepted'))
+          : () => handleAccept(item)}
+        onSwipeLeft={accepted 
+          ? () => handleWithdraw(item) 
+          : () => showToast(t('spRequests.notYetAccepted'))}
+      >
       <View
         style={[
           styles.card,
@@ -429,7 +485,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           
           <ActionButton
             buttonIcon={accepted ? "checkmark-circle" : "checkmark-circle-outline"}
-            buttonTitle={(accepted)? t('spRequests.accept') : t('spRequests.accept')}
+            buttonTitle={accepted ? t('spRequests.undoAccept') : t('spRequests.accept')}
             buttonTitleColor={colors.white}
             backgroundColor={accepted? colors.success : colors.primary}
             onPress={() => accepted ? handleWithdraw(item) : handleAccept(item)}
@@ -467,6 +523,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           </View>
         </>}
       </View>
+      </SwipeableRequestCard>
     );
   };
 
@@ -572,11 +629,11 @@ const SPWorkRequestsScreen: React.FC = () => {
           })}
         </View>}
         {/* Loading indicator when few requests are available */}
-        {loading && requests.length > 0 && (
-          <View style={styles.loadingRow}>
+        <View style={styles.loadingRow}>
+          {loading && requests.length > 0 && (
             <Spinner size="small" color={colors.primary} style={{ marginBottom: spacing.sm }} />
-          </View>
-        )}
+          )}
+        </View>
         {/* List */}
         {tab === 'closed' && closedLoading && closedRequests.length === 0 ? (
           <SkeletonLoader count={4} />
