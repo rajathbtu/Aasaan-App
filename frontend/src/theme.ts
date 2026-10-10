@@ -44,8 +44,12 @@ export const colors = {
   error: '#ef4444',
   /** Warning/alert colour used occasionally. */
   warning: '#facc15',
+  /** Light warning tint for badges and subtle backgrounds. */
+  warningLight: '#fef3c7',
   /** Success colour for completed tasks. */
   success: '#10b981',
+  /** Dark success colour for high-emphasis positive actions. */
+  successDark: '#00865a',
   /** Success light background tint */
   successLight: '#d1fae5',
   /** Additional brand/support colours */

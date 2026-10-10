@@ -449,6 +449,14 @@ const SPWorkRequestsScreen: React.FC = () => {
         <View style={styles.infoRow}>
           <Ionicons name="location-sharp" size={15} color={colors.grey} />
           <Text style={styles.infoText} numberOfLines={2}>{item.locationName}</Text>
+          {!isClosedRequest && (
+            <TouchableOpacity
+              onPress={() => handleNavigate(item)}
+              hitSlop={6} style={styles.addressNavigateButton}
+              accessibilityRole="button" accessibilityLabel={t('spRequests.navigate')}>
+              <Ionicons name="navigate-outline" size={17} color={colors.secondary} />
+            </TouchableOpacity>
+          )}
         </View>
         {!!item.endUserName && (
           <View style={styles.infoRow}>
@@ -479,26 +487,27 @@ const SPWorkRequestsScreen: React.FC = () => {
               buttonTitleColor={colors.white}
               backgroundColor={colors.primary}
               onPress={() => setRatingRequest(item)}
+              style={styles.requestActions}
             />
           ) : (
           <>
           
           <ActionButton
             buttonIcon={accepted ? "checkmark-circle" : "checkmark-circle-outline"}
-            buttonTitle={accepted ? t('spRequests.undoAccept') : t('spRequests.accept')}
+            buttonTitle={ t('spRequests.accept')}
             buttonTitleColor={colors.white}
-            backgroundColor={accepted? colors.success : colors.primary}
+            backgroundColor={accepted ? colors.greyMuted : colors.success}
             onPress={() => accepted ? handleWithdraw(item) : handleAccept(item)}
             loading={processing}
-            style={styles.ctaSpacing}
+            style={styles.requestActions}
           />
           
           {item.phoneConsent === true && item.endUserPhone && (
             <ActionButton
               buttonIcon="call-outline"
               buttonTitle={t('spRequests.call')}
-              buttonTitleColor={accepted ? colors.white : colors.secondary}
-              backgroundColor={accepted ? colors.primary : colors.successLight}
+              buttonTitleColor={colors.white}
+              backgroundColor={colors.successDark}
               onPress={() => {
                 if (item.endUserPhone) {
                   Linking.openURL(`tel:${item.endUserPhone}`);
@@ -506,18 +515,9 @@ const SPWorkRequestsScreen: React.FC = () => {
                   Alert.alert('Error', 'Requester phone number is not available.');
                 }
               }}
-              style={styles.ctaSpacing}
+              style={styles.requestActions}
             />
           )}
-          {/* @todo: Navigate CTA may be dangerous for app engagement as users are redirected to external maps app... so should be used with caution */}
-          <ActionButton
-            buttonIcon="navigate-outline"
-            buttonTitle={t('spRequests.navigate') || 'Navigate'}
-            buttonTitleColor={accepted ? colors.secondary : colors.primary}
-            backgroundColor={accepted ? colors.successLight : colors.primarySoft}
-            onPress={() => handleNavigate(item)}
-            style={styles.ctaSpacing}
-          />
           </>
           )}
           </View>
@@ -745,7 +745,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   cardAccepted: {
-    backgroundColor: '#f0fdf4',
     borderColor: '#bbf7d0',
   },
   cardHighlighted: {
@@ -780,10 +779,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
   newBadge: {
-    backgroundColor: colors.warning,
+    alignItems: 'center',
+    backgroundColor: colors.warningLight,
+    borderColor: colors.warning,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    flexDirection: 'row',
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    borderRadius: radius.sm,
     marginLeft: spacing.sm,
   },
   newBadgeText: {
@@ -820,6 +823,15 @@ const styles = StyleSheet.create({
     color: colors.dark,
     marginLeft: 6,
   },
+  addressNavigateButton: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.sm,
+    backgroundColor: colors.successLight
+  },
   infoTextMuted: {
     flex: 1,
     fontSize: 13,
@@ -855,9 +867,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   // Spacing-only; the button shape itself now comes from ActionButton.
-  ctaSpacing: {
+  requestActions: {
     marginRight: spacing.sm,
     paddingLeft: spacing.mdPlus,
+    minWidth: 135,
   },
 });
 
