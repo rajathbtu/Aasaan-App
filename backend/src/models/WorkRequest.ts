@@ -9,6 +9,7 @@ export interface WorkRequest {
   id: string;
   userId: string;
   service: string;
+  title?: string | null;
   locationName: string;
   locationLat: number;
   locationLng: number;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Switch } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Switch, TextInput } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { createWorkRequest } from '../api';
@@ -9,6 +9,8 @@ import Header from '../components/Header';
 import { useI18n } from '../i18n';
 import BottomCTA from '../components/BottomCTA';
 import ErrorBanner from '../components/ErrorBanner';
+
+const REQUEST_TITLE_MAX_LENGTH = 80;
 
 /**
  * Screen for users to select tags for their work request.
@@ -21,6 +23,8 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
   const { serviceId, serviceName, serviceTags, selectedLocation } = (route.params as any) || {};
   const service = { id: serviceId, name: serviceName, tags: (serviceTags || []) as string[] };
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [requestTitle, setRequestTitle] = useState('');
+  const [titleLimitReached, setTitleLimitReached] = useState(false);
   const [phoneConsent, setPhoneConsent] = useState(false);
   const { token } = useAuth();
   const { t } = useI18n();
@@ -51,6 +55,15 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
     setSelectedTags(prev => (prev.includes(tag) ? prev.filter(item => item !== tag) : [...prev, tag]));
   };
 
+  const handleTitleChange = (value: string) => {
+    if (Array.from(value).length > REQUEST_TITLE_MAX_LENGTH) {
+      setTitleLimitReached(true);
+      return;
+    }
+    setRequestTitle(value);
+    setTitleLimitReached(false);
+  };
+
   const handleConfirm = async () => {
     if (!token) {
       Alert.alert(t('createRequest.addDetails.authRequiredTitle'), t('createRequest.addDetails.authRequiredDesc'));
@@ -62,6 +75,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
       const placeId = selectedLocation.place_id || selectedLocation.placeId;
       const wr: any = await createWorkRequest(token, {
         service: service.id,
+        title: requestTitle.trim() || undefined,
         location: { name: locName, lat: selectedLocation.lat, lng: selectedLocation.lng, placeId },
         tags: selectedTags,
         phoneConsent,
@@ -82,10 +96,40 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
       <Header title={t('createRequest.selectTags.title')} showNotification={false} showBackButton={true} />
 
       <ScrollView style={styles.flex} contentContainerStyle={styles.scrollContent}>
+          <View style={styles.titleField}>
+            <View style={styles.titleLabelRow}>
+              <View style={styles.iconBadge}>
+                <Ionicons name="document-text-outline" size={15} color={colors.primary} />
+              </View>
+              <Text style={styles.titleLabel}>{t('createRequest.selectTags.requestTitleLabel')}</Text>
+            </View>
+            <Text style={styles.titleHint}>{t('createRequest.selectTags.requestTitleHint')}</Text>
+            <TextInput
+              style={styles.titleInput}
+              value={requestTitle}
+              onChangeText={handleTitleChange}
+              placeholder={t('createRequest.selectTags.requestTitlePlaceholder')}
+              placeholderTextColor={colors.greyMuted}
+              multiline
+              textAlignVertical="top"
+              accessibilityLabel={t('createRequest.selectTags.requestTitleLabel')}
+            />
+            <View style={styles.titleFooter}>
+              <Text style={[styles.titleCount, titleLimitReached && styles.titleLimitReached]}>
+                {t(titleLimitReached
+                  ? 'createRequest.selectTags.requestTitleLimitReached'
+                  : 'createRequest.selectTags.requestTitleCharacterCount', {
+                    count: Array.from(requestTitle).length,
+                    max: REQUEST_TITLE_MAX_LENGTH,
+                  })}
+              </Text>
+            </View>
+          </View>
+
           {/* Section header with live selection count */}
           <View style={styles.sectionHeader}>
             <View style={styles.iconBadge}>
-              <Ionicons name="pricetags" size={15} color={colors.primary} />
+              <Ionicons name="pricetags-outline" size={15} color={colors.primary} />
             </View>
             <Text style={styles.sectionTitle}>{t('createRequest.selectTags.tagsTitle')}</Text>
             {selectedTags.length > 0 && (
@@ -210,6 +254,48 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     color: colors.grey,
     marginBottom: spacing.md,
+  },
+  titleField: {
+    marginBottom: spacing.lg,
+  },
+  titleLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  titleLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.dark,
+  },
+  titleHint: {
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.grey,
+  },
+  titleInput: {
+    minHeight: 72,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.greyLight,
+    borderRadius: radius.md,
+    backgroundColor: colors.white,
+    color: colors.dark,
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  titleFooter: {
+    alignItems: 'flex-end',
+    marginTop: spacing.xs,
+  },
+  titleCount: {
+    fontSize: 12,
+    color: colors.grey,
+  },
+  titleLimitReached: {
+    color: colors.error,
   },
   tagsRow: {
     flexDirection: 'row',

@@ -125,8 +125,11 @@ export async function create(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
   const lang = getReqLang(req);
   if (user.role !== 'endUser') { res.status(403).json({ message: t(lang, 'request.onlyEndUsersCreate') }); return; }
-  const { service, location, tags, phoneConsent } = req.body as any;
+  const { service, title, location, tags, phoneConsent } = req.body as any;
   if (!service || typeof service !== 'string') { res.status(400).json({ message: t(lang, 'request.serviceRequired') }); return; }
+  if (title !== undefined && title !== null && typeof title !== 'string') { res.status(400).json({ message: t(lang, 'request.invalidTitle') }); return; }
+  const normalizedTitle = typeof title === 'string' ? title.trim() : '';
+  if (Array.from(normalizedTitle).length > 80) { res.status(400).json({ message: t(lang, 'request.invalidTitle') }); return; }
   if (!location || typeof location.name !== 'string' || typeof location.lat !== 'number' || typeof location.lng !== 'number') { res.status(400).json({ message: t(lang, 'user.invalidLocation') }); return; }
   if (tags && !areValidTags(tags)) { res.status(400).json({ message: t(lang, 'request.invalidTags') }); return; }
   if (phoneConsent !== undefined && typeof phoneConsent !== 'boolean') { res.status(400).json({ message: 'phoneConsent must be a boolean.' }); return; }
@@ -138,6 +141,7 @@ export async function create(req: Request, res: Response): Promise<void> {
       data: {
         userId: user.id,
         service,
+        title: normalizedTitle || null,
         locationName: location.name,
         locationLat: location.lat,
         locationLng: location.lng,
@@ -194,6 +198,7 @@ export async function list(req: Request, res: Response): Promise<void> {
         select: {
           id: true,
           service: true,
+          title: true,
           locationName: true,
           tags: true,
           createdAt: true,

@@ -48,6 +48,9 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
   const responseSubtitleKey = responseCount === 1
     ? 'userRequests.providerRespondedSubtitle'
     : 'userRequests.providersRespondedSubtitle';
+  const requestTitle = typeof request.title === 'string' && request.title.trim()
+                            ? request.title.trim() : null;
+  const serviceName = request.serviceName || request.service;
 
   return (
     <TouchableOpacity
@@ -56,18 +59,28 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
       disabled={!onPress}
       onPress={onPress}
     >
+      <View style={[styles.statusBadge, isClosed ? styles.statusBadgeCompleted : styles.statusBadgeActive]}>
+        <Text style={styles.statusText}>
+          {isClosed ? t('userRequests.statusCompleted') : t('userRequests.statusActive')}
+        </Text>
+      </View>
       <View style={styles.cardHeader}>
         <ServiceIcon
           icon={request.serviceIcon}
           color={request.serviceColor}
-          circleSize={46}
+          circleSize={40}
           iconSize={20}
           style={styles.cardIcon}
         />
         <View style={styles.cardHeaderText}>
-          <Text style={styles.cardTitle} numberOfLines={1}>
-            {request.serviceName || request.service}
+          <Text style={styles.cardTitle} numberOfLines={2}>
+            {requestTitle || serviceName}
           </Text>
+          {requestTitle && (
+            <Text style={styles.serviceName} numberOfLines={1}>
+              {serviceName}
+            </Text>
+          )}
           <View style={styles.metaRow}>
             <Text style={styles.cardSubtitle} 
                   numberOfLines={showExpanded ? undefined : 1}>
@@ -78,13 +91,6 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
             </Text>
           </View>
         </View>
-        
-        <View style={[styles.statusBadge, isClosed ? styles.statusBadgeCompleted : styles.statusBadgeActive]}>
-          <Text style={styles.statusText}>
-            {isClosed ? t('userRequests.statusCompleted') : t('userRequests.statusActive')}
-          </Text>
-        </View>
-      
       </View>
 
       {visibleTags.length > 0 && (
@@ -152,23 +158,31 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.md,
     marginBottom: spacing.md,
     padding: spacing.md,
+    position: 'relative',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: spacing.sm,
   },
   cardIcon: {
+    alignSelf: 'flex-start',
     marginBottom: 0,
     marginRight: spacing.md,
+    marginTop: 2,
   },
   cardHeaderText: {
     flex: 1,
-    marginRight: spacing.sm,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: colors.dark,
+  },
+  serviceName: {
+    marginTop: 2,
+    fontSize: 13,
+    color: colors.grey,
   },
   metaRow: {
     flexDirection: 'row',
@@ -181,8 +195,13 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   statusBadge: {
+    position: 'absolute',
+    top: -8,
+    right: spacing.md,
+    zIndex: 1,
+    elevation: 1,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 3,
     borderRadius: radius.xl,
   },
   statusBadgeActive: {

@@ -410,16 +410,37 @@ const SPWorkRequestsScreen: React.FC = () => {
           highlighted && styles.cardHighlighted,
         ]}
       >
+        {(isNew || accepted) && (
+          <View style={styles.statusChips}>
+            {isNew && (
+              <View style={styles.newBadge}>
+                <Text style={styles.newBadgeText}>{t('spRequests.newBadge')}</Text>
+              </View>
+            )}
+            {accepted && (
+              <View style={styles.acceptedChip}>
+                <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+                <Text style={styles.acceptedChipText}>{t(isClosedRequest ? 'spRequests.closedChip' : 'spRequests.acceptedChip')}</Text>
+              </View>
+            )}
+          </View>
+        )}
         {/* Service label and time/distance */}
         <View style={styles.cardHeader}>
           <ServiceIcon
             icon={item.serviceIcon}
             color={item.serviceColor}
-            circleSize={44}
+            circleSize={28}
             iconSize={20}
+            style={styles.serviceIcon}
           />
-          <View style={{ flex: 1, marginLeft: spacing.md }}>
-            <Text style={styles.serviceName} numberOfLines={1}>{item.serviceName}</Text>
+          <View style={{ flex: 1, marginLeft: spacing.sm }}>
+            <Text style={styles.serviceName} numberOfLines={2}>
+              {item.title?.trim() || item.serviceName}
+            </Text>
+            {!!item.title?.trim() && (
+              <Text style={styles.serviceCategory} numberOfLines={1}>{item.serviceName}</Text>
+            )}
             <View style={styles.metaRow}>
               {!!distanceLabel && (
                 <>
@@ -433,17 +454,6 @@ const SPWorkRequestsScreen: React.FC = () => {
               
             </View>
           </View>
-          {isNew && (
-            <View style={styles.newBadge}>
-              <Text style={styles.newBadgeText}>{t('spRequests.newBadge')}</Text>
-            </View>
-          )}
-          {accepted && (
-            <View style={styles.acceptedChip}>
-              <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-              <Text style={styles.acceptedChipText}>{t(isClosedRequest ? 'spRequests.closedChip' : 'spRequests.acceptedChip')}</Text>
-            </View>
-          )}
         </View>
         {/* Location and end user */}
         <View style={styles.infoRow}>
@@ -458,12 +468,6 @@ const SPWorkRequestsScreen: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
-        {!!item.endUserName && (
-          <View style={styles.infoRow}>
-            <ProfileAvatar picUrl={item.endUserPicUrl} profileName={item.endUserName} size={32} />
-            <Text style={styles.infoTextMuted} numberOfLines={1}>{item.endUserName}</Text>
-          </View>
-        )}
         {/* Tags */}
         {Array.isArray(item.tags) && item.tags.length > 0 && (
           <View style={styles.tagContainer}>
@@ -472,6 +476,12 @@ const SPWorkRequestsScreen: React.FC = () => {
                 <Text style={styles.tagText}>{tag}</Text>
               </View>
             ))}
+          </View>
+        )}
+        {!!item.endUserName && (
+          <View style={styles.infoRow}>
+            <ProfileAvatar picUrl={item.endUserPicUrl} profileName={item.endUserName} size={32} />
+            <Text style={styles.infoTextMuted} numberOfLines={1}>{item.endUserName}</Text>
           </View>
         )}
         {/* Action buttons: all CTAs share the same size in every state;
@@ -743,6 +753,7 @@ const styles = StyleSheet.create({
     ...surfaces.card,
     padding: spacing.md,
     marginBottom: spacing.md,
+    position: 'relative',
   },
   cardAccepted: {
     borderColor: '#bbf7d0',
@@ -753,13 +764,30 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: spacing.sm,
+  },
+  statusChips: {
+    position: 'absolute',
+    top: -9,
+    right: spacing.md,
+    zIndex: 1,
+    elevation: 1,
+  },
+  serviceIcon: {
+    alignSelf: 'flex-start',
+    marginBottom: 0,
+    marginTop: 2,
   },
   serviceName: {
     fontSize: 16,
     fontWeight: '700',
     color: colors.dark,
+  },
+  serviceCategory: {
+    marginTop: 2,
+    fontSize: 13,
+    color: colors.grey,
   },
   metaRow: {
     flexDirection: 'row',
@@ -787,7 +815,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    marginLeft: spacing.sm,
   },
   newBadgeText: {
     fontSize: 11,
@@ -802,11 +829,10 @@ const styles = StyleSheet.create({
     borderColor: colors.success,
     borderRadius: radius.lg,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    marginLeft: spacing.sm,
+    paddingVertical: 2,
   },
   acceptedChipText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.success,
     marginLeft: 4,
