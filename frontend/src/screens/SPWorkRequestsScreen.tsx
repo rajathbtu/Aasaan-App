@@ -33,6 +33,8 @@ import Spinner from '../components/Spinner';
 import SegmentedTabs from '../components/SegmentedTabs';
 import RateAndReviewModal from '../components/RateAndReviewModal';
 import ActionButton from '../components/ActionButton';
+import { translateText } from '../services/translation';
+import { transliterateRomanizedHindi } from '../utils/hindiTransliteration';
 
 /** Helper: ensure provider has completed profile before using this screen */
 function validateProviderProfile(user: any): { ok: boolean; next: 'services' | 'location' | null } {
@@ -93,7 +95,7 @@ const SPWorkRequestsScreen: React.FC = () => {
   const { token, user } = useAuth();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { showToast } = useToast();
   const timeAgo = buildTimeAgo(t);
   const [requests, setRequests] = useState<any[]>([]);
@@ -108,6 +110,11 @@ const SPWorkRequestsScreen: React.FC = () => {
   const [processingRequestIds, setProcessingRequestIds] = useState<Set<string>>(() => new Set());
   const processingRequestIdsRef = useRef(processingRequestIds);
   const [requestError, setRequestError] = useState<unknown | null>(null);
+  const [titleTranslations, setTitleTranslations] = useState<{
+    locale: string;
+    values: Record<string, string>;
+  }>({ locale: '', values: {} });
+  const [showOriginalTitles, setShowOriginalTitles] = useState<Set<string>>(() => new Set());
   const [showProBanner, setShowProBanner] = useState(true);
   const notificationRequestId = route.params?.highlightedRequestId as string | undefined;
   const [highlightedRequestId, setHighlightedRequestId] = useState<string | null>(
@@ -116,6 +123,40 @@ const SPWorkRequestsScreen: React.FC = () => {
   const userId = user?.id;
   const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
   const closedRequestsCacheKey = userId ? offlineCacheKey('provider-closed-requests', userId) : null;
+  const requestTitles = useMemo(
+    () => Array.from(new Set(
+      [...requests, ...closedRequests]
+        .map((request) => typeof request.title === 'string' ? request.title.trim() : '')
+        .filter(Boolean)
+    )),
+    [requests, closedRequests]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const translatedTitles: Record<string, string> = {};
+      for (const title of requestTitles) {
+        if (cancelled) return;
+        try {
+          const translated = await translateText(title, lang, userId || 'anonymous');
+          if (translated) translatedTitles[title] = translated;
+          if (!cancelled && Object.keys(translatedTitles).length > 0) {
+            setTitleTranslations({ locale: lang, values: { ...translatedTitles } });
+          }
+        } catch (error) {
+          console.warn('Failed to translate a work request title:', error);
+          const transliterated = lang === 'hi' ? transliterateRomanizedHindi(title) : null;
+          if (transliterated) translatedTitles[title] = transliterated;
+          if (!cancelled && Object.keys(translatedTitles).length > 0) {
+            setTitleTranslations({ locale: lang, values: { ...translatedTitles } });
+          }
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [lang, requestTitles, userId]);
 
   const updateRequestProcessing = (id: string, processing: boolean) => {
     const next = new Set(processingRequestIdsRef.current);
@@ -376,6 +417,10 @@ const SPWorkRequestsScreen: React.FC = () => {
     });
     const highlighted = item.id === highlightedRequestId;
     const processing = processingRequestIds.has(item.id);
+    const originalTitle = typeof item.title === 'string' ? item.title.trim() : '';
+    const translatedTitle = titleTranslations.locale === lang
+      ? titleTranslations.values[originalTitle] : undefined;
+    const showingOriginal = showOriginalTitles.has(item.id);
     const timeLabel = timeAgo(item.createdAt);
     // Fresh requests (under 2 hours old) get a "New" badge
     const isNew = !isClosedRequest &&
@@ -436,8 +481,22 @@ const SPWorkRequestsScreen: React.FC = () => {
           />
           <View style={{ flex: 1, marginLeft: spacing.sm }}>
             <Text style={styles.serviceName} numberOfLines={2}>
-              {item.title?.trim() || item.serviceName}
+              {translatedTitle || originalTitle || item.serviceName}
             </Text>
+            {!!translatedTitle && (
+              <Text
+                onPress={() => setShowOriginalTitles((current) => {
+                  const next = new Set(current);
+                  if (showingOriginal) next.delete(item.id);
+                  else next.add(item.id);
+                  return next;
+                })}
+                accessibilityRole="button" accessibilityLabel='Show original title'
+                style={styles.originalTitleButtonText}>See Original</Text>
+            )}
+            {!!translatedTitle && showingOriginal && (
+              <Text style={styles.originalTitle}>{originalTitle}</Text>
+            )}
             {!!item.title?.trim() && (
               <Text style={styles.serviceCategory} numberOfLines={1}>{item.serviceName}</Text>
             )}
@@ -783,6 +842,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.dark,
+    flexShrink: 1,
+  },
+  originalTitleButtonText: {
+    fontSize: 11,
+    color: colors.greyMuted,
+    // backgroundColor: colors.surface,
+    // paddingHorizontal: 4,
+    // paddingVertical: 2
+    textDecorationLine: 'underline',
+  },
+  originalTitle: {
+    marginTop: 2,
+    fontSize: 12,
+    color: colors.grey,
   },
   serviceCategory: {
     marginTop: 2,
