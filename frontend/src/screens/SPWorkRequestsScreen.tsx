@@ -36,6 +36,28 @@ import ActionButton from '../components/ActionButton';
 import { translateText } from '../services/translation';
 import { transliterateRomanizedHindi } from '../utils/hindiTransliteration';
 
+async function translateValues(values: string[], locale: string, sourceLocale: string | undefined,
+    isCancelled: () => boolean, onUpdate: (translations: Record<string, string>) => void) {
+  
+  const translations: Record<string, string> = {};
+
+  for (const value of values) {
+    if (isCancelled()) return;
+    try {
+      const translated = await translateText(value, locale, sourceLocale);
+      if (translated) translations[value] = translated;
+    } catch (error) {
+      console.warn('Failed to translate a work request:', error);
+      const transliterated = locale === 'hi' ? transliterateRomanizedHindi(value) : null;
+      if (transliterated) translations[value] = transliterated;
+    }
+
+    if (!isCancelled() && Object.keys(translations).length > 0) {
+      onUpdate({ ...translations });
+    }
+  }
+}
+
 /** Helper: ensure provider has completed profile before using this screen */
 function validateProviderProfile(user: any): { ok: boolean; next: 'services' | 'location' | null } {
   if (!user || user.role !== 'serviceProvider') return { ok: true, next: null };
@@ -111,9 +133,9 @@ const SPWorkRequestsScreen: React.FC = () => {
   const processingRequestIdsRef = useRef(processingRequestIds);
   const [requestError, setRequestError] = useState<unknown | null>(null);
   const [titleTranslations, setTitleTranslations] = useState<{
-    locale: string;
-    values: Record<string, string>;
-  }>({ locale: '', values: {} });
+    locale: string; values: Record<string, string>;}>({ locale: '', values: {} });
+  const [locationTranslations, setLocationTranslations] = useState<{
+    locale: string; values: Record<string, string>;}>({ locale: '', values: {} });
   const [showOriginalTitles, setShowOriginalTitles] = useState<Set<string>>(() => new Set());
   const [showProBanner, setShowProBanner] = useState(true);
   const notificationRequestId = route.params?.highlightedRequestId as string | undefined;
@@ -123,40 +145,31 @@ const SPWorkRequestsScreen: React.FC = () => {
   const userId = user?.id;
   const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
   const closedRequestsCacheKey = userId ? offlineCacheKey('provider-closed-requests', userId) : null;
+  const allRequests = useMemo(() => [...requests, ...closedRequests], [requests, closedRequests]);
   const requestTitles = useMemo(
-    () => Array.from(new Set(
-      [...requests, ...closedRequests]
-        .map((request) => typeof request.title === 'string' ? request.title.trim() : '')
-        .filter(Boolean)
-    )),
-    [requests, closedRequests]
-  );
+    () => allRequests.map((request) => typeof request.title === 'string' ? request.title.trim() : '')
+      .filter((title) => title.length > 0),
+    [allRequests]);
+  const requestLocations = useMemo(
+    () => allRequests.map((request) => typeof request.locationName === 'string' ? request.locationName.trim() : '')
+      .filter((location) => location.length > 0),
+    [allRequests]);
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      const translatedTitles: Record<string, string> = {};
-      for (const title of requestTitles) {
-        if (cancelled) return;
-        try {
-          const translated = await translateText(title, lang, userId || 'anonymous');
-          if (translated) translatedTitles[title] = translated;
-          if (!cancelled && Object.keys(translatedTitles).length > 0) {
-            setTitleTranslations({ locale: lang, values: { ...translatedTitles } });
-          }
-        } catch (error) {
-          console.warn('Failed to translate a work request title:', error);
-          const transliterated = lang === 'hi' ? transliterateRomanizedHindi(title) : null;
-          if (transliterated) translatedTitles[title] = transliterated;
-          if (!cancelled && Object.keys(translatedTitles).length > 0) {
-            setTitleTranslations({ locale: lang, values: { ...translatedTitles } });
-          }
-        }
-      }
-    })();
+    void translateValues(requestTitles, lang, undefined, () => cancelled,
+      (values) => setTitleTranslations({ locale: lang, values }));
 
     return () => { cancelled = true; };
-  }, [lang, requestTitles, userId]);
+  }, [lang, requestTitles]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void translateValues(requestLocations, lang, 'en', () => cancelled,
+      (values) => setLocationTranslations({ locale: lang, values }));
+
+    return () => { cancelled = true; };
+  }, [lang, requestLocations]);
 
   const updateRequestProcessing = (id: string, processing: boolean) => {
     const next = new Set(processingRequestIdsRef.current);
@@ -420,6 +433,9 @@ const SPWorkRequestsScreen: React.FC = () => {
     const originalTitle = typeof item.title === 'string' ? item.title.trim() : '';
     const translatedTitle = titleTranslations.locale === lang
       ? titleTranslations.values[originalTitle] : undefined;
+    const originalLocationName = typeof item.locationName === 'string' ? item.locationName.trim() : '';
+    const translatedLocationName = locationTranslations.locale === lang
+      ? locationTranslations.values[originalLocationName] : undefined;
     const showingOriginal = showOriginalTitles.has(item.id);
     const timeLabel = timeAgo(item.createdAt);
     // Fresh requests (under 2 hours old) get a "New" badge
@@ -517,7 +533,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         {/* Location and end user */}
         <View style={styles.infoRow}>
           <Ionicons name="location-sharp" size={15} color={colors.grey} />
-          <Text style={styles.infoText} numberOfLines={2}>{item.locationName}</Text>
+          <Text style={styles.infoText} numberOfLines={2}>{translatedLocationName || originalLocationName}</Text>
           {!isClosedRequest && (
             <TouchableOpacity
               onPress={() => handleNavigate(item)}

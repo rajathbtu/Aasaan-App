@@ -39,7 +39,7 @@ export async function prepareTargetLanguage(locale: string): Promise<void> {
 export async function translateText(
   text: string,
   targetLocale: string,
-  cacheScope = 'shared',
+  sourceLocale?: string,
 ): Promise<string | null> {
   const sourceText = text.trim();
   const target = languages[targetLocale];
@@ -47,8 +47,8 @@ export async function translateText(
 
   const cacheKey = offlineCacheKey(
     'translations',
-    cacheScope,
-    hash(`${targetLocale}\u0000${sourceText}`),
+    'shared',
+    hash(`${sourceLocale || 'auto'}\u0000${targetLocale}\u0000${sourceText}`),
   );
   const applyHindiTransliteration = (translatedText: string | null): string | null => {
     if (targetLocale !== 'hi') return translatedText;
@@ -59,10 +59,12 @@ export async function translateText(
     return applyHindiTransliteration(cached.translatedText);
   }
 
-  const sourceTag = await FastTranslator.identify(sourceText);
-  const source = typeof sourceTag === 'string'
-    ? FastTranslator.languageFromTag(sourceTag)
-    : undefined;
+  const sourceTag = sourceLocale ? undefined : await FastTranslator.identify(sourceText);
+  const source = sourceLocale
+    ? languages[sourceLocale]
+    : typeof sourceTag === 'string'
+      ? FastTranslator.languageFromTag(sourceTag)
+      : undefined;
   if (!source || source === target) return applyHindiTransliteration(null);
 
   await FastTranslator.prepare({ source, target, downloadIfNeeded: true });
