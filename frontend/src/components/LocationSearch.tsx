@@ -63,12 +63,21 @@ const LocationSearch: React.FC<Props> = ({
   const { user } = useAuth();
   const { showToast } = useToast();
   const savedLocationsCacheKey = user?.id ? offlineCacheKey('saved-locations', user.id) : null;
+  const [savedLocations, setSavedLocations] = useState<Location[]>([]);
+  const [savedLocationsLoaded, setSavedLocationsLoaded] = useState(false);
   const { gpsLocation, ipLocation } = useLocation();
-  const liveDefaultRegion = useMemo(() => 
-    getRegionFromLocation(gpsLocation ?? ipLocation, isServiceArea),[gpsLocation, ipLocation, isServiceArea]);
+  const lastSavedLocation = savedLocations.find((location): location is Location & { lat: number; lng: number } =>
+    typeof location.lat === 'number' && Number.isFinite(location.lat)
+    && typeof location.lng === 'number' && Number.isFinite(location.lng));
+  const liveDefaultRegion = useMemo(() =>
+    getRegionFromLocation(
+      lastSavedLocation
+        ? { latitude: lastSavedLocation.lat, longitude: lastSavedLocation.lng }
+        : gpsLocation ?? ipLocation,
+      isServiceArea,
+    ), [lastSavedLocation, gpsLocation, ipLocation, isServiceArea]);
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<Array<{ place_id: string; description: string }>>([]);
-  const [savedLocations, setSavedLocations] = useState<Array<{ place_id: string; description: string }>>([]);
   const [isLocating, setIsLocating] = useState(false);
   const [cachedLocation, setCachedLocation] = useState<any>(null); // Cache for current location
   const [currentLocationRegion, setCurrentLocationRegion] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -102,11 +111,16 @@ const LocationSearch: React.FC<Props> = ({
   };
 
   useEffect(() => {
-    (async () => {
-      const locations = await getSavedLocations();
+    let isActive = true;
+    void getSavedLocations().then((locations) => {
+      if (!isActive) return;
       setSavedLocations(locations);
-    })();
-  }, [initialValue]);
+      setSavedLocationsLoaded(true);
+    });
+    return () => {
+      isActive = false;
+    };
+  }, [savedLocationsCacheKey, initialValue]);
 
   useEffect(() => {
     void locationManager.initialize();
@@ -288,12 +302,16 @@ const LocationSearch: React.FC<Props> = ({
   };
 
   useEffect(() => {
-    if (!enableMap || (initialLocation?.lat != null && initialLocation?.lng != null) || autoSelectedCurrentLocation.current) 
+    if (!enableMap || !savedLocationsLoaded || (initialLocation?.lat != null && initialLocation?.lng != null) || autoSelectedCurrentLocation.current)
       return;
 
     autoSelectedCurrentLocation.current = true;
+    if (lastSavedLocation) {
+      onSelect(lastSavedLocation);
+      return;
+    }
     void detectLocation();
-  }, [enableMap, initialLocation, isServiceArea]);
+  }, [enableMap, initialLocation, isServiceArea, savedLocationsLoaded, lastSavedLocation, onSelect]);
 
   const reverseGeocodeLocation = async (latitude: number, longitude: number) => {
     setLocationError(null);
