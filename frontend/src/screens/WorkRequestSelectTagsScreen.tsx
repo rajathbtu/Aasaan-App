@@ -9,7 +9,6 @@ import Header from '../components/Header';
 import { useI18n } from '../i18n';
 import BottomCTA from '../components/BottomCTA';
 import ErrorBanner from '../components/ErrorBanner';
-import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 const REQUEST_TITLE_MAX_LENGTH = 80;
 
@@ -27,7 +26,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
   const [requestTitle, setRequestTitle] = useState('');
   const [titleLimitReached, setTitleLimitReached] = useState(false);
   const [phoneConsent, setPhoneConsent] = useState(false);
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const { t } = useI18n();
   const [requestInProgress, setRequestInProgress] = useState(false);
   const [requestError, setRequestError] = useState<unknown | null>(null);
@@ -81,16 +80,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
         tags: selectedTags,
         phoneConsent,
       });
-      if (user?.id && placeId) {
-        const cacheKey = offlineCacheKey('saved-locations', user.id);
-        const savedLocations = (await readOfflineCache<Array<{ place_id: string; description: string }>>(cacheKey)) || [];
-        if (!savedLocations.some((location) => location.place_id === placeId)) {
-          await writeOfflineCache(cacheKey, [
-            { place_id: placeId, description: locName, lat: selectedLocation.lat, lng: selectedLocation.lng },
-            ...savedLocations,
-          ].slice(0, 3));
-        }
-      }
+      
       navigation.navigate('WorkRequestCreated', {
         request: wr,
       });

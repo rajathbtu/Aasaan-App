@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import BlockingLoader from '../components/BlockingLoader';
 import BottomCTA from '../components/BottomCTA';
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 const LocationSelectScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -70,6 +71,17 @@ const LocationSelectScreen: React.FC = () => {
     }
 
     if (isRequestCreationMode) {
+      const placeId = selectedLocation.place_id || selectedLocation.placeId;
+      if (user?.id && placeId) {
+        const cacheKey = offlineCacheKey('saved-locations', user.id);
+        const savedLocations = (await readOfflineCache<Array<{ place_id: string }>>(cacheKey)) || [];
+        if (!savedLocations.some((location) => location.place_id === placeId)) {
+          await writeOfflineCache(cacheKey, [
+            { place_id: placeId, description: selectedLocation.name || selectedLocation.description, lat: selectedLocation.lat, lng: selectedLocation.lng },
+            ...savedLocations,
+          ].slice(0, 3));
+        }
+      }
       navigation.navigate('WorkRequestSelectTags', {serviceId, serviceName, serviceTags, selectedLocation, });
       return;
     }
