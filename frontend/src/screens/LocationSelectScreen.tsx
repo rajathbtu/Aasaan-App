@@ -146,12 +146,12 @@ const LocationSelectScreen: React.FC = () => {
               <Text style={styles.locationName} numberOfLines={2}>
                 {displayLocationName}
               </Text>
-              {isRequestCreationMode && (
-                <Text style={styles.privacyNote}>{t('createRequest.addDetails.locationNote')}</Text>
-              )}
             </View>
             <Ionicons name="checkmark-circle" size={20} color={colors.success} />
           </View>
+        )}
+        {isRequestCreationMode && (
+          <Text style={styles.privacyNote}>{t('createRequest.addDetails.locationNote')}</Text>
         )}
 
         {!isRequestCreationMode && (
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primaryBorder,
     borderRadius: radius.lg,
     padding: spacing.md,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   locIconCircle: {
     width: 36,
@@ -259,10 +259,10 @@ const styles = StyleSheet.create({
     color: colors.dark,
   },
   privacyNote: {
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 12,
     color: colors.grey,
-    marginTop: 2,
+    alignSelf: 'center',
+    marginBottom: spacing.sm,
   },
   guardBody: {
     flex: 1,

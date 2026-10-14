@@ -322,7 +322,7 @@ export const translations = {
         serviceTitle: 'Service',
         headerSubTitle: 'Looking for',
         locationTitle: 'Location of Work',
-        locationNote: 'Exact location is not shared with Service Providers',
+        locationNote: 'Exact location is not shared with anyone for privacy.',
         confirmLocationButton: 'Confirm Location',
         unknownService: 'Unknown service',
         locationRequiredTitle: 'Location required',

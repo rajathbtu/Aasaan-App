@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Modal } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Modal, ScrollView } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, type MapViewType, type Region } from './AppMapView';
 import { Ionicons } from '@expo/vector-icons';
 import locationMarkerIcon from '../../assets/location_marker.png';
@@ -86,6 +86,8 @@ const LocationSearch: React.FC<Props> = ({
   const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestMapSelectionRequest = useRef(0);
   const mapRef = useRef<MapViewType | null>(null);
+  const selectedPlaceId = initialLocation?.place_id ?? initialLocation?.placeId;
+  const recentLocations = savedLocations.filter((location) => location.place_id !== selectedPlaceId);
 
   useEffect(() => {
     onResolvingChange?.(isLocationResolving);
@@ -245,8 +247,8 @@ const LocationSearch: React.FC<Props> = ({
           return;
         }
 
-        const displayName = await reverseGeocodeLocation(gpsLocation.latitude, gpsLocation.longitude);
-        detectedLocation = { lat: gpsLocation.latitude, lng: gpsLocation.longitude, description: displayName };
+        const geocodedLocation = await reverseGeocodeLocation(gpsLocation.latitude, gpsLocation.longitude);
+        detectedLocation = { lat: gpsLocation.latitude, lng: gpsLocation.longitude, ...geocodedLocation };
         setCachedLocation(detectedLocation); // Cache the detected location
       } catch (error: any) {
         const message = error?.message || String(error);
@@ -298,11 +300,14 @@ const LocationSearch: React.FC<Props> = ({
     try {
       const data = await reverseGeocode({ latlng: `${latitude},${longitude}` });
       if (data.results && data.results.length > 0)
-        return removeStateCountryAndPostalCode(data.results[0]);
+        return {
+          description: removeStateCountryAndPostalCode(data.results[0]),
+          place_id: data.results[0].place_id,
+        };
     } catch (error) {
       setLocationError(error);
     }
-    return 'Selected location';
+    return { description: 'Selected location' };
   };
 
   const regionsAreClose = (r1: Region | null, r2: Region | null, delta = 0.00005) => {
@@ -320,9 +325,9 @@ const LocationSearch: React.FC<Props> = ({
 
     const requestId = ++latestMapSelectionRequest.current;
     regionChangeTimeout.current = setTimeout(async () => {
-      const description = await reverseGeocodeLocation(region.latitude, region.longitude);
+      const geocodedLocation = await reverseGeocodeLocation(region.latitude, region.longitude);
       if (requestId !== latestMapSelectionRequest.current) return;
-      onSelect({ lat: region.latitude, lng: region.longitude, description });
+      onSelect({ lat: region.latitude, lng: region.longitude, ...geocodedLocation });
       setIsLocationResolving(false);
     }, 3000);
   };
@@ -450,20 +455,44 @@ const LocationSearch: React.FC<Props> = ({
               <ActivityIndicator size="large" color={colors.primary} />
             </View>
           )}
-          <TouchableOpacity
-            style={[styles.mapButton, isCurrentLocationSelected && styles.mapButtonDisabled]}
-            onPress={() => {
-              if (isCurrentLocationSelected) {
-                showToast('Current location already selected');
-                return;
-              }
-              void detectLocation();
-            }}
-            accessibilityLabel="Center map on current location"
-          >
-            <Ionicons name="locate" size={18} color={colors.white} />
-            <Text style={styles.mapButtonText}>PICK MY CURRENT LOCATION</Text>
-          </TouchableOpacity>
+          <View style={styles.mapActions}>
+            <TouchableOpacity
+              style={[styles.mapButton, isCurrentLocationSelected && styles.mapButtonDisabled]}
+              onPress={() => {
+                if (isCurrentLocationSelected) {
+                  showToast('Current location already selected');
+                  return;
+                }
+                void detectLocation();
+              }}
+              accessibilityLabel="Center map on current location"
+            >
+              <Ionicons name="locate" size={18} color={colors.white} />
+              <Text style={styles.mapButtonText}>Pick My Current Location</Text>
+            </TouchableOpacity>
+            {recentLocations.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.recentLocationsScroll}
+                contentContainerStyle={styles.recentLocationsContent}>
+                {recentLocations.map((item) => (
+                  <TouchableOpacity
+                    key={item.place_id}
+                    style={styles.recentLocationTag}
+                    onPress={() => void handleSelect(item)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select recent location ${item.description}`}>
+                    <Ionicons name="time-outline" size={14} color={colors.primary} />
+                    <Text style={styles.recentLocationTagText} numberOfLines={1}>
+                      {item.description}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
         </View>
       )}
       <Modal
@@ -659,10 +688,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  mapButton: {
+  mapActions: {
     position: 'absolute',
-    bottom: spacing.md,
-    alignSelf: 'center',
+    bottom: spacing.xs,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  mapButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -670,10 +703,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 2,
     borderColor: colors.white,
-    paddingHorizontal: 50,
-    paddingVertical: spacing.md,
-    minHeight: 52,
-    elevation: 8,
+    paddingHorizontal: 24,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+    elevation: 6,
     shadowColor: '#000',
     shadowOpacity: 0.28,
     shadowRadius: 10,
@@ -683,12 +716,40 @@ const styles = StyleSheet.create({
     backgroundColor: colors.grey,
     opacity: 0.85,
   },
+  recentLocationsScroll: {
+    width: '100%',
+    maxHeight: 40,
+  },
+  recentLocationsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+  },
+  recentLocationTag: {
+    maxWidth: 220,
+    minHeight: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    elevation: 2,
+  },
+  recentLocationTagText: {
+    flexShrink: 1,
+    color: colors.grey,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   mapButtonText: {
     color: colors.white,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     marginLeft: spacing.xs,
-    letterSpacing: 0.3,
   },
   mapPlaceholder: {
     justifyContent: 'center',
