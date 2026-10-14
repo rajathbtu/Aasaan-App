@@ -121,6 +121,7 @@ const SPWorkRequestsScreen: React.FC = () => {
   const { showToast } = useToast();
   const timeAgo = buildTimeAgo(t);
   const [requests, setRequests] = useState<any[]>([]);
+  const requestsRef = useRef(requests);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<'all' | 'accepted' | 'closed'>('all');
   const [closedRequests, setClosedRequests] = useState<any[]>([]);
@@ -154,22 +155,24 @@ const SPWorkRequestsScreen: React.FC = () => {
     () => allRequests.map((request) => typeof request.locationName === 'string' ? request.locationName.trim() : '')
       .filter((location) => location.length > 0),
     [allRequests]);
+  const requestTitlesKey = JSON.stringify([...new Set(requestTitles)]);
+  const requestLocationsKey = JSON.stringify([...new Set(requestLocations)]);
 
   useEffect(() => {
     let cancelled = false;
-    void translateValues(requestTitles, lang, undefined, () => cancelled,
+    void translateValues(JSON.parse(requestTitlesKey), lang, undefined, () => cancelled,
       (values) => setTitleTranslations({ locale: lang, values }));
 
     return () => { cancelled = true; };
-  }, [lang, requestTitles]);
+  }, [lang, requestTitlesKey]);
 
   useEffect(() => {
     let cancelled = false;
-    void translateValues(requestLocations, lang, 'en', () => cancelled,
+    void translateValues(JSON.parse(requestLocationsKey), lang, 'en', () => cancelled,
       (values) => setLocationTranslations({ locale: lang, values }));
 
     return () => { cancelled = true; };
-  }, [lang, requestLocations]);
+  }, [lang, requestLocationsKey]);
 
   const updateRequestProcessing = (id: string, processing: boolean) => {
     const next = new Set(processingRequestIdsRef.current);
@@ -192,11 +195,13 @@ const SPWorkRequestsScreen: React.FC = () => {
       setLoading(true);
       const cached = await readOfflineCache<any[]>(requestsCacheKey);
       if (cached) {
+        requestsRef.current = cached;
         setRequests(cached);
         setLoading(false);
       }
       const list = await listWorkRequests(token);
       const nextRequests = Array.isArray(list) ? list : list.requests || [];
+      requestsRef.current = nextRequests;
       setRequests(nextRequests);
       await writeOfflineCache(requestsCacheKey, nextRequests);
       setRequestError(null);
@@ -269,17 +274,23 @@ const SPWorkRequestsScreen: React.FC = () => {
     }, [token, user, requestsCacheKey])
   );
 
-  /**
-   * Express interest in a work request and refresh the list on success.
-   */
+  const updateRequestAcceptance = async (id: string, accepted: boolean) => {
+    const nextRequests = requestsRef.current.map((request) => request.id === id
+      ? { ...request, acceptedByProvider: accepted }
+      : request);
+    requestsRef.current = nextRequests;
+    setRequests(nextRequests);
+    if (requestsCacheKey) await writeOfflineCache(requestsCacheKey, nextRequests);
+  };
+
+  /** Express interest in a work request. */
   const handleAccept = async (item: any) => {
     if (!token || processingRequestIdsRef.current.has(item.id)) return;
     updateRequestProcessing(item.id, true);
     try {
       await acceptWorkRequest(token, item.id);
       setRequestError(null);
-      // Refreshing the list updates this card to the interested state.
-      await fetchRequests();
+      await updateRequestAcceptance(item.id, true);
     } catch (err: any) {
       setRequestError(err);
     } finally {
@@ -293,7 +304,7 @@ const SPWorkRequestsScreen: React.FC = () => {
     try {
       await undoAccept(token, item.id);
       setRequestError(null);
-      await fetchRequests();
+      await updateRequestAcceptance(item.id, false);
     } catch (err: any) {
       setRequestError(err);
     } finally {
@@ -630,15 +641,15 @@ const SPWorkRequestsScreen: React.FC = () => {
     }
     try {
       setRefreshing(true);
-      const latestRequests = await listWorkRequests(token);
-      const latest = Array.isArray(latestRequests) ? latestRequests : latestRequests.requests || [];
-      setRequests(prevRequests => {
-        const newRequests = latest.filter(
-          (newReq: any) => !prevRequests.some((prevReq: any) => prevReq.id === newReq.id)
-        );
-        return [...newRequests, ...prevRequests];
-      });
-      await writeOfflineCache(requestsCacheKey, latest);
+      let latestRequests = await listWorkRequests(token);
+      latestRequests = Array.isArray(latestRequests) ? latestRequests : latestRequests.requests || [];
+      const newRequests = latestRequests.filter(
+        (newReq: any) => !requestsRef.current.some((prevReq: any) => prevReq.id === newReq.id)
+      );
+      const updatedRequests = [...newRequests, ...requestsRef.current];
+      requestsRef.current = updatedRequests;
+      setRequests(updatedRequests);
+      await writeOfflineCache(requestsCacheKey, latestRequests);
       setRequestError(null);
     } catch (err) {
       setRequestError(err);
