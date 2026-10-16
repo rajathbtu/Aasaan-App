@@ -145,6 +145,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
               const displayName = provider.name || p.providerId || t('requestDetails.provider');
               const phone = provider.phoneNumber || '';
               const avatarUri = provider.picUrl || undefined;
+              const isAadhaarVerified = provider.aadhaarVerified === true;
               const providerInfo = provider.serviceProviderInfo || {};
               const currentYear = new Date().getFullYear();
               const age = providerInfo.birthYear ? getProfileAge(providerInfo.birthYear) : '';
@@ -218,10 +219,12 @@ const WorkRequestDetailsScreen: React.FC = () => {
                         <Text style={styles.providerMeta}>{distanceLabel}</Text>
                       </View>
                     )}
-                    <View style={styles.providerMetaItem}>
-                      <Ionicons name="shield-checkmark-outline" size={12} color={colors.grey} />
-                      <Text style={styles.providerMeta}>{t('requestDetails.verified')}</Text>
-                    </View>
+                    {isAadhaarVerified && (
+                      <View style={styles.providerMetaItem}>
+                        <Ionicons name="shield-checkmark-outline" size={12} color={colors.grey} />
+                        <Text style={styles.providerMeta}>{t('requestDetails.verified')}</Text>
+                      </View>
+                    )}
                     <View style={styles.providerMetaItem}>
                       <Ionicons name="time-outline" size={12} color={colors.grey} />
                       <Text style={styles.providerMeta}>{tenureLabel}</Text>

@@ -20,6 +20,12 @@ const connectionString = ensureSSL(DATABASE_URL);
 const prisma = new PrismaClient({
   log: NODE_ENV === 'production' ? [] : ['error', 'warn'],
   datasourceUrl: connectionString,
+  omit: {
+    user: {
+      aadhaarKycData: true,
+      aadhaarLast4: true,
+    },
+  },
 });
 
 export default prisma;

@@ -9,10 +9,12 @@ export interface WorkRequest {
   id: string;
   userId: string;
   service: string;
+  title?: string | null;
   locationName: string;
   locationLat: number;
   locationLng: number;
   tags: string[];
+  phoneConsent: boolean;
   createdAt: Date;
   status: 'active' | 'closed';
   boosted: boolean;

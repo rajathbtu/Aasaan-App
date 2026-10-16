@@ -114,6 +114,9 @@ const ProfileScreen: React.FC = () => {
     setPendingGender(user?.serviceProviderInfo?.gender || '');
     setPendingBio(user?.serviceProviderInfo?.bio || '');
     setEditingBio(false);
+    if (user.aadhaarVerified) {
+      setActiveSelector(current => current === 'gender' || current === 'birthYear' ? null : current);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -141,32 +144,32 @@ const ProfileScreen: React.FC = () => {
   };
 
   const canSave = useMemo(() => {
-    const nameChanged = editing && name.trim() !== initialName.trim();
+    const nameChanged = !user.aadhaarVerified && editing && name.trim() !== initialName.trim();
     const roleChanged = pendingRole !== initialRole;
     const servicesChanged = !deepEqualArray(pendingServices, initialServices);
     const radiusChanged = pendingRadius !== initialRadius;
     const locationChanged = !locationEqual(pendingLocation, initialLocation);
     const workSinceYearChanged = pendingWorkSinceYear !== (initialWorkSinceYear ? String(initialWorkSinceYear) : '');
-    const birthYearChanged = pendingBirthYear !== (initialBirthYear ? String(initialBirthYear) : '');
-    const genderChanged = pendingGender !== (initialGender || '');
+    const birthYearChanged = !user.aadhaarVerified && pendingBirthYear !== (initialBirthYear ? String(initialBirthYear) : '');
+    const genderChanged = !user.aadhaarVerified && pendingGender !== (initialGender || '');
     const bioChanged = pendingBio.trim() !== initialBio.trim();
     return nameChanged || roleChanged || servicesChanged || radiusChanged || locationChanged || workSinceYearChanged || birthYearChanged || genderChanged || bioChanged;
-  }, [editing, name, pendingRole, pendingServices, pendingRadius, pendingLocation, pendingWorkSinceYear, pendingBirthYear, pendingGender, pendingBio, initialName, initialRole, initialServices, initialRadius, initialLocation, initialWorkSinceYear, initialBirthYear, initialGender, initialBio]);
+  }, [editing, name, pendingRole, pendingServices, pendingRadius, pendingLocation, pendingWorkSinceYear, pendingBirthYear, pendingGender, pendingBio, initialName, initialRole, initialServices, initialRadius, initialLocation, initialWorkSinceYear, initialBirthYear, initialGender, initialBio, user.aadhaarVerified]);
 
   const onSave = async () => {
     if (!canSave) return;
     const updates: any = {};
-    if (editing && name.trim() !== initialName.trim()) updates.name = name.trim();
+    if (!user.aadhaarVerified && editing && name.trim() !== initialName.trim()) updates.name = name.trim();
     if (pendingRole !== initialRole) updates.role = pendingRole;
     if (!deepEqualArray(pendingServices, initialServices)) updates.services = pendingServices;
     if (pendingRadius !== initialRadius) updates.radius = pendingRadius;
     if (pendingWorkSinceYear !== (initialWorkSinceYear ? String(initialWorkSinceYear) : '')) {
       updates.workSinceYear = pendingWorkSinceYear.trim() ? Number(pendingWorkSinceYear) : null;
     }
-    if (pendingBirthYear !== (initialBirthYear ? String(initialBirthYear) : '')) {
+    if (!user.aadhaarVerified && pendingBirthYear !== (initialBirthYear ? String(initialBirthYear) : '')) {
       updates.birthYear = pendingBirthYear.trim() ? Number(pendingBirthYear) : null;
     }
-    if (pendingGender !== (initialGender || '')) updates.gender = pendingGender || null;
+    if (!user.aadhaarVerified && pendingGender !== (initialGender || '')) updates.gender = pendingGender || null;
     if (pendingBio.trim() !== initialBio.trim()) updates.bio = pendingBio.trim() || null;
     if (!locationEqual(pendingLocation, initialLocation)) updates.location = pendingLocation ? {
       name: pendingLocation.name,
@@ -212,7 +215,8 @@ const ProfileScreen: React.FC = () => {
     gender: {
       title: t('profile.gender'),
       options: [{ label: t('profile.genderMale'), value: 'male' },
-      { label: t('profile.genderFemale'), value: 'female' }],
+      { label: t('profile.genderFemale'), value: 'female' },
+      { label: t('profile.genderTransgender'), value: 'transgender' }],
       value: pendingGender,
       onSelect: setPendingGender,
     },
@@ -305,6 +309,13 @@ const ProfileScreen: React.FC = () => {
                   ? t('profile.photoBlocked') : t('profile.tapToChangePhoto')}
             </Text>
           )}
+          <View style={styles.aadhaarStatus}>
+            <Ionicons name={user.aadhaarVerified ? 'shield-checkmark' : 'shield-outline'}
+              size={14} color={user.aadhaarVerified ? '#15803d' : colors.grey} />
+            <Text style={[ styles.aadhaarStatusText, user.aadhaarVerified && styles.aadhaarStatusVerified]}>
+              {user.aadhaarVerified ? t('profile.aadhaarVerified') : t('profile.aadhaarNotVerified')}
+            </Text>
+          </View>
         </View>
 
         {user.isModerator && (
@@ -318,6 +329,17 @@ const ProfileScreen: React.FC = () => {
             <Ionicons name="chevron-forward" size={17} color={colors.grey} />
           </TouchableOpacity>
         )}
+
+        {/* Aadhaar offline e-KYC via UIDAI OTP (Sandbox) */}
+        <TouchableOpacity
+          style={styles.moderationLink}
+          onPress={() => navigation.navigate('AadhaarKyc')}
+          accessibilityRole="button"
+        >
+          <Ionicons name="finger-print-outline" size={18} color={colors.primary} />
+          <Text style={styles.moderationLinkText}>Verify Aadhaar with OTP</Text>
+          <Ionicons name="chevron-forward" size={17} color={colors.grey} />
+        </TouchableOpacity>
 
         <View style={styles.section}>
           <View style={styles.ratingSummary}>
@@ -340,11 +362,17 @@ const ProfileScreen: React.FC = () => {
           titleIcon="person"
           fieldType="textfield"
           value={name}
-          editing={editing}
+          editing={editing && !user.aadhaarVerified}
           onChangeText={setName}
           placeholder={t('profile.yourName')}
-          onPress={() => { setEditing(true); setEditingBio(false); }}
-          fieldEditIcon={'pencil'}
+          onPress={() => {
+            if (!user.aadhaarVerified) {
+              setEditing(true);
+              setEditingBio(false);
+            }
+            else showToast(t('profile.nameNotEditable'));
+          }}
+          fieldEditIcon={user.aadhaarVerified ? 'lock-closed' : 'pencil'}
           trailingContent={canSave ? (
             <ActionButton
               buttonTitle={t('common.saveChanges')}
@@ -460,9 +488,12 @@ const ProfileScreen: React.FC = () => {
               titleIcon="calendar-outline"
               fieldType="textfield"
               value={pendingBirthYear || t('profile.birthYearPlaceholder')}
-              fieldEditIcon="pencil"
+              fieldEditIcon={user.aadhaarVerified ? 'lock-closed' : 'pencil'}
               containerStyle={styles.providerProfileField}
-              onPress={() => setActiveSelector('birthYear')}/>
+              onPress={() => {
+                if (!user.aadhaarVerified) setActiveSelector('birthYear');
+                else showToast(t('profile.birthYearNotEditable'));
+              }}/>
 
             <ProfileField
               title={t('profile.gender')}
@@ -470,10 +501,17 @@ const ProfileScreen: React.FC = () => {
               fieldType="textfield"
               value={pendingGender === 'male'
                 ? t('profile.genderMale')
-                : pendingGender === 'female' ? t('profile.genderFemale') : t('profile.genderPlaceholder')}
-              fieldEditIcon="pencil"
+                : pendingGender === 'female'
+                  ? t('profile.genderFemale')
+                  : pendingGender === 'transgender'
+                    ? t('profile.genderTransgender')
+                    : t('profile.genderPlaceholder')}
+              fieldEditIcon={user.aadhaarVerified ? 'lock-closed' : 'pencil'}
               containerStyle={styles.providerProfileField}
-              onPress={() => setActiveSelector('gender')}/>
+              onPress={() => {
+                if (!user.aadhaarVerified) setActiveSelector('gender');
+                else showToast(t('profile.genderNotEditable'));
+              }}/>
 
             <ProfileField
               title={t('profile.aboutMe')}
@@ -600,6 +638,20 @@ const styles = StyleSheet.create({
   photoNote: {
     fontSize: 12,
     color: colors.grey,
+  },
+  aadhaarStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  aadhaarStatusText: {
+    fontSize: 12,
+    color: colors.grey,
+  },
+  aadhaarStatusVerified: {
+    color: '#15803d',
+    fontWeight: '600',
   },
   moderationLink: {
     flexDirection: 'row',

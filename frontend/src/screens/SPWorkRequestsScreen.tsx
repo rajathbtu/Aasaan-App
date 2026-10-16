@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View,
+  Animated,
+  PanResponder,
   Text,
   FlatList,
   TouchableOpacity,
@@ -16,6 +18,7 @@ import { acceptWorkRequest, listWorkRequests, undoAccept } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { colors, spacing, radius, surfaces } from '../theme';
 import { useI18n } from '../i18n';
+import { useToast } from '../contexts/ToastContext';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import ServiceIcon from '../components/ServiceIcon';
@@ -30,6 +33,30 @@ import Spinner from '../components/Spinner';
 import SegmentedTabs from '../components/SegmentedTabs';
 import RateAndReviewModal from '../components/RateAndReviewModal';
 import ActionButton from '../components/ActionButton';
+import { translateText } from '../services/translation';
+import { transliterateRomanizedHindi } from '../utils/hindiTransliteration';
+
+async function translateValues(values: string[], locale: string, sourceLocale: string | undefined,
+    isCancelled: () => boolean, onUpdate: (translations: Record<string, string>) => void) {
+  
+  const translations: Record<string, string> = {};
+
+  for (const value of values) {
+    if (isCancelled()) return;
+    try {
+      const translated = await translateText(value, locale, sourceLocale);
+      if (translated) translations[value] = translated;
+    } catch (error) {
+      console.warn('Failed to translate a work request:', error);
+      const transliterated = locale === 'hi' ? transliterateRomanizedHindi(value) : null;
+      if (transliterated) translations[value] = transliterated;
+    }
+
+    if (!isCancelled() && Object.keys(translations).length > 0) {
+      onUpdate({ ...translations });
+    }
+  }
+}
 
 /** Helper: ensure provider has completed profile before using this screen */
 function validateProviderProfile(user: any): { ok: boolean; next: 'services' | 'location' | null } {
@@ -43,10 +70,46 @@ function validateProviderProfile(user: any): { ok: boolean; next: 'services' | '
   return { ok: true, next: null };
 }
 
+const SwipeableRequestCard: React.FC<{
+  enabled: boolean;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
+  children: React.ReactNode;
+}> = ({ enabled, onSwipeLeft, onSwipeRight, children }) => {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const handlers = useRef({ enabled, onSwipeLeft, onSwipeRight });
+  handlers.current = { enabled, onSwipeLeft, onSwipeRight };
+  const panResponder = useRef(PanResponder.create({
+    onMoveShouldSetPanResponderCapture: (_, gesture) =>
+      handlers.current.enabled &&
+      Math.abs(gesture.dx) > 10 &&
+      Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
+    onPanResponderMove: (_, gesture) =>
+      translateX.setValue(Math.max(-50, Math.min(50, gesture.dx))),
+    onPanResponderRelease: (_, gesture) => {
+      if (gesture.dx >= 50) handlers.current.onSwipeRight?.();
+      if (gesture.dx <= -50) handlers.current.onSwipeLeft?.();
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
+    },
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderTerminate: () =>
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start(),
+  })).current;
+
+  return (
+    <Animated.View
+      {...panResponder.panHandlers}
+      style={{ transform: [{ translateX }] }}
+    >
+      {children}
+    </Animated.View>
+  );
+};
+
 /**
  * Service provider work requests screen.  Displays available and accepted
  * requests, allows filtering by date or distance, and lets providers
- * accept new requests.  The layout mirrors the provided mockup with a
+ * express interest in new requests.  The layout mirrors the provided mockup with a
  * header, segmented control, filter chips, stylised cards and a
  * promotional banner.
  */
@@ -54,9 +117,11 @@ const SPWorkRequestsScreen: React.FC = () => {
   const { token, user } = useAuth();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const { showToast } = useToast();
   const timeAgo = buildTimeAgo(t);
   const [requests, setRequests] = useState<any[]>([]);
+  const requestsRef = useRef(requests);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<'all' | 'accepted' | 'closed'>('all');
   const [closedRequests, setClosedRequests] = useState<any[]>([]);
@@ -65,8 +130,14 @@ const SPWorkRequestsScreen: React.FC = () => {
   const [ratingRequest, setRatingRequest] = useState<any | null>(null);
   const [filter, setFilter] = useState<'all' | 'today' | 'within3'>('all');
   const [refreshing, setRefreshing] = useState(false);
-  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
+  const [processingRequestIds, setProcessingRequestIds] = useState<Set<string>>(() => new Set());
+  const processingRequestIdsRef = useRef(processingRequestIds);
   const [requestError, setRequestError] = useState<unknown | null>(null);
+  const [titleTranslations, setTitleTranslations] = useState<{
+    locale: string; values: Record<string, string>;}>({ locale: '', values: {} });
+  const [locationTranslations, setLocationTranslations] = useState<{
+    locale: string; values: Record<string, string>;}>({ locale: '', values: {} });
+  const [showOriginalTitles, setShowOriginalTitles] = useState<Set<string>>(() => new Set());
   const [showProBanner, setShowProBanner] = useState(true);
   const notificationRequestId = route.params?.highlightedRequestId as string | undefined;
   const [highlightedRequestId, setHighlightedRequestId] = useState<string | null>(
@@ -75,6 +146,41 @@ const SPWorkRequestsScreen: React.FC = () => {
   const userId = user?.id;
   const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
   const closedRequestsCacheKey = userId ? offlineCacheKey('provider-closed-requests', userId) : null;
+  const allRequests = useMemo(() => [...requests, ...closedRequests], [requests, closedRequests]);
+  const requestTitles = useMemo(
+    () => allRequests.map((request) => typeof request.title === 'string' ? request.title.trim() : '')
+      .filter((title) => title.length > 0),
+    [allRequests]);
+  const requestLocations = useMemo(
+    () => allRequests.map((request) => typeof request.locationName === 'string' ? request.locationName.trim() : '')
+      .filter((location) => location.length > 0),
+    [allRequests]);
+  const requestTitlesKey = JSON.stringify([...new Set(requestTitles)]);
+  const requestLocationsKey = JSON.stringify([...new Set(requestLocations)]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void translateValues(JSON.parse(requestTitlesKey), lang, undefined, () => cancelled,
+      (values) => setTitleTranslations({ locale: lang, values }));
+
+    return () => { cancelled = true; };
+  }, [lang, requestTitlesKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void translateValues(JSON.parse(requestLocationsKey), lang, 'en', () => cancelled,
+      (values) => setLocationTranslations({ locale: lang, values }));
+
+    return () => { cancelled = true; };
+  }, [lang, requestLocationsKey]);
+
+  const updateRequestProcessing = (id: string, processing: boolean) => {
+    const next = new Set(processingRequestIdsRef.current);
+    if (processing) next.add(id);
+    else next.delete(id);
+    processingRequestIdsRef.current = next;
+    setProcessingRequestIds(next);
+  };
   
   const filterOptions = [
     { value: 'all', labelKey: 'spRequests.filterAll', iconName: 'apps-outline' },
@@ -89,11 +195,13 @@ const SPWorkRequestsScreen: React.FC = () => {
       setLoading(true);
       const cached = await readOfflineCache<any[]>(requestsCacheKey);
       if (cached) {
+        requestsRef.current = cached;
         setRequests(cached);
         setLoading(false);
       }
       const list = await listWorkRequests(token);
       const nextRequests = Array.isArray(list) ? list : list.requests || [];
+      requestsRef.current = nextRequests;
       setRequests(nextRequests);
       await writeOfflineCache(requestsCacheKey, nextRequests);
       setRequestError(null);
@@ -166,37 +274,41 @@ const SPWorkRequestsScreen: React.FC = () => {
     }, [token, user, requestsCacheKey])
   );
 
-  /**
-   * Accept a work request.  Invokes the API and refreshes the list on
-   * success.  Shows an alert if the operation fails.
-   */
+  const updateRequestAcceptance = async (id: string, accepted: boolean) => {
+    const nextRequests = requestsRef.current.map((request) => request.id === id
+      ? { ...request, acceptedByProvider: accepted }
+      : request);
+    requestsRef.current = nextRequests;
+    setRequests(nextRequests);
+    if (requestsCacheKey) await writeOfflineCache(requestsCacheKey, nextRequests);
+  };
+
+  /** Express interest in a work request. */
   const handleAccept = async (item: any) => {
-    if (!token || processingRequestId) return;
-    setProcessingRequestId(item.id);
+    if (!token || processingRequestIdsRef.current.has(item.id)) return;
+    updateRequestProcessing(item.id, true);
     try {
       await acceptWorkRequest(token, item.id);
       setRequestError(null);
-      // Refreshing the list flips this card to the green "Accepted" state,
-      // which acts as the visual confirmation (no blocking alert needed).
-      await fetchRequests();
+      await updateRequestAcceptance(item.id, true);
     } catch (err: any) {
       setRequestError(err);
     } finally {
-      setProcessingRequestId(null);
+      updateRequestProcessing(item.id, false);
     }
   };
 
   const confirmWithdraw = async (item: any) => {
-    if (!token || processingRequestId) return;
-    setProcessingRequestId(item.id);
+    if (!token || processingRequestIdsRef.current.has(item.id)) return;
+    updateRequestProcessing(item.id, true);
     try {
       await undoAccept(token, item.id);
       setRequestError(null);
-      await fetchRequests();
+      await updateRequestAcceptance(item.id, false);
     } catch (err: any) {
       setRequestError(err);
     } finally {
-      setProcessingRequestId(null);
+      updateRequestProcessing(item.id, false);
     }
   };
 
@@ -316,9 +428,9 @@ const SPWorkRequestsScreen: React.FC = () => {
 
   /**
    * Renders a single work request card.  The card appearance and
-   * available actions depend on whether the request has been accepted
-   * by the current user.  Accepted cards show a green "Accepted" chip
-   * and a prominent call button.  Available cards show Accept, Navigate
+   * available actions depend on whether the provider has expressed interest.
+   * Interested cards show a green status chip and a prominent call button.
+   * Available cards show an interest action, Navigate
    * and Call actions with a clear visual hierarchy.
    */
   const renderRequest = ({ item }: { item: any }) => {
@@ -328,7 +440,14 @@ const SPWorkRequestsScreen: React.FC = () => {
       name: item.endUserName || t('requestDetails.endUser'),
     });
     const highlighted = item.id === highlightedRequestId;
-    const processing = processingRequestId === item.id;
+    const processing = processingRequestIds.has(item.id);
+    const originalTitle = typeof item.title === 'string' ? item.title.trim() : '';
+    const translatedTitle = titleTranslations.locale === lang
+      ? titleTranslations.values[originalTitle] : undefined;
+    const originalLocationName = typeof item.locationName === 'string' ? item.locationName.trim() : '';
+    const translatedLocationName = locationTranslations.locale === lang
+      ? locationTranslations.values[originalLocationName] : undefined;
+    const showingOriginal = showOriginalTitles.has(item.id);
     const timeLabel = timeAgo(item.createdAt);
     // Fresh requests (under 2 hours old) get a "New" badge
     const isNew = !isClosedRequest &&
@@ -347,6 +466,15 @@ const SPWorkRequestsScreen: React.FC = () => {
     }
 
     return (
+      <SwipeableRequestCard
+        enabled={!isClosedRequest && !processing}
+        onSwipeRight={accepted
+          ? () => showToast(t('spRequests.alreadyAccepted'))
+          : () => handleAccept(item)}
+        onSwipeLeft={accepted 
+          ? () => handleWithdraw(item) 
+          : () => showToast(t('spRequests.notYetAccepted'))}
+      >
       <View
         style={[
           styles.card,
@@ -354,16 +482,51 @@ const SPWorkRequestsScreen: React.FC = () => {
           highlighted && styles.cardHighlighted,
         ]}
       >
+        {(isNew || accepted) && (
+          <View style={styles.statusChips}>
+            {isNew && (
+              <View style={styles.newBadge}>
+                <Text style={styles.newBadgeText}>{t('spRequests.newBadge')}</Text>
+              </View>
+            )}
+            {accepted && (
+              <View style={styles.acceptedChip}>
+                <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+                <Text style={styles.acceptedChipText}>{t(isClosedRequest ? 'spRequests.closedChip' : 'spRequests.acceptedChip')}</Text>
+              </View>
+            )}
+          </View>
+        )}
         {/* Service label and time/distance */}
         <View style={styles.cardHeader}>
           <ServiceIcon
             icon={item.serviceIcon}
             color={item.serviceColor}
-            circleSize={44}
+            circleSize={28}
             iconSize={20}
+            style={styles.serviceIcon}
           />
-          <View style={{ flex: 1, marginLeft: spacing.md }}>
-            <Text style={styles.serviceName} numberOfLines={1}>{item.serviceName}</Text>
+          <View style={{ flex: 1, marginLeft: spacing.sm }}>
+            <Text style={styles.serviceName} numberOfLines={2}>
+              {translatedTitle || originalTitle || item.serviceName}
+            </Text>
+            {!!translatedTitle && (
+              <Text
+                onPress={() => setShowOriginalTitles((current) => {
+                  const next = new Set(current);
+                  if (showingOriginal) next.delete(item.id);
+                  else next.add(item.id);
+                  return next;
+                })}
+                accessibilityRole="button" accessibilityLabel='Show original title'
+                style={styles.originalTitleButtonText}>See Original</Text>
+            )}
+            {!!translatedTitle && showingOriginal && (
+              <Text style={styles.originalTitle}>{originalTitle}</Text>
+            )}
+            {!!item.title?.trim() && (
+              <Text style={styles.serviceCategory} numberOfLines={1}>{item.serviceName}</Text>
+            )}
             <View style={styles.metaRow}>
               {!!distanceLabel && (
                 <>
@@ -377,29 +540,20 @@ const SPWorkRequestsScreen: React.FC = () => {
               
             </View>
           </View>
-          {isNew && (
-            <View style={styles.newBadge}>
-              <Text style={styles.newBadgeText}>{t('spRequests.newBadge')}</Text>
-            </View>
-          )}
-          {accepted && (
-            <View style={styles.acceptedChip}>
-              <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-              <Text style={styles.acceptedChipText}>{t(isClosedRequest ? 'spRequests.closedChip' : 'spRequests.acceptedChip')}</Text>
-            </View>
-          )}
         </View>
         {/* Location and end user */}
         <View style={styles.infoRow}>
           <Ionicons name="location-sharp" size={15} color={colors.grey} />
-          <Text style={styles.infoText} numberOfLines={2}>{item.locationName}</Text>
+          <Text style={styles.infoText} numberOfLines={2}>{translatedLocationName || originalLocationName}</Text>
+          {!isClosedRequest && (
+            <TouchableOpacity
+              onPress={() => handleNavigate(item)}
+              hitSlop={6} style={styles.addressNavigateButton}
+              accessibilityRole="button" accessibilityLabel={t('spRequests.navigate')}>
+              <Ionicons name="navigate-outline" size={17} color={colors.secondary} />
+            </TouchableOpacity>
+          )}
         </View>
-        {!!item.endUserName && (
-          <View style={styles.infoRow}>
-            <ProfileAvatar picUrl={item.endUserPicUrl} profileName={item.endUserName} size={32} />
-            <Text style={styles.infoTextMuted} numberOfLines={1}>{item.endUserName}</Text>
-          </View>
-        )}
         {/* Tags */}
         {Array.isArray(item.tags) && item.tags.length > 0 && (
           <View style={styles.tagContainer}>
@@ -408,6 +562,12 @@ const SPWorkRequestsScreen: React.FC = () => {
                 <Text style={styles.tagText}>{tag}</Text>
               </View>
             ))}
+          </View>
+        )}
+        {!!item.endUserName && (
+          <View style={styles.infoRow}>
+            <ProfileAvatar picUrl={item.endUserPicUrl} profileName={item.endUserName} size={32} />
+            <Text style={styles.infoTextMuted} numberOfLines={1}>{item.endUserName}</Text>
           </View>
         )}
         {/* Action buttons: all CTAs share the same size in every state;
@@ -423,48 +583,43 @@ const SPWorkRequestsScreen: React.FC = () => {
               buttonTitleColor={colors.white}
               backgroundColor={colors.primary}
               onPress={() => setRatingRequest(item)}
+              style={styles.requestActions}
             />
           ) : (
           <>
           
           <ActionButton
             buttonIcon={accepted ? "checkmark-circle" : "checkmark-circle-outline"}
-            buttonTitle={(accepted)? t('spRequests.accept') : t('spRequests.accept')}
+            buttonTitle={ t('spRequests.accept')}
             buttonTitleColor={colors.white}
-            backgroundColor={accepted? colors.success : colors.primary}
+            backgroundColor={accepted ? colors.greyMuted : colors.success}
             onPress={() => accepted ? handleWithdraw(item) : handleAccept(item)}
             loading={processing}
-            style={styles.ctaSpacing}
+            style={styles.requestActions}
           />
           
-          <ActionButton
-            buttonIcon="call-outline"
-            buttonTitle={t('spRequests.call')}
-            buttonTitleColor={accepted ? colors.white : colors.secondary}
-            backgroundColor={accepted ? colors.primary : colors.successLight}
-            onPress={() => {
-              if (item.endUserPhone) {
-                Linking.openURL(`tel:${item.endUserPhone}`);
-              } else {
-                Alert.alert('Error', 'Requester phone number is not available.');
-              }
-            }}
-            style={styles.ctaSpacing}
-          />
-          {/* @todo: Navigate CTA may be dangerous for app engagement as users are redirected to external maps app... so should be used with caution */}
-          <ActionButton
-            buttonIcon="navigate-outline"
-            buttonTitle={t('spRequests.navigate') || 'Navigate'}
-            buttonTitleColor={accepted ? colors.secondary : colors.primary}
-            backgroundColor={accepted ? colors.successLight : colors.primarySoft}
-            onPress={() => handleNavigate(item)}
-            style={styles.ctaSpacing}
-          />
+          {item.phoneConsent === true && item.endUserPhone && (
+            <ActionButton
+              buttonIcon="call-outline"
+              buttonTitle={t('spRequests.call')}
+              buttonTitleColor={colors.white}
+              backgroundColor={colors.successDark}
+              onPress={() => {
+                if (item.endUserPhone) {
+                  Linking.openURL(`tel:${item.endUserPhone}`);
+                } else {
+                  Alert.alert('Error', 'Requester phone number is not available.');
+                }
+              }}
+              style={styles.requestActions}
+            />
+          )}
           </>
           )}
           </View>
         </>}
       </View>
+      </SwipeableRequestCard>
     );
   };
 
@@ -486,15 +641,15 @@ const SPWorkRequestsScreen: React.FC = () => {
     }
     try {
       setRefreshing(true);
-      const latestRequests = await listWorkRequests(token);
-      const latest = Array.isArray(latestRequests) ? latestRequests : latestRequests.requests || [];
-      setRequests(prevRequests => {
-        const newRequests = latest.filter(
-          (newReq: any) => !prevRequests.some((prevReq: any) => prevReq.id === newReq.id)
-        );
-        return [...newRequests, ...prevRequests];
-      });
-      await writeOfflineCache(requestsCacheKey, latest);
+      let latestRequests = await listWorkRequests(token);
+      latestRequests = Array.isArray(latestRequests) ? latestRequests : latestRequests.requests || [];
+      const newRequests = latestRequests.filter(
+        (newReq: any) => !requestsRef.current.some((prevReq: any) => prevReq.id === newReq.id)
+      );
+      const updatedRequests = [...newRequests, ...requestsRef.current];
+      requestsRef.current = updatedRequests;
+      setRequests(updatedRequests);
+      await writeOfflineCache(requestsCacheKey, latestRequests);
       setRequestError(null);
     } catch (err) {
       setRequestError(err);
@@ -570,11 +725,11 @@ const SPWorkRequestsScreen: React.FC = () => {
           })}
         </View>}
         {/* Loading indicator when few requests are available */}
-        {loading && requests.length > 0 && (
-          <View style={styles.loadingRow}>
+        <View style={styles.loadingRow}>
+          {loading && requests.length > 0 && (
             <Spinner size="small" color={colors.primary} style={{ marginBottom: spacing.sm }} />
-          </View>
-        )}
+          )}
+        </View>
         {/* List */}
         {tab === 'closed' && closedLoading && closedRequests.length === 0 ? (
           <SkeletonLoader count={4} />
@@ -684,9 +839,9 @@ const styles = StyleSheet.create({
     ...surfaces.card,
     padding: spacing.md,
     marginBottom: spacing.md,
+    position: 'relative',
   },
   cardAccepted: {
-    backgroundColor: '#f0fdf4',
     borderColor: '#bbf7d0',
   },
   cardHighlighted: {
@@ -695,13 +850,44 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: spacing.sm,
+  },
+  statusChips: {
+    position: 'absolute',
+    top: -9,
+    right: spacing.md,
+    zIndex: 1,
+    elevation: 1,
+  },
+  serviceIcon: {
+    alignSelf: 'flex-start',
+    marginBottom: 0,
+    marginTop: 2,
   },
   serviceName: {
     fontSize: 16,
     fontWeight: '700',
     color: colors.dark,
+    flexShrink: 1,
+  },
+  originalTitleButtonText: {
+    fontSize: 11,
+    color: colors.greyMuted,
+    // backgroundColor: colors.surface,
+    // paddingHorizontal: 4,
+    // paddingVertical: 2
+    textDecorationLine: 'underline',
+  },
+  originalTitle: {
+    marginTop: 2,
+    fontSize: 12,
+    color: colors.grey,
+  },
+  serviceCategory: {
+    marginTop: 2,
+    fontSize: 13,
+    color: colors.grey,
   },
   metaRow: {
     flexDirection: 'row',
@@ -721,11 +907,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
   newBadge: {
-    backgroundColor: colors.warning,
+    alignItems: 'center',
+    backgroundColor: colors.warningLight,
+    borderColor: colors.warning,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    flexDirection: 'row',
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
-    borderRadius: radius.sm,
-    marginLeft: spacing.sm,
   },
   newBadgeText: {
     fontSize: 11,
@@ -740,11 +929,10 @@ const styles = StyleSheet.create({
     borderColor: colors.success,
     borderRadius: radius.lg,
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    marginLeft: spacing.sm,
+    paddingVertical: 2,
   },
   acceptedChipText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.success,
     marginLeft: 4,
@@ -760,6 +948,15 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.dark,
     marginLeft: 6,
+  },
+  addressNavigateButton: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing.sm,
+    backgroundColor: colors.successLight
   },
   infoTextMuted: {
     flex: 1,
@@ -796,9 +993,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   // Spacing-only; the button shape itself now comes from ActionButton.
-  ctaSpacing: {
+  requestActions: {
     marginRight: spacing.sm,
     paddingLeft: spacing.mdPlus,
+    minWidth: 135,
   },
 });
 

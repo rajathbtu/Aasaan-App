@@ -97,6 +97,7 @@ const screens: Record<string, unknown> = {
   WorkRequestDetails: 'requests/:id',
   Notifications: 'notifications',
   Subscription: 'subscription',
+  AadhaarKyc: 'aadhaar-verification',
 };
 
 export const linking = {
@@ -129,6 +130,7 @@ const SCREEN_TITLES: Record<string, string> = {
   WorkRequestDetails: 'Request Details',
   Notifications: 'Notifications',
   Subscription: 'Subscription',
+  AadhaarKyc: 'Aadhaar Verification',
   Profile: 'Profile',
   SPAvailable: 'Available Requests',
   Create: 'Create Request',
