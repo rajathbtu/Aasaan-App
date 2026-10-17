@@ -318,7 +318,7 @@ export const translations = {
         allServices: 'All Services',
       },
       addDetails: {
-        headerTitle: 'Add work details',
+        headerTitle: 'Select Location',
         serviceTitle: 'Service',
         headerSubTitle: 'Looking for',
         locationTitle: 'Location of Work',
@@ -386,7 +386,7 @@ export const translations = {
       selectLocation: {
         title: 'Where do you work?',
         radiusLabel: 'Select radius (km)',
-        selectLocation: 'Please select a location',
+        selectLocation: 'Select your location',
         saveButton: 'Confirm Service Area',
         saveFailed: 'Failed to save location',
         pageTitle: 'Confirm your Service Area',

@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors, spacing, radius, shadows } from '../theme';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
+import type { Location } from '../components/LocationSearch';
 import { Service, ServiceCard, ServiceCategoryGrid, useServiceCatalog } from '../components/ServiceSelection';
 import ServicesSearchBar from '../components/ServicesSearchBar';
 import { useI18n } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
-import { readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 const RECENT_SERVICES_KEY = (userId: string) => `recent_services_${userId}`;
 const MAX_RECENT_SERVICES = 3;
@@ -21,6 +22,25 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const userId = useAuth()?.user?.id;
   const { services, query, setQuery, filtered, servicesError, refreshInBackground } = useServiceCatalog(userId);
   const [recentServices, setRecentServices] = useState<Service[]>([]);
+  const [savedLocation, setSavedLocation] = useState<Location | null>(null);
+  const [savedLocationLoaded, setSavedLocationLoaded] = useState(false);
+
+  useFocusEffect(useCallback(() => {
+    let isActive = true;
+    setSavedLocationLoaded(false);
+    void (async () => {
+      const locations = userId
+        ? await readOfflineCache<Location[]>(offlineCacheKey('saved-locations', userId))
+        : null;
+      if (isActive) {
+        setSavedLocation(locations?.[0] ?? null);
+        setSavedLocationLoaded(true);
+      }
+    })();
+    return () => {
+      isActive = false;
+    };
+  }, [userId]));
 
   useEffect(() => {
     // Load recently used services for the user
@@ -48,9 +68,23 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   const handleServicePress = (service: Service) => {
     updateRecentServices(service);
-    navigation.navigate('LocationSelect', { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [], mode: 'requestcreation' });
+    const serviceParams = { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [], mode: 'requestcreation' };
+    if (savedLocation && Number.isFinite(savedLocation.lat) && Number.isFinite(savedLocation.lng)) {
+      navigation.navigate('WorkRequestSelectTags', { ...serviceParams, selectedLocation: savedLocation });
+    } else {
+      navigation.navigate('LocationSelect', { ...serviceParams, selectedLocation: savedLocation });
+    }
   };
 
+  const openLocationSelection = () => {
+    navigation.navigate('LocationSelect', {
+      mode: 'requestcreation',
+      returnToServiceSelection: true,
+      selectedLocation: savedLocation,
+    });
+  };
+
+  const savedLocationName = savedLocation?.description;
   const hasData = services && services.length > 0;
 
   const placeholderTexts = [
@@ -65,6 +99,32 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
       <Header title="Aasaan" showNotification={true} showBackButton={false} />
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+          {savedLocationLoaded && (
+            <View>
+              {savedLocationName ? (
+                <View style={styles.locationCard}>
+                  <View style={styles.locationIcon}>
+                    <Ionicons name="location" size={18} color={colors.primary} />
+                  </View>
+                  <View style={styles.locationText}>
+                    <Text style={styles.locationName} numberOfLines={2}>{savedLocationName}</Text>
+                  </View>
+                  <TouchableOpacity onPress={openLocationSelection} accessibilityRole="button">
+                    <Text style={styles.locationAction}>{t('common.change')}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                  <TouchableOpacity
+                    style={styles.locationPromptButton}
+                    onPress={openLocationSelection}
+                    accessibilityRole="button">
+                    <Ionicons name="add-circle-outline" size={18} color={colors.dark} />
+                    <Text style={styles.locationPromptButtonText}>{t('sp.selectLocation.selectLocation')}</Text>
+                  </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           {/* Hero: title + illustration */}
           <View style={styles.heroSection}>
@@ -188,6 +248,45 @@ const styles = StyleSheet.create({
   // -- Sections --
   scrollContent: {
     paddingBottom: spacing.xl,
+  },
+  locationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+  },
+  locationIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  locationText: {
+    flex: 1,
+  },
+  locationName: {
+    color: colors.dark,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  locationAction: {
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 12,
+    padding: spacing.sm,
+  },
+  locationPromptButton: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  locationPromptButtonText: {
+    color: colors.dark,
+    textDecorationLine: 'underline',
+    fontSize: 12,
+    fontWeight: '700',
   },
   section: {
     marginBottom: spacing.xl,

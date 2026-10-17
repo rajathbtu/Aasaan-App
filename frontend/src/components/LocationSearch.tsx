@@ -30,7 +30,7 @@ const getRegionFromLocation = (location?: { latitude: number; longitude: number 
   longitudeDelta: isServiceArea ? CITY_LEVEL_DELTA : 0.01,
 });
 
-type Location = {
+export type Location = {
   place_id: string;
   description: string;
   lat?: number;

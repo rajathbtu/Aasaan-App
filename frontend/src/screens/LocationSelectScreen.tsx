@@ -30,6 +30,7 @@ const LocationSelectScreen: React.FC = () => {
         ? 'requestcreation' : 'onboarding';
 
   const isRequestCreationMode = mode === 'requestcreation';
+  const returnToServiceSelection = isRequestCreationMode && route.params?.returnToServiceSelection === true;
   const serviceId = route.params?.serviceId as string | undefined;
   const serviceName = route.params?.serviceName as string | undefined;
   const serviceTags = (route.params?.serviceTags as string[] | undefined) || [];
@@ -46,7 +47,7 @@ const LocationSelectScreen: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [isLocationResolving, setIsLocationResolving] = useState(false);
 
-  if (isRequestCreationMode && (!serviceId || !serviceName)) {
+  if (isRequestCreationMode && !returnToServiceSelection && (!serviceId || !serviceName)) {
     return (
       <View style={styles.screen}>
         <Header title={t('sp.selectLocation.pageTitle')} showNotification={false} showBackButton={true} />
@@ -75,14 +76,16 @@ const LocationSelectScreen: React.FC = () => {
       if (user?.id && placeId) {
         const cacheKey = offlineCacheKey('saved-locations', user.id);
         const savedLocations = (await readOfflineCache<Array<{ place_id: string }>>(cacheKey)) || [];
-        if (!savedLocations.some((location) => location.place_id === placeId)) {
-          await writeOfflineCache(cacheKey, [
-            { place_id: placeId, description: selectedLocation.name || selectedLocation.description, lat: selectedLocation.lat, lng: selectedLocation.lng },
-            ...savedLocations,
-          ].slice(0, 3));
-        }
+        await writeOfflineCache(cacheKey, [
+          { place_id: placeId, description: selectedLocation.name || selectedLocation.description, lat: selectedLocation.lat, lng: selectedLocation.lng },
+          ...savedLocations.filter((location) => location.place_id !== placeId),
+        ].slice(0, 3));
       }
-      navigation.navigate('WorkRequestSelectTags', {serviceId, serviceName, serviceTags, selectedLocation, });
+      if (returnToServiceSelection) {
+        navigation.goBack();
+      } else {
+        navigation.navigate('WorkRequestSelectTags', {serviceId, serviceName, serviceTags, selectedLocation, });
+      }
       return;
     }
 
@@ -127,7 +130,7 @@ const LocationSelectScreen: React.FC = () => {
     <View style={styles.screen}>
       <Header
         title={isRequestCreationMode ? (serviceName || t('createRequest.addDetails.headerTitle')) : (t('sp.selectLocation.pageTitle'))}
-        subheader={isRequestCreationMode ? t('createRequest.addDetails.headerSubTitle') : undefined}
+        // subheader={isRequestCreationMode ? t('createRequest.addDetails.headerSubTitle') : undefined}
         showBackButton={true}
         showNotification={false}
         extraLargeTitle={mode=== 'onboarding' }
