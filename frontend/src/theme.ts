@@ -8,25 +8,25 @@ import type { ViewStyle } from 'react-native';
 
 export const colors = {
   /** Primary brand colour used for buttons and highlights. */
-  primary: '#2563eb',
+  primary: '#00B878',
   /** Secondary action colour, often used for success or positive actions. */
-  secondary: '#10b981',
+  secondary: '#008F63',
   /** Accent colour used sparingly for call‑out elements. */
-  accent: '#f97316',
+  accent: '#0EA5A4',
   /** Neutral very light background colour. */
-  light: '#f9fafb',
+  light: '#F9FAFB',
   /** Default screen background colour. */
   background: '#f6f6f6',
   /** Slightly different neutral surface (e.g. cards) */
   paper: '#f8fafc',
   /** Surface background for chips, pills, subtle containers. */
-  surface: '#f3f4f6',
+  surface: '#F3F8F5',
   /** Pure white */
   white: '#ffffff',
   /** Pure black */
   black: '#000000',
   /** Dark text colour for headings. */
-  dark: '#1f2937',
+  dark: '#202B27',
   /** Medium grey for secondary text. */
   grey: '#6b7280',
   /** Muted grey for placeholders and hints. */
@@ -36,10 +36,10 @@ export const colors = {
   /** Subtle border grey */
   greyBorder: '#d1d5db',
   /** Lighter primary tints for backgrounds */
-  primaryLight: '#dbeafe',
-  primarySoft: '#eef2ff',
+  primaryLight: '#DDF8EC',
+  primarySoft: '#F0FBF6',
   /** Primary border/tint */
-  primaryBorder: '#bfdbfe',
+  primaryBorder: '#A7E8CB',
   /** Info/light blue background tint */
   infoLight: '#e0f2fe',
   /** Error colour for destructive or negative actions. */
@@ -49,11 +49,11 @@ export const colors = {
   /** Light warning tint for badges and subtle backgrounds. */
   warningLight: '#fef3c7',
   /** Success colour for completed tasks. */
-  success: '#10b981',
+  success: '#00B878',
   /** Dark success colour for high-emphasis positive actions. */
-  successDark: '#00865a',
+  successDark: '#008F63',
   /** Success light background tint */
-  successLight: '#d1fae5',
+  successLight: '#DDF8EC',
   /** Additional brand/support colours */
   amber: '#f59e0b',
   violet: '#8b5cf6',
