@@ -22,6 +22,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
   const route = useRoute<any>();
   const { serviceId, serviceName, serviceTags, selectedLocation } = (route.params as any) || {};
   const service = { id: serviceId, name: serviceName, tags: (serviceTags || []) as string[] };
+  const tagsPerRow = Math.ceil(service.tags.length / 3);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [requestTitle, setRequestTitle] = useState('');
   const [titleLimitReached, setTitleLimitReached] = useState(false);
@@ -30,6 +31,8 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
   const { t } = useI18n();
   const [requestInProgress, setRequestInProgress] = useState(false);
   const [requestError, setRequestError] = useState<unknown | null>(null);
+  const titleCharacterCount = Array.from(requestTitle).length;
+  const showTitleCount = REQUEST_TITLE_MAX_LENGTH - titleCharacterCount < 20;
 
   // Missing params/location fallback so the user is never stuck on this screen.
   let guardMessage: string | null = null;
@@ -105,7 +108,9 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
 
   return (
     <View style={styles.screen}>
-      <Header title={ serviceName || t('createRequest.selectTags.title')} showNotification={false} showBackButton={true} />
+      <Header title={ serviceName || t('createRequest.selectTags.title')} 
+        subheader={t('createRequest.selectTags.headerSubTitle')}
+        showNotification={false} showBackButton={true} />
 
       <ScrollView style={styles.flex} contentContainerStyle={styles.scrollContent}>
           <View style={styles.titleField}>
@@ -115,26 +120,35 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
               </View>
               <Text style={styles.titleLabel}>{t('createRequest.selectTags.requestTitleLabel')}</Text>
             </View>
-            <Text style={styles.titleHint}>{t('createRequest.selectTags.requestTitleHint')}</Text>
-            <TextInput
-              style={styles.titleInput}
-              value={requestTitle}
-              onChangeText={handleTitleChange}
-              placeholder={t('createRequest.selectTags.requestTitlePlaceholder')}
-              placeholderTextColor={colors.greyMuted}
-              multiline
-              textAlignVertical="top"
-              accessibilityLabel={t('createRequest.selectTags.requestTitleLabel')}
-            />
-            <View style={styles.titleFooter}>
-              <Text style={[styles.titleCount, titleLimitReached && styles.titleLimitReached]}>
-                {t(titleLimitReached
-                  ? 'createRequest.selectTags.requestTitleLimitReached'
-                  : 'createRequest.selectTags.requestTitleCharacterCount', {
-                    count: Array.from(requestTitle).length,
-                    max: REQUEST_TITLE_MAX_LENGTH,
-                  })}
-              </Text>
+            <Text style={styles.titleHint}>
+              {t('createRequest.selectTags.requestTitleHint', { max: REQUEST_TITLE_MAX_LENGTH })}
+            </Text>
+            <View style={styles.titleInputContainer}>
+              <TextInput
+                style={[styles.titleInput, showTitleCount && styles.titleInputWithCount]}
+                value={requestTitle}
+                onChangeText={handleTitleChange}
+                placeholder={t('createRequest.selectTags.requestTitlePlaceholder')}
+                placeholderTextColor={colors.greyMuted}
+                multiline
+                submitBehavior="blurAndSubmit"
+                returnKeyType="done"
+                scrollEnabled={false}
+                textAlignVertical="top"
+                accessibilityLabel={t('createRequest.selectTags.requestTitleLabel')}
+              />
+              {showTitleCount && (
+                <View style={styles.titleFooter}>
+                  <Text style={[styles.titleCount, titleLimitReached && styles.titleLimitReached]}>
+                    {t(titleLimitReached
+                      ? 'createRequest.selectTags.requestTitleLimitReached'
+                      : 'createRequest.selectTags.requestTitleCharacterCount', {
+                      count: titleCharacterCount,
+                      max: REQUEST_TITLE_MAX_LENGTH,
+                    })}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -153,23 +167,34 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
 
           {service.tags && service.tags.length > 0 ? (
             <>
-              <Text style={styles.tagHint}>{t('createRequest.selectTags.tagHint')}</Text>
-              <View style={styles.tagsRow}>
-                {service.tags.map(tag => {
-                  const selected = selectedTags.includes(tag);
-                  return (
-                    <TouchableOpacity
-                      key={tag} onPress={() => toggleTag(tag)}
-                      style={[styles.tagChip, selected && styles.tagChipSelected]}
-                      activeOpacity={0.8}>
-                      <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{tag}</Text>
-                      <Ionicons name={selected ? 'checkmark-done' : 'add-circle-outline'}
-                        size={15} color={selected ? colors.primary : colors.greyMuted}
-                        style={styles.tagIcon}/>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <ScrollView horizontal
+                contentContainerStyle={styles.tagGrid}
+                nestedScrollEnabled
+                showsHorizontalScrollIndicator={false}>
+                {Array.from({ length: Math.ceil(service.tags.length / tagsPerRow) }, (_, rowIndex) => (
+                  <View key={rowIndex} style={styles.tagsRow}>
+                    {service.tags.slice(rowIndex * tagsPerRow, (rowIndex + 1) * tagsPerRow).map(tag => {
+                      const selected = selectedTags.includes(tag);
+                      return (
+                        <TouchableOpacity
+                          key={tag}
+                          onPress={() => toggleTag(tag)}
+                          style={[styles.tagChip, selected && styles.tagChipSelected]}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{tag}</Text>
+                          <Ionicons
+                            name={selected ? 'checkmark-done' : 'add-circle-outline'}
+                            size={15}
+                            color={selected ? colors.primary : colors.greyMuted}
+                            style={styles.tagIcon}
+                          />
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ))}
+              </ScrollView>
             </>
           ) : (
             <View style={styles.noTagsRow}>
@@ -233,7 +258,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.light,
+    backgroundColor: colors.background,
   },
   flex: {
     flex: 1,
@@ -277,12 +302,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  tagHint: {
-    fontSize: 12,
-    lineHeight: 17,
-    color: colors.grey,
-    marginBottom: spacing.md,
-  },
   titleField: {
     marginBottom: spacing.lg,
   },
@@ -302,21 +321,30 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     color: colors.grey,
   },
-  titleInput: {
+  titleInputContainer: {
+    position: 'relative',
     minHeight: 72,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
     borderWidth: 1,
     borderColor: colors.greyLight,
     borderRadius: radius.md,
     backgroundColor: colors.white,
+  },
+  titleInput: {
+    minHeight: 72,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    backgroundColor: 'transparent',
     color: colors.dark,
     fontSize: 15,
     lineHeight: 21,
   },
+  titleInputWithCount: {
+    paddingBottom: spacing.xl,
+  },
   titleFooter: {
-    alignItems: 'flex-end',
-    marginTop: spacing.xs,
+    position: 'absolute',
+    right: spacing.sm,
+    bottom: spacing.xs,
   },
   titleCount: {
     fontSize: 12,
@@ -325,28 +353,32 @@ const styles = StyleSheet.create({
   titleLimitReached: {
     color: colors.error,
   },
+  tagGrid: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
   tagsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
   },
   tagChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.sm,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.greyLight,
     backgroundColor: colors.white,
-    marginRight: spacing.sm,
-    marginBottom: spacing.md,
+    margin: spacing.xs,
   },
   tagChipSelected: {
     backgroundColor: colors.primarySoft,
     borderColor: colors.primary,
   },
   tagText: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 18,
     color: colors.dark,
     fontWeight: '600',
@@ -365,7 +397,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
   },
   noTagsText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.grey,
     marginLeft: spacing.sm,
     textAlign: 'center',
@@ -399,18 +431,18 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   locationName: {
-    fontSize: 14,
-    lineHeight: 19,
-    fontWeight: '700',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
     color: colors.dark,
   },
   consentText: {
     flex: 1,
     // marginLeft: spacing.sm,
     // marginRight: spacing.sm,
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 19,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
     color: colors.dark,
   },
   guardBody: {

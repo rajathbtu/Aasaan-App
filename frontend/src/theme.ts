@@ -15,6 +15,8 @@ export const colors = {
   accent: '#f97316',
   /** Neutral very light background colour. */
   light: '#f9fafb',
+  /** Default screen background colour. */
+  background: '#f6f6f6',
   /** Slightly different neutral surface (e.g. cards) */
   paper: '#f8fafc',
   /** Surface background for chips, pills, subtle containers. */
