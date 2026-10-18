@@ -64,6 +64,17 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
     setTitleLimitReached(false);
   };
 
+  const handleEditLocation = () => {
+    navigation.navigate('LocationSelect', {
+      mode: 'requestcreation',
+      serviceId,
+      serviceName,
+      serviceTags,
+      selectedLocation,
+      returnToTagsRouteKey: route.key,
+    });
+  };
+
   const handleConfirm = async () => {
     if (!token) {
       Alert.alert(t('createRequest.addDetails.authRequiredTitle'), t('createRequest.addDetails.authRequiredDesc'));
@@ -94,7 +105,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
 
   return (
     <View style={styles.screen}>
-      <Header title={t('createRequest.selectTags.title')} showNotification={false} showBackButton={true} />
+      <Header title={ serviceName || t('createRequest.selectTags.title')} showNotification={false} showBackButton={true} />
 
       <ScrollView style={styles.flex} contentContainerStyle={styles.scrollContent}>
           <View style={styles.titleField}>
@@ -148,18 +159,13 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                   const selected = selectedTags.includes(tag);
                   return (
                     <TouchableOpacity
-                      key={tag}
+                      key={tag} onPress={() => toggleTag(tag)}
                       style={[styles.tagChip, selected && styles.tagChipSelected]}
-                      onPress={() => toggleTag(tag)}
-                      activeOpacity={0.8}
-                    >
+                      activeOpacity={0.8}>
                       <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{tag}</Text>
-                      <Ionicons
-                        name={selected ? 'checkmark-done' : 'add-circle-outline'}
-                        size={15}
-                        color={selected ? colors.primary : colors.greyMuted}
-                        style={styles.tagIcon}
-                      />
+                      <Ionicons name={selected ? 'checkmark-done' : 'add-circle-outline'}
+                        size={15} color={selected ? colors.primary : colors.greyMuted}
+                        style={styles.tagIcon}/>
                     </TouchableOpacity>
                   );
                 })}
@@ -171,15 +177,19 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
               <Text style={styles.noTagsText}>{t('createRequest.selectTags.noTagsAvailable')}</Text>
             </View>
           )}
+          
           <TouchableOpacity
             style={styles.consentCard}
             onPress={() => setPhoneConsent(current => !current)}
             activeOpacity={0.8} accessibilityRole="switch"
             accessibilityState={{ checked: phoneConsent }}>
-            <Ionicons name="call-outline" size={20} color={colors.primary} />
-            <Text style={styles.consentText}>
-              {t('createRequest.selectTags.phoneConsent')}
-            </Text>
+            <View style={styles.iconBadge}>
+              <Ionicons name="call-outline" size={15} color={colors.primary} />
+            </View>
+            <View style={styles.locationDetails}>
+              <Text style={styles.locationLabel}>{t('createRequest.addDetails.consentTitle')}</Text>
+              <Text style={styles.consentText}>{t('createRequest.selectTags.phoneConsent')}</Text>
+            </View>
             <Switch
               value={phoneConsent}
               onValueChange={setPhoneConsent}
@@ -188,6 +198,23 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
               pointerEvents="none"
               accessibilityLabel={t('createRequest.selectTags.phoneConsent')}
             />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.locationCard}
+            onPress={handleEditLocation}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.change')}>
+            <View style={styles.iconBadge}>
+              <Ionicons name="location-outline" size={15} color={colors.primary} />
+            </View>
+            <View style={styles.locationDetails}>
+              <Text style={styles.locationLabel}>{t('createRequest.addDetails.locationTitle')}</Text>
+              <Text style={styles.locationName} numberOfLines={2}>
+                {selectedLocation.name || selectedLocation.description}
+              </Text>
+            </View>
+            <Ionicons name="create-outline" size={20} color={colors.primary} />
           </TouchableOpacity>
       </ScrollView>
 
@@ -353,11 +380,36 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.greyLight,
   },
+  locationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.white,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.greyLight,
+  },
+  locationDetails: {
+    flex: 1,
+  },
+  locationLabel: {
+    fontSize: 12,
+    color: colors.grey,
+    marginBottom: 2,
+  },
+  locationName: {
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '700',
+    color: colors.dark,
+  },
   consentText: {
     flex: 1,
-    marginLeft: spacing.sm,
-    marginRight: spacing.sm,
-    fontSize: 13,
+    // marginLeft: spacing.sm,
+    // marginRight: spacing.sm,
+    fontSize: 14,
+    fontWeight: '700',
     lineHeight: 19,
     color: colors.dark,
   },

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import LocationSearch from '../components/LocationSearch';
@@ -9,7 +9,6 @@ import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import BlockingLoader from '../components/BlockingLoader';
 import BottomCTA from '../components/BottomCTA';
@@ -21,7 +20,6 @@ const LocationSelectScreen: React.FC = () => {
   const { user, updateUser } = useAuth();
   const { t } = useI18n();
   const { showToast } = useToast();
-  const insets = useSafeAreaInsets();
 
   // Modes: 'edit' for profile updates, 'onboarding' for SP onboarding, 'requestcreation' for work request creation
   const mode: 'edit' | 'onboarding' | 'requestcreation' =
@@ -46,6 +44,10 @@ const LocationSelectScreen: React.FC = () => {
   const [saveError, setSaveError] = useState<unknown | null>(null);
   const [saving, setSaving] = useState(false);
   const [isLocationResolving, setIsLocationResolving] = useState(false);
+
+  useEffect(() => {
+    if (isRequestCreationMode) setSelectedLocation(route.params?.selectedLocation ?? null);
+  }, [isRequestCreationMode, route.params?.selectedLocation]);
 
   if (isRequestCreationMode && !returnToServiceSelection && (!serviceId || !serviceName)) {
     return (
@@ -82,6 +84,12 @@ const LocationSelectScreen: React.FC = () => {
         ].slice(0, 3));
       }
       if (returnToServiceSelection) {
+        navigation.goBack();
+      } else if (route.params?.returnToTagsRouteKey) {
+        navigation.dispatch({
+          ...CommonActions.setParams({ selectedLocation }),
+          source: route.params.returnToTagsRouteKey,
+        });
         navigation.goBack();
       } else {
         navigation.navigate('WorkRequestSelectTags', {serviceId, serviceName, serviceTags, selectedLocation, });
@@ -129,8 +137,7 @@ const LocationSelectScreen: React.FC = () => {
   return (
     <View style={styles.screen}>
       <Header
-        title={isRequestCreationMode ? (serviceName || t('createRequest.addDetails.headerTitle')) : (t('sp.selectLocation.pageTitle'))}
-        // subheader={isRequestCreationMode ? t('createRequest.addDetails.headerSubTitle') : undefined}
+        title={isRequestCreationMode ? (t('createRequest.addDetails.headerTitle')) : (t('sp.selectLocation.pageTitle'))}
         showBackButton={true}
         showNotification={false}
         extraLargeTitle={mode=== 'onboarding' }
