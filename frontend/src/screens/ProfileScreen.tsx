@@ -411,7 +411,7 @@ const ProfileScreen: React.FC = () => {
           title={t('roleSelect.title')}
           titleIcon="people"
           fieldType="textfield"
-          value={pendingRole === 'serviceProvider' ? t('profile.roleServiceProvider') : t('profile.roleEndUser')}
+          value={pendingRole === 'serviceProvider' ? t('roleSelect.spTitle') : t('roleSelect.endUserTitle')}
           fieldEditIcon="pencil"
           onPress={() => navigation.navigate('RoleSelect', { mode: 'edit' })} />
 

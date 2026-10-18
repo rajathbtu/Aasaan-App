@@ -58,7 +58,7 @@ const translations: Record<Locale, Record<string, any>> = {
       },
       boosted: {
         title: 'Your Request has been boosted',
-        message: 'Your work request will now appear at the top of provider feeds.'
+        message: 'Your Work Request will now be displayed at the top to Service Experts'
       },
       subscriptionSuccess: {
         title: 'Subscription Successful',
@@ -76,27 +76,27 @@ const translations: Record<Locale, Record<string, any>> = {
       notAuthorised: 'Not authorised',
       fetchFailed: 'Failed to fetch work request',
       accept: {
-        onlyProviders: 'Only service providers can accept requests',
-        providerProfileIncomplete: 'Provider profile incomplete',
+        onlyProviders: 'Only Service Experts can accept requests',
+        providerProfileIncomplete: 'Service Expert profile incomplete',
         notEligible: 'Not eligible for this request',
         alreadyAccepted: 'Already accepted',
         failed: 'Accept failed',
       },
       undoAccept: {
-        onlyProviders: 'Only service providers can undo acceptance',
+        onlyProviders: 'Only Service Experts can undo acceptance',
         failed: 'Undo acceptance failed',
       },
       close: {
         onlyEndUsers: 'Only end users can close requests',
         alreadyClosed: 'Already closed',
         invalidStarRating: 'Invalid star rating (1-5)',
-        providerDidNotAccept: 'Selected provider did not accept this request',
+        providerDidNotAccept: 'Selected Service Expert did not accept this request',
         failed: 'Close failed',
       },
       rate: {
-        onlyProviders: 'Only service providers can rate the end user',
+        onlyProviders: 'Only Service Experts can rate the end user',
         mustBeClosed: 'The work request must be closed before rating',
-        notSelected: 'Only the selected provider can rate the end user',
+        notSelected: 'Only the selected Service Expert can rate the end user',
         alreadyRated: 'You have already rated this end user',
         failed: 'Rating submission failed',
       }
@@ -112,7 +112,7 @@ const translations: Record<Locale, Record<string, any>> = {
       verificationFailed: 'Payment verification failed',
     },
     subscription: {
-      onlyProviders: 'Only service providers can subscribe',
+      onlyProviders: 'Only Service Experts can subscribe',
       failed: 'Subscription failed',
       invalidPlan: 'Invalid subscription plan',
     }

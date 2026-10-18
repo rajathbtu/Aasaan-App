@@ -120,7 +120,7 @@ const SCREEN_TITLES: Record<string, string> = {
   OTPVerification: 'Verify OTP',
   NameOTPValidation: 'Create Account',
   RoleSelect: 'Choose your Role',
-  SPOnboardSimple: 'Service Provider Onboarding',
+  SPOnboardSimple: 'Service Expert Onboarding',
   SPSelectServices: 'Select Services',
   LocationSelect: 'Select Location',
   WorkRequestAddDetails: 'Select Location',
