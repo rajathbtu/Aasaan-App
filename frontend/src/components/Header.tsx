@@ -59,27 +59,24 @@ const Header: React.FC<HeaderProps> = ({
             onPress={handleBackPress}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
+            accessibilityLabel="Go back">
             <Ionicons name="arrow-back" size={22} color={colors.dark} />
           </TouchableOpacity>
         )}
 
         <View style={[styles.titleContainer, keepTitleCenterAligned && styles.centeredTitleContainer]}>
           {subheader ? <Text style={styles.subHeaderText}>{subheader}</Text> : null}
-          <Text
+          <Text numberOfLines={1} ellipsizeMode="tail"
             style={[
               styles.headerTitle,
               keepTitleCenterAligned && styles.centerAlignedTitle,
               extraLargeTitle && styles.extraLargeTitle,
               titleStyle,
-            ]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+            ]}>
             {title}
           </Text>
         </View>
+        {keepTitleCenterAligned && <View style={styles.titleContainer} />}
 
         {customRightComponent ?? (
           <View style={styles.rightActions}>
@@ -164,11 +161,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   centeredTitleContainer: {
-    marginRight: spacing.md,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Google Sans Flex-Bold',
     color: colors.dark,
     textAlign: 'left',
   },
@@ -178,7 +180,7 @@ const styles = StyleSheet.create({
   subHeaderText: {
     fontSize: 11,
     color: colors.greyMuted,
-    fontWeight: '600',
+    fontFamily: 'Google Sans Flex-SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 2,

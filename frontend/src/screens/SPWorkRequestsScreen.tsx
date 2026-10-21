@@ -185,7 +185,7 @@ const SPWorkRequestsScreen: React.FC = () => {
   const filterOptions = [
     { value: 'all', labelKey: 'spRequests.filterAll', iconName: 'apps-outline' },
     { value: 'today', labelKey: 'spRequests.filterToday', iconName: 'time-outline' },
-    { value: 'within3', labelKey: 'spRequests.filterWithin3', iconName: 'navigate-outline' },
+    { value: 'within3', labelKey: 'spRequests.filterWithin3', iconName: 'location-outline' },
   ] as const;
 
   // Fetch work requests from the API
@@ -473,15 +473,11 @@ const SPWorkRequestsScreen: React.FC = () => {
           : () => handleAccept(item)}
         onSwipeLeft={accepted 
           ? () => handleWithdraw(item) 
-          : () => showToast(t('spRequests.notYetAccepted'))}
-      >
-      <View
-        style={[
-          styles.card,
-          accepted && styles.cardAccepted,
-          highlighted && styles.cardHighlighted,
-        ]}
-      >
+          : () => showToast(t('spRequests.notYetAccepted'))}>
+      <View style={[
+              styles.card,
+              accepted && styles.cardAccepted,
+              highlighted && styles.cardHighlighted,]}>
         {(isNew || accepted) && (
           <View style={styles.statusChips}>
             {isNew && (
@@ -504,22 +500,22 @@ const SPWorkRequestsScreen: React.FC = () => {
             color={item.serviceColor}
             circleSize={28}
             iconSize={20}
-            style={styles.serviceIcon}
-          />
+            style={styles.serviceIcon}/>
           <View style={{ flex: 1, marginLeft: spacing.sm }}>
             <Text style={styles.serviceName} numberOfLines={2}>
               {translatedTitle || originalTitle || item.serviceName}
             </Text>
             {!!translatedTitle && (
-              <Text
+              <Text style={styles.originalTitleButtonText}
                 onPress={() => setShowOriginalTitles((current) => {
                   const next = new Set(current);
                   if (showingOriginal) next.delete(item.id);
                   else next.add(item.id);
                   return next;
                 })}
-                accessibilityRole="button" accessibilityLabel='Show original title'
-                style={styles.originalTitleButtonText}>See Original</Text>
+                accessibilityRole="button" accessibilityLabel='Show original title'>
+                See Original
+              </Text>
             )}
             {!!translatedTitle && showingOriginal && (
               <Text style={styles.originalTitle}>{originalTitle}</Text>
@@ -550,7 +546,7 @@ const SPWorkRequestsScreen: React.FC = () => {
               onPress={() => handleNavigate(item)}
               hitSlop={6} style={styles.addressNavigateButton}
               accessibilityRole="button" accessibilityLabel={t('spRequests.navigate')}>
-              <Ionicons name="navigate-outline" size={17} color={colors.secondary} />
+              <Ionicons name="navigate-outline" size={17} color={colors.primary} />
             </TouchableOpacity>
           )}
         </View>
@@ -664,11 +660,11 @@ const SPWorkRequestsScreen: React.FC = () => {
     return (
       <View style={{ flex: 1 }}>
         <Header
-          title="Aasaan"
+          title="aasaanly"
           showBackButton={false}
           showNotification={true}
           showProfileButton={true}
-        />
+          titleStyle={styles.logo} />
         <View style={styles.container}>
           <SkeletonLoader count={4} />
         </View>
@@ -681,18 +677,10 @@ const SPWorkRequestsScreen: React.FC = () => {
   const acceptedCount = requests.filter(r => isAcceptedByUser(r)).length;
   const displayedRequests = tab === 'closed' ? closedRequests : filteredRequests;
 
-  return (
-    <View style={{ flex: 1 }}>
-      <Header 
-        title="Aasaan" 
-        showBackButton={false} 
-        showNotification={true}
-        showProfileButton={true} 
-        titleStyle={{ fontSize: 21, fontWeight: '700' }}
-      />
-      <View style={{ height: spacing.sm }} />
-      <View style={styles.container}>
-        <Text style={styles.pageTitle}>{t('spRequests.title')}</Text>
+  const pageTopSection = (
+    <View>
+      <Text style={styles.pageTitle}>{t('spRequests.title')}</Text>
+      <View>
         <SegmentedTabs
           activeKey={tab}
           onChange={(key) => {
@@ -707,63 +695,81 @@ const SPWorkRequestsScreen: React.FC = () => {
             { key: 'closed', label: t('spRequests.closedTab'), count: closedRequestsLoaded ? closedRequests.length : undefined },
           ]}
         />
-        {/* Filter chips */}
-        {tab !== 'closed' && <View style={styles.filterRow}>
-          {filterOptions.map(({ value, labelKey, iconName }) => {
-            const active = filter === value;
-            return (
-              <TouchableOpacity
-                key={value}
-                onPress={() => setFilter(value)}
-                activeOpacity={0.8}
-                style={[styles.filterChip, active && styles.filterChipActive]}
-                accessibilityRole="button" accessibilityState={{ selected: active }}>
-                  <Ionicons name={iconName} size={14} color={active ? 'white' : colors.grey} style={{ marginRight: 5 }}/>
-                  <Text style={[styles.filterLabel, active && { color: 'white' }]}>{t(labelKey)}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>}
-        {/* Loading indicator when few requests are available */}
-        <View style={styles.loadingRow}>
-          {loading && requests.length > 0 && (
-            <Spinner size="small" color={colors.primary} style={{ marginBottom: spacing.sm }} />
-          )}
-        </View>
-        {/* List */}
-        {tab === 'closed' && closedLoading && closedRequests.length === 0 ? (
-          <SkeletonLoader count={4} />
-        ) : displayedRequests.length === 0 ? (
-          <EmptyState
-            icon="briefcase-outline"
-            title={t(tab === 'closed' ? 'spRequests.emptyClosed' : tab === 'accepted' ? 'spRequests.emptyAccepted' : 'spRequests.empty')}
-            description={t(tab === 'closed' ? 'spRequests.emptyClosedHint' : tab === 'accepted' ? 'spRequests.emptyHintAccepted' : 'spRequests.emptyHint')} />
-        ) : (
-          <FlatList
-            ref={listRef}
-            data={displayedRequests}
-            keyExtractor={(item: any) => item.id}
-            renderItem={renderRequest}
-            onScrollToIndexFailed={({ index, averageItemLength }) => {
-              listRef.current?.scrollToOffset({
-                offset: Math.max(0, averageItemLength * index),
-                animated: true,
-              });
-            }}
-            contentContainerStyle={{ marginTop: spacing.md, paddingBottom: spacing.xl * 3 }}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={[colors.primary]}
-                tintColor={colors.primary}
-                title={refreshing ? t('spRequests.fetchingLatest') : ''}
-                titleColor={colors.primary}
-              />
-            }
-          />
+        {tab !== 'closed' && (
+          <View style={styles.filterRow}>
+            {filterOptions.map(({ value, labelKey, iconName }) => {
+              const active = filter === value;
+              return (
+                <TouchableOpacity
+                  key={value}
+                  onPress={() => setFilter(value)}
+                  activeOpacity={0.8}
+                  style={[styles.filterChip, active && styles.filterChipActive]}
+                  accessibilityRole="button" accessibilityState={{ selected: active }}>
+                    <Ionicons name={iconName} size={14} color={active ? colors.primary : colors.grey} style={{ marginRight: 5 }}/>
+                    <Text style={[styles.filterLabel, active && { color: colors.primary }]}>{t(labelKey)}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         )}
+      </View>
+      {/* Loading indicator when few requests are available */}
+      <View style={styles.loadingRow}>
+        {loading && requests.length > 0 && (
+          <Spinner size="small" color={colors.primary} style={{ marginBottom: spacing.sm }} />
+        )}
+      </View>
+    </View>
+  );
+
+  const pageEmptyContent = tab === 'closed' && closedLoading && closedRequests.length === 0 ? (
+    <SkeletonLoader count={4} />
+  ) : (
+    <EmptyState
+      icon="briefcase-outline"
+      title={t(tab === 'closed' ? 'spRequests.emptyClosed' : tab === 'accepted' ? 'spRequests.emptyAccepted' : 'spRequests.empty')}
+      description={t(tab === 'closed' ? 'spRequests.emptyClosedHint' : tab === 'accepted' ? 'spRequests.emptyHintAccepted' : 'spRequests.emptyHint')}
+    />
+  );
+
+  return (
+    <View style={{ flex: 1 }}>
+      <Header
+        title="aasaanly"
+        showBackButton={false}
+        showNotification={true}
+        showProfileButton={true}
+        keepTitleCenterAligned={true}
+        titleStyle={styles.logo}/>
+      <View style={{ height: spacing.sm }} />
+      <View style={styles.container}>
+        <FlatList
+          ref={listRef}
+          data={displayedRequests}
+          keyExtractor={(item: any) => item.id}
+          renderItem={renderRequest}
+          ListHeaderComponent={pageTopSection}
+          ListEmptyComponent={pageEmptyContent}
+          onScrollToIndexFailed={({ index, averageItemLength }) => {
+            listRef.current?.scrollToOffset({
+              offset: Math.max(0, averageItemLength * index),
+              animated: true,
+            });
+          }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl * 3 }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+              title={refreshing ? t('spRequests.fetchingLatest') : ''}
+              titleColor={colors.primary}
+            />
+          }
+        />
         {/* Pro banner */}
         {showProBanner && (
           <UpgradeProBanner
@@ -793,18 +799,21 @@ const SPWorkRequestsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.light,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
+    backgroundColor: colors.background,
+  },
+  logo: {
+    fontSize: 22,
+    fontFamily: 'Quicksand-Bold',
+    color: colors.primary,
+    textTransform: 'lowercase',
   },
   pageTitle: {
-    marginBottom: spacing.sm,
-    fontSize: 22,
-    fontWeight: '700',
+    margin: spacing.md,
+    fontSize: 20,
+    fontFamily: 'Inter-Bold',
     color: colors.dark,
   },
   loadingRow: {
-    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.xs,
@@ -812,12 +821,12 @@ const styles = StyleSheet.create({
   // --- Filter chips ---
   filterRow: {
     flexDirection: 'row',
-    marginTop: spacing.sm,
+    margin: spacing.sm,
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
     borderRadius: radius.lg,
     borderWidth: 1,
@@ -826,7 +835,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   filterChipActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryLight,
     borderColor: colors.primary,
   },
   filterLabel: {
@@ -838,6 +847,7 @@ const styles = StyleSheet.create({
   card: {
     ...surfaces.card,
     padding: spacing.md,
+    marginHorizontal: spacing.sm,
     marginBottom: spacing.md,
     position: 'relative',
   },
@@ -867,26 +877,26 @@ const styles = StyleSheet.create({
   },
   serviceName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Inter-Bold',
     color: colors.dark,
     flexShrink: 1,
   },
   originalTitleButtonText: {
     fontSize: 11,
+    fontFamily: 'Inter',
     color: colors.greyMuted,
-    // backgroundColor: colors.surface,
-    // paddingHorizontal: 4,
-    // paddingVertical: 2
     textDecorationLine: 'underline',
   },
   originalTitle: {
     marginTop: 2,
     fontSize: 12,
+    fontFamily: 'Inter',
     color: colors.grey,
   },
   serviceCategory: {
     marginTop: 2,
     fontSize: 13,
+    fontFamily: 'Inter',
     color: colors.grey,
   },
   metaRow: {
@@ -896,6 +906,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 12,
+    fontFamily: 'Inter',
     color: colors.grey,
     marginLeft: 4,
   },
@@ -945,7 +956,7 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 14,
-    fontWeight: '500',
+    fontFamily: 'Inter-SemiBold',
     color: colors.dark,
     marginLeft: 6,
   },
@@ -961,6 +972,7 @@ const styles = StyleSheet.create({
   infoTextMuted: {
     flex: 1,
     fontSize: 13,
+    fontFamily: 'Inter',
     color: colors.grey,
   },
   tagContainer: {
@@ -978,6 +990,7 @@ const styles = StyleSheet.create({
   },
   tagText: {
     fontSize: 12,
+    fontFamily: 'Inter',
     color: colors.dark,
   },
   divider: {

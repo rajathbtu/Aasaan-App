@@ -118,7 +118,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
               <View style={styles.iconBadge}>
                 <Ionicons name="document-text-outline" size={15} color={colors.primary} />
               </View>
-              <Text style={styles.titleLabel}>{t('createRequest.selectTags.requestTitleLabel')}</Text>
+              <Text style={styles.label}>{t('createRequest.selectTags.requestTitleLabel')}</Text>
             </View>
             <Text style={styles.titleHint}>
               {t('createRequest.selectTags.requestTitleHint', { max: REQUEST_TITLE_MAX_LENGTH })}
@@ -157,7 +157,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
             <View style={styles.iconBadge}>
               <Ionicons name="pricetags-outline" size={15} color={colors.primary} />
             </View>
-            <Text style={styles.sectionTitle}>{t('createRequest.selectTags.tagsTitle')}</Text>
+            <Text style={styles.label}>{t('createRequest.selectTags.tagsTitle')}</Text>
             {selectedTags.length > 0 && (
               <View style={styles.countPill}>
                 <Text style={styles.countPillText}>{selectedTags.length}</Text>
@@ -282,11 +282,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: spacing.sm,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.dark,
-  },
   countPill: {
     minWidth: 22,
     height: 22,
@@ -309,9 +304,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  titleLabel: {
+  label: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Google Sans Flex-Bold',
     color: colors.dark,
   },
   titleHint: {
@@ -381,11 +376,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: colors.dark,
-    fontWeight: '600',
+    fontFamily: 'Google Sans Flex-SemiBold',
   },
   tagTextSelected: {
     color: colors.primary,
-    fontWeight: '800',
   },
   tagIcon: {
     marginLeft: spacing.xs,

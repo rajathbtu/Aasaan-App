@@ -96,7 +96,9 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       {/* Top bar */}
-      <Header title="Aasaan" showNotification={true} showBackButton={false} />
+      <Header title="aasaanly" showNotification={true} showBackButton={false}
+        keepTitleCenterAligned={true}
+        titleStyle={[styles.logo]}/>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
@@ -129,9 +131,9 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           {/* Hero: title + illustration */}
           <View style={styles.heroSection}>
             <View style={styles.heroTextWrap}>
-              <Text style={styles.heroTitle}>
-                Get your work{'\n'}
-                <Text style={styles.heroTitleAccent}>done, easily.</Text>
+              <Text style={[styles.heroTitle]}>
+                Get work done
+                <Text style={styles.heroTitleAccent}> aasaanly</Text>
               </Text>
               <Text style={styles.heroSubtitle}>Trusted professionals, at your service</Text>
             </View>
@@ -194,7 +196,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
                 <Ionicons name="sparkles-outline" size={26} color={colors.primary} />
               </View>
               <View style={styles.trustTextWrap}>
-                <Text style={styles.trustTitle}>Find the right help, easily</Text>
+                <Text style={styles.trustTitle}>Find the right help, aasaanly</Text>
                 <Text style={styles.trustSubtitle}>Explore services & choose what works for you</Text>
               </View>
             </View>
@@ -207,6 +209,12 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  logo: {
+    fontSize: 22,
+    fontFamily: 'Quicksand-Bold',
+    color: colors.primary,
+    textTransform: 'lowercase',
+  },
   // -- Hero --
   heroSection: {
     flexDirection: 'row',
@@ -220,9 +228,8 @@ const styles = StyleSheet.create({
     paddingRight: spacing.xs,
   },
   heroTitle: {
-    fontSize: 30,
-    lineHeight: 38,
-    fontWeight: '800',
+    fontSize: 24,
+    fontFamily: 'Google Sans Flex-Bold',
     color: colors.dark,
   },
   heroTitleAccent: {
@@ -230,8 +237,8 @@ const styles = StyleSheet.create({
   },
   heroSubtitle: {
     fontSize: 14,
+    fontFamily: 'Google Sans Flex',
     color: colors.grey,
-    marginTop: spacing.sm,
   },
   heroArt: {
     width: 132,
@@ -268,8 +275,8 @@ const styles = StyleSheet.create({
   },
   locationName: {
     color: colors.dark,
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 13,
+    fontFamily: 'Google Sans Flex',
   },
   locationAction: {
     color: colors.primary,

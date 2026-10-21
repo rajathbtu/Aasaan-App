@@ -2,6 +2,7 @@
 node_modules/
 .expo/
 package-lock.json
+frontend/assets/fonts/
 backend/Firebase-service-account-credentials.json
 
 # frontend/package-lock.json IS tracked on purpose.

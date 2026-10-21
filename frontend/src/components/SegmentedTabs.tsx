@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     color: colors.dark,
-    fontWeight: '600',
+    fontFamily: 'Google Sans Flex-SemiBold',
   },
   labelActive: {
     color: colors.white,
