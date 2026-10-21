@@ -143,6 +143,8 @@ const SPWorkRequestsScreen: React.FC = () => {
   const [highlightedRequestId, setHighlightedRequestId] = useState<string | null>(
     notificationRequestId || null);
   const listRef = useRef<FlatList<any>>(null);
+  const [showStickyControls, setShowStickyControls] = useState(false);
+  const controlsBottomY = useRef<number | null>(null);
   const userId = user?.id;
   const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
   const closedRequestsCacheKey = userId ? offlineCacheKey('provider-closed-requests', userId) : null;
@@ -183,7 +185,6 @@ const SPWorkRequestsScreen: React.FC = () => {
   };
   
   const filterOptions = [
-    { value: 'all', labelKey: 'spRequests.filterAll', iconName: 'apps-outline' },
     { value: 'today', labelKey: 'spRequests.filterToday', iconName: 'time-outline' },
     { value: 'within3', labelKey: 'spRequests.filterWithin3', iconName: 'location-outline' },
   ] as const;
@@ -676,11 +677,16 @@ const SPWorkRequestsScreen: React.FC = () => {
   const totalCount = requests.length;
   const acceptedCount = requests.filter(r => isAcceptedByUser(r)).length;
   const displayedRequests = tab === 'closed' ? closedRequests : filteredRequests;
+  const selectedTabLabel = t(tab === 'all' ? 'spRequests.allTab'
+    : tab === 'accepted' ? 'spRequests.acceptedTab' : 'spRequests.closedTab');
+  const selectedFilterLabel = filterOptions.find(option => option.value === filter);
 
   const pageTopSection = (
     <View>
       <Text style={styles.pageTitle}>{t('spRequests.title')}</Text>
-      <View>
+      <View onLayout={({ nativeEvent }) => {
+        controlsBottomY.current = nativeEvent.layout.y + nativeEvent.layout.height;
+      }}>
         <SegmentedTabs
           activeKey={tab}
           onChange={(key) => {
@@ -702,12 +708,15 @@ const SPWorkRequestsScreen: React.FC = () => {
               return (
                 <TouchableOpacity
                   key={value}
-                  onPress={() => setFilter(value)}
+                  onPress={() => setFilter(active ? 'all' : value)}
                   activeOpacity={0.8}
                   style={[styles.filterChip, active && styles.filterChipActive]}
                   accessibilityRole="button" accessibilityState={{ selected: active }}>
                     <Ionicons name={iconName} size={14} color={active ? colors.primary : colors.grey} style={{ marginRight: 5 }}/>
                     <Text style={[styles.filterLabel, active && { color: colors.primary }]}>{t(labelKey)}</Text>
+                  {active && (
+                    <Ionicons name="close" size={14} color={colors.primary} style={{ marginLeft: 5 }} />
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -757,6 +766,11 @@ const SPWorkRequestsScreen: React.FC = () => {
               animated: true,
             });
           }}
+          onScroll={({ nativeEvent }) => {
+            const offset = nativeEvent.contentOffset.y;
+            const hidden = controlsBottomY.current !== null && offset >= controlsBottomY.current;
+            setShowStickyControls(current => current === hidden ? current : hidden);
+          }}
           contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl * 3 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -770,6 +784,20 @@ const SPWorkRequestsScreen: React.FC = () => {
             />
           }
         />
+        {showStickyControls && (
+          <TouchableOpacity
+            style={styles.stickyControls}
+            onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
+            activeOpacity={0.8}
+            accessibilityRole="button">
+            <Ionicons name="options-outline" size={17} color={colors.primary} />
+            <Text style={styles.selectionSummaryText} numberOfLines={1}>
+              {selectedTabLabel} {t('spRequests.work')}
+              {tab !== 'closed' && selectedFilterLabel ? ` · ${t(selectedFilterLabel.labelKey)}` : ''}
+            </Text>
+            <Ionicons name="chevron-up" size={16} color={colors.grey} />
+          </TouchableOpacity>
+        )}
         {/* Pro banner */}
         {showProBanner && (
           <UpgradeProBanner
@@ -822,6 +850,7 @@ const styles = StyleSheet.create({
   filterRow: {
     flexDirection: 'row',
     margin: spacing.sm,
+    marginTop: spacing.md
   },
   filterChip: {
     flexDirection: 'row',
@@ -842,6 +871,26 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.dark,
     fontWeight: '600',
+  },
+  stickyControls: {
+    position: 'absolute',
+    top: -spacing.sm,
+    left: 0,
+    right: 0,
+    minHeight: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    zIndex: 10,
+    elevation: 3,
+    backgroundColor: colors.background,
+  },
+  selectionSummaryText: {
+    flex: 1,
+    marginHorizontal: spacing.sm,
+    color: colors.grey,
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 13,
   },
   // --- Request cards ---
   card: {

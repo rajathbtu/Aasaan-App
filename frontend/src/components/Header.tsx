@@ -141,6 +141,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     minHeight: 56, // Ensure a minimum height for the header row
+    // borderBottomWidth: 1,
+    // borderColor: colors.greyLight,
   },
   iconButton: {
     width: ICON_BUTTON_SIZE,
