@@ -296,6 +296,8 @@ export async function list(req: Request, res: Response): Promise<void> {
   }
 
   const services: string[] = providerInfo.services || [];
+  const canCallCustomers = user.aadhaarVerified === true;
+  const callDisabledReason = canCallCustomers ? null : 'aadhaar_not_verified';
 
   if (providerInfo.locationId && providerInfo.radius > 0) {
     const providerLoc = await pAny.location?.findUnique?.({ where: { id: providerInfo.locationId } });
@@ -328,7 +330,7 @@ export async function list(req: Request, res: Response): Promise<void> {
                wr."locationLat" AS location_lat,
                wr."locationLng" AS location_lng,
                usr.name AS end_user_name,
-               CASE WHEN wr."phoneConsent" IS TRUE THEN usr."phoneNumber" ELSE NULL END AS end_user_phone,
+               CASE WHEN wr."phoneConsent" IS TRUE AND ${canCallCustomers} THEN usr."phoneNumber" ELSE NULL END AS end_user_phone,
                CASE WHEN usr."pic_moderation" = 'approved' THEN usr."picUrl" ELSE NULL END AS end_user_pic_url,
                CASE WHEN ap.id IS NULL THEN false ELSE true END AS accepted_by_provider
         FROM "WorkRequest" wr
@@ -376,6 +378,7 @@ export async function list(req: Request, res: Response): Promise<void> {
           endUserName: end_user_name || null,
           endUserPhone: end_user_phone || null,
           endUserPicUrl: end_user_pic_url || null,
+          callDisabledReason,
         };
       });
 

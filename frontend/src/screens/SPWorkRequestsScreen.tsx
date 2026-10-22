@@ -430,13 +430,15 @@ const SPWorkRequestsScreen: React.FC = () => {
   /**
    * Renders a single work request card.  The card appearance and
    * available actions depend on whether the provider has expressed interest.
-   * Interested cards show a green status chip and a prominent call button.
-   * Available cards show an interest action, Navigate
-   * and Call actions with a clear visual hierarchy.
+   * Interested cards show a green status chip and a call action when the
+   * customer has consented to share their phone number.
+   * Available cards show an interest action, Navigate and Call actions.
    */
   const renderRequest = ({ item }: { item: any }) => {
     const isClosedRequest = tab === 'closed';
     const accepted = isAcceptedByUser(item);
+    const canCallCustomer = !item.callDisabledReason && item.phoneConsent === true &&
+      !!item.endUserPhone;
     const rateEndUserLabel = t('requestDetails.rateEndUserNamed', {
       name: item.endUserName || t('requestDetails.endUser'),
     });
@@ -567,8 +569,8 @@ const SPWorkRequestsScreen: React.FC = () => {
             <Text style={styles.infoTextMuted} numberOfLines={1}>{item.endUserName}</Text>
           </View>
         )}
-        {/* Action buttons: all CTAs share the same size in every state;
-            only the background/label colours change. */}
+        {/* Action buttons keep the same size in every state; unavailable
+            actions use a neutral treatment while remaining tappable for context. */}
         {(!isClosedRequest || item.canRateEndUser) && <>
           <View style={styles.divider} />
           <View style={styles.actionRow}>
@@ -592,25 +594,26 @@ const SPWorkRequestsScreen: React.FC = () => {
             backgroundColor={accepted ? colors.greyMuted : colors.success}
             onPress={() => accepted ? handleWithdraw(item) : handleAccept(item)}
             loading={processing}
-            style={styles.requestActions}
-          />
+            style={styles.requestActions}/>
           
-          {item.phoneConsent === true && item.endUserPhone && (
-            <ActionButton
-              buttonIcon="call-outline"
+          <ActionButton
+              buttonIcon={canCallCustomer ? 'call-outline' : 'lock-closed-outline'}
               buttonTitle={t('spRequests.call')}
-              buttonTitleColor={colors.white}
-              backgroundColor={colors.successDark}
+              buttonTitleColor={canCallCustomer ? colors.white : colors.grey}
+              backgroundColor={canCallCustomer ? colors.successDark : colors.greyLight}
               onPress={() => {
-                if (item.endUserPhone) {
-                  Linking.openURL(`tel:${item.endUserPhone}`);
+                if (canCallCustomer) {
+                  void Linking.openURL(`tel:${item.endUserPhone}`); // this is safe because if phoneConsent is not true then BE does not even return the phone no.
                 } else {
-                  Alert.alert('Error', 'Requester phone number is not available.');
+                  const messageKey = item.callDisabledReason === 'aadhaar_not_verified'
+                    ? 'spRequests.aadhaarVerificationRequired'
+                    : item.phoneConsent !== true
+                      ? accepted ? 'spRequests.directCallNotAllowedAccepted' : 'spRequests.directCallNotAllowed'
+                      :'spRequests.callUnavailable';
+                  showToast(t(messageKey));
                 }
               }}
-              style={styles.requestActions}
-            />
-          )}
+              style={styles.requestActions}/>
           </>
           )}
           </View>
