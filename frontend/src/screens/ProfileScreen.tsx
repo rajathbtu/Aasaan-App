@@ -278,7 +278,12 @@ const ProfileScreen: React.FC = () => {
       <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
         {/* Profile photo */}
         <View style={styles.photoSection}>
-          <View style={{ position: 'relative', marginBottom: spacing.xs }}>
+          <TouchableOpacity
+            style={{ position: 'relative', marginBottom: spacing.xs }}
+            onPress={showPhotoSourceOptions}
+            disabled={isUploadingPhoto || Platform.OS === 'web'}
+            accessibilityRole="button"
+            accessibilityLabel={t('profile.changePhotoTitle')}>
             <View style={styles.avatarShell}>
               {user.picUrl ? (
                 <Image
@@ -293,15 +298,11 @@ const ProfileScreen: React.FC = () => {
               )}
             </View>
             {Platform.OS !== 'web' && (
-              <TouchableOpacity
-                style={styles.cameraBtn}
-                onPress={showPhotoSourceOptions}
-                disabled={isUploadingPhoto}
-                accessibilityRole="button" accessibilityLabel={t('profile.changePhotoTitle')}>
+              <View style={styles.cameraBtn} pointerEvents="none">
                 <Ionicons name="camera" size={14} color={colors.white} />
-              </TouchableOpacity>
+              </View>
             )}
-          </View>
+          </TouchableOpacity>
           {Platform.OS !== 'web' && (
             <Text style={styles.photoNote}>
               {user.picModeration === 'under_review'
@@ -311,7 +312,7 @@ const ProfileScreen: React.FC = () => {
           )}
           <View style={styles.aadhaarStatus}>
             <Ionicons name={user.aadhaarVerified ? 'shield-checkmark' : 'shield-outline'}
-              size={14} color={user.aadhaarVerified ? '#15803d' : colors.grey} />
+              size={14} color={user.aadhaarVerified ? colors.successDark : colors.grey} />
             <Text style={[ styles.aadhaarStatusText, user.aadhaarVerified && styles.aadhaarStatusVerified]}>
               {user.aadhaarVerified ? t('profile.aadhaarVerified') : t('profile.aadhaarNotVerified')}
             </Text>
@@ -466,11 +467,11 @@ const ProfileScreen: React.FC = () => {
               containerStyle={styles.providerProfileField}
               onPress={() => navigation.navigate('LocationSelect', { mode: 'edit' })}>
               <View style={styles.profileFieldContent}>
-                <Text style={styles.locationSummaryText} numberOfLines={2}>
+                <Text style={styles.profileFieldValue} numberOfLines={2}>
                   {pendingLocation?.name || pendingLocation?.description || t('profile.noLocation') || 'No location selected'}
                 </Text>
                 <Text style={[styles.fieldLabel, { marginTop: spacing.sm }]}>{t('profile.serviceRadius')}</Text>
-                <Text style={styles.locationSummaryText}>{pendingRadius} km</Text>
+                <Text style={styles.profileFieldValue}>{pendingRadius} km</Text>
               </View>
             </ProfileField>
 
@@ -531,12 +532,12 @@ const ProfileScreen: React.FC = () => {
         {/* Additional Settings */}
         <ProfileField
           title={t('profile.additionalSettings')}
-          titleIcon="settings"
+          titleIcon="settings-outline"
           fieldType="custom"
           onPress={() => showToast('This feature is not supported for your device')}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="moon" size={16} color={colors.grey} style={{ marginRight: spacing.sm }} />
-              <Text style={{ fontSize: 14, color: colors.dark }}>{t('profile.darkMode')}</Text>
+              <Text style={styles.profileFieldValue}>{t('profile.darkMode')}</Text>
             </View>
             <Switch value={darkMode} onValueChange={setDarkMode} thumbColor={darkMode ? colors.primary : colors.white} trackColor={{ true: colors.primaryBorder, false: colors.greyLight }} />
         </ProfileField>
@@ -637,6 +638,7 @@ const styles = StyleSheet.create({
   },
   photoNote: {
     fontSize: 12,
+    fontFamily: 'Google Sans Flex',
     color: colors.grey,
   },
   aadhaarStatus: {
@@ -647,11 +649,11 @@ const styles = StyleSheet.create({
   },
   aadhaarStatusText: {
     fontSize: 12,
+    fontFamily: 'Google Sans Flex-SemiBold',
     color: colors.grey,
   },
   aadhaarStatusVerified: {
-    color: '#15803d',
-    fontWeight: '600',
+    color: colors.successDark,
   },
   moderationLink: {
     flexDirection: 'row',
@@ -730,13 +732,13 @@ const styles = StyleSheet.create({
   },
   serviceChipTextWhite: {
     color: colors.dark,
-    fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Google Sans Flex-SemiBold', 
+    fontSize: 14, 
   },
-  locationSummaryText: {
+  profileFieldValue: {
     color: colors.dark,
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontFamily: 'Inter',
     flexShrink: 1,
   },
   logoutRow: {
@@ -747,7 +749,7 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 14,
     color: colors.error,
-    fontWeight: '600',
+    fontFamily: 'Google Sans Flex-SemiBold',
   },
   versionText: {
     textAlign: 'center',

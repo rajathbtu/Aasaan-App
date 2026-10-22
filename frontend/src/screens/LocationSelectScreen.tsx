@@ -182,20 +182,18 @@ const LocationSelectScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.radiusSummaryRow}
               onPress={() => setIsRadiusExpanded((prev) => !prev)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="compass-outline" size={18} color={colors.primary} />
+              activeOpacity={0.7}>
+              <View style={styles.locIconCircle}>
+                <Ionicons name="resize" size={18} color={colors.primary} />
+              </View>
               <Text style={styles.radiusSummaryText} numberOfLines={2} ellipsizeMode="tail">
-                {`You'll see Work Requests within ${radius} kms ${!isRadiusExpanded? '': 'of ' + selectedLocation?.name || selectedLocation?.description || 'your selected location'}`}
+                {t('sp.selectLocation.radiusSummary', { radius })}
               </Text>
               <Ionicons name={isRadiusExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.grey} />
             </TouchableOpacity>
 
             {isRadiusExpanded && (
               <>
-                {/* <Text style={styles.radiusQuestion}>
-                  {t('sp.selectLocation.changeRadius')}
-                </Text> */}
                 <View style={styles.radiusGrid}>
                   {radiusOptions.map((value) => {
                     const active = radius === value;
@@ -204,8 +202,7 @@ const LocationSelectScreen: React.FC = () => {
                         key={value}
                         style={[styles.radiusCell, active ? styles.radiusCellActive : styles.radiusCellInactive]}
                         onPress={() => setRadius(value)}
-                        activeOpacity={0.8}
-                      >
+                        activeOpacity={0.8}>
                         <Text style={[styles.radiusCellText, active && styles.radiusCellTextActive]}>{value} km</Text>
                       </TouchableOpacity>
                     );
@@ -276,8 +273,8 @@ const styles = StyleSheet.create({
   },
   locationName: {
     fontSize: 14,
+    fontFamily: 'Inter-Bold',
     lineHeight: 19,
-    fontWeight: '700',
     color: colors.dark,
   },
   privacyNote: {
@@ -322,18 +319,11 @@ const styles = StyleSheet.create({
   radiusSummaryText: {
     flex: 1,
     flexShrink: 1,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '500',
-    color: colors.dark,
-    marginHorizontal: spacing.sm,
-  },
-  radiusQuestion: {
     fontSize: 12,
-    fontWeight: '600',
-    color: colors.grey,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
+    fontFamily: 'Inter',
+    lineHeight: 18,
+    color: colors.dark,
+    marginRight: spacing.sm,
   },
   radiusGrid: {
     marginTop: spacing.sm,
@@ -364,12 +354,11 @@ const styles = StyleSheet.create({
   },
   radiusCellText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'Google Sans Flex-SemiBold',
     color: colors.dark,
   },
   radiusCellTextActive: {
     color: colors.white,
-    fontWeight: '700',
   },
   bottomCtaContainer: {
     padding: 0,

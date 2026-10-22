@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { placesAutocomplete, placeDetails, reverseGeocode } from '../services/googlePlacesApi';
 import { useToast } from '../contexts/ToastContext';
+import { useI18n } from '../i18n';
 
 const MAX_SAVED_LOCATIONS = 3;
 const CITY_LEVEL_DELTA = 0.4;
@@ -41,7 +42,6 @@ type Props = {
   onSelect: (location: any | null) => void;
   onResolvingChange?: (isResolving: boolean) => void;
   initialValue?: string;
-  placeholder?: string;
   enableMap?: boolean;
   initialLocation?: { lat?: number; lng?: number; description?: string; name?: string; place_id?: string; placeId?: string };
   mapHeight?: number;
@@ -53,13 +53,13 @@ const LocationSearch: React.FC<Props> = ({
   onSelect,
   onResolvingChange,
   initialValue = '',
-  placeholder = 'Select location',
   enableMap = false,
   initialLocation,
   mapHeight,
   isServiceArea = false,
   serviceAreaRadiusKm = DEFAULT_SERVICE_AREA_RADIUS_KM,
 }) => {
+  const { t } = useI18n();
   const { user } = useAuth();
   const { showToast } = useToast();
   const savedLocationsCacheKey = user?.id ? offlineCacheKey('saved-locations', user.id) : null;
@@ -457,10 +457,9 @@ const LocationSearch: React.FC<Props> = ({
                 activeOpacity={0.9}
                 onPress={() => setIsSearchOverlayVisible(true)}
                 style={styles.mapInputOverlay}
-                accessibilityLabel="Enter location name"
-              >
+                accessibilityLabel={t('locationSearch.placeholder')}>
                 <TextInput
-                  placeholder="Search by location name.."
+                  placeholder={t('locationSearch.mapPlaceholder')}
                   placeholderTextColor={colors.primary}
                   editable={false}
                   pointerEvents="none"
@@ -486,7 +485,7 @@ const LocationSearch: React.FC<Props> = ({
               accessibilityLabel="Center map on current location"
             >
               <Ionicons name="locate" size={18} color={colors.white} />
-              <Text style={styles.mapButtonText}>Pick My Current Location</Text>
+              <Text style={styles.mapButtonText}>{t('locationSearch.pickCurrentLocation')}</Text>
             </TouchableOpacity>
             {recentLocations.length > 0 && (
               <ScrollView
@@ -526,10 +525,12 @@ const LocationSearch: React.FC<Props> = ({
           <View id="location-search-input" style={styles.overlayContent}>
             <View style={styles.inputWrap}>
               <TextInput
-                style={[styles.input, { maxHeight: 60 }]} // Adjust maxHeight to fit 2 lines
-                placeholder={isLocating ? 'Fetching current location...' : placeholder} // Show fetching message
+                style={[styles.searchInput, { maxHeight: 60 }]} // Adjust maxHeight to fit 2 lines
+                placeholder={isLocating ? 'Fetching current location...' : t('locationSearch.placeholder')}
                 placeholderTextColor={colors.grey}
                 value={query}
+                submitBehavior="blurAndSubmit"
+                returnKeyType="done"
                 multiline={true} // Enable multiline to allow wrapping
                 numberOfLines={2} // Limit to 2 lines
                 autoFocus
@@ -595,7 +596,7 @@ const styles = StyleSheet.create({
   inputWrap: {
     position: 'relative',
   },
-  input: {
+  searchInput: {
     borderWidth: 1,
     borderColor: colors.greyLight,
     paddingVertical: spacing.sm,
@@ -604,7 +605,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     paddingRight: sizes.inputRightPadding,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
     height: 60, // Fixed height to accommodate 2 lines of text
   },
   rightAdornment: {
@@ -633,7 +634,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.dark,
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: 'Inter',
     lineHeight: 20,
   },
   suggestionRow: {
@@ -699,6 +700,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     color: colors.primary,
     fontSize: 14,
+    fontFamily: 'Inter',
     opacity: 0.95,
     shadowColor: '#000',
     shadowOpacity: 0.08,
@@ -761,12 +763,12 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     color: colors.grey,
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
   },
   mapButtonText: {
     color: colors.white,
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Google Sans Flex-SemiBold',
     marginLeft: spacing.xs,
   },
   mapPlaceholder: {
