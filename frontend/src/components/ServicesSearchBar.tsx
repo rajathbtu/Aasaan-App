@@ -9,6 +9,7 @@ type ServicesSearchBarProps = {
   placeholder?: string;
   placeholders?: string[];
   style?: StyleProp<ViewStyle>;
+  inputRef?: React.Ref<TextInput>;
 };
 
 const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
@@ -17,6 +18,7 @@ const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
   placeholder,
   placeholders = [],
   style,
+  inputRef,
 }) => {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const hasRotatingPlaceholders = placeholders.length > 0;
@@ -39,6 +41,7 @@ const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
     <View style={[styles.wrapper, style]}>
       <Ionicons name="search" size={20} color={colors.greyMuted} style={styles.searchIcon} />
       <TextInput
+        ref={inputRef}
         style={styles.input}
         placeholder={currentPlaceholder}
         placeholderTextColor={colors.greyMuted}

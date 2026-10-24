@@ -35,6 +35,7 @@ import RateAndReviewModal from '../components/RateAndReviewModal';
 import ActionButton from '../components/ActionButton';
 import { translateText } from '../services/translation';
 import { transliterateRomanizedHindi } from '../utils/hindiTransliteration';
+import useScrolledPastBoundary from '../hooks/useScrolledPastBoundary';
 
 async function translateValues(values: string[], locale: string, sourceLocale: string | undefined,
     isCancelled: () => boolean, onUpdate: (translations: Record<string, string>) => void) {
@@ -143,8 +144,8 @@ const SPWorkRequestsScreen: React.FC = () => {
   const [highlightedRequestId, setHighlightedRequestId] = useState<string | null>(
     notificationRequestId || null);
   const listRef = useRef<FlatList<any>>(null);
-  const [showStickyControls, setShowStickyControls] = useState(false);
-  const controlsBottomY = useRef<number | null>(null);
+  const { isPastBoundary: showStickyControls, onTargetLayout: onControlsLayout,
+    onScroll,} = useScrolledPastBoundary();
   const userId = user?.id;
   const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
   const closedRequestsCacheKey = userId ? offlineCacheKey('provider-closed-requests', userId) : null;
@@ -687,9 +688,7 @@ const SPWorkRequestsScreen: React.FC = () => {
   const pageTopSection = (
     <View>
       <Text style={styles.pageTitle}>{t('spRequests.title')}</Text>
-      <View onLayout={({ nativeEvent }) => {
-        controlsBottomY.current = nativeEvent.layout.y + nativeEvent.layout.height;
-      }}>
+      <View onLayout={onControlsLayout}>
         <SegmentedTabs
           activeKey={tab}
           onChange={(key) => {
@@ -769,11 +768,7 @@ const SPWorkRequestsScreen: React.FC = () => {
               animated: true,
             });
           }}
-          onScroll={({ nativeEvent }) => {
-            const offset = nativeEvent.contentOffset.y;
-            const hidden = controlsBottomY.current !== null && offset >= controlsBottomY.current;
-            setShowStickyControls(current => current === hidden ? current : hidden);
-          }}
+          onScroll={onScroll}
           contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl * 3 }}
           showsVerticalScrollIndicator={false}
           refreshControl={

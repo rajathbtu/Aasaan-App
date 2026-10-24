@@ -14,6 +14,7 @@ type HeaderProps = {
   onBackPress?: () => void;
   showNotification?: boolean;
   showProfileButton?: boolean;
+  customLeftComponent?: React.ReactNode;
   customRightComponent?: React.ReactNode;
   keepTitleCenterAligned?: boolean;
   extraLargeTitle?: boolean;
@@ -33,6 +34,7 @@ const Header: React.FC<HeaderProps> = ({
   onBackPress,
   showNotification = true,
   showProfileButton = false,
+  customLeftComponent,
   customRightComponent,
   keepTitleCenterAligned = false,
   extraLargeTitle = false,
@@ -53,7 +55,7 @@ const Header: React.FC<HeaderProps> = ({
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.headerRow}>
-        {showBackButton && (
+        {customLeftComponent ?? (showBackButton && (
           <TouchableOpacity
             style={[styles.iconButton, { marginRight: spacing.md }]}
             onPress={handleBackPress}
@@ -62,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({
             accessibilityLabel="Go back">
             <Ionicons name="arrow-back" size={22} color={colors.dark} />
           </TouchableOpacity>
-        )}
+        ))}
 
         <View style={[styles.titleContainer, keepTitleCenterAligned && styles.centeredTitleContainer]}>
           {subheader ? <Text style={styles.subHeaderText}>{subheader}</Text> : null}

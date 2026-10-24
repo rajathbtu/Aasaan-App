@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors, spacing, radius, shadows } from '../theme';
@@ -11,6 +11,7 @@ import ServicesSearchBar from '../components/ServicesSearchBar';
 import { useI18n } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
+import useScrolledPastBoundary from '../hooks/useScrolledPastBoundary';
 
 const RECENT_SERVICES_KEY = (userId: string) => `recent_services_${userId}`;
 const MAX_RECENT_SERVICES = 3;
@@ -21,6 +22,12 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   const userId = useAuth()?.user?.id;
   const { services, query, setQuery, filtered, servicesError, refreshInBackground } = useServiceCatalog(userId);
+  const serviceSelectionScrollViewRef  = useRef<ScrollView>(null);
+  const serviceSearchInputRef  = useRef<TextInput>(null);
+  const { targetScrollY: searchBarScrollOffset,
+    isPastBoundary: showHeaderSearch,
+    onTargetLayout: onSearchBarLayout, onScroll,
+  } = useScrolledPastBoundary();
   const [recentServices, setRecentServices] = useState<Service[]>([]);
   const [savedLocation, setSavedLocation] = useState<Location | null>(null);
   const [savedLocationLoaded, setSavedLocationLoaded] = useState(false);
@@ -84,6 +91,11 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     });
   };
 
+  const focusSearch = () => {
+    serviceSelectionScrollViewRef.current?.scrollTo({ y: searchBarScrollOffset ?? 0, animated: true });
+    requestAnimationFrame(() => serviceSearchInputRef .current?.focus());
+  };
+
   const savedLocationName = savedLocation?.description;
   const hasData = services && services.length > 0;
 
@@ -97,10 +109,23 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       {/* Top bar */}
       <Header title="aasaanly" showNotification={true} showBackButton={false}
+        customLeftComponent={showHeaderSearch ? (
+          <TouchableOpacity
+            style={styles.headerSearchButton}
+            onPress={focusSearch}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('createRequest.selectService.searchPlaceholder')}>
+            <Ionicons name="search-outline" size={22} color={colors.dark} />
+          </TouchableOpacity>
+        ) : null}
         keepTitleCenterAligned={true}
         titleStyle={[styles.logo]}/>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
+          ref={serviceSelectionScrollViewRef }
+          onScroll={onScroll}
+          scrollEventThrottle={16}>
 
           {savedLocationLoaded && (
             <View>
@@ -145,11 +170,12 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           </View>
 
           {/* Search bar */}
-          <View style={styles.searchSection}>
+          <View style={styles.searchSection} onLayout={onSearchBarLayout }>
             <ServicesSearchBar
               placeholders={placeholderTexts}
               value={query}
               onChangeText={setQuery}
+              inputRef={serviceSearchInputRef }
             />
           </View>
 
@@ -250,6 +276,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginTop: spacing.xs,
     marginBottom: spacing.lg,
+  },
+  headerSearchButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
   },
 
   // -- Sections --
