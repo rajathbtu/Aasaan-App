@@ -7,7 +7,7 @@ import { useI18n } from '../i18n';
 import { useToast } from '../contexts/ToastContext';
 import { colors, radius, spacing } from '../theme';
 
-/** Number of digits in the code (kept in sync with `common.invalidOtpDesc`). */
+/** Default code length. Aadhaar OTP is 6 digits, so callers can override. */
 const OTP_LENGTH = 4;
 /** Seconds the resend link stays disabled after an OTP is sent. */
 const RESEND_SECONDS = 30;
@@ -28,25 +28,33 @@ export type OtpInputProps = {
   onOtpChange: (otp: string) => void;
   /** Disables the resend link while the parent screen is busy. */
   loading?: boolean;
+  /** Defaults to 4; Aadhaar OTP has 6. */
+  length?: number;
+  
+  onResend?: () => Promise<void> | void;
 };
 
 /**
- * Shared 4-digit OTP entry used by the OTP verification and name+OTP
- * registration screens.
+ * Shared OTP entry used by the Aadhaar verification, name+OTP registration &
+ * Aadhaar verification screens.
  *
  * A single `TextInput` collects the code, but the digits you see are drawn by
- * an overlay of `OTP_LENGTH` slots laid over it. 
- * 
+ * an overlay of `length` slots laid over it.
+ *
  * The input's own text is transparent (`color: 'transparent'`) and it is the
  * overlay that renders each digit or its bullet placeholder, so a typed digit
  * replaces exactly one bullet and the remaining bullets stay put.
  *
  * It owns the code state, resend countdown and the resend request itself so
- * both screens stay visually and behaviourally identical. The verify CTA
+ * the screens stay visually and behaviourally identical. The verify CTA
  * intentionally stays with the parent screen — the code is surfaced through
- * `onOtpChange`.
+ * `onOtpChange`. `length` defaults to 4 (sign-in) and is raised to 6 for
+ * Aadhaar; `onResend` overrides the default phone-based resend.
  */
-const OtpInput: React.FC<OtpInputProps> = ({ phone, language, onOtpChange, loading = false }) => {
+const OtpInput: React.FC<OtpInputProps> = ({
+  phone, language, onOtpChange, loading = false,
+  length = OTP_LENGTH, onResend,
+}) => {
   const { t } = useI18n(language);
   const { showToast } = useToast();
   const [otp, setOtp] = useState('');
@@ -92,13 +100,17 @@ const OtpInput: React.FC<OtpInputProps> = ({ phone, language, onOtpChange, loadi
 
   /** Keep only digits, capped at the code length (pastes can be longer). */
   const onChangeOtp = (text: string) => {
-    applyOtp(text.replace(/\D/g, '').slice(0, OTP_LENGTH));
+    applyOtp(text.replace(/\D/g, '').slice(0, length));
   };
 
   const handleResend = async () => {
     try {
       setResending(true);
-      await sendOtp(phone);
+      if (onResend) {
+        await onResend();
+      } else {
+        await sendOtp(phone);
+      }
       applyOtp('');
       inputRef.current?.focus();
       setSeconds(RESEND_SECONDS);
@@ -132,7 +144,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ phone, language, onOtpChange, loadi
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             keyboardType="number-pad"
-            maxLength={OTP_LENGTH}
+            maxLength={length}
             returnKeyType="done"
             textContentType="oneTimeCode"
             autoComplete="sms-otp"
@@ -144,7 +156,7 @@ const OtpInput: React.FC<OtpInputProps> = ({ phone, language, onOtpChange, loadi
 
         {/* Spaced slots: a digit once typed, a bullet until then. */}
         <View style={styles.otpSlots} pointerEvents="none">
-          {Array.from({ length: OTP_LENGTH }, (_, i) => {
+          {Array.from({ length }, (_, i) => {
             const digit = otp[i];
             const isActive = focused && i === otp.length;
             return (

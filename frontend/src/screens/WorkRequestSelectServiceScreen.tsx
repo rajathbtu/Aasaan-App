@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors, spacing, radius, shadows } from '../theme';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
+import type { Location } from '../components/LocationSearch';
 import { Service, ServiceCard, ServiceCategoryGrid, useServiceCatalog } from '../components/ServiceSelection';
 import ServicesSearchBar from '../components/ServicesSearchBar';
 import { useI18n } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
-import { readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
+import useScrolledPastBoundary from '../hooks/useScrolledPastBoundary';
 
 const RECENT_SERVICES_KEY = (userId: string) => `recent_services_${userId}`;
 const MAX_RECENT_SERVICES = 3;
@@ -20,7 +22,32 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   const userId = useAuth()?.user?.id;
   const { services, query, setQuery, filtered, servicesError, refreshInBackground } = useServiceCatalog(userId);
+  const serviceSelectionScrollViewRef  = useRef<ScrollView>(null);
+  const serviceSearchInputRef  = useRef<TextInput>(null);
+  const { targetScrollY: searchBarScrollOffset,
+    isPastBoundary: showHeaderSearch,
+    onTargetLayout: onSearchBarLayout, onScroll,
+  } = useScrolledPastBoundary();
   const [recentServices, setRecentServices] = useState<Service[]>([]);
+  const [savedLocation, setSavedLocation] = useState<Location | null>(null);
+  const [savedLocationLoaded, setSavedLocationLoaded] = useState(false);
+
+  useFocusEffect(useCallback(() => {
+    let isActive = true;
+    setSavedLocationLoaded(false);
+    void (async () => {
+      const locations = userId
+        ? await readOfflineCache<Location[]>(offlineCacheKey('saved-locations', userId))
+        : null;
+      if (isActive) {
+        setSavedLocation(locations?.[0] ?? null);
+        setSavedLocationLoaded(true);
+      }
+    })();
+    return () => {
+      isActive = false;
+    };
+  }, [userId]));
 
   useEffect(() => {
     // Load recently used services for the user
@@ -48,9 +75,28 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   const handleServicePress = (service: Service) => {
     updateRecentServices(service);
-    navigation.navigate('LocationSelect', { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [], mode: 'requestcreation' });
+    const serviceParams = { serviceId: service.id, serviceName: service.name, serviceTags: service.tags || [], mode: 'requestcreation' };
+    if (savedLocation && Number.isFinite(savedLocation.lat) && Number.isFinite(savedLocation.lng)) {
+      navigation.navigate('WorkRequestSelectTags', { ...serviceParams, selectedLocation: savedLocation });
+    } else {
+      navigation.navigate('LocationSelect', { ...serviceParams, selectedLocation: savedLocation });
+    }
   };
 
+  const openLocationSelection = () => {
+    navigation.navigate('LocationSelect', {
+      mode: 'requestcreation',
+      returnToServiceSelection: true,
+      selectedLocation: savedLocation,
+    });
+  };
+
+  const focusSearch = () => {
+    serviceSelectionScrollViewRef.current?.scrollTo({ y: searchBarScrollOffset ?? 0, animated: true });
+    requestAnimationFrame(() => serviceSearchInputRef .current?.focus());
+  };
+
+  const savedLocationName = savedLocation?.description;
   const hasData = services && services.length > 0;
 
   const placeholderTexts = [
@@ -62,16 +108,45 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   return (
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       {/* Top bar */}
-      <Header title="Aasaan" showNotification={true} showBackButton={false} />
+      <Header title="aasaanly" showNotification={true} showBackButton={false}
+        belowHeaderContent={savedLocationLoaded ? (
+          <TouchableOpacity
+            style={styles.locationHeaderButton}
+            onPress={openLocationSelection}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={savedLocationName ? `${savedLocationName}, ${t('common.change')}` : t('sp.selectLocation.selectLocation')}>
+            <Ionicons name="location-outline" size={13} color={colors.grey} />
+            <Text style={styles.locationHeaderText} numberOfLines={1}>
+              {savedLocationName || t('sp.selectLocation.selectLocation')}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={colors.primary} />
+          </TouchableOpacity>
+        ) : null}
+        customLeftComponent={showHeaderSearch ? (
+          <TouchableOpacity
+            style={styles.headerSearchButton}
+            onPress={focusSearch}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t('createRequest.selectService.searchPlaceholder')}>
+            <Ionicons name="search-outline" size={22} color={colors.dark} />
+          </TouchableOpacity>
+        ) : null}
+        keepTitleCenterAligned={true}
+        titleStyle={[styles.logo]}/>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
+          ref={serviceSelectionScrollViewRef }
+          onScroll={onScroll}
+          scrollEventThrottle={16}>
 
           {/* Hero: title + illustration */}
           <View style={styles.heroSection}>
             <View style={styles.heroTextWrap}>
-              <Text style={styles.heroTitle}>
-                Get your work{'\n'}
-                <Text style={styles.heroTitleAccent}>done, easily.</Text>
+              <Text style={[styles.heroTitle]}>
+                Get work done
+                <Text style={styles.heroTitleAccent}> aasaanly</Text>
               </Text>
               <Text style={styles.heroSubtitle}>Trusted professionals, at your service</Text>
             </View>
@@ -83,11 +158,12 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           </View>
 
           {/* Search bar */}
-          <View style={styles.searchSection}>
+          <View style={styles.searchSection} onLayout={onSearchBarLayout }>
             <ServicesSearchBar
               placeholders={placeholderTexts}
               value={query}
               onChangeText={setQuery}
+              inputRef={serviceSearchInputRef }
             />
           </View>
 
@@ -134,7 +210,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
                 <Ionicons name="sparkles-outline" size={26} color={colors.primary} />
               </View>
               <View style={styles.trustTextWrap}>
-                <Text style={styles.trustTitle}>Find the right help, easily</Text>
+                <Text style={styles.trustTitle}>Find the right help, aasaanly</Text>
                 <Text style={styles.trustSubtitle}>Explore services & choose what works for you</Text>
               </View>
             </View>
@@ -147,6 +223,12 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  logo: {
+    fontSize: 22,
+    fontFamily: 'Quicksand-Bold',
+    color: colors.primary,
+    textTransform: 'lowercase',
+  },
   // -- Hero --
   heroSection: {
     flexDirection: 'row',
@@ -160,9 +242,8 @@ const styles = StyleSheet.create({
     paddingRight: spacing.xs,
   },
   heroTitle: {
-    fontSize: 30,
-    lineHeight: 38,
-    fontWeight: '800',
+    fontSize: 24,
+    fontFamily: 'Google Sans Flex-Bold',
     color: colors.dark,
   },
   heroTitleAccent: {
@@ -170,8 +251,8 @@ const styles = StyleSheet.create({
   },
   heroSubtitle: {
     fontSize: 14,
+    fontFamily: 'Google Sans Flex',
     color: colors.grey,
-    marginTop: spacing.sm,
   },
   heroArt: {
     width: 132,
@@ -184,10 +265,34 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     marginBottom: spacing.lg,
   },
+  headerSearchButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
 
   // -- Sections --
   scrollContent: {
     paddingBottom: spacing.xl,
+  },
+  locationHeaderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.sm,
+    gap: spacing.xs,
+    width: 260,
+  },
+  locationHeaderText: {
+    color: colors.dark,
+    fontSize: 13,
+    fontFamily: 'Google Sans Flex',
+    flexShrink: 1,
   },
   section: {
     marginBottom: spacing.xl,

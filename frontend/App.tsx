@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { View, ActivityIndicator, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { locationManager } from './src/services/LocationManager';
@@ -33,6 +34,7 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ProfileImageModerationScreen from './src/screens/ProfileImageModerationScreen';
+import SandboxAadhaarOfflineEkycScreen from './src/screens/kyc/sandbox/AadhaarOfflineEkycScreen';
 import SPSelectServicesScreen from './src/screens/SPSelectServicesScreen';
 import SPOnboardSimpleScreen from './src/screens/SPOnboardSimpleScreen';
 import LocationSelectScreen from './src/screens/LocationSelectScreen';
@@ -40,6 +42,25 @@ import SPWorkRequestsScreen from './src/screens/SPWorkRequestsScreen';
 import { getNotificationNavigationTarget, NotificationUserRole } from './src/utils/notificationNavigation';
 import { linking, documentTitle} from './src/navigation/linking';
 import ProfileAvatar from './src/components/ProfileAvatar';
+
+const customFonts = { // @todo remove unrequired fonts to cleanup space and reduce app size
+  'Google Sans': require('./assets/fonts/Google_Sans/GoogleSans-VariableFont_GRAD,opsz,wght.ttf'),
+  'Google Sans Flex': require('./assets/fonts/Google_Sans_Flex/GoogleSansFlex-VariableFont_GRAD,ROND,opsz,slnt,wdth,wght.ttf'),
+  'Google Sans Flex-Bold': require('./assets/fonts/Google_Sans_Flex/static/GoogleSansFlex_24pt-Bold.ttf'),
+  'Google Sans Flex-SemiBold': require('./assets/fonts/Google_Sans_Flex/static/GoogleSansFlex_24pt-SemiBold.ttf'),
+  'Google Sans Flex-Regular': require('./assets/fonts/Google_Sans_Flex/static/GoogleSansFlex_24pt-Regular.ttf'),
+  'Inter': require('./assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf'),
+  'Inter-Bold': require('./assets/fonts/Inter/static/Inter_24pt-Bold.ttf'),
+  'Inter-SemiBold': require('./assets/fonts/Inter/static/Inter_24pt-SemiBold.ttf'),
+  'Noto Sans': require('./assets/fonts/Noto_Sans/NotoSans-VariableFont_wdth,wght.ttf'),
+  'Noto Sans Devanagari': require('./assets/fonts/Noto_Sans_Devanagari/NotoSansDevanagari-VariableFont_wdth,wght.ttf'),
+  'Public Sans': require('./assets/fonts/Public_Sans/PublicSans-VariableFont_wght.ttf'),
+  'Public Sans-Bold': require('./assets/fonts/Public_Sans/static/PublicSans-Bold.ttf'),
+  'Public Sans-SemiBold': require('./assets/fonts/Public_Sans/static/PublicSans-SemiBold.ttf'),
+  'Quicksand': require('./assets/fonts/Quicksand/Quicksand-VariableFont_wght.ttf'),
+  'Quicksand-Bold': require('./assets/fonts/Quicksand/static/Quicksand-Bold.ttf'),
+  'Work Sans': require('./assets/fonts/Work_Sans/WorkSans-VariableFont_wght.ttf'),
+};
 
 // Define stack navigators
 const Stack = createNativeStackNavigator();
@@ -168,6 +189,7 @@ function RootNavigator() {
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
             <Stack.Screen name="ProfileImageModeration" component={ProfileImageModerationScreen} />
+            <Stack.Screen name="AadhaarKyc" component={SandboxAadhaarOfflineEkycScreen} />
             {/* Provider tools */}
             <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
             <Stack.Screen name="SPOnboardSimple" component={SPOnboardSimpleScreen} />
@@ -236,7 +258,7 @@ function MainTabs() {
         }, 
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '700',
+          fontFamily: 'Google Sans Flex-Bold',
         },
         tabBarIcon: ({ focused, color, size }) => {
           if (route.name === 'Profile' && user?.picUrl) {
@@ -311,6 +333,7 @@ type RootStackParamList = {
   SPSelectServices: undefined;
   LocationSelect: undefined;
   LanguageSelection: undefined;
+  AadhaarKyc: undefined;
   Auth: undefined;
 };
 
@@ -319,6 +342,16 @@ export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamLi
 
 export default function App() {
   const [navigationReady, setNavigationReady] = React.useState(false);
+  const [fontsLoaded, fontError] = useFonts(customFonts);
+
+  if (fontError) throw fontError;
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <AuthProvider>

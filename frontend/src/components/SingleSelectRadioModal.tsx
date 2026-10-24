@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.dark,
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Google Sans Flex-Bold',
     marginBottom: spacing.sm,
   },
   option: {
@@ -101,6 +101,7 @@ const styles = StyleSheet.create({
   optionText: {
     color: colors.dark,
     fontSize: 16,
+    fontFamily: 'Google Sans Flex'
   },
   optionLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   radio: {

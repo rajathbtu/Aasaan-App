@@ -118,8 +118,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, selected = fa
   <TouchableOpacity
     style={[styles.serviceCard, selected && styles.serviceCardSelected]}
     onPress={onPress}
-    activeOpacity={0.7}
-  >
+    activeOpacity={0.7}>
     {selected && (
       <View style={styles.checkBadge}>
         <Ionicons name="checkmark" size={13} color={colors.white} />
@@ -149,8 +148,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   serviceCardSelected: { ...borders.selected, backgroundColor: colors.primarySoft },
-  serviceName: { fontSize: 13, lineHeight: 16, fontWeight: '600', letterSpacing: 0.1, textAlign: 'center', color: colors.dark, minHeight: 36 },
-  serviceNameSelected: { color: colors.primary, fontWeight: '700' },
+  serviceName: { fontFamily: 'Google Sans Flex-SemiBold', fontSize: 12, lineHeight: 16, letterSpacing: 0.1, textAlign: 'center', color: colors.dark, minHeight: 36 },
+  serviceNameSelected: { color: colors.primary },
   checkBadge: {
     position: 'absolute',
     top: -7,

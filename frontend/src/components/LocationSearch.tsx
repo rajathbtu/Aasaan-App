@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Modal } from 'react-native';
+import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Image, Modal, ScrollView } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, type MapViewType, type Region } from './AppMapView';
 import { Ionicons } from '@expo/vector-icons';
 import locationMarkerIcon from '../../assets/location_marker.png';
@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { placesAutocomplete, placeDetails, reverseGeocode } from '../services/googlePlacesApi';
 import { useToast } from '../contexts/ToastContext';
+import { useI18n } from '../i18n';
 
 const MAX_SAVED_LOCATIONS = 3;
 const CITY_LEVEL_DELTA = 0.4;
@@ -30,7 +31,7 @@ const getRegionFromLocation = (location?: { latitude: number; longitude: number 
   longitudeDelta: isServiceArea ? CITY_LEVEL_DELTA : 0.01,
 });
 
-type Location = {
+export type Location = {
   place_id: string;
   description: string;
   lat?: number;
@@ -41,7 +42,6 @@ type Props = {
   onSelect: (location: any | null) => void;
   onResolvingChange?: (isResolving: boolean) => void;
   initialValue?: string;
-  placeholder?: string;
   enableMap?: boolean;
   initialLocation?: { lat?: number; lng?: number; description?: string; name?: string; place_id?: string; placeId?: string };
   mapHeight?: number;
@@ -53,22 +53,31 @@ const LocationSearch: React.FC<Props> = ({
   onSelect,
   onResolvingChange,
   initialValue = '',
-  placeholder = 'Select location',
   enableMap = false,
   initialLocation,
   mapHeight,
   isServiceArea = false,
   serviceAreaRadiusKm = DEFAULT_SERVICE_AREA_RADIUS_KM,
 }) => {
+  const { t } = useI18n();
   const { user } = useAuth();
   const { showToast } = useToast();
   const savedLocationsCacheKey = user?.id ? offlineCacheKey('saved-locations', user.id) : null;
+  const [savedLocations, setSavedLocations] = useState<Location[]>([]);
+  const [savedLocationsLoaded, setSavedLocationsLoaded] = useState(false);
   const { gpsLocation, ipLocation } = useLocation();
-  const liveDefaultRegion = useMemo(() => 
-    getRegionFromLocation(gpsLocation ?? ipLocation, isServiceArea),[gpsLocation, ipLocation, isServiceArea]);
+  const lastSavedLocation = savedLocations.find((location): location is Location & { lat: number; lng: number } =>
+    typeof location.lat === 'number' && Number.isFinite(location.lat)
+    && typeof location.lng === 'number' && Number.isFinite(location.lng));
+  const liveDefaultRegion = useMemo(() =>
+    getRegionFromLocation(
+      lastSavedLocation
+        ? { latitude: lastSavedLocation.lat, longitude: lastSavedLocation.lng }
+        : gpsLocation ?? ipLocation,
+      isServiceArea,
+    ), [lastSavedLocation, gpsLocation, ipLocation, isServiceArea]);
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<Array<{ place_id: string; description: string }>>([]);
-  const [savedLocations, setSavedLocations] = useState<Array<{ place_id: string; description: string }>>([]);
   const [isLocating, setIsLocating] = useState(false);
   const [cachedLocation, setCachedLocation] = useState<any>(null); // Cache for current location
   const [currentLocationRegion, setCurrentLocationRegion] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -86,6 +95,8 @@ const LocationSearch: React.FC<Props> = ({
   const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestMapSelectionRequest = useRef(0);
   const mapRef = useRef<MapViewType | null>(null);
+  const selectedPlaceId = initialLocation?.place_id ?? initialLocation?.placeId;
+  const recentLocations = savedLocations.filter((location) => location.place_id !== selectedPlaceId);
 
   useEffect(() => {
     onResolvingChange?.(isLocationResolving);
@@ -100,11 +111,16 @@ const LocationSearch: React.FC<Props> = ({
   };
 
   useEffect(() => {
-    (async () => {
-      const locations = await getSavedLocations();
+    let isActive = true;
+    void getSavedLocations().then((locations) => {
+      if (!isActive) return;
       setSavedLocations(locations);
-    })();
-  }, [initialValue]);
+      setSavedLocationsLoaded(true);
+    });
+    return () => {
+      isActive = false;
+    };
+  }, [savedLocationsCacheKey, initialValue]);
 
   useEffect(() => {
     void locationManager.initialize();
@@ -245,8 +261,8 @@ const LocationSearch: React.FC<Props> = ({
           return;
         }
 
-        const displayName = await reverseGeocodeLocation(gpsLocation.latitude, gpsLocation.longitude);
-        detectedLocation = { lat: gpsLocation.latitude, lng: gpsLocation.longitude, description: displayName };
+        const geocodedLocation = await reverseGeocodeLocation(gpsLocation.latitude, gpsLocation.longitude);
+        detectedLocation = { lat: gpsLocation.latitude, lng: gpsLocation.longitude, ...geocodedLocation };
         setCachedLocation(detectedLocation); // Cache the detected location
       } catch (error: any) {
         const message = error?.message || String(error);
@@ -286,23 +302,30 @@ const LocationSearch: React.FC<Props> = ({
   };
 
   useEffect(() => {
-    if (!enableMap || (initialLocation?.lat != null && initialLocation?.lng != null) || autoSelectedCurrentLocation.current) 
+    if (!enableMap || !savedLocationsLoaded || (initialLocation?.lat != null && initialLocation?.lng != null) || autoSelectedCurrentLocation.current)
       return;
 
     autoSelectedCurrentLocation.current = true;
+    if (lastSavedLocation) {
+      onSelect(lastSavedLocation);
+      return;
+    }
     void detectLocation();
-  }, [enableMap, initialLocation, isServiceArea]);
+  }, [enableMap, initialLocation, isServiceArea, savedLocationsLoaded, lastSavedLocation, onSelect]);
 
   const reverseGeocodeLocation = async (latitude: number, longitude: number) => {
     setLocationError(null);
     try {
       const data = await reverseGeocode({ latlng: `${latitude},${longitude}` });
       if (data.results && data.results.length > 0)
-        return removeStateCountryAndPostalCode(data.results[0]);
+        return {
+          description: removeStateCountryAndPostalCode(data.results[0]),
+          place_id: data.results[0].place_id,
+        };
     } catch (error) {
       setLocationError(error);
     }
-    return 'Selected location';
+    return { description: 'Selected location' };
   };
 
   const regionsAreClose = (r1: Region | null, r2: Region | null, delta = 0.00005) => {
@@ -320,9 +343,9 @@ const LocationSearch: React.FC<Props> = ({
 
     const requestId = ++latestMapSelectionRequest.current;
     regionChangeTimeout.current = setTimeout(async () => {
-      const description = await reverseGeocodeLocation(region.latitude, region.longitude);
+      const geocodedLocation = await reverseGeocodeLocation(region.latitude, region.longitude);
       if (requestId !== latestMapSelectionRequest.current) return;
-      onSelect({ lat: region.latitude, lng: region.longitude, description });
+      onSelect({ lat: region.latitude, lng: region.longitude, ...geocodedLocation });
       setIsLocationResolving(false);
     }, 3000);
   };
@@ -434,10 +457,9 @@ const LocationSearch: React.FC<Props> = ({
                 activeOpacity={0.9}
                 onPress={() => setIsSearchOverlayVisible(true)}
                 style={styles.mapInputOverlay}
-                accessibilityLabel="Enter location name"
-              >
+                accessibilityLabel={t('locationSearch.placeholder')}>
                 <TextInput
-                  placeholder="Search by location name.."
+                  placeholder={t('locationSearch.mapPlaceholder')}
                   placeholderTextColor={colors.primary}
                   editable={false}
                   pointerEvents="none"
@@ -450,20 +472,44 @@ const LocationSearch: React.FC<Props> = ({
               <ActivityIndicator size="large" color={colors.primary} />
             </View>
           )}
-          <TouchableOpacity
-            style={[styles.mapButton, isCurrentLocationSelected && styles.mapButtonDisabled]}
-            onPress={() => {
-              if (isCurrentLocationSelected) {
-                showToast('Current location already selected');
-                return;
-              }
-              void detectLocation();
-            }}
-            accessibilityLabel="Center map on current location"
-          >
-            <Ionicons name="locate" size={18} color={colors.white} />
-            <Text style={styles.mapButtonText}>PICK MY CURRENT LOCATION</Text>
-          </TouchableOpacity>
+          <View style={styles.mapActions}>
+            <TouchableOpacity
+              style={[styles.mapButton, isCurrentLocationSelected && styles.mapButtonDisabled]}
+              onPress={() => {
+                if (isCurrentLocationSelected) {
+                  showToast('Current location already selected');
+                  return;
+                }
+                void detectLocation();
+              }}
+              accessibilityLabel="Center map on current location"
+            >
+              <Ionicons name="locate" size={18} color={colors.white} />
+              <Text style={styles.mapButtonText}>{t('locationSearch.pickCurrentLocation')}</Text>
+            </TouchableOpacity>
+            {recentLocations.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.recentLocationsScroll}
+                contentContainerStyle={styles.recentLocationsContent}>
+                {recentLocations.map((item) => (
+                  <TouchableOpacity
+                    key={item.place_id}
+                    style={styles.recentLocationTag}
+                    onPress={() => void handleSelect(item)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select recent location ${item.description}`}>
+                    <Ionicons name="time-outline" size={14} color={colors.primary} />
+                    <Text style={styles.recentLocationTagText} numberOfLines={1}>
+                      {item.description}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
         </View>
       )}
       <Modal
@@ -479,10 +525,12 @@ const LocationSearch: React.FC<Props> = ({
           <View id="location-search-input" style={styles.overlayContent}>
             <View style={styles.inputWrap}>
               <TextInput
-                style={[styles.input, { maxHeight: 60 }]} // Adjust maxHeight to fit 2 lines
-                placeholder={isLocating ? 'Fetching current location...' : placeholder} // Show fetching message
+                style={[styles.searchInput, { maxHeight: 60 }]} // Adjust maxHeight to fit 2 lines
+                placeholder={isLocating ? 'Fetching current location...' : t('locationSearch.placeholder')}
                 placeholderTextColor={colors.grey}
                 value={query}
+                submitBehavior="blurAndSubmit"
+                returnKeyType="done"
                 multiline={true} // Enable multiline to allow wrapping
                 numberOfLines={2} // Limit to 2 lines
                 autoFocus
@@ -548,7 +596,7 @@ const styles = StyleSheet.create({
   inputWrap: {
     position: 'relative',
   },
-  input: {
+  searchInput: {
     borderWidth: 1,
     borderColor: colors.greyLight,
     paddingVertical: spacing.sm,
@@ -557,7 +605,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     paddingRight: sizes.inputRightPadding,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Inter-SemiBold',
     height: 60, // Fixed height to accommodate 2 lines of text
   },
   rightAdornment: {
@@ -586,7 +634,7 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.dark,
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: 'Inter',
     lineHeight: 20,
   },
   suggestionRow: {
@@ -652,6 +700,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     color: colors.primary,
     fontSize: 14,
+    fontFamily: 'Inter',
     opacity: 0.95,
     shadowColor: '#000',
     shadowOpacity: 0.08,
@@ -659,10 +708,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-  mapButton: {
+  mapActions: {
     position: 'absolute',
-    bottom: spacing.md,
-    alignSelf: 'center',
+    bottom: spacing.xs,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  mapButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -670,10 +723,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 2,
     borderColor: colors.white,
-    paddingHorizontal: 50,
-    paddingVertical: spacing.md,
-    minHeight: 52,
-    elevation: 8,
+    paddingHorizontal: 24,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+    elevation: 6,
     shadowColor: '#000',
     shadowOpacity: 0.28,
     shadowRadius: 10,
@@ -683,12 +736,40 @@ const styles = StyleSheet.create({
     backgroundColor: colors.grey,
     opacity: 0.85,
   },
+  recentLocationsScroll: {
+    width: '100%',
+    maxHeight: 40,
+  },
+  recentLocationsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+  },
+  recentLocationTag: {
+    maxWidth: 220,
+    minHeight: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    elevation: 2,
+  },
+  recentLocationTagText: {
+    flexShrink: 1,
+    color: colors.grey,
+    fontSize: 13,
+    fontFamily: 'Inter-SemiBold',
+  },
   mapButtonText: {
     color: colors.white,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 14,
+    fontFamily: 'Google Sans Flex-SemiBold',
     marginLeft: spacing.xs,
-    letterSpacing: 0.3,
   },
   mapPlaceholder: {
     justifyContent: 'center',

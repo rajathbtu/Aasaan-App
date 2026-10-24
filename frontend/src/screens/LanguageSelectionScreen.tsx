@@ -17,6 +17,7 @@ import BottomCTA from '../components/BottomCTA';
 import BlockingLoader from '../components/BlockingLoader';
 import { spacing, colors, radius } from '../theme';
 import { useToast } from '../contexts/ToastContext';
+import { prepareTargetLanguage } from '../services/translation';
 
 const STICKY_HEIGHT = 72; // approx height of the bottom CTA area (padding + button)
 
@@ -57,6 +58,9 @@ const LanguageSelectionScreen: React.FC = () => {
   const handleContinue = async () => {
     if (!selectedLanguage) return;
     setSaving(true);
+    void prepareTargetLanguage(selectedLanguage).catch((error) => {
+      console.warn('Failed to prepare the selected translation language:', error);
+    });
     try {
       await setLanguage(selectedLanguage);
 

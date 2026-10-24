@@ -14,6 +14,7 @@ export const languages: LanguageOption[] = [
   { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी', color: '#FFCC80', icon: 'ह', subLabel: 'HI' },
   { code: 'gu', label: 'Gujarati', nativeLabel: 'ગુજરાતી', color: '#C8E6C9', icon: 'ગ', subLabel: 'GU' },
   { code: 'mr', label: 'Marathi', nativeLabel: 'मराठी', color: '#D1C4E9', icon: 'म', subLabel: 'MR' },
+  { code: 'bn', label: 'Bengali', nativeLabel: 'বাংলা', color: '#F8BBD0', icon: 'ব', subLabel: 'BN' },
   { code: 'ta', label: 'Tamil', nativeLabel: 'தமிழ்', color: '#FFCDD2', icon: 'த', subLabel: 'TA' },
   { code: 'te', label: 'Telugu', nativeLabel: 'తెలుగు', color: colors.primaryLight, icon: 'త', subLabel: 'TE' },
   { code: 'kn', label: 'Kannada', nativeLabel: 'ಕನ್ನಡ', color: '#FFF9C4', icon: 'ಕ', subLabel: 'KN' },

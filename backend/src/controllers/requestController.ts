@@ -68,6 +68,7 @@ async function buildFullWorkRequest(id: string, existingRequest?: any): Promise<
           picUrl: true,
           picModeration: true,
           createdAt: true,
+          aadhaarVerified: true,
           ratingsScoreSum: true,
           ratingsCount: true,
           serviceProviderInfo: {
@@ -124,10 +125,14 @@ export async function create(req: Request, res: Response): Promise<void> {
   const user = (req as any).user;
   const lang = getReqLang(req);
   if (user.role !== 'endUser') { res.status(403).json({ message: t(lang, 'request.onlyEndUsersCreate') }); return; }
-  const { service, location, tags } = req.body as any;
+  const { service, title, location, tags, phoneConsent } = req.body as any;
   if (!service || typeof service !== 'string') { res.status(400).json({ message: t(lang, 'request.serviceRequired') }); return; }
+  if (title !== undefined && title !== null && typeof title !== 'string') { res.status(400).json({ message: t(lang, 'request.invalidTitle') }); return; }
+  const normalizedTitle = typeof title === 'string' ? title.trim() : '';
+  if (Array.from(normalizedTitle).length > 80) { res.status(400).json({ message: t(lang, 'request.invalidTitle') }); return; }
   if (!location || typeof location.name !== 'string' || typeof location.lat !== 'number' || typeof location.lng !== 'number') { res.status(400).json({ message: t(lang, 'user.invalidLocation') }); return; }
   if (tags && !areValidTags(tags)) { res.status(400).json({ message: t(lang, 'request.invalidTags') }); return; }
+  if (phoneConsent !== undefined && typeof phoneConsent !== 'boolean') { res.status(400).json({ message: 'phoneConsent must be a boolean.' }); return; }
   try {
     const since = new Date(Date.now() - 24*60*60*1000);
     const recent = await prisma.workRequest.count({ where: { userId: user.id, createdAt: { gt: since } } });
@@ -136,10 +141,12 @@ export async function create(req: Request, res: Response): Promise<void> {
       data: {
         userId: user.id,
         service,
+        title: normalizedTitle || null,
         locationName: location.name,
         locationLat: location.lat,
         locationLng: location.lng,
         tags: tags || [],
+        phoneConsent: phoneConsent === true,
       },
     });
     // Notify eligible providers (service match + radius parity)
@@ -191,6 +198,7 @@ export async function list(req: Request, res: Response): Promise<void> {
         select: {
           id: true,
           service: true,
+          title: true,
           locationName: true,
           tags: true,
           createdAt: true,
@@ -288,6 +296,8 @@ export async function list(req: Request, res: Response): Promise<void> {
   }
 
   const services: string[] = providerInfo.services || [];
+  const canCallCustomers = user.aadhaarVerified === true;
+  const callDisabledReason = canCallCustomers ? null : 'aadhaar_not_verified';
 
   if (providerInfo.locationId && providerInfo.radius > 0) {
     const providerLoc = await pAny.location?.findUnique?.({ where: { id: providerInfo.locationId } });
@@ -320,7 +330,7 @@ export async function list(req: Request, res: Response): Promise<void> {
                wr."locationLat" AS location_lat,
                wr."locationLng" AS location_lng,
                usr.name AS end_user_name,
-               usr."phoneNumber" AS end_user_phone,
+               CASE WHEN wr."phoneConsent" IS TRUE AND ${canCallCustomers} THEN usr."phoneNumber" ELSE NULL END AS end_user_phone,
                CASE WHEN usr."pic_moderation" = 'approved' THEN usr."picUrl" ELSE NULL END AS end_user_pic_url,
                CASE WHEN ap.id IS NULL THEN false ELSE true END AS accepted_by_provider
         FROM "WorkRequest" wr
@@ -368,6 +378,7 @@ export async function list(req: Request, res: Response): Promise<void> {
           endUserName: end_user_name || null,
           endUserPhone: end_user_phone || null,
           endUserPicUrl: end_user_pic_url || null,
+          callDisabledReason,
         };
       });
 
