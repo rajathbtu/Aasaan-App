@@ -130,7 +130,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
         {((loadingStage === 'details' && hasListResponses) || acceptedCount > 0) && (
           <View style={styles.acceptedSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.acceptedTitle}>{t('requestDetails.providers')}</Text>
+              <Text style={styles.acceptedTitle}>{t('requestDetails.experts')}</Text>
               <View style={styles.acceptedCountBadge}>
                 <Ionicons name="people-outline" size={16} color={colors.primary} />
                 <Text style={styles.acceptedCount}>{acceptedCount}</Text>
