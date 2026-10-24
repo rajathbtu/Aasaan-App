@@ -109,6 +109,20 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       {/* Top bar */}
       <Header title="aasaanly" showNotification={true} showBackButton={false}
+        belowHeaderContent={savedLocationLoaded ? (
+          <TouchableOpacity
+            style={styles.locationHeaderButton}
+            onPress={openLocationSelection}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={savedLocationName ? `${savedLocationName}, ${t('common.change')}` : t('sp.selectLocation.selectLocation')}>
+            <Ionicons name="location-outline" size={13} color={colors.grey} />
+            <Text style={styles.locationHeaderText} numberOfLines={1}>
+              {savedLocationName || t('sp.selectLocation.selectLocation')}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={colors.primary} />
+          </TouchableOpacity>
+        ) : null}
         customLeftComponent={showHeaderSearch ? (
           <TouchableOpacity
             style={styles.headerSearchButton}
@@ -126,32 +140,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           ref={serviceSelectionScrollViewRef }
           onScroll={onScroll}
           scrollEventThrottle={16}>
-
-          {savedLocationLoaded && (
-            <View>
-              {savedLocationName ? (
-                <View style={styles.locationCard}>
-                  <View style={styles.locationIcon}>
-                    <Ionicons name="location" size={18} color={colors.primary} />
-                  </View>
-                  <View style={styles.locationText}>
-                    <Text style={styles.locationName} numberOfLines={2}>{savedLocationName}</Text>
-                  </View>
-                  <TouchableOpacity onPress={openLocationSelection} accessibilityRole="button">
-                    <Text style={styles.locationAction}>{t('common.change')}</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                  <TouchableOpacity
-                    style={styles.locationPromptButton}
-                    onPress={openLocationSelection}
-                    accessibilityRole="button">
-                    <Ionicons name="add-circle-outline" size={18} color={colors.dark} />
-                    <Text style={styles.locationPromptButtonText}>{t('sp.selectLocation.selectLocation')}</Text>
-                  </TouchableOpacity>
-              )}
-            </View>
-          )}
 
           {/* Hero: title + illustration */}
           <View style={styles.heroSection}>
@@ -291,44 +279,20 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: spacing.xl,
   },
-  locationCard: {
+  locationHeaderButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.md,
-  },
-  locationIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.primaryLight,
-    alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.sm,
+    gap: spacing.xs,
+    width: 260,
   },
-  locationText: {
-    flex: 1,
-  },
-  locationName: {
+  locationHeaderText: {
     color: colors.dark,
     fontSize: 13,
     fontFamily: 'Google Sans Flex',
-  },
-  locationAction: {
-    color: colors.primary,
-    fontWeight: '700',
-    fontSize: 12,
-    padding: spacing.sm,
-  },
-  locationPromptButton: {
-    alignSelf: 'center',
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  locationPromptButtonText: {
-    color: colors.dark,
-    textDecorationLine: 'underline',
-    fontSize: 12,
-    fontWeight: '700',
+    flexShrink: 1,
   },
   section: {
     marginBottom: spacing.xl,

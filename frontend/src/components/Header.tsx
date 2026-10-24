@@ -16,6 +16,7 @@ type HeaderProps = {
   showProfileButton?: boolean;
   customLeftComponent?: React.ReactNode;
   customRightComponent?: React.ReactNode;
+  belowHeaderContent?: React.ReactNode;
   keepTitleCenterAligned?: boolean;
   extraLargeTitle?: boolean;
   subheader?: string;
@@ -36,6 +37,7 @@ const Header: React.FC<HeaderProps> = ({
   showProfileButton = false,
   customLeftComponent,
   customRightComponent,
+  belowHeaderContent,
   keepTitleCenterAligned = false,
   extraLargeTitle = false,
   subheader,
@@ -77,6 +79,7 @@ const Header: React.FC<HeaderProps> = ({
             ]}>
             {title}
           </Text>
+          {belowHeaderContent}
         </View>
         {keepTitleCenterAligned && <View style={styles.titleContainer} />}
 
