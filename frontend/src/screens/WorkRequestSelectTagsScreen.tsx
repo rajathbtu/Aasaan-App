@@ -119,10 +119,10 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                 <Ionicons name="document-text-outline" size={15} color={colors.primary} />
               </View>
               <Text style={styles.label}>{t('createRequest.selectTags.requestTitleLabel')}</Text>
+              <Text style={styles.titleHint}>
+                {t('createRequest.selectTags.requestTitleHint', { max: REQUEST_TITLE_MAX_LENGTH })}
+              </Text>
             </View>
-            <Text style={styles.titleHint}>
-              {t('createRequest.selectTags.requestTitleHint', { max: REQUEST_TITLE_MAX_LENGTH })}
-            </Text>
             <View style={styles.titleInputContainer}>
               <TextInput
                 style={[styles.titleInput, showTitleCount && styles.titleInputWithCount]}
@@ -310,10 +310,9 @@ const styles = StyleSheet.create({
     color: colors.dark,
   },
   titleHint: {
-    marginTop: spacing.xs,
-    marginBottom: spacing.sm,
+    marginLeft: spacing.sm,
     fontSize: 12,
-    lineHeight: 17,
+    fontFamily: 'Google Sans Flex',
     color: colors.grey,
   },
   titleInputContainer: {
@@ -330,7 +329,8 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     backgroundColor: 'transparent',
     color: colors.dark,
-    fontSize: 15,
+    fontSize: 16,
+    fontFamily: 'Inter',
     lineHeight: 21,
   },
   titleInputWithCount: {
@@ -373,10 +373,10 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   tagText: {
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 18,
     color: colors.dark,
-    fontFamily: 'Google Sans Flex-SemiBold',
+    fontFamily: 'Inter',
   },
   tagTextSelected: {
     color: colors.primary,
@@ -420,22 +420,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   locationLabel: {
-    fontSize: 12,
-    color: colors.grey,
+    fontSize: 13,
+    fontFamily: 'Google Sans Flex-Bold',
+    color: colors.dark,
     marginBottom: 2,
   },
   locationName: {
-    fontSize: 13,
+    fontSize: 14,
+    fontFamily: 'Inter',
     lineHeight: 18,
-    fontWeight: '600',
     color: colors.dark,
   },
   consentText: {
     flex: 1,
     // marginLeft: spacing.sm,
     // marginRight: spacing.sm,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontFamily: 'Inter',
     lineHeight: 18,
     color: colors.dark,
   },

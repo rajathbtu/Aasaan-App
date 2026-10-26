@@ -33,6 +33,10 @@ const WorkRequestCreatedScreen: React.FC = () => {
     navigation.navigate('Main', { screen: 'MyRequests' });
   };
 
+  const closeScreen = () => {
+    navigation.navigate('Main', { screen: 'Create' });
+  };
+
   const handleBoost = () => {
     navigation.navigate('BoostRequest', { request });
   };
@@ -43,7 +47,8 @@ const WorkRequestCreatedScreen: React.FC = () => {
         <Ionicons name="checkmark-circle" size={64} color={colors.success} style={{ marginBottom: spacing.lg }} />
         <Text style={styles.emptyTitle}>{t('createRequest.created.title')}</Text>
         <ActionButton
-          buttonTitle={t('createRequest.created.goToMyRequests')}
+          fullWidth
+          buttonTitle={t('createRequest.created.viewMyRequests')}
           buttonTitleColor={colors.white}
           backgroundColor={colors.primary}
           onPress={goToMyRequests}
@@ -55,9 +60,15 @@ const WorkRequestCreatedScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-      
+      <ActionButton
+        buttonTitle="Close"
+        buttonIcon="close-circle-outline"
+        backgroundColor={colors.white}
+        onPress={closeScreen}
+        style={styles.closeButton} />
+
       <View style={styles.successIconContainer}>
-        <Ionicons name="checkmark-circle" size={64} color={colors.success} />
+        <Ionicons name="checkmark-circle-sharp" size={64} color={colors.success} />
       </View>
 
       <Text style={styles.title}>{t('createRequest.created.title')}</Text>
@@ -67,6 +78,16 @@ const WorkRequestCreatedScreen: React.FC = () => {
         request={displayRequest}
         showExpanded
       />
+
+      <View style={styles.primaryButtonContainer}>
+        <ActionButton
+          fullWidth
+          buttonTitle={t('createRequest.created.viewMyRequests')}
+          buttonTitleColor={colors.white}
+          backgroundColor={colors.primary}
+          onPress={goToMyRequests}
+          style={styles.primaryButton}/>
+      </View>
 
       <Text style={styles.nextTitle}>{t('createRequest.created.nextTitle')}</Text>
       <View style={styles.stepsList}>
@@ -105,10 +126,6 @@ const WorkRequestCreatedScreen: React.FC = () => {
           style={styles.boostButton}
         />
       </View>
-      
-      <TouchableOpacity onPress={goToMyRequests} style={{ alignSelf: 'center', marginTop: spacing.lg, marginBottom: spacing.xl }}>
-        <Text style={styles.viewRequestsText}>{t('createRequest.created.viewMyRequests')}</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 };
@@ -131,15 +148,21 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: 'Google Sans Flex-Bold',
     color: colors.dark,
     marginBottom: spacing.lg,
   },
   primaryButton: {
-    // ActionButton hugs its content by default; this empty state centres it.
-    alignSelf: 'center',
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
+  },
+  primaryButtonContainer: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
+  },
+  closeButton: {
+    alignSelf: 'flex-end',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xl,
   },
   successIconContainer: {
     width: 88,
@@ -154,13 +177,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: 'Google Sans Flex-Bold',
     color: colors.dark,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: 14,
+    fontFamily: 'Google Sans Flex',
     color: colors.grey,
     textAlign: 'center',
     marginHorizontal: spacing.lg,
@@ -168,10 +192,10 @@ const styles = StyleSheet.create({
   },
   nextTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: 'Google Sans Flex-Bold',
     color: colors.dark,
     marginHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
+    marginTop: spacing.sm,
   },
   stepsList: {
     marginHorizontal: 32,
@@ -186,27 +210,30 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+    borderWidth: 0.5,
+    borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
   },
   stepBadgeText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: '600',
+    color: colors.primary,
+    fontSize: 13,
+    fontFamily: 'Google Sans Flex-SemiBold',
   },
   stepPrimary: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontFamily: 'Google Sans Flex-Bold',
     color: colors.grey,
   },
   stepSecondary: {
     fontSize: 12,
+    fontFamily: 'Google Sans Flex',
     color: colors.grey,
   },
   boostCard: {
-    backgroundColor: colors.infoLight,
+    backgroundColor: colors.primaryLight,
     padding: spacing.lg,
     borderRadius: radius.lg,
     marginHorizontal: spacing.lg,
@@ -216,12 +243,13 @@ const styles = StyleSheet.create({
   },
   boostTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Google Sans Flex-Bold',
     color: colors.primary,
     marginBottom: 2,
   },
   boostSubtitle: {
     fontSize: 12,
+    fontFamily: 'Google Sans Flex',
     color: colors.grey,
     marginBottom: spacing.sm,
   },
@@ -231,7 +259,7 @@ const styles = StyleSheet.create({
   viewRequestsText: {
     fontSize: 14,
     color: colors.primary,
-    fontWeight: '600',
+    fontFamily: 'Google Sans Flex-Bold',
   },
 });
 
