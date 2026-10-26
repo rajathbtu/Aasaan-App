@@ -16,7 +16,7 @@ import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/nativ
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { acceptWorkRequest, listWorkRequests, undoAccept } from '../api';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, spacing, radius, surfaces } from '../theme';
+import { colors, spacing, radius, surfaces, textStyles } from '../theme';
 import { useI18n } from '../i18n';
 import { useToast } from '../contexts/ToastContext';
 import Header from '../components/Header';
@@ -669,7 +669,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           showBackButton={false}
           showNotification={true}
           showProfileButton={true}
-          titleStyle={styles.logo} />
+          titleStyle={textStyles.brandLogo} />
         <View style={styles.container}>
           <SkeletonLoader count={4} />
         </View>
@@ -752,7 +752,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         showNotification={true}
         showProfileButton={true}
         keepTitleCenterAligned={true}
-        titleStyle={styles.logo}/>
+        titleStyle={textStyles.brandLogo}/>
       <View style={{ height: spacing.sm }} />
       <View style={styles.container}>
         <FlatList
@@ -826,12 +826,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  logo: {
-    fontSize: 22,
-    fontFamily: 'Quicksand-Bold',
-    color: colors.primary,
-    textTransform: 'lowercase',
   },
   pageTitle: {
     margin: spacing.md,

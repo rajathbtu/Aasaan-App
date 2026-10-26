@@ -1,4 +1,4 @@
-import type { ViewStyle } from 'react-native';
+import type { TextStyle, ViewStyle } from 'react-native';
 
 // Centralised theme definitions for colours, spacing and other constants.
 // This file centralises colour palette and common spacing values used
@@ -69,6 +69,15 @@ export const spacing = {
   lg: 16,
   xl: 24,
   xxl: 32,
+};
+
+export const textStyles = {
+  brandLogo: {
+    fontSize: 22,
+    fontFamily: 'Quicksand-Bold',
+    color: colors.primary,
+    textTransform: 'lowercase',
+  } satisfies TextStyle,
 };
 
 export const radius = {

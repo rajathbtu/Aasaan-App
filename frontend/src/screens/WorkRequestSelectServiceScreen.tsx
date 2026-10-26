@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { colors, spacing, radius, shadows } from '../theme';
+import { colors, spacing, radius, shadows, textStyles } from '../theme';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import type { Location } from '../components/LocationSearch';
@@ -131,7 +131,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
           </TouchableOpacity>
         ) : null}
         keepTitleCenterAligned={true}
-        titleStyle={[styles.logo]}/>
+        titleStyle={textStyles.brandLogo}/>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
           ref={serviceSelectionScrollViewRef }
@@ -143,7 +143,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
             <View style={styles.heroTextWrap}>
               <Text style={[styles.heroTitle]}>
                 Get work done
-                <Text style={styles.heroTitleAccent}> aasaanly</Text>
+                <Text style={[textStyles.brandLogo]}> aasaanly</Text>
               </Text>
               <Text style={styles.heroSubtitle}>Trusted professionals, at your service</Text>
             </View>
@@ -220,12 +220,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  logo: {
-    fontSize: 22,
-    fontFamily: 'Quicksand-Bold',
-    color: colors.primary,
-    textTransform: 'lowercase',
-  },
   // -- Hero --
   heroSection: {
     flexDirection: 'row',
@@ -243,9 +237,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Google Sans Flex-Bold',
     color: colors.dark,
   },
-  heroTitleAccent: {
-    color: colors.primary,
-  },
+  
   heroSubtitle: {
     fontSize: 14,
     fontFamily: 'Google Sans Flex',
