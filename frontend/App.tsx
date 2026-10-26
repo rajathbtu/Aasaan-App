@@ -8,7 +8,7 @@ import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { View, ActivityIndicator, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { initialWindowMetrics, SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { locationManager } from './src/services/LocationManager';
 import { NotificationCountProvider, useNotificationCount } from './src/contexts/NotificationCountContext';
@@ -43,7 +43,9 @@ import { getNotificationNavigationTarget, NotificationUserRole } from './src/uti
 import { linking, documentTitle} from './src/navigation/linking';
 import ProfileAvatar from './src/components/ProfileAvatar';
 
-const customFonts = { // @todo remove unrequired fonts to cleanup space and reduce app size
+const customFonts = { 
+  ...Ionicons.font, // this is required for Ionicons to work properly
+  // @todo remove unrequired fonts from below to cleanup space and reduce app size
   'Google Sans': require('./assets/fonts/Google_Sans/GoogleSans-VariableFont_GRAD,opsz,wght.ttf'),
   'Google Sans Flex': require('./assets/fonts/Google_Sans_Flex/GoogleSansFlex-VariableFont_GRAD,ROND,opsz,slnt,wdth,wght.ttf'),
   'Google Sans Flex-Bold': require('./assets/fonts/Google_Sans_Flex/static/GoogleSansFlex_24pt-Bold.ttf'),
@@ -357,7 +359,7 @@ export default function App() {
     <AuthProvider>
       <NotificationCountProvider>
         <NotificationHandler navigationReady={navigationReady} />
-        <SafeAreaProvider>
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <ToastProvider>
             <NavigationContainer
               ref={navigationRef}

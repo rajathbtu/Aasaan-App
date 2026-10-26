@@ -1,8 +1,8 @@
 import React, { useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, shadows, spacing } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotificationCount } from '../contexts/NotificationCountContext';
@@ -44,8 +44,12 @@ const Header: React.FC<HeaderProps> = ({
   titleStyle,
 }) => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { unreadCount } = useNotificationCount();
+  const topInset = Platform.OS === 'android'
+    ? Math.max(insets.top, StatusBar.currentHeight ?? 0)
+    : insets.top;
 
   const handleBackPress = useCallback(
     () => (onBackPress ? onBackPress() : navigation.goBack()),
@@ -55,7 +59,7 @@ const Header: React.FC<HeaderProps> = ({
   const handleNotificationPress = useCallback(() => navigation.navigate('Notifications'), [navigation]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <View style={[styles.safeArea, { paddingTop: topInset }]}>
       <View style={styles.headerRow}>
         {customLeftComponent ?? (showBackButton && (
           <TouchableOpacity
@@ -129,7 +133,7 @@ const Header: React.FC<HeaderProps> = ({
           </View>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 

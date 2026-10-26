@@ -30,18 +30,15 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   } = useScrolledPastBoundary();
   const [recentServices, setRecentServices] = useState<Service[]>([]);
   const [savedLocation, setSavedLocation] = useState<Location | null>(null);
-  const [savedLocationLoaded, setSavedLocationLoaded] = useState(false);
 
   useFocusEffect(useCallback(() => {
     let isActive = true;
-    setSavedLocationLoaded(false);
     void (async () => {
       const locations = userId
         ? await readOfflineCache<Location[]>(offlineCacheKey('saved-locations', userId))
         : null;
       if (isActive) {
         setSavedLocation(locations?.[0] ?? null);
-        setSavedLocationLoaded(true);
       }
     })();
     return () => {
@@ -109,7 +106,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     <View style={{ flex: 1, backgroundColor: colors.light }}>
       {/* Top bar */}
       <Header title="aasaanly" showNotification={true} showBackButton={false}
-        belowHeaderContent={savedLocationLoaded ? (
+        belowHeaderContent={
           <TouchableOpacity
             style={styles.locationHeaderButton}
             onPress={openLocationSelection}
@@ -122,7 +119,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
             </Text>
             <Ionicons name="chevron-down" size={16} color={colors.primary} />
           </TouchableOpacity>
-        ) : null}
+        }
         customLeftComponent={showHeaderSearch ? (
           <TouchableOpacity
             style={styles.headerSearchButton}
