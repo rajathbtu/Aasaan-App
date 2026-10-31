@@ -128,14 +128,14 @@ const OtpInput: React.FC<OtpInputProps> = ({
   return (
     <View style={styles.otpField}>
       {/* One field, one TextInput — the slots below draw what it contains. */}
-      <View style={styles.otpBox}>
-        {/*
-          The input is a keystroke catcher only, so this layer is fully
-          transparent. Hiding it with the layer's opacity (rather than a
-          transparent text colour) is what actually works reliably on Android,
-          where the native EditText keeps drawing its own glyphs.
-        */}
-        <View style={styles.otpInputLayer} pointerEvents="box-none">
+
+      <TouchableOpacity
+        style={styles.otpBox}
+        onPress={() => inputRef.current?.focus()}
+        activeOpacity={1}
+      >
+        {/* Transparent input layer — touches pass through to the TouchableOpacity */}
+        <View style={styles.otpInputLayer} pointerEvents="none">
           <TextInput
             ref={inputRef}
             style={styles.otpInput}
@@ -149,7 +149,6 @@ const OtpInput: React.FC<OtpInputProps> = ({
             textContentType="oneTimeCode"
             autoComplete="sms-otp"
             selectionColor="transparent"
-            caretHidden
             accessibilityLabel={t('otp.title')}
           />
         </View>
@@ -171,7 +170,7 @@ const OtpInput: React.FC<OtpInputProps> = ({
             );
           })}
         </View>
-      </View>
+      </TouchableOpacity>
 
       {/* Auto-read indicator */}
       {showAutoRead && (
