@@ -7,7 +7,7 @@ import { getReqLang, t } from '../utils/i18n';
 import { getVisibleProfilePhotoUrl } from '../utils/profilePhoto';
 import { isModerator } from '../utils/moderator';
 
-const providerGenders = new Set(['male', 'female']);
+const providerGenders = new Set(['male', 'female', 'transgender']);
 const minimumProfileYear = 1940;
 
 function getRatingSummary(user: { ratingsScoreSum: number; ratingsCount: number }) {

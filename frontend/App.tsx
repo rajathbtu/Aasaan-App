@@ -7,7 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { View, ActivityIndicator, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
+import { initialWindowMetrics, SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { locationManager } from './src/services/LocationManager';
 import { NotificationCountProvider, useNotificationCount } from './src/contexts/NotificationCountContext';
@@ -15,6 +16,14 @@ import { ToastProvider } from './src/contexts/ToastContext';
 import { markNotificationRead } from './src/api';
 import { colors, radius, spacing } from './src/theme';
 import * as Notifications from 'expo-notifications';
+
+// Google Fonts via @expo-google-fonts
+import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { NotoSans_400Regular, NotoSans_700Bold } from '@expo-google-fonts/noto-sans';
+import { NotoSansDevanagari_400Regular } from '@expo-google-fonts/noto-sans-devanagari';
+import { PublicSans_400Regular, PublicSans_600SemiBold, PublicSans_700Bold } from '@expo-google-fonts/public-sans';
+import { Quicksand_400Regular, Quicksand_700Bold } from '@expo-google-fonts/quicksand';
+import { WorkSans_400Regular } from '@expo-google-fonts/work-sans';
 
 // Import screens
 import LaunchScreen from './src/screens/LaunchScreen';
@@ -33,6 +42,7 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import SubscriptionScreen from './src/screens/SubscriptionScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ProfileImageModerationScreen from './src/screens/ProfileImageModerationScreen';
+import SandboxAadhaarOfflineEkycScreen from './src/screens/kyc/sandbox/AadhaarOfflineEkycScreen';
 import SPSelectServicesScreen from './src/screens/SPSelectServicesScreen';
 import SPOnboardSimpleScreen from './src/screens/SPOnboardSimpleScreen';
 import LocationSelectScreen from './src/screens/LocationSelectScreen';
@@ -40,6 +50,29 @@ import SPWorkRequestsScreen from './src/screens/SPWorkRequestsScreen';
 import { getNotificationNavigationTarget, NotificationUserRole } from './src/utils/notificationNavigation';
 import { linking, documentTitle} from './src/navigation/linking';
 import ProfileAvatar from './src/components/ProfileAvatar';
+
+const customFonts = {
+  ...Ionicons.font,
+  // Google Fonts (via @expo-google-fonts) — mapped to exact font family names
+  // referenced in app styles.
+  Inter: Inter_400Regular,
+  'Inter-SemiBold': Inter_600SemiBold,
+  'Inter-Bold': Inter_700Bold,
+  'Noto Sans': NotoSans_400Regular,
+  'Noto Sans Bold': NotoSans_700Bold,
+  'Noto Sans Devanagari': NotoSansDevanagari_400Regular,
+  'Public Sans': PublicSans_400Regular,
+  'Public Sans SemiBold': PublicSans_600SemiBold,
+  'Public Sans Bold': PublicSans_700Bold,
+  Quicksand: Quicksand_400Regular,
+  'Quicksand-Bold': Quicksand_700Bold,
+  'Work Sans': WorkSans_400Regular,
+  // Google Sans Flex — proprietary fonts, NOT on Google Fonts.
+  // Add the .ttf files to frontend/assets/fonts/Google_Sans_Flex/ and uncomment:
+  // 'Google Sans Flex': require('./assets/fonts/Google_Sans_Flex/GoogleSansFlex-VariableFont_wght.ttf'),
+  // 'Google Sans Flex-Bold': require('./assets/fonts/Google_Sans_Flex/static/GoogleSansFlex_24pt-Bold.ttf'),
+  // 'Google Sans Flex-SemiBold': require('./assets/fonts/Google_Sans_Flex/static/GoogleSansFlex_24pt-SemiBold.ttf'),
+};
 
 // Define stack navigators
 const Stack = createNativeStackNavigator();
@@ -168,6 +201,7 @@ function RootNavigator() {
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
             <Stack.Screen name="ProfileImageModeration" component={ProfileImageModerationScreen} />
+            <Stack.Screen name="AadhaarKyc" component={SandboxAadhaarOfflineEkycScreen} />
             {/* Provider tools */}
             <Stack.Screen name="SPSelectServices" component={SPSelectServicesScreen} />
             <Stack.Screen name="SPOnboardSimple" component={SPOnboardSimpleScreen} />
@@ -236,7 +270,7 @@ function MainTabs() {
         }, 
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '700',
+          fontFamily: 'Google Sans Flex-Bold',
         },
         tabBarIcon: ({ focused, color, size }) => {
           if (route.name === 'Profile' && user?.picUrl) {
@@ -311,6 +345,7 @@ type RootStackParamList = {
   SPSelectServices: undefined;
   LocationSelect: undefined;
   LanguageSelection: undefined;
+  AadhaarKyc: undefined;
   Auth: undefined;
 };
 
@@ -319,12 +354,22 @@ export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamLi
 
 export default function App() {
   const [navigationReady, setNavigationReady] = React.useState(false);
+  const [fontsLoaded, fontError] = useFonts(customFonts);
+
+  if (fontError) throw fontError;
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <AuthProvider>
       <NotificationCountProvider>
         <NotificationHandler navigationReady={navigationReady} />
-        <SafeAreaProvider>
+        <SafeAreaProvider initialMetrics={initialWindowMetrics}>
           <ToastProvider>
             <NavigationContainer
               ref={navigationRef}

@@ -19,7 +19,7 @@ interface User {
     radius?: number;
     workSinceYear?: number | null;
     birthYear?: number | null;
-    gender?: 'male' | 'female' | null;
+    gender?: 'male' | 'female' | 'transgender' | null;
     bio?: string | null;
   } | null;
   userRating?: { average: number | null; count: number } | null;
@@ -29,6 +29,7 @@ interface User {
   picAssetId?: string | null;
   picModeration?: 'under_review' | 'approved' | 'blocked';
   isModerator?: boolean;
+  aadhaarVerified?: boolean;
 }
 
 type UpdatePayload = Omit<Partial<User>, 'picUrl' | 'picAssetId' | 'picModeration' | 'isModerator'> & {
@@ -37,7 +38,7 @@ type UpdatePayload = Omit<Partial<User>, 'picUrl' | 'picAssetId' | 'picModeratio
   radius?: number;
   workSinceYear?: number | null;
   birthYear?: number | null;
-  gender?: 'male' | 'female' | null;
+  gender?: 'male' | 'female' | 'transgender' | null;
   bio?: string | null;
   plan?: 'free' | 'basic' | 'pro';
   role?: 'endUser' | 'serviceProvider';

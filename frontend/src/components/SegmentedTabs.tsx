@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     color: colors.dark,
-    fontWeight: '600',
+    fontFamily: 'Google Sans Flex-SemiBold',
   },
   labelActive: {
     color: colors.white,
@@ -75,10 +75,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countBadge: {
-    minWidth: 26,
     alignItems: 'center',
     paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
+    paddingVertical: 2,
     marginLeft: spacing.sm,
     borderRadius: radius.xl,
     backgroundColor: colors.white,

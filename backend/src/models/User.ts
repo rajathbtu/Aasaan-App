@@ -22,7 +22,7 @@ export interface ServiceProviderInfo {
   radius: number;
   workSinceYear?: number | null;
   birthYear?: number | null;
-  gender?: 'male' | 'female' | null;
+  gender?: 'male' | 'female' | 'transgender' | null;
   bio?: string | null;
 }
 
@@ -44,4 +44,6 @@ export interface User {
   createdAt: Date;
   ratingsScoreSum?: number;
   ratingsCount?: number;
+  aadhaarVerified?: boolean;
+  aadhaarLast4?: string | null;
 }
