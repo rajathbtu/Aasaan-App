@@ -1,10 +1,11 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { Platform } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { BASE_URL } from '../config';
 
 // Create an Axios instance with a base URL.  The instance will be used
 // throughout the app to make HTTP requests.  Authorization headers are
-// injected by each method as appropriate.
+// injected automatically via the request interceptor below.
 export const api = axios.create({
   baseURL: BASE_URL,
 });
@@ -17,6 +18,40 @@ export const api = axios.create({
 if (Platform.OS === 'web') {
   api.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
 }
+
+/** Request interceptor: attach the stored JWT to every outgoing request. */
+api.interceptors.request.use(async (config) => {
+  try {
+    const token = await SecureStore.getItemAsync('aasaan_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch {
+    // SecureStore may not be ready yet; proceed without token.
+  }
+  return config;
+});
+
+/** Response interceptor: on 401, clear the stored token so the app can
+ *  redirect to the login screen on the next render. */
+api.interceptors.response.use(
+  (res) => res,
+  async (error: AxiosError) => {
+    if (error.response?.status === 401) {
+      try {
+        await SecureStore.deleteItemAsync('aasaan_token');
+      } catch {
+        // Ignore cleanup errors.
+      }
+      // Dispatch a custom event so React components can react (e.g. navigate
+      // to the login screen) without importing axios internals.
+      if (typeof window !== 'undefined' && window.dispatchEvent) {
+        window.dispatchEvent(new Event('auth-expired'));
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 /**
  * Sends an OTP to the specified phone number.
