@@ -17,6 +17,14 @@ import { markNotificationRead } from './src/api';
 import { colors, radius, spacing } from './src/theme';
 import * as Notifications from 'expo-notifications';
 
+// Google Fonts via @expo-google-fonts
+import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { NotoSans_400Regular, NotoSans_700Bold } from '@expo-google-fonts/noto-sans';
+import { NotoSansDevanagari_400Regular } from '@expo-google-fonts/noto-sans-devanagari';
+import { PublicSans_400Regular, PublicSans_600SemiBold, PublicSans_700Bold } from '@expo-google-fonts/public-sans';
+import { Quicksand_400Regular, Quicksand_700Bold } from '@expo-google-fonts/quicksand';
+import { WorkSans_400Regular } from '@expo-google-fonts/work-sans';
+
 // Import screens
 import LaunchScreen from './src/screens/LaunchScreen';
 import LanguageSelectionScreen from './src/screens/LanguageSelectionScreen';
@@ -43,25 +51,27 @@ import { getNotificationNavigationTarget, NotificationUserRole } from './src/uti
 import { linking, documentTitle} from './src/navigation/linking';
 import ProfileAvatar from './src/components/ProfileAvatar';
 
-const customFonts = { 
-  ...Ionicons.font, // this is required for Ionicons to work properly
-  // @todo remove unrequired fonts from below to cleanup space and reduce app size
-  'Google Sans': require('./assets/fonts/Google_Sans/GoogleSans-VariableFont_GRAD,opsz,wght.ttf'),
-  'Google Sans Flex': require('./assets/fonts/Google_Sans_Flex/GoogleSansFlex-VariableFont_GRAD,ROND,opsz,slnt,wdth,wght.ttf'),
-  'Google Sans Flex-Bold': require('./assets/fonts/Google_Sans_Flex/static/GoogleSansFlex_24pt-Bold.ttf'),
-  'Google Sans Flex-SemiBold': require('./assets/fonts/Google_Sans_Flex/static/GoogleSansFlex_24pt-SemiBold.ttf'),
-  'Google Sans Flex-Regular': require('./assets/fonts/Google_Sans_Flex/static/GoogleSansFlex_24pt-Regular.ttf'),
-  'Inter': require('./assets/fonts/Inter/Inter-VariableFont_opsz,wght.ttf'),
-  'Inter-Bold': require('./assets/fonts/Inter/static/Inter_24pt-Bold.ttf'),
-  'Inter-SemiBold': require('./assets/fonts/Inter/static/Inter_24pt-SemiBold.ttf'),
-  'Noto Sans': require('./assets/fonts/Noto_Sans/NotoSans-VariableFont_wdth,wght.ttf'),
-  'Noto Sans Devanagari': require('./assets/fonts/Noto_Sans_Devanagari/NotoSansDevanagari-VariableFont_wdth,wght.ttf'),
-  'Public Sans': require('./assets/fonts/Public_Sans/PublicSans-VariableFont_wght.ttf'),
-  'Public Sans-Bold': require('./assets/fonts/Public_Sans/static/PublicSans-Bold.ttf'),
-  'Public Sans-SemiBold': require('./assets/fonts/Public_Sans/static/PublicSans-SemiBold.ttf'),
-  'Quicksand': require('./assets/fonts/Quicksand/Quicksand-VariableFont_wght.ttf'),
-  'Quicksand-Bold': require('./assets/fonts/Quicksand/static/Quicksand-Bold.ttf'),
-  'Work Sans': require('./assets/fonts/Work_Sans/WorkSans-VariableFont_wght.ttf'),
+const customFonts = {
+  ...Ionicons.font,
+  // Google Fonts (via @expo-google-fonts) — mapped to exact font family names
+  // referenced in app styles.
+  Inter: Inter_400Regular,
+  'Inter-SemiBold': Inter_600SemiBold,
+  'Inter-Bold': Inter_700Bold,
+  'Noto Sans': NotoSans_400Regular,
+  'Noto Sans Bold': NotoSans_700Bold,
+  'Noto Sans Devanagari': NotoSansDevanagari_400Regular,
+  'Public Sans': PublicSans_400Regular,
+  'Public Sans SemiBold': PublicSans_600SemiBold,
+  'Public Sans Bold': PublicSans_700Bold,
+  Quicksand: Quicksand_400Regular,
+  'Quicksand-Bold': Quicksand_700Bold,
+  'Work Sans': WorkSans_400Regular,
+  // Google Sans Flex — proprietary fonts, NOT on Google Fonts.
+  // Add the .ttf files to frontend/assets/fonts/Google_Sans_Flex/ and uncomment:
+  // 'Google Sans Flex': require('./assets/fonts/Google_Sans_Flex/GoogleSansFlex-VariableFont_wght.ttf'),
+  // 'Google Sans Flex-Bold': require('./assets/fonts/Google_Sans_Flex/static/GoogleSansFlex_24pt-Bold.ttf'),
+  // 'Google Sans Flex-SemiBold': require('./assets/fonts/Google_Sans_Flex/static/GoogleSansFlex_24pt-SemiBold.ttf'),
 };
 
 // Define stack navigators
