@@ -134,8 +134,8 @@ const OtpInput: React.FC<OtpInputProps> = ({
         onPress={() => inputRef.current?.focus()}
         activeOpacity={1}
       >
-        {/* Transparent input layer — touches pass through to the TouchableOpacity */}
-        <View style={styles.otpInputLayer} pointerEvents="none">
+        {/* Transparent input layer — let TextInput receive touches directly */}
+        <View style={styles.otpInputLayer} pointerEvents="auto">
           <TextInput
             ref={inputRef}
             style={styles.otpInput}
@@ -148,6 +148,7 @@ const OtpInput: React.FC<OtpInputProps> = ({
             returnKeyType="done"
             textContentType="oneTimeCode"
             autoComplete="sms-otp"
+            autoFocus
             selectionColor="transparent"
             accessibilityLabel={t('otp.title')}
           />
