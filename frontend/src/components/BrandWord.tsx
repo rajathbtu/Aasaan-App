@@ -2,8 +2,7 @@ import React from 'react';
 import { Text, type TextProps } from 'react-native';
 
 /**
- * Brand word tokens — sampled from the approved splash artwork
- * (Splash_Screen_Handoff/assets/splash-approved-reference.png):
+ * Brand word tokens — sampled from the approved splash artwork:
  * the wordmark's fill green and the closest bundled typeface
  * (Quicksand-Bold shares the wordmark's rounded letterforms).
  * Every screen that shows the brand word uses these exact tokens so the

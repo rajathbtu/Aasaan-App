@@ -32,7 +32,7 @@ import { colors } from '../theme';
 import { BrandText } from '../components/BrandWord';
 import { TRUECALLER_APP_KEY } from '../config';
 
-/* Exact tokens from Mobile_Entry_Handoff/styles.css */
+/* Exact tokens from approved design */
 const ME = {
   brand: '#00A86B',
   brandDark: '#008E55',
@@ -54,7 +54,7 @@ const ME = {
 };
 
 /**
- * Mobile number entry — Mobile_Entry_Handoff approved design.
+ * Mobile number entry — approved design.
  * Business logic unchanged: checkUserRegistration → sendOtp → OTP/Name flow.
  */
 const MobileInputScreen: React.FC = () => {

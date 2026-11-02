@@ -10,12 +10,12 @@ const OTP_LENGTH = 4;
 /** Seconds the resend link stays disabled after an OTP is sent. */
 const RESEND_SECONDS = 30;
 const CELL_HEIGHT = 50;
-/** Max width of one digit cell (Name_OTP_Verification_Handoff .otp input,
+/** Max width of one digit cell (.otp input,
  *  scaled to the app's device convention like the sibling screens). */
 const CELL_WIDTH = 46;
 const CARET_BLINK_MS = 500;/** Cadence of the blinking caret drawn in the slot awaiting the next digit. */
 
-/** Exact tokens from Name_OTP_Verification_Handoff/css/styles.css */
+/** Exact tokens from approved design */
 const NV = {
   green: '#079653',
   ink: '#17202B',

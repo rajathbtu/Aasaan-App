@@ -19,7 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import BlockingLoader from '../components/BlockingLoader';
 
-/* Exact handoff colour tokens from Role_Selection_Handoff/styles.css */
+/* Exact colour tokens from approved design */
 const RS = {
   green: '#079B5C',
   brandGreen: '#079B45',
@@ -40,7 +40,7 @@ const RS = {
 type Role = 'endUser' | 'serviceProvider';
 
 /**
- * Role_Selection_Handoff — Choose Your Role.
+ * Role selection — Choose Your Role.
  * Two rich role cards (Consumer / Service Expert) with badges, benefit
  * points and illustrations; single-select radio behaviour; fixed bottom
  * Confirm Selection CTA. Role ids and the save flow reuse the existing

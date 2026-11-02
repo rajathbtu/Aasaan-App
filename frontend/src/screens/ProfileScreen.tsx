@@ -91,8 +91,8 @@ const serviceIcon = (name: string): ProfileIconName => {
 };
 
 /**
- * Profile screen — rebuilt to the approved `Profile_Handoff/index.html`
- * reference while keeping the existing data sources and flows:
+ * Profile screen — rebuilt to the approved design reference
+ * while keeping the existing data sources and flows:
  * name/bio edits, language, role, services, service area/radius, experience,
  * Aadhaar verification, rating, Professional plans, logout and deactivation.
  */

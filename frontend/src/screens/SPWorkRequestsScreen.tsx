@@ -34,12 +34,12 @@ import { buildTimeAgo, getDistanceKm } from '../utils/commonUtils';
 import Spinner from '../components/Spinner';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/* Service_Provider_Handoff palette (styles.css :root) */
+/* Palette (styles.css :root) */
 const GREEN = '#078b42';
 const LINE = '#e7ebee';
 const DIVIDER = '#edf0f2';
 
-/** Handoff tag chip → icon mapping. First tag renders as the blue "service" tag. */
+/** Tag chip → icon mapping. First tag renders as the blue "service" tag. */
 const TAG_CONFIG: Record<string, string> = {
   'AC Servicing': 'snowflake',
   'Cooling Issue': 'snowflake',
@@ -517,7 +517,7 @@ const SPWorkRequestsScreen: React.FC = () => {
     </View>
   );
 
-  /* ---- Request card (Service_Provider_Handoff article.card) ---- */
+  /* ---- Request card (article.card) ---- */
   const renderRequest = ({ item }: { item: any }) => {
     const isClosedRequest = tab === 'closed';
     const accepted = isAcceptedByUser(item);

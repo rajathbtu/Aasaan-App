@@ -7,7 +7,7 @@ export interface LanguageOption {
   code: string;
   label: string; // English label
   nativeLabel?: string; // Endonym
-  /** Tile glyph shown in the Language_Selection_Handoff card (native syllable / EN). */
+  /** Tile glyph shown in the language selection card (native syllable / EN). */
   mark: string;
   /** Tile background + glyph colours from the approved handoff reference. */
   markBg: string;

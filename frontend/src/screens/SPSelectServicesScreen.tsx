@@ -21,7 +21,7 @@ import SafeBottomBanner from '../components/SafeBottomBanner';
 import BlockingLoader from '../components/BlockingLoader';
 import SvgIcon from '../assets/icons';
 
-/* Exact handoff colour tokens from Service_Selection_Final_Handoff/styles.css */
+/* Exact colour tokens from approved design */
 const SS = {
   green: '#079B5C',
   greenDark: '#087B49',
@@ -43,7 +43,7 @@ const SS = {
   headerBorder: '#F0F2F1',
 };
 
-/* Handoff category icons — available for the three approved design categories. */
+/* Category icons — available for the three approved design categories. */
 const CATEGORY_ICONS: Record<string, string> = {
   'Appliance Repair': 'ss-appliance',
   'Beauty & Personal Care': 'ss-beauty',

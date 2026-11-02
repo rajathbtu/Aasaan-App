@@ -1,7 +1,7 @@
 /**
  * Design tokens for the Aasaanly profile redesign.
  *
- * Mirrors `Profile_Handoff/index.html` so the native screen keeps the approved
+ * Mirrors the approved design so the native screen keeps the approved
  * visual language. Kept separate from the global theme because the profile
  * reference uses a deeper green and a dedicated violet "Professional" family.
  */

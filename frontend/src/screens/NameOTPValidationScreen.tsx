@@ -26,7 +26,7 @@ import { IndiaFlag } from '../assets/images';
 import nameVerificationIllustration from '../../assets/name-verification-illustration.png';
 
 /**
- * Exact tokens from Name_OTP_Verification_Handoff/css/styles.css
+ * Exact tokens from approved design
  * (green is reserved for actions, active focus, confirmation & security cues).
  */
 const NT = {
@@ -48,7 +48,7 @@ const NT = {
 };
 
 /**
- * Name & OTP verification — Name_OTP_Verification_Handoff approved design.
+ * Name & OTP verification — approved design.
  *
  * BUSINESS LOGIC UNCHANGED from the previous screen: the same `registerUser`
  * + `login` + `RoleSelect` flow runs; only the UI was rebuilt to match the

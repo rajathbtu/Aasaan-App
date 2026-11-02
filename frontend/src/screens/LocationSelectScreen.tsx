@@ -21,7 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import SvgIcon from '../assets/icons';
 
-/* Exact handoff colour tokens from Service_Area_Handoff/styles.css */
+/* Exact colour tokens from approved design */
 const SA = {
   green: '#079B5C',
   green2: '#08AD73',

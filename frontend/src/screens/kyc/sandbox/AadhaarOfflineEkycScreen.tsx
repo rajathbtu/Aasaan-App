@@ -28,7 +28,7 @@ import {
   verifySandboxAadhaarOfflineEkycOtp,
 } from '../../../api/kyc/sandbox/aadhaarOfflineEkyc';
 
-/** Aadhaar_Handoff approved design tokens (README.md). */
+/** Approved design tokens. */
 const C = {
   /** Primary green. */
   green: '#079B60',
@@ -80,7 +80,7 @@ const GENDER_LABEL: Record<string, string> = {
  * Sandbox performs the provider exchange; verified fields are saved through
  * the backend's provider-agnostic KYC service.
  *
- * UI rebuilt to match Aadhaar_Handoff approved design (index.html, styles.css).
+ * UI rebuilt to match approved design.
  * All API calls, validation, payloads, response parsing, navigation and error
  * handling are preserved from the previous implementation.
  */

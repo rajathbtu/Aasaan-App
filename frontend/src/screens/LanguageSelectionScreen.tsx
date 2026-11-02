@@ -21,7 +21,7 @@ import { useToast } from '../contexts/ToastContext';
 import { prepareTargetLanguage } from '../services/translation';
 
 /**
- * Exact tokens from Language_Selection_Handoff/styles.css
+ * Exact tokens from approved design
  * (design canvas 393×873 — values are used at device scale).
  */
 const LS = {
@@ -44,8 +44,7 @@ const LS = {
 };
 
 /**
- * Translation illustration from Language_Selection_Handoff/index.html.
- * It is the hand-authored editable SVG supplied with the handoff (no vector
+ * Translation illustration — hand-authored editable SVG (no vector
  * original exists in the repository). The drop-shadow filter is removed
  * because react-native-svg cannot render SVG filters; everything else is
  * used exactly as supplied.
@@ -79,7 +78,7 @@ const BOTTOM_WAVE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 48
 </svg>`;
 
 /**
- * Language selection — Language_Selection_Handoff approved design.
+ * Language selection — approved design.
  *
  * BUSINESS LOGIC UNCHANGED: same single-select state, same onboarding guard
  * (usePreventRemove until Continue), same persistence (`setLanguage`) and the

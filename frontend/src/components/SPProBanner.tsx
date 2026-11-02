@@ -12,7 +12,7 @@ type Props = {
   onUpgrade?: () => void;
 };
 
-/** Service_Provider_Handoff: .pro-banner .benefit icons (purple tinted). */
+/** .pro-banner .benefit icons (purple tinted). */
 const BENEFITS = [
   { icon: 'bolt', label: 'Early Access' },
   { icon: 'chart', label: 'More Work' },

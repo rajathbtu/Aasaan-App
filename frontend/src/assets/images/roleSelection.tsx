@@ -3,8 +3,8 @@ import { Image } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 
 /**
- * Role_Selection_Handoff illustrations — verbatim SVGs from the approved
- * handoff assets (neighborhood backdrop, consumer, service expert).
+ * Role selection illustrations — verbatim SVGs from the approved
+ * design assets (neighborhood backdrop, consumer, service expert).
  */
 
 export const RoleNeighborhood: React.FC<{ width?: number; height?: number; style?: any }> = ({

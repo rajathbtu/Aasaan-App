@@ -16,7 +16,7 @@ import SvgIcon from '../assets/icons';
 import { BRAND_WORD_COLOR, BRAND_WORD_FONT } from './BrandWord';
 
 /**
- * Consistent header used across all 4 handoff screens:
+ * Consistent header used across all screens:
  *  - LocationSelectScreen (Service Area)
  *  - NotificationsScreen (Notifications)
  *  - SPSelectServicesScreen (Service Selection)
