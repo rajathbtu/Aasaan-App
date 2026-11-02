@@ -1,9 +1,0 @@
-Implement the Aasaanly Name + OTP Verification screen using this handoff as the visual source of truth.
-
-Read NAME_OTP_UI_UX_SPEC.md and inspect assets/reference-approved-screen.png before coding. Reproduce the approved layout, spacing, typography hierarchy, green/mint palette, field shapes, OTP cells, CTA, support line and security strip. Use assets/illustrations/name-verification-illustration.png as-is; do not redraw it. Use native app components for all text, fields, buttons and OTP behavior. Do not use the screenshot as a background.
-
-First inspect the existing app architecture, navigation, design tokens, authentication API, phone-number state and OTP flow. Reuse existing patterns and endpoints. Do not invent endpoint names or hardcode the sample phone number. Implement loading, disabled, validation, resend countdown, API error and success states. Preserve existing business logic and only change this screen's UI unless a small integration change is required.
-
-Target common Android phone widths (360–430 CSS px) and a 9:16-like viewport; never widen/stretch the device canvas. Handle keyboard and safe areas. Ensure the page scrolls when necessary. Use the supplied HTML only as a visual/interaction reference, not as a production webview requirement.
-
-Before finishing: run relevant tests/lint, verify the screen at 360px, 390px and 430px widths, check OTP auto-advance/backspace/paste, resend timer, disabled CTA, API failure and success. Report changed files and any backend assumptions.
