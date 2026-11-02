@@ -22,7 +22,7 @@ import { colors } from '../theme';
  * duplicated assets, no extra animation dependency.
  */
 
-const SWITCH_INTERVAL_MS = 250;
+const SWITCH_INTERVAL_MS = 300;
 /** react-native-web logs warnings for useNativeDriver; guard like Spinner. */
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 

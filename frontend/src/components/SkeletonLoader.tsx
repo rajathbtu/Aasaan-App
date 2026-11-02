@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, View, StyleSheet } from 'react-native';
-import { colors, spacing, radius } from '../theme';
+import React from 'react';
+import { View, StyleSheet } from 'react-native';
+import { colors } from '../theme';
+import AnimatedServiceIconLoader from './AnimatedServiceIconLoader';
 
 type Props = {
   /** Number of skeleton cards to render (default 3). */
@@ -9,96 +10,30 @@ type Props = {
 
 /**
  * Reusable list skeleton shown while a screen loads its data for the first
- * time.  Renders placeholder "cards" (icon circle, title/subtitle bars,
- * body lines and an action bar) resembling common list content, so screens
- * can keep their header/chrome visible instead of flashing a full-screen
- * spinner.
+ * time.  Renders only the animated brand service-icon loader in the middle
+ * of the screen (no skeleton cards), so loading states stay clean and
+ * consistent everywhere they are used.
  */
 const SkeletonLoader: React.FC<Props> = ({ count = 3 }) => {
-  const opacity = useRef(new Animated.Value(0.2)).current;
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, { toValue: 1, duration: 750, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.2, duration: 750, useNativeDriver: true }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [opacity]);
-
   return (
-    <View>
-      {Array.from({ length: count }).map((_, index) => (
-        <View key={index} style={styles.card}>
-          <Animated.View style={{ opacity }}>
-            <View style={styles.headerRow}>
-              <View style={styles.iconCircle} />
-              <View style={{ flex: 1 }}>
-                <View style={[styles.bar, styles.titleBar]} />
-                <View style={[styles.bar, styles.subtitleBar]} />
-              </View>
-            </View>
-            <View style={[styles.bar, styles.lineBar]} />
-            <View style={[styles.bar, styles.shortLineBar]} />
-            <View style={styles.actionBar} />
-          </Animated.View>
-        </View>
-      ))}
+    <View style={styles.wrapper}>
+      {/* Animated service-icon loader centered in the middle of the screen */}
+      <AnimatedServiceIconLoader size={104} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    borderWidth: 1,
-    borderColor: colors.greyLight,
-    borderRadius: radius.xl,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    backgroundColor: colors.white,
-  },
-  headerRow: {
-    flexDirection: 'row',
+  wrapper: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
-  },
-  iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.surface,
-    marginRight: spacing.md,
-  },
-  bar: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.sm,
-  },
-  titleBar: {
-    width: '60%',
-    height: 14,
-    marginBottom: spacing.sm,
-  },
-  subtitleBar: {
-    width: '40%',
-    height: 11,
-  },
-  lineBar: {
-    width: '80%',
-    height: 12,
-    marginTop: spacing.mdPlus,
-  },
-  shortLineBar: {
-    width: '55%',
-    height: 12,
-    marginTop: spacing.sm,
-  },
-  actionBar: {
-    width: '100%',
-    height: 40,
-    borderRadius: radius.md,
-    marginTop: spacing.lg,
-    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    zIndex: 1,
   },
 });
 
