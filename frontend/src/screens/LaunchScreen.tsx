@@ -14,20 +14,19 @@ import splashContent from '../../assets/splash/splash-content-exact.png';
  * cityscape, Made in India footer and layered bottom waves — all in the
  * reference's own order and spacing. No gear, buttons or spinner.
  *
- * Layout rules from the handoff:
+ * Layout rules from the handoff (matching index-standalone.html):
  * - Artwork is never stretched or cropped: it is fitted INSIDE the viewport
  *   on both axes (width-capped at the 430px phone-first canvas, then
  *   height-clamped for short/wide viewports), so the full composition —
  *   logo, tagline, cityscape, footer and waves — is always visible.
- * - Bottom-anchored so the waves hug the screen edge; the artwork's own
- *   pale top blends into the matching background on taller devices
- *   (360x800, 360x780, 393x873 and 432x960 checked).
+ * - Centered horizontally and vertically (like index-standalone.html on
+ *   mobile); white #FFFFFF background matching the standalone preview.
  */
 
 /** Width/height ratio of the approved artwork below its baked-in status bar. */
 const SPLASH_ASPECT = 941 / 1620;
-/** Pale background sampled from the approved artwork's top edge. */
-const SPLASH_BG = '#FBFDFC';
+/** Pale background matching index-standalone.html mobile view. */
+const SPLASH_BG = '#FFFFFF';
 /** Phone-first canvas cap from the handoff preview. */
 const MAX_CANVAS_WIDTH = 430;
 
@@ -46,9 +45,11 @@ const LaunchScreen: React.FC = () => {
   }
 
   useEffect(() => {
+    // Navigate immediately on mount — App.tsx already holds the splash
+    // strictly visible for 1.5s from app start, so no extra delay needed here.
     const timer = setTimeout(() => {
       navigation.navigate('LanguageSelection');
-    }, 1000);
+    }, 0);
     return () => clearTimeout(timer);
   }, [navigation]);
 
@@ -68,7 +69,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: SPLASH_BG,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     alignItems: 'center',
   },
 });

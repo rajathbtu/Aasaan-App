@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
-import { View, Platform } from 'react-native';
+import { View, Platform, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { initialWindowMetrics, SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,8 +14,10 @@ import { locationManager } from './src/services/LocationManager';
 import { NotificationCountProvider, useNotificationCount } from './src/contexts/NotificationCountContext';
 import { ToastProvider } from './src/contexts/ToastContext';
 import { GlobalLoaderProvider } from './src/contexts/GlobalLoaderContext';
-import AnimatedServiceIconLoader from './src/components/AnimatedServiceIconLoader';
 import { markNotificationRead } from './src/api';
+
+import splashImage from './assets/splash/splash-content-exact.png';
+
 import { colors, radius, spacing } from './src/theme';
 import * as Notifications from 'expo-notifications';
 
@@ -164,8 +166,8 @@ function RootNavigator() {
     // Session is being restored from secure storage — branded loader instead
     // of a bare spinner (still full-screen and blocking by nature).
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <AnimatedServiceIconLoader showBrand size={112} />
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+        <Image source={splashImage} resizeMode="contain" style={{ flex: 1 }} />
       </View>
     );
   }
@@ -360,11 +362,28 @@ export default function App() {
   const [navigationReady, setNavigationReady] = React.useState(false);
   const [fontsLoaded, fontError] = useFonts(customFonts);
 
+  // Strict: splash screen visible continuously for 1.5s from app start
+  const [splashComplete, setSplashComplete] = React.useState(false);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setSplashComplete(true), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   if (fontError) throw fontError;
+
+  // First 1.5s: show only the splash image — no loaders, no gaps
+  if (!splashComplete) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+        <Image source={splashImage} resizeMode="contain" style={{ flex: 1 }} />
+      </View>
+    );
+  }
+
   if (!fontsLoaded) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <AnimatedServiceIconLoader showBrand size={112} />
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+        <Image source={splashImage} resizeMode="contain" style={{ flex: 1 }} />
       </View>
     );
   }
