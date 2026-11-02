@@ -4,6 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { createWorkRequest } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { useGlobalLoader } from '../contexts/GlobalLoaderContext';
 import { colors, spacing, radius } from '../theme';
 import Header from '../components/Header';
 import { useI18n } from '../i18n';
@@ -29,6 +30,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
   const [phoneConsent, setPhoneConsent] = useState(false);
   const { token } = useAuth();
   const { t } = useI18n();
+  const { showLoader, hideLoader } = useGlobalLoader();
   const [requestInProgress, setRequestInProgress] = useState(false);
   const [requestError, setRequestError] = useState<unknown | null>(null);
   const titleCharacterCount = Array.from(requestTitle).length;
@@ -84,6 +86,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
       return;
     }
     setRequestInProgress(true);
+    showLoader(t('loader.creatingRequest'));
     try {
       const locName = selectedLocation.name || selectedLocation.description;
       const placeId = selectedLocation.place_id || selectedLocation.placeId;
@@ -103,6 +106,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
       setRequestError(err);
     } finally {
       setRequestInProgress(false);
+      hideLoader();
     }
   };
 

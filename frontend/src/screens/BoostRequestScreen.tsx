@@ -7,6 +7,7 @@ import { createBoostPaymentOptions, verifyBoostPayment } from '../api/razorpay';
 import { RazorpayWebPaymentOptions, RazorpayWebResponse } from '../api/razorpayWeb';
 import RazorpayWebView from '../components/RazorpayWebView';
 import { useAuth } from '../contexts/AuthContext';
+import { useGlobalLoader } from '../contexts/GlobalLoaderContext';
 import { colors, spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
@@ -23,6 +24,7 @@ const BoostRequestScreen: React.FC = () => {
   const { request } = (route.params as any) || {};
   const { token, user, refreshUser } = useAuth();
   const { t } = useI18n();
+  const { showLoader, hideLoader } = useGlobalLoader();
   const [loading, setLoading] = useState(false);
   const [selectedOption, setSelectedOption] = useState<'money' | 'credits'>('money');
   const [showPaymentWebView, setShowPaymentWebView] = useState(false);
@@ -36,6 +38,7 @@ const BoostRequestScreen: React.FC = () => {
     if (!token || !request) return;
     
     setLoading(true);
+    showLoader(t('loader.boosting'));
     
     try {
       if (useCredits) {
@@ -62,6 +65,8 @@ const BoostRequestScreen: React.FC = () => {
           setPaymentOptions(options);
           setCurrentRequestId(request.id);
           setShowPaymentWebView(true);
+          // The payment WebView takes over from here — stop blocking.
+          hideLoader();
         } catch (err: any) {
           console.error('Error creating payment options:', err);
           Alert.alert(t('common.error'), err.message || t('boostRequest.errorBoostFailed'));
@@ -93,6 +98,7 @@ const BoostRequestScreen: React.FC = () => {
       }
     } finally {
       setLoading(false);
+      hideLoader();
     }
   };
 
@@ -101,6 +107,7 @@ const BoostRequestScreen: React.FC = () => {
     
     setShowPaymentWebView(false);
     setLoading(true);
+    showLoader(t('loader.processingPayment'));
     
     try {
       const verificationData = {
@@ -132,6 +139,7 @@ const BoostRequestScreen: React.FC = () => {
       Alert.alert(t('common.error'), err.message || t('boostRequest.paymentFailedDesc'));
     } finally {
       setLoading(false);
+      hideLoader();
     }
   };
 

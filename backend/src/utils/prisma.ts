@@ -1,9 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 
 const { DATABASE_URL, NODE_ENV } = process.env;
+
 if (!DATABASE_URL) {
-  // eslint-disable-next-line no-console
-  console.error('[Prisma] DATABASE_URL is not set');
+  throw new Error(
+    '[Prisma] DATABASE_URL is not set. Please create a .env file with DATABASE_URL (e.g. from .env.example) before starting the server.'
+  );
 }
 
 // For Render Postgres, ensure sslmode=require on the URL. If missing, append it.

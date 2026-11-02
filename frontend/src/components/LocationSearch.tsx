@@ -3,6 +3,7 @@ import { View, TextInput, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
 import MapView, { PROVIDER_GOOGLE, type MapViewType, type Region } from './AppMapView';
 import { Ionicons } from '@expo/vector-icons';
 import locationMarkerIcon from '../../assets/location_marker.png';
+import SvgIcon from '../assets/icons';
 import { colors, spacing, radius, sizes } from '../theme';
 import { locationManager, useLocation } from '../services/LocationManager';
 import EdgeLoader from './EdgeLoader';
@@ -47,9 +48,20 @@ type Props = {
   mapHeight?: number;
   isServiceArea?: boolean;
   serviceAreaRadiusKm?: number;
+  /** When true, only renders the map (no search overlay, no map actions). */
+  minimalMap?: boolean;
+  /** Renders the approved-design recenter / layers controls on the map. */
+  showMapControls?: boolean;
+  /** Ref to expose detectLocation and openSearchModal functions. */
+  locationRef?: React.Ref<{ detectLocation: () => void; openSearchModal: () => void }>;
 };
 
-const LocationSearch: React.FC<Props> = ({
+const LocationSearch = React.forwardRef<{
+  detectLocation: () => void;
+  openSearchModal: () => void;
+  recenter: () => void;
+  toggleMapType: () => void;
+}, Props>(({
   onSelect,
   onResolvingChange,
   initialValue = '',
@@ -58,7 +70,10 @@ const LocationSearch: React.FC<Props> = ({
   mapHeight,
   isServiceArea = false,
   serviceAreaRadiusKm = DEFAULT_SERVICE_AREA_RADIUS_KM,
-}) => {
+  minimalMap = false,
+  showMapControls = false,
+  locationRef,
+}, ref) => {
   const { t } = useI18n();
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -91,6 +106,7 @@ const LocationSearch: React.FC<Props> = ({
   const [isSearchOverlayVisible, setIsSearchOverlayVisible] = useState(false);
   const [isLocationResolving, setIsLocationResolving] = useState(false);
   const [locationError, setLocationError] = useState<unknown | null>(null);
+  const [mapType, setMapType] = useState<'standard' | 'satellite'>('standard');
   const autoSelectedCurrentLocation = useRef(false);
   const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestMapSelectionRequest = useRef(0);
@@ -102,13 +118,19 @@ const LocationSearch: React.FC<Props> = ({
     onResolvingChange?.(isLocationResolving);
   }, [isLocationResolving, onResolvingChange]);
 
-  const animateToRegion = (region: Region) => {
+  const animateToRegion = (region: Region, duration = 300) => {
     if (mapRef.current) {
-      mapRef.current.animateToRegion(region, 300);
+      mapRef.current.animateToRegion(region, duration);
     } else {
       setMapRegion(region);
     }
   };
+
+  const recenterMap = () => {
+    if (mapRegion) animateToRegion(mapRegion, 300);
+  };
+
+  const toggleMapType = () => setMapType((current) => (current === 'standard' ? 'satellite' : 'standard'));
 
   useEffect(() => {
     let isActive = true;
@@ -301,6 +323,14 @@ const LocationSearch: React.FC<Props> = ({
     return;
   };
 
+  // Expose detectLocation and openSearchModal via ref
+  React.useImperativeHandle(ref, () => ({
+    detectLocation: () => { void detectLocation(); },
+    openSearchModal: () => setIsSearchOverlayVisible(true),
+    recenter: recenterMap,
+    toggleMapType,
+  }), [detectLocation, recenterMap, toggleMapType]);
+
   useEffect(() => {
     if (!enableMap || !savedLocationsLoaded || (initialLocation?.lat != null && initialLocation?.lng != null) || autoSelectedCurrentLocation.current)
       return;
@@ -422,6 +452,7 @@ const LocationSearch: React.FC<Props> = ({
                 provider={PROVIDER_GOOGLE}
                 style={styles.map}
                 initialRegion={mapRegion || DEFAULT_LOCATION}
+                mapType={mapType}
                 serviceArea={isServiceArea && mapRegion ? {
                   center: { latitude: mapRegion.latitude, longitude: mapRegion.longitude },
                   radius: serviceAreaRadiusKm * 1000,
@@ -453,41 +484,66 @@ const LocationSearch: React.FC<Props> = ({
                   resizeMode="contain"
                 />
               </View>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => setIsSearchOverlayVisible(true)}
-                style={styles.mapInputOverlay}
-                accessibilityLabel={t('locationSearch.placeholder')}>
-                <TextInput
-                  placeholder={t('locationSearch.mapPlaceholder')}
-                  placeholderTextColor={colors.primary}
-                  editable={false}
-                  pointerEvents="none"
-                  style={styles.mapInput}
-                />
-              </TouchableOpacity>
+              {showMapControls && (
+                <View style={styles.mapControls} pointerEvents="box-none">
+                  <TouchableOpacity
+                    style={styles.mapControlButton}
+                    onPress={recenterMap}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Recenter map"
+                  >
+                    <SvgIcon name="sa-target" size={24} color={'#172027'} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.mapControlButton}
+                    onPress={toggleMapType}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel="Toggle map layers"
+                  >
+                    <SvgIcon name="sa-layers" size={24} color={'#172027'} />
+                  </TouchableOpacity>
+                </View>
+              )}
+              {!minimalMap && (
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={() => setIsSearchOverlayVisible(true)}
+                  style={styles.mapInputOverlay}
+                  accessibilityLabel={t('locationSearch.placeholder')}>
+                  <TextInput
+                    placeholder={t('locationSearch.mapPlaceholder')}
+                    placeholderTextColor={colors.primary}
+                    editable={false}
+                    pointerEvents="none"
+                    style={styles.mapInput}
+                  />
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             <View style={[styles.map, styles.mapPlaceholder]}>
               <ActivityIndicator size="large" color={colors.primary} />
             </View>
           )}
-          <View style={styles.mapActions}>
-            <TouchableOpacity
-              style={[styles.mapButton, isCurrentLocationSelected && styles.mapButtonDisabled]}
-              onPress={() => {
-                if (isCurrentLocationSelected) {
-                  showToast('Current location already selected');
-                  return;
-                }
-                void detectLocation();
-              }}
-              accessibilityLabel="Center map on current location"
-            >
-              <Ionicons name="locate" size={18} color={colors.white} />
-              <Text style={styles.mapButtonText}>{t('locationSearch.pickCurrentLocation')}</Text>
-            </TouchableOpacity>
-            {recentLocations.length > 0 && (
+          {!minimalMap && (
+            <View style={styles.mapActions}>
+              <TouchableOpacity
+                style={[styles.mapButton, isCurrentLocationSelected && styles.mapButtonDisabled]}
+                onPress={() => {
+                  if (isCurrentLocationSelected) {
+                    showToast('Current location already selected');
+                    return;
+                  }
+                  void detectLocation();
+                }}
+                accessibilityLabel="Center map on current location"
+              >
+                <Ionicons name="locate" size={18} color={colors.white} />
+                <Text style={styles.mapButtonText}>{t('locationSearch.pickCurrentLocation')}</Text>
+              </TouchableOpacity>
+              {recentLocations.length > 0 && (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -509,7 +565,8 @@ const LocationSearch: React.FC<Props> = ({
                 ))}
               </ScrollView>
             )}
-          </View>
+            </View>
+          )}
         </View>
       )}
       <Modal
@@ -590,7 +647,7 @@ const LocationSearch: React.FC<Props> = ({
       <ErrorBanner error={locationError} />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   inputWrap: {
@@ -662,7 +719,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   centerMarkerContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
@@ -678,11 +735,31 @@ const styles = StyleSheet.create({
 
   },
   mapLoadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.85)',
     zIndex: 1,
+  },
+  mapControls: {
+    position: 'absolute',
+    right: 12,
+    bottom: 16,
+    gap: 9,
+    zIndex: 4,
+  },
+  mapControlButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
+    elevation: 4,
   },
   mapInputOverlay: {
     position: 'absolute',

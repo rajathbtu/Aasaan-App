@@ -16,8 +16,8 @@ const AppMapView = React.forwardRef<MapView, AppMapViewProps>(({ serviceArea, ..
 			<Circle
 				center={serviceArea.center}
 				radius={serviceArea.radius}
-				fillColor="rgba(37, 99, 235, 0.12)"
-				strokeColor="rgba(37, 99, 235, 0.7)"
+				fillColor="rgba(7, 155, 92, 0.12)"
+				strokeColor="rgba(7, 155, 92, 0.75)"
 				strokeWidth={2}
 			/>
 		)}

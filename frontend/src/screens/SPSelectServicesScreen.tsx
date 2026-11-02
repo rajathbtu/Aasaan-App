@@ -1,26 +1,103 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Animated } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  TextInput,
+} from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
-import { Service, ServiceCategoryGrid, useServiceCatalog } from '../components/ServiceSelection';
+import { Service, useServiceCatalog } from '../components/ServiceSelection';
 import InfoBanner from '../components/InfoBanner';
 import ErrorBanner from '../components/ErrorBanner';
-import ServicesSearchBar from '../components/ServicesSearchBar';
-import { colors, spacing } from '../theme';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import BlockingLoader from '../components/BlockingLoader';
-import ActionButton from '../components/ActionButton';
+import SvgIcon from '../assets/icons';
+
+/* Exact handoff colour tokens from Service_Selection_Final_Handoff/styles.css */
+const SS = {
+  green: '#079B5C',
+  greenDark: '#087B49',
+  greenSoft: '#E7F9ED',
+  greenSelected: '#EFFBF3',
+  ink: '#111714',
+  muted: '#68716F',
+  line: '#E4E9E6',
+  cardBorder: '#E3E8E5',
+  tabBorder: '#E6EBE8',
+  tabText: '#161D19',
+  sectionAccent: '#0AAE70',
+  chipText: '#17231B',
+  selectionHeadingText: '#073F24',
+  serviceName: '#101714',
+  searchBorder: '#E1E6E3',
+  searchPlaceholder: '#8B929A',
+  footerBorder: '#E8ECE9',
+  headerBorder: '#F0F2F1',
+};
+
+/* Handoff category icons — available for the three approved design categories. */
+const CATEGORY_ICONS: Record<string, string> = {
+  'Appliance Repair': 'ss-appliance',
+  'Beauty & Personal Care': 'ss-beauty',
+  Cleaning: 'ss-cleaning',
+};
+
+/* Real catalogue service ids → handoff SVG icons. */
+const SERVICE_ICON_MAP: Record<string, string> = {
+  ac_service_repair: 'ss-ac',
+  chimney_hob: 'ss-chimney',
+  gas_stove_hob: 'ss-flame',
+  geyser_service: 'ss-geyser',
+  inverter_ups: 'ss-battery',
+  microwave_oven: 'ss-microwave',
+  refrigerator_service: 'ss-fridge',
+  ro_water_purifier: 'ss-water',
+  tv_home_entertainment: 'ss-tv',
+  makeup_artist: 'ss-brush',
+  massage_spa: 'ss-spa',
+  mehendi_artist: 'ss-flower',
+  salon_beautician_at_home: 'ss-scissors',
+  home_cleaning: 'ss-cleaning',
+  specialized_cleaning: 'ss-cleaning',
+  floor_surface_cleaning: 'ss-cleaning',
+  pest_control: 'ss-cleaning',
+  water_tank_cleaning: 'ss-cleaning',
+};
+
+const getServiceIcon = (service: Service): string | null => {
+  const mapped = SERVICE_ICON_MAP[service.id];
+  if (mapped) return mapped;
+  const name = (service.name || '').toLowerCase();
+  if (name.includes('air condition') || /\bac\b/.test(name)) return 'ss-ac';
+  if (name.includes('chimney') || name.includes('hob')) return 'ss-chimney';
+  if (name.includes('gas') || name.includes('stove') || name.includes('flame')) return 'ss-flame';
+  if (name.includes('geyser')) return 'ss-geyser';
+  if (name.includes('inverter') || name.includes('ups')) return 'ss-battery';
+  if (name.includes('microwave') || name.includes('oven')) return 'ss-microwave';
+  if (name.includes('refrigerator') || name.includes('fridge')) return 'ss-fridge';
+  if (name.includes('purifier') || name.includes('water')) return 'ss-water';
+  if (name.includes('tv') || name.includes('television') || name.includes('entertainment')) return 'ss-tv';
+  if (name.includes('makeup')) return 'ss-brush';
+  if (name.includes('massage') || name.includes('spa')) return 'ss-spa';
+  if (name.includes('mehendi')) return 'ss-flower';
+  if (name.includes('salon') || name.includes('beautician') || name.includes('scissor')) return 'ss-scissors';
+  if (name.includes('clean')) return 'ss-cleaning';
+  return null;
+};
 
 const SPSelectServicesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { user, updateUser } = useAuth();
   const { t } = useI18n();
-  const insets = useSafeAreaInsets();
 
   const mode: 'edit' | 'onboarding' = (route.params?.mode as any) === 'edit' ? 'edit' : 'onboarding';
   const initialSelected: string[] = Array.isArray(route.params?.initialSelected) ? route.params?.initialSelected : [];
@@ -30,17 +107,22 @@ const SPSelectServicesScreen: React.FC = () => {
   const [showLimitHint, setShowLimitHint] = useState(false);
   const [saveError, setSaveError] = useState<unknown | null>(null);
   const [saving, setSaving] = useState(false);
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const searchTranslateY = Animated.diffClamp(scrollY, 0, 70).interpolate({
-    inputRange: [0, 70],
-    outputRange: [0, -70],
-  });
-  const { services, query, setQuery, filtered } = useServiceCatalog(user?.id, true);
-  const searchContainerHeight = 70;
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
+  const servicesScrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
+  const { services, setQuery, filtered } = useServiceCatalog(user?.id, true);
 
   useEffect(() => {
     setSelected(initialSelected);
   }, [initialSelected.join(',')]);
+
+  useEffect(() => {
+    setQuery(searchQuery);
+  }, [searchQuery, setQuery]);
+
+  const MAX_SELECTION = 3;
 
   const toggleService = (id: string) => {
     setSelected(prev => {
@@ -48,7 +130,7 @@ const SPSelectServicesScreen: React.FC = () => {
         setShowLimitHint(false);
         return prev.filter(sid => sid !== id);
       }
-      if (prev.length >= 3) {
+      if (prev.length >= MAX_SELECTION) {
         setShowLimitHint(true);
         return prev;
       }
@@ -84,6 +166,22 @@ const SPSelectServicesScreen: React.FC = () => {
 
   const hasData = services && services.length > 0;
 
+  const allCategories = useMemo(() => {
+    const names = new Set<string>();
+    (services || []).forEach(service => {
+      if (service.category) names.add(service.category);
+    });
+    return Array.from(names);
+  }, [services]);
+
+  const categoryTabs = useMemo(
+    () => [{ key: 'all', label: t('sp.selectServices.allTab'), icon: undefined as string | undefined }]
+      .concat(allCategories.map(name => ({ key: name, label: name, icon: CATEGORY_ICONS[name] }))),
+    [allCategories, t]
+  );
+
+  const isSearching = searchQuery.trim().length > 0;
+
   const selectedServices = useMemo(() => {
     const list = services || [];
     const map: Record<string, Service> = {};
@@ -91,112 +189,259 @@ const SPSelectServicesScreen: React.FC = () => {
     return selected.map(id => map[id]).filter(Boolean) as Service[];
   }, [selected, services]);
 
+  const servicesByCategory = useMemo(() => {
+    const map: Record<string, Service[]> = {};
+    const f = filtered as Record<string, Service[]>;
+    Object.keys(f).forEach(category => {
+      if (activeCategory === 'all' || activeCategory === category) {
+        map[category] = f[category];
+      }
+    });
+    return map;
+  }, [filtered, activeCategory]);
+
   const selectionBannerMessage = showLimitHint
     ? t('sp.selectServices.limitTitle')
-    : selected.length > 0 && selected.length < 3
+    : selected.length > 0 && selected.length < MAX_SELECTION
       ? t('sp.selectServices.limitDesc')
       : '';
 
-  // Height of bottom CTA for padding bottom
-  const bottomCtaPadding = 120 + insets.bottom; // approx height including chips; adjust as needed
-  
-  const placeholderTexts = [
-    t('createRequest.selectService.searchPlaceholder'),
-    t('createRequest.selectService.searchPlaceholder1'),
-    t('createRequest.selectService.searchPlaceholder2')
-  ];
+  const toggleSection = (category: string) => {
+    setExpandedSections(prev => ({ ...prev, [category]: !(prev[category] !== false) }));
+  };
 
+  const isSectionExpanded = (category: string) =>
+    isSearching || expandedSections[category] !== false;
+
+  const isServiceSelected = (id: string) => selected.includes(id);
+
+  const handleCategoryPress = (key: string) => {
+    setActiveCategory(key);
+    servicesScrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.light }}>
-      <Header 
-        title={t('sp.selectServices.heading')} 
-        keepTitleCenterAligned={true} 
-        showBackButton={navigation.canGoBack()}
-        showNotification={false} 
-        extraLargeTitle={mode=== 'onboarding' } />
-      {/* <View style={{ height: spacing.sm }} /> */}
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <Header
+        title={t('sp.selectServices.heading')}
+        subheader={t('sp.selectServices.subheading')}
+        showBackButton={true}
+        showNotification={false}
+        titleStyle={styles.headerTitle}
+      />
 
-      <View style={styles.scrollArea}>
-        <Animated.ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingTop: searchContainerHeight, paddingBottom: bottomCtaPadding }}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true },
-          )}
-          scrollEventThrottle={16}>
-
-          {/* Loading */}
-          {!hasData && (
-            <View style={{ padding: spacing.lg, alignItems: 'center' }}>
-              <ActivityIndicator />
-              <Text style={{ color: colors.grey, marginTop: 8 }}>{t('common.fetchingCurrentLocation') || 'Loading...'}</Text>
-            </View>
-          )}
-
-          {/* Categories and services grid */}
-          {hasData && (
-            <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
-              <ServiceCategoryGrid
-                servicesByCategory={filtered}
-                selectedIds={selected}
-                onServicePress={(service) => toggleService(service.id)}
-              />
-
-              {Object.keys(filtered).length === 0 && (
-                <View style={{ paddingVertical: spacing.xl, alignItems: 'center' }}>
-                  <Text style={{ color: colors.grey }}>{t('sp.selectServices.noResults') || 'No matching services'}</Text>
-                </View>
-              )}
-            </View>
-          )}
-        </Animated.ScrollView>
-        <Animated.View style={[styles.searchOverlay, { transform: [{ translateY: searchTranslateY }] }]}>
-          <ServicesSearchBar
-            placeholders={placeholderTexts}
-            value={query}
-            onChangeText={setQuery}
-            style={{ marginTop: 10 }}
+      {/* Rounded search pill */}
+      <View style={styles.searchWrap}>
+        <View style={styles.searchBox}>
+          <SvgIcon name="ss-search" size={21} color={SS.muted} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={t('sp.selectServices.searchPlaceholder')}
+            placeholderTextColor={SS.searchPlaceholder}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
           />
-        </Animated.View>
+          {searchQuery.trim() !== '' && (
+            <TouchableOpacity style={styles.clearSearch} onPress={() => setSearchQuery('')} activeOpacity={0.7} accessibilityLabel="Clear search">
+              <SvgIcon name="ss-close" size={17} color={SS.muted} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      {/* Bottom CTA sticky */}
-      <View style={[styles.bottomCta] }>
-          {selectionBannerMessage && (
-            <View style={styles.selectionBannerWrap}>
-              <InfoBanner
-                message={selectionBannerMessage}
-                autoDismissMs={showLimitHint ? 2500 : undefined}
-                onDismiss={() => setShowLimitHint(false)}
-                style={styles.selectionBanner}
-                theme="grey"
-              />
-            </View>
-          )}
-        
-        <View style={styles.selectedChipsRow}>
-          {selectedServices.map(svc => (
-            <View key={svc.id} style={styles.chip}>
-              <Text style={styles.chipText}>{svc.name}</Text>
-              <TouchableOpacity onPress={() => toggleService(svc.id)}>
-                <Ionicons name="close" size={14} color={colors.primary} style={{ marginLeft: 6, borderRadius: 999, borderColor: colors.primary, borderWidth: 1 }} />
-              </TouchableOpacity>
-            </View>
-          ))}
+      {/* Horizontal category tabs */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.categoryTabsScroll}
+        contentContainerStyle={styles.categoryTabs}
+      >
+        {categoryTabs.map(tab => {
+          const active = activeCategory === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.categoryTab, active && styles.categoryTabActive]}
+              onPress={() => handleCategoryPress(tab.key)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={tab.label}
+            >
+              {tab.icon && (
+                <SvgIcon name={tab.icon as any} size={18} color={active ? '#FFFFFF' : SS.greenDark} />
+              )}
+              <Text style={[styles.categoryTabText, active && styles.categoryTabTextActive]} numberOfLines={1}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Scrollable service content */}
+      <ScrollView
+        ref={servicesScrollRef}
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingTop: 2,
+          paddingBottom: 24,
+          paddingHorizontal: 15,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {!hasData && (
+          <View style={{ padding: 24, alignItems: 'center' }}>
+            <ActivityIndicator />
+          </View>
+        )}
+
+        {hasData && (
+          <>
+            {Object.keys(servicesByCategory).map(category => {
+              const categoryServices = servicesByCategory[category];
+              if (!categoryServices || categoryServices.length === 0) return null;
+              const expanded = isSectionExpanded(category);
+              const isFourColumn = categoryServices.length === 4;
+              return (
+                <View key={category} style={styles.serviceSection}>
+                  <TouchableOpacity
+                    style={[styles.sectionHeading, !expanded && styles.sectionHeadingCollapsed]}
+                    onPress={() => toggleSection(category)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded }}
+                    accessibilityLabel={`${category} services`}
+                  >
+                    <View style={styles.sectionAccent} />
+                    {CATEGORY_ICONS[category] && (
+                      <SvgIcon name={CATEGORY_ICONS[category] as any} size={22} color={SS.green} />
+                    )}
+                    <Text style={[styles.sectionTitle, { minWidth: 0 }]} numberOfLines={1} ellipsizeMode="tail">
+                      {category}
+                    </Text>
+                    <SvgIcon
+                      name={expanded ? 'chevron-up' : 'chevron-down'}
+                      size={19}
+                      color={SS.muted}
+                    />
+                  </TouchableOpacity>
+                  {expanded && (
+                    <View style={[styles.serviceGrid, isFourColumn && styles.serviceGridFour]}>
+                      {categoryServices.map(service => {
+                        const svgIcon = getServiceIcon(service);
+                        const selectedService = isServiceSelected(service.id);
+                        return (
+                          <TouchableOpacity
+                            key={service.id}
+                            style={[
+                              styles.serviceCard,
+                              isFourColumn ? styles.serviceCardFour : styles.serviceCardThree,
+                              selectedService && styles.serviceCardSelected,
+                            ]}
+                            onPress={() => toggleService(service.id)}
+                            activeOpacity={0.85}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: selectedService }}
+                            accessibilityLabel={service.name}
+                          >
+                            {selectedService && (
+                              <View style={styles.selectionCheck}>
+                                <SvgIcon name="check" size={13} color={'#FFFFFF'} />
+                              </View>
+                            )}
+                            <View style={[styles.serviceIcon, isFourColumn && styles.serviceIconFour]}>
+                              {svgIcon ? (
+                                <SvgIcon name={svgIcon as any} size={isFourColumn ? 31 : 34} color={SS.green} />
+                              ) : (
+                                <Ionicons
+                                  name={(service.icon && (Ionicons as any).glyphMap[service.icon] ? service.icon : 'construct') as any}
+                                  size={isFourColumn ? 30 : 33}
+                                  color={SS.green}
+                                />
+                              )}
+                            </View>
+                            <Text
+                              style={[styles.serviceName, isFourColumn && styles.serviceNameFour]}
+                              numberOfLines={2}
+                              ellipsizeMode="tail"
+                            >
+                              {service.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+
+            {Object.keys(servicesByCategory).length === 0 && (
+              <View style={styles.noResults}>
+                <Text style={styles.noResultsText}>{t('sp.selectServices.noResults')}</Text>
+              </View>
+            )}
+          </>
+        )}
+      </ScrollView>
+
+      {selectionBannerMessage && (
+        <View style={styles.selectionBannerWrap}>
+          <InfoBanner
+            message={selectionBannerMessage}
+            autoDismissMs={showLimitHint ? 2500 : undefined}
+            onDismiss={() => setShowLimitHint(false)}
+            style={styles.selectionBanner}
+            theme="grey"
+          />
+        </View>
+      )}
+
+      {/* Fixed bottom selection panel */}
+      <View style={styles.bottomPanel}>
+        <View style={styles.selectionHeading}>
+          <Text style={styles.selectionCountText}>
+            <Text style={styles.selectionCountBold}>
+              {t('sp.selectServices.selectedCount', { count: selected.length })}
+            </Text>
+          </Text>
+          <TouchableOpacity onPress={() => { setSelected([]); setShowLimitHint(false); }} activeOpacity={0.8} accessibilityLabel={t('sp.selectServices.clearAll')}>
+            <Text style={[styles.clearAllText, { minWidth: 0 }]} numberOfLines={1}>
+              {t('sp.selectServices.clearAll')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.footerBottom}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectedChipsContainer} contentContainerStyle={styles.selectedChipsContent}>
+            {selectedServices.map(svc => (
+              <View key={svc.id} style={styles.chip}>
+                <Text style={[styles.chipText, { minWidth: 0 }]} numberOfLines={1} ellipsizeMode="tail">
+                  {svc.name}
+                </Text>
+                <TouchableOpacity onPress={() => toggleService(svc.id)} style={styles.chipRemoveWrap} activeOpacity={0.7} accessibilityLabel={`Remove ${svc.name}`}>
+                  <SvgIcon name="ss-close" size={12} color={SS.green} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+          <TouchableOpacity
+            style={[styles.confirmButton, selected.length === 0 && styles.confirmButtonDisabled]}
+            onPress={handleContinue}
+            activeOpacity={0.8}
+            disabled={selected.length === 0 || saving}
+          >
+            <Text style={styles.confirmButtonText}>
+              {t('common.confirm')}
+            </Text>
+            <SvgIcon name="ss-arrow-right" size={19} color={'#FFFFFF'} />
+          </TouchableOpacity>
         </View>
         <ErrorBanner error={saveError} onRetry={handleContinue} />
-        <ActionButton
-          fullWidth
-          buttonIcon="arrow-forward"
-          buttonTitle={t('common.confirm')}
-          buttonTitleColor={colors.white}
-          backgroundColor={colors.primary}
-          onPress={handleContinue}
-          disabled={selected.length === 0}
-        />
       </View>
+
       <SafeBottomBanner />
       <BlockingLoader visible={saving} />
     </View>
@@ -204,63 +449,343 @@ const SPSelectServicesScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  scrollArea: {
-    flex: 1,
+  headerTitle: {
+    fontSize: 20,
+    letterSpacing: -0.75,
   },
-  searchOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.light,
+  searchWrap: {
+    paddingTop: 9,
+    paddingBottom: 12,
+    paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: colors.greyLight,
-    zIndex: 5,
+    borderBottomColor: SS.headerBorder,
+    backgroundColor: '#FFFFFF',
+  },
+  searchBox: {
+    height: 47,
+    borderWidth: 1,
+    borderColor: SS.searchBorder,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    paddingHorizontal: 14,
+    shadowColor: '#12271C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  searchIcon: {
+    opacity: 0.7,
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 15,
+    color: SS.ink,
+    backgroundColor: 'transparent',
+    paddingVertical: 0,
+    fontFamily: 'Inter',
+  },
+  clearSearch: {
+    padding: 4,
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  categoryTabsScroll: {
+    flexGrow: 0,
+  },
+  categoryTabs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 15,
+    paddingTop: 10,
+    paddingBottom: 9,
+  },
+  categoryTab: {
+    height: 37,
+    paddingHorizontal: 13,
+    borderWidth: 1,
+    borderColor: SS.tabBorder,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    flexGrow: 0,
+    flexShrink: 0,
+    shadowColor: '#12271C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  categoryTabActive: {
+    backgroundColor: SS.green,
+    borderColor: SS.green,
+    minWidth: 56,
+  },
+  categoryTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: SS.tabText,
+    fontFamily: 'Inter-SemiBold',
+  },
+  categoryTabTextActive: {
+    color: '#FFFFFF',
+  },
+  serviceSection: {
+    paddingTop: 7,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EDF0EE',
+  },
+  sectionHeading: {
+    width: '100%',
+    height: 39,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 1,
+    marginBottom: 7,
+  },
+  sectionHeadingCollapsed: {
+    marginBottom: 0,
+  },
+  sectionAccent: {
+    width: 4,
+    height: 21,
+    borderRadius: 5,
+    backgroundColor: SS.sectionAccent,
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: SS.ink,
+    letterSpacing: -0.35,
+    flex: 1,
+    minWidth: 0,
+    fontFamily: 'Inter-Bold',
+  },
+  serviceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  serviceGridFour: {
+    gap: 7,
+  },
+  serviceCard: {
+    borderWidth: 1,
+    borderColor: SS.cardBorder,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 6,
+    shadowColor: '#12271C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  serviceCardThree: {
+    width: '31.6%',
+    minHeight: 106,
+    paddingTop: 10,
+    paddingBottom: 9,
+    paddingHorizontal: 5,
+  },
+  serviceCardFour: {
+    width: '23.5%',
+    minHeight: 88,
+    paddingTop: 9,
+    paddingBottom: 8,
+    paddingHorizontal: 3,
+  },
+  serviceCardSelected: {
+    borderWidth: 1.5,
+    borderColor: SS.green,
+    backgroundColor: SS.greenSelected,
+    shadowColor: SS.green,
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  serviceIcon: {
+    width: '100%',
+    height: 39,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  serviceIconFour: {
+    height: 35,
+  },
+  serviceName: {
+    fontSize: 12,
+    lineHeight: 15,
+    fontWeight: '500',
+    color: SS.serviceName,
+    textAlign: 'center',
+    minWidth: 0,
+  },
+  serviceNameFour: {
+    fontSize: 11,
+  },
+  selectionCheck: {
+    position: 'absolute',
+    right: -5,
+    top: -7,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: SS.green,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  noResults: {
+    paddingVertical: 32,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+  },
+  noResultsText: {
+    fontSize: 14,
+    color: SS.muted,
+    textAlign: 'center',
+  },
+  bottomPanel: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: SS.footerBorder,
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 10,
+    shadowColor: '#162A1E',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -3 },
+    elevation: 6,
+  },
+  selectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    gap: 8,
+  },
+  selectionCountText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: SS.selectionHeadingText,
+    fontFamily: 'Inter-Bold',
+  },
+  selectionCountBold: {
+    fontWeight: '800',
+  },
+  clearAllText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: SS.green,
+    fontFamily: 'Inter-SemiBold',
+    paddingVertical: 5,
+    paddingHorizontal: 5,
+  },
+  footerBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    minWidth: 0,
+  },
+  selectedChipsContainer: {
+    flex: 1,
+    minWidth: 0,
+  },
+  selectedChipsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingVertical: 3,
+    paddingHorizontal: 1,
+  },
+  chip: {
+    flexShrink: 0,
+    minHeight: 32,
+    paddingLeft: 10,
+    paddingRight: 7,
+    borderRadius: 18,
+    backgroundColor: SS.greenSoft,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  chipText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: SS.chipText,
+    fontFamily: 'Inter-SemiBold',
+  },
+  chipRemoveWrap: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  confirmButton: {
+    flexGrow: 0,
+    flexShrink: 0,
+    height: 48,
+    minWidth: 105,
+    paddingHorizontal: 12,
+    borderRadius: 13,
+    backgroundColor: SS.green,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    shadowColor: '#007841',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  confirmButtonDisabled: {
+    opacity: 0.45,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  confirmButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    fontFamily: 'Inter-Bold',
   },
   selectionBannerWrap: {
-    paddingBottom: spacing.sm,
+    paddingBottom: 8,
   },
   selectionBanner: {
     marginBottom: 0,
     justifyContent: 'center',
-  },
-
-  // Bottom CTA
-  bottomCta: {
-    position: 'relative',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.greyLight,
-    paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    marginBottom: 5,
-  },
-  selectedChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10 as any,
-    marginBottom: spacing.lg,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primaryLight,
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-    marginRight: 8,
-    // marginBottom: 8,
-  },
-  chipText: {
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: '700',
   },
 });
 

@@ -1,52 +1,35 @@
-import React from 'react';
-import { Modal, StyleSheet, View } from 'react-native';
-import Spinner from './Spinner';
-import { colors } from '../theme';
+import React, { useEffect, useRef } from 'react';
+import { useGlobalLoader } from '../contexts/GlobalLoaderContext';
 
 type BlockingLoaderProps = {
   visible: boolean;
+  /** Optional contextual message shown under the animated service icons. */
+  message?: string;
 };
 
-const BlockingLoader: React.FC<BlockingLoaderProps> = ({ visible }) => {
-  if (!visible) return null;
+/**
+ * Declarative wrapper around the global service-icon loader.
+ *
+ * The overlay itself is rendered exactly once by `GlobalLoaderProvider` at
+ * the app root, so this component renders nothing — it only forwards
+ * visibility changes to the shared reference counter. Existing usages
+ * (`<BlockingLoader visible={...} />`) keep working unchanged while gaining
+ * the centred, animated, app-wide overlay.
+ */
+const BlockingLoader: React.FC<BlockingLoaderProps> = ({ visible, message }) => {
+  const { showLoader, hideLoader } = useGlobalLoader();
+  const messageRef = useRef(message);
+  messageRef.current = message;
 
-  return (
-    <Modal
-      visible
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={() => {}}
-    >
-      <View style={styles.overlay} pointerEvents="auto">
-        <View style={styles.loader}>
-          <Spinner size="small" color={colors.primary} />
-        </View>
-      </View>
-    </Modal>
-  );
+  useEffect(() => {
+    if (!visible) return undefined;
+    showLoader(messageRef.current);
+    return () => {
+      hideLoader();
+    };
+  }, [visible, showLoader, hideLoader]);
+
+  return null;
 };
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
-  },
-  loader: {
-    width: 48,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: colors.white,
-    shadowColor: colors.black,
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 5,
-  },
-});
 
 export default BlockingLoader;

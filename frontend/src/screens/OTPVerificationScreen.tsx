@@ -12,6 +12,7 @@ import { SafeAreaView, SafeAreaProvider } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { verifyOtp } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { useGlobalLoader } from '../contexts/GlobalLoaderContext';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { useI18n } from '../i18n';
 import { WebView } from 'react-native-webview';
@@ -27,6 +28,7 @@ const OTPVerificationScreen: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, user } = useAuth();
+  const { showLoader, hideLoader } = useGlobalLoader();
   const [webOpen, setWebOpen] = useState(false);
   const [webUrl, setWebUrl] = useState<string>('');
   const [webTitle, setWebTitle] = useState<string>('');
@@ -40,6 +42,7 @@ const OTPVerificationScreen: React.FC = () => {
     }
     try {
       setLoading(true);
+      showLoader(t('loader.verifying'));
       const result: any = await verifyOtp(phone, Number(otp));
       if (result.needsRegistration) {
         navigation.navigate('NameOTPValidation', { phone, language: lang });
@@ -65,6 +68,7 @@ const OTPVerificationScreen: React.FC = () => {
       Alert.alert(t('common.error'), err.message || t('common.invalidOtp'));
     } finally {
       setLoading(false);
+      hideLoader();
     }
   };
 

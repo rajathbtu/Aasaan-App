@@ -1,21 +1,15 @@
 import React from 'react';
-import {
-  StyleProp,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ViewStyle,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { useI18n } from '../i18n';
-import { colors, radius, spacing, surfaces } from '../theme';
+import { colors, spacing } from '../theme';
 import { buildTimeAgo } from '../utils/commonUtils';
-import ServiceIcon from './ServiceIcon';
-import ActionButton from './ActionButton';
+import SvgIcon from '../assets/icons';
+import { AirConditioner } from '../assets/images';
 
-/** Accent orange used by the "boost" affordance on this card. */
-const BOOST_ORANGE = '#fb923c';
+const PRIMARY_GREEN = '#078b42';
+const CARD_BG = '#ffffff';
+const LOCATION_GREEN_BG = '#e8f8ee';
+const TAG_BG = '#f3f4f6';
 
 type WorkRequestCardProps = {
   request: any;
@@ -26,6 +20,17 @@ type WorkRequestCardProps = {
   onBoostPress?: () => void;
 };
 
+const TAG_CONFIG: Record<string, { icon: string; label: string }> = {
+  'AC Servicing': { icon: 'snowflake', label: 'AC Servicing' },
+  Repair: { icon: 'wrench', label: 'Repair' },
+  'Noise Issue': { icon: 'sound', label: 'Noise Issue' },
+  'Cooling Issue': { icon: 'sound', label: 'Cooling Issue' },
+  Installation: { icon: 'wrench', label: 'Installation' },
+  Maintenance: { icon: 'sliders', label: 'Maintenance' },
+  Cleaning: { icon: 'sliders', label: 'Cleaning' },
+  Plumbing: { icon: 'wrench', label: 'Plumbing' },
+  Electrical: { icon: 'bolt', label: 'Electrical' },
+};
 const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
   request,
   showExpanded = false,
@@ -37,272 +42,312 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
   const { t } = useI18n();
   const timeAgo = buildTimeAgo(t);
   const isClosed = request.status === 'closed' || request.status === 'completed';
-  const responseCount = request.responseCount ?? 0;
-  const hasResponses = responseCount > 0;
+  const accepted = request.acceptedByProvider;
+  const canCallCustomer = !request.callDisabledReason && request.phoneConsent === true && !!request.endUserPhone;
   const tags: string[] = Array.isArray(request.tags) ? request.tags : [];
-  const visibleTags = showExpanded ? tags : tags.slice(0, 3);
-  const extraTags = tags.length - visibleTags.length;
-  const responseTitleKey = responseCount === 1
-    ? 'userRequests.providerRespondedTitle'
-    : 'userRequests.providersRespondedTitle';
-  const responseSubtitleKey = responseCount === 1
-    ? 'userRequests.providerRespondedSubtitle'
-    : 'userRequests.providersRespondedSubtitle';
-  const requestTitle = typeof request.title === 'string' && request.title.trim()
-                            ? request.title.trim() : null;
+  const visibleTags = tags.slice(0, 3);
+  const requestTitle = typeof request.title === 'string' && request.title.trim() ? request.title.trim() : null;
   const serviceName = request.serviceName || request.service;
+  const locationName = request.locationName || t('userRequests.locationFallback');
+  const distanceLabel = request.distanceKm != null && request.distanceKm <= 1
+    ? t('spRequests.withinOneKm')
+    : request.distanceKm != null ? t('spRequests.distanceAway', { distance: request.distanceKm.toFixed(1) }) : null;
+  const timeLabel = timeAgo(request.createdAt);
+  const customerName = request.endUserName || t('requestDetails.endUser');
 
   return (
     <TouchableOpacity
       style={[styles.card, containerStyle]}
-      activeOpacity={onPress ? 0.8 : 1}
+      activeOpacity={0.95}
       disabled={!onPress}
       onPress={onPress}>
-      <View style={[styles.statusBadge, isClosed ? styles.statusBadgeCompleted : styles.statusBadgeActive]}>
-        <Text style={styles.statusText}>
-          {isClosed ? t('userRequests.statusCompleted') : t('userRequests.statusActive')}
-        </Text>
-      </View>
-      <View style={styles.cardHeader}>
-        <ServiceIcon
-          icon={request.serviceIcon}
-          color={request.serviceColor}
-          circleSize={40}
-          iconSize={20}
-          style={styles.cardIcon}
-        />
-        <View style={styles.cardHeaderText}>
-          <Text style={styles.cardTitle} numberOfLines={2}>
-            {requestTitle || serviceName}
-          </Text>
-          {requestTitle && (
-            <Text style={styles.serviceName} numberOfLines={1}>
-              {serviceName}
-            </Text>
-          )}
-          <View style={styles.metaRow}>
-            <Text style={styles.cardSubtitle} 
-                  numberOfLines={showExpanded ? undefined : 1}>
-              {timeAgo(request.createdAt)}
-              {' • '}
-              <Ionicons name="location-outline" size={12} color={colors.greyMuted} />
-              {request.locationName || t('userRequests.locationFallback')}
-            </Text>
+      <View style={styles.cardContent}>
+        <View style={styles.cardTop}>
+          <View style={styles.serviceImage}>
+            <AirConditioner size={96} />
           </View>
+          <View style={styles.titleWrap}>
+            <Text style={styles.requestTitle} numberOfLines={2}>
+              {requestTitle || serviceName}
+            </Text>
+            <Text style={styles.category}>{serviceName}</Text>
+            <View style={styles.metaRow}>
+              {distanceLabel && (
+                <View style={styles.metaItem}>
+                  <SvgIcon name="pin" size={13} color={PRIMARY_GREEN} />
+                  <Text style={styles.metaText}>{distanceLabel}</Text>
+                </View>
+              )}
+              <View style={styles.metaBar} />
+              <View style={styles.metaItem}>
+                <SvgIcon name="clock" size={13} color={colors.greyMuted} />
+                <Text style={styles.metaText}>{timeLabel}</Text>
+              </View>
+            </View>
+          </View>
+          {accepted && (
+            <View style={styles.interestedBadge}>
+              <SvgIcon name="check" size={10} color={PRIMARY_GREEN} />
+              <Text style={styles.interestedBadgeText}>{t('spRequests.acceptedChip')}</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.locationBar}>
+          <SvgIcon name="pin" size={15} color={PRIMARY_GREEN} style={{ marginRight: 4 }} />
+          <Text style={styles.locationText}>{locationName}</Text>
+          <TouchableOpacity style={styles.navigateBtn} accessibilityLabel="Navigate">
+            <SvgIcon name="navigation" size={16} color={PRIMARY_GREEN} />
+          </TouchableOpacity>
+        </View>
+
+        {visibleTags.length > 0 && (
+          <View style={styles.tagContainer}>
+            {visibleTags.map((tag) => {
+              const config = TAG_CONFIG[tag];
+              return (
+                <View key={tag} style={styles.tagChip}>
+                  <SvgIcon name={config?.icon as any} size={12} color={PRIMARY_GREEN} style={{ marginRight: 5 }} />
+                  <Text style={styles.tagText}>{config ? config.label : tag}</Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
+        <View style={styles.cardDivider} />
+
+        <View style={styles.customerActions}>
+          <View style={styles.customer}>
+            <View style={styles.customerAvatar}>
+              <SvgIcon name="user" size={24} color={colors.greyMuted} />
+            </View>
+            <View style={styles.customerInfo}>
+              <Text style={styles.customerNameText}>{customerName}</Text>
+              <Text style={styles.customerRoleText}>{t('requestDetails.customerLabel') || 'Customer'}</Text>
+            </View>
+          </View>
+          <View style={styles.verticalDivider} />
+          <TouchableOpacity style={[styles.actionButton, styles.callButton]} disabled={!canCallCustomer} activeOpacity={0.7}>
+            <SvgIcon name={canCallCustomer ? 'phone' : 'x'} size={16} color={canCallCustomer ? PRIMARY_GREEN : colors.greyMuted} />
+            <Text style={[styles.actionText, { color: canCallCustomer ? PRIMARY_GREEN : colors.greyMuted }]}>{t('spRequests.call')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionButton, styles.interestButton]} activeOpacity={0.9}>
+            <SvgIcon name="check" size={14} color={colors.white} style={{ marginRight: 6 }} />
+            <Text style={styles.interestText}>{accepted ? t('spRequests.acceptedChip') : t('spRequests.accept')}</Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      {visibleTags.length > 0 && (
-        <View style={styles.tagContainer}>
-          {visibleTags.map((tag: string, index: number) => (
-            <Text key={`${tag}-${index}`} style={styles.tag}>{tag}</Text>
-          ))}
-          {extraTags > 0 && (
-            <Text style={styles.tag}>{t('userRequests.moreItems', { count: extraTags })}</Text>
-          )}
-        </View>
-      )}
-
-      {showResponseStatus && (
-        <View style={[styles.statusBand, hasResponses ? styles.statusBandResponded : styles.statusBandEmpty]}>
-          {hasResponses ? (
-            <>
-              <View style={styles.responseBadge}>
-                <Ionicons name="people-outline" size={18} color={colors.primary} />
-              </View>
-              <View style={styles.statusBandText}>
-                <Text style={[styles.statusBandTitle, styles.statusBandTitleResponded]}>
-                  {t(responseTitleKey, { count: responseCount })}
-                </Text>
-                <Text style={styles.statusBandSubtitle} numberOfLines={1}>
-                  {t(responseSubtitleKey)}
-                </Text>
-              </View>
-              <View style={styles.bandChevron}>
-                <Ionicons name="chevron-forward" size={17} color={colors.primary} />
-              </View>
-            </>
-          ) : (
-            <>
-              <View style={styles.clockCircle}>
-                <Ionicons name="time-outline" size={20} color={BOOST_ORANGE} />
-              </View>
-              <View style={styles.statusBandText}>
-                <Text style={styles.statusBandTitle}>{t('userRequests.noResponsesTitle')}</Text>
-                <Text style={styles.statusBandSubtitle} numberOfLines={1}>
-                  {t('userRequests.noResponsesSubtitle')}
-                </Text>
-              </View>
-              {onBoostPress && (
-                <ActionButton
-                  buttonIcon="flash"
-                  buttonTitle={t('userRequests.boost')}
-                  buttonTitleColor={BOOST_ORANGE}
-                  backgroundColor={colors.white}
-                  onPress={onBoostPress}
-                  style={styles.boostButton}
-                />
-              )}
-            </>
-          )}
-        </View>
-      )}
     </TouchableOpacity>
   );
 };
-
 const styles = StyleSheet.create({
   card: {
-    ...surfaces.card,
-    marginHorizontal: spacing.md,
-    marginBottom: spacing.md,
-    padding: spacing.md,
-    position: 'relative',
+    backgroundColor: CARD_BG,
+    borderWidth: 1,
+    borderColor: '#e7ebee',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    marginBottom: 12,
+    shadowColor: '#1b2a38',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  cardIcon: {
-    alignSelf: 'flex-start',
-    marginBottom: 0,
-    marginRight: spacing.md,
-    marginTop: 2,
-  },
-  cardHeaderText: {
+  cardContent: {
     flex: 1,
   },
-  cardTitle: {
-    fontSize: 15,
+  cardTop: {
+    flexDirection: 'row',
+    gap: 11,
+    minHeight: 96,
+    position: 'relative',
+  },
+  serviceImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 17,
+    backgroundColor: '#e3f7fc',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+    flexShrink: 0,
+  },
+  titleWrap: {
+    flex: 1,
+    minWidth: 0,
+    paddingTop: 2,
+  },
+  requestTitle: {
+    fontSize: 17,
     fontFamily: 'Inter-Bold',
     color: colors.dark,
+    lineHeight: 20,
+    marginBottom: 6,
+    letterSpacing: -0.35,
   },
-  serviceName: {
-    marginTop: 2,
-    fontSize: 12,
+  category: {
+    fontSize: 13,
     fontFamily: 'Inter',
-    color: colors.grey,
+    color: '#53606c',
+    marginBottom: 8,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 3,
+    gap: 8,
+    color: '#303d48',
+    fontSize: 12,
   },
-  cardSubtitle: {
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  metaText: {
     fontSize: 12,
     fontFamily: 'Inter',
-    color: colors.greyMuted,
+    color: '#303d48',
+  },
+  metaBar: {
+    width: 1,
+    height: 17,
+    backgroundColor: '#b8c0c8',
+    marginHorizontal: 2,
+  },
+  interestedBadge: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    transform: [{ translateY: -1 }],
+    backgroundColor: '#e5f9e9',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  interestedBadgeText: {
+    fontSize: 11,
+    fontFamily: 'Inter-Bold',
+    fontWeight: '800',
+    color: '#087b32',
+  },
+  locationBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: LOCATION_GREEN_BG,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginTop: 16,
+  },
+  locationText: {
+    fontSize: 15,
+    fontFamily: 'Inter-Bold',
+    fontWeight: '800',
+    color: colors.dark,
     flexShrink: 1,
   },
-  statusBadge: {
-    position: 'absolute',
-    top: -8,
-    right: spacing.md,
-    zIndex: 1,
-    elevation: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: radius.xl,
-  },
-  statusBadgeActive: {
-    backgroundColor: '#d9f9e8',
-  },
-  statusBadgeCompleted: {
-    backgroundColor: colors.successLight,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.success,
+  navigateBtn: {
+    padding: 4,
   },
   tagContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'center',
-    marginTop: spacing.md,
-    gap: 6 as any,
+    marginTop: 16,
+    gap: 8,
   },
-  tag: {
-    backgroundColor: colors.primarySoft,
-    color: colors.dark,
-    fontSize: 12,
-    fontFamily: 'Inter',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: radius.xl,
-    overflow: 'hidden',
-  },
-  statusBand: {
+  tagChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.md,
-    borderRadius: radius.xl,
-    paddingVertical: spacing.sm,
-    paddingLeft: spacing.md,
-    paddingRight: spacing.sm,
+    backgroundColor: TAG_BG,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
   },
-  statusBandResponded: {
-    backgroundColor: colors.successLight,
-  },
-  statusBandEmpty: {
-    backgroundColor: '#fff7ed',
-  },
-  statusBandText: {
-    flex: 1,
-    marginLeft: spacing.md,
-    marginRight: spacing.sm,
-  },
-  statusBandTitle: {
-    fontSize: 13,
-    fontFamily: 'Inter-Bold',
+  tagText: {
+    fontSize: 12,
+    fontFamily: 'Inter',
     color: colors.dark,
   },
-  statusBandTitleResponded: {
-    color: colors.primary,
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#e0e5e9',
+    marginVertical: 8,
   },
-  statusBandSubtitle: {
-    fontSize: 12,
+  customerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  customer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  customerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e7edf2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customerInfo: {
+    marginLeft: 8,
+  },
+  customerNameText: {
+    fontSize: 15,
+    fontFamily: 'Inter-Bold',
+    fontWeight: '700',
+    color: colors.dark,
+  },
+  customerRoleText: {
+    fontSize: 11,
     fontFamily: 'Inter',
     color: colors.grey,
+    marginTop: 1,
   },
-  responseBadge: {
+  verticalDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: '#b8c0c8',
+  },
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 36,
-    height: 30,
-    paddingHorizontal: 10,
-    borderRadius: 15,
-    backgroundColor: colors.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    minWidth: 90,
   },
-  clockCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
+  callButton: {
+    borderWidth: 1,
+    borderColor: '#e0e5e9',
+    backgroundColor: '#ffffff',
+    boxShadow: '0 2px 5px #00000010',
   },
-  boostButton: {
-    // Outline pill: keep the orange edge, tinted background and tighter
-    // padding this card has always used rather than ActionButton's defaults.
-    borderColor: BOOST_ORANGE,
-    borderRadius: radius.xl,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
+  interestButton: {
+    backgroundColor: PRIMARY_GREEN,
+    borderColor: '#078a3d',
   },
-  bandChevron: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: spacing.sm,
+  actionText: {
+    fontSize: 13,
+    fontFamily: 'Inter-Bold',
+    fontWeight: '600',
+    marginLeft: 8,
   },
-  bandChevronEmpty: {
-    backgroundColor: '#fff7ed',
+  interestText: {
+    fontSize: 13,
+    fontFamily: 'Inter-Bold',
+    fontWeight: '700',
+    color: '#ffffff',
+    marginLeft: 6,
   },
 });
 

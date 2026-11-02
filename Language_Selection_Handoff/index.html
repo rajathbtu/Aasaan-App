@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>Aasaanly — Choose Your Language</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="screen">
+    <header class="topbar">
+      <button class="icon-button" aria-label="Go back" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <button class="current-language" type="button" aria-label="Current language English">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/></svg>
+        <span>English</span><span class="chevron"></span>
+      </button>
+    </header>
+
+    <section class="intro" aria-labelledby="page-title">
+      <div class="language-art" aria-hidden="true">
+        <svg viewBox="0 0 320 210" role="img">
+          <defs>
+            <linearGradient id="mint" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#e8fbf2"/><stop offset="1" stop-color="#c9f2df"/>
+            </linearGradient>
+            <linearGradient id="green" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#16c784"/><stop offset="1" stop-color="#008b50"/>
+            </linearGradient>
+            <filter id="softShadow" x="-30%" y="-30%" width="160%" height="170%">
+              <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#087e4d" flood-opacity=".14"/>
+            </filter>
+          </defs>
+          <path d="M38 102C42 59 80 38 118 43c24-35 68-40 101-14 26 21 42 26 63 39 39 25 43 75 5 101-26 18-57 16-84 12-46 15-91 8-122-7-36-17-49-38-43-72Z" fill="url(#mint)"/>
+          <path d="M52 42l-17-12M65 30l-4-20M39 61l-20 2" fill="none" stroke="#0aa86d" stroke-width="5" stroke-linecap="round"/>
+          <g filter="url(#softShadow)">
+            <rect x="83" y="48" width="91" height="91" rx="20" fill="url(#green)" transform="rotate(5 128 93)"/>
+            <text x="128" y="111" fill="white" font-size="57" font-weight="800" text-anchor="middle" font-family="Arial,sans-serif">A</text>
+            <rect x="158" y="111" width="105" height="78" rx="18" fill="#fff" stroke="#00a76b" stroke-width="5" transform="rotate(4 210 150)"/>
+            <path d="M239 174l17 23 3-28" fill="#fff" stroke="#00a76b" stroke-width="5" stroke-linejoin="round"/>
+            <text x="211" y="165" fill="#078d56" font-size="48" font-weight="800" text-anchor="middle" font-family="Arial,sans-serif">अ</text>
+          </g>
+          <path d="M194 58c28 0 45 16 51 40" fill="none" stroke="#078d56" stroke-width="9" stroke-linecap="round"/>
+          <path d="M237 89l12 13 10-15" fill="none" stroke="#078d56" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M126 164c-23-1-37-13-43-32" fill="none" stroke="#078d56" stroke-width="9" stroke-linecap="round"/>
+          <path d="M84 144l-2-14-13 8" fill="none" stroke="#078d56" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h1 id="page-title">Choose Your <span>Language</span></h1>
+      <p>Select the language you're most comfortable with</p>
+    </section>
+
+    <section class="language-list" aria-label="Available languages">
+      <button class="language-card selected" data-language="en" aria-pressed="true">
+        <span class="language-mark mark-en">EN</span>
+        <span class="language-copy"><strong>English</strong><small>English</small></span>
+        <span class="selection selected-check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7"/></svg></span>
+      </button>
+      <button class="language-card" data-language="hi" aria-pressed="false">
+        <span class="language-mark mark-hi">हि</span>
+        <span class="language-copy"><strong>Hindi</strong><small>हिन्दी</small></span>
+        <span class="selection" aria-hidden="true"></span>
+      </button>
+      <button class="language-card" data-language="gu" aria-pressed="false">
+        <span class="language-mark mark-gu">ગુ</span>
+        <span class="language-copy"><strong>Gujarati</strong><small>ગુજરાતી</small></span>
+        <span class="selection" aria-hidden="true"></span>
+      </button>
+      <button class="language-card" data-language="mr" aria-pressed="false">
+        <span class="language-mark mark-mr">म</span>
+        <span class="language-copy"><strong>Marathi</strong><small>मराठी</small></span>
+        <span class="selection" aria-hidden="true"></span>
+      </button>
+      <button class="language-card" data-language="bn" aria-pressed="false">
+        <span class="language-mark mark-bn">বা</span>
+        <span class="language-copy"><strong>Bengali</strong><small>বাংলা</small></span>
+        <span class="selection" aria-hidden="true"></span>
+      </button>
+      <button class="language-card" data-language="ta" aria-pressed="false">
+        <span class="language-mark mark-ta">த</span>
+        <span class="language-copy"><strong>Tamil</strong><small>தமிழ்</small></span>
+        <span class="selection" aria-hidden="true"></span>
+      </button>
+    </section>
+
+    <footer class="footer">
+      <button class="continue-button" type="button">Continue <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

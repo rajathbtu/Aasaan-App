@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
-import { View, ActivityIndicator, Platform } from 'react-native';
+import { View, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { initialWindowMetrics, SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +13,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { locationManager } from './src/services/LocationManager';
 import { NotificationCountProvider, useNotificationCount } from './src/contexts/NotificationCountContext';
 import { ToastProvider } from './src/contexts/ToastContext';
+import { GlobalLoaderProvider } from './src/contexts/GlobalLoaderContext';
+import AnimatedServiceIconLoader from './src/components/AnimatedServiceIconLoader';
 import { markNotificationRead } from './src/api';
 import { colors, radius, spacing } from './src/theme';
 import * as Notifications from 'expo-notifications';
@@ -159,9 +161,11 @@ function RootNavigator() {
   }, [user]);
 
   if (loading) {
+    // Session is being restored from secure storage — branded loader instead
+    // of a bare spinner (still full-screen and blocking by nature).
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" />
+        <AnimatedServiceIconLoader showBrand size={112} />
       </View>
     );
   }
@@ -360,7 +364,7 @@ export default function App() {
   if (!fontsLoaded) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" />
+        <AnimatedServiceIconLoader showBrand size={112} />
       </View>
     );
   }
@@ -370,17 +374,19 @@ export default function App() {
       <NotificationCountProvider>
         <NotificationHandler navigationReady={navigationReady} />
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-          <ToastProvider>
-            <NavigationContainer
-              ref={navigationRef}
-              onReady={() => setNavigationReady(true)}
-              linking={linking as any}
-              documentTitle={documentTitle as any}
-            >
-              <StatusBar style="dark" />
-              <RootNavigator />
-            </NavigationContainer>
-          </ToastProvider>
+          <GlobalLoaderProvider>
+            <ToastProvider>
+              <NavigationContainer
+                ref={navigationRef}
+                onReady={() => setNavigationReady(true)}
+                linking={linking as any}
+                documentTitle={documentTitle as any}
+              >
+                <StatusBar style="dark" />
+                <RootNavigator />
+              </NavigationContainer>
+            </ToastProvider>
+          </GlobalLoaderProvider>
         </SafeAreaProvider>
       </NotificationCountProvider>
     </AuthProvider>

@@ -24,7 +24,7 @@ export function createRazorpayOptions(options: PaymentOptions): RazorpayWebPayme
     amount: options.amount,
     currency: 'INR',
     order_id: options.orderId,
-    name: 'Aasaan',
+    name: 'aasaanly',
     description: options.description,
     image: 'https://i.imgur.com/3g7nmJC.png', // Your app logo URL
     prefill: {

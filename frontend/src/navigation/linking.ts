@@ -114,7 +114,7 @@ export const linking = {
  * fall back to this map, and finally to the app name.
  */
 const SCREEN_TITLES: Record<string, string> = {
-  Launch: 'Aasaan',
+  Launch: 'aasaanly',
   LanguageSelection: 'Select Language',
   MobileInput: 'Enter Mobile Number',
   OTPVerification: 'Verify OTP',
@@ -143,5 +143,5 @@ export const documentTitle = {
   formatter: (
     options: { title?: string } | undefined,
     route: { name?: string } | undefined
-  ): string => options?.title || (route?.name ? SCREEN_TITLES[route.name] : undefined) || 'Aasaan',
+  ): string => options?.title || (route?.name ? SCREEN_TITLES[route.name] : undefined) || 'aasaanly',
 };

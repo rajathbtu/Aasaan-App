@@ -7,9 +7,9 @@
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
     "splash": {
-      "image": "./assets/icon.png",
+      "image": "./assets/splash/brand-lockup-exact.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#FBFDFC"
     },
     "updates": {
       "fallbackToCacheTimeout": 0

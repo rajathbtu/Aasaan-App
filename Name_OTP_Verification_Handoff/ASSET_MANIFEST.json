@@ -1,0 +1,20 @@
+{
+  "project": "Aasaanly Name & OTP Verification",
+  "source_of_truth": "assets/reference-approved-screen.png",
+  "illustration": "assets/illustrations/name-verification-illustration.png",
+  "preview": "index.html",
+  "states": [
+    "initial-state.html",
+    "filled-state.html",
+    "verified-state-reference.html"
+  ],
+  "icons": [
+    "assets/icons/arrow-left.svg",
+    "assets/icons/user.svg",
+    "assets/icons/phone.svg",
+    "assets/icons/shield-check.svg",
+    "assets/icons/headset.svg",
+    "assets/icons/lock.svg"
+  ],
+  "notes": "Use native app controls in production; HTML is a handoff preview."
+}

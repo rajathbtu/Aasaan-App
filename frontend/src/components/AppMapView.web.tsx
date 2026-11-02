@@ -151,10 +151,10 @@ const AppMapView = forwardRef<MapViewType, MapViewProps>((props, ref) => {
             map,
             center: { lat: serviceArea.center.latitude, lng: serviceArea.center.longitude },
             radius: serviceArea.radius,
-            fillColor: '#2563eb',
+            fillColor: '#079b5c',
             fillOpacity: 0.12,
-            strokeColor: '#2563eb',
-            strokeOpacity: 0.7,
+            strokeColor: '#079b5c',
+            strokeOpacity: 0.75,
             strokeWeight: 2,
           });
         }

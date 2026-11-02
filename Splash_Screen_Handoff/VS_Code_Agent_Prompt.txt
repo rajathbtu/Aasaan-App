@@ -1,0 +1,13 @@
+Implement the Aasaanly splash screen using this corrected handoff.
+
+Before editing, inspect the current app framework, native splash configuration, startup/bootstrap flow, and existing official Aasaanly brand assets. Report the current implementation and planned files before making changes.
+
+Source of truth: assets/splash-approved-reference.png. Match its composition and spacing. Do not use the old v1 approximated SVG wordmark or redraw the cityscape. The supplied *_exact.png files are crops from the approved final image, not vector originals. If the repository already contains official Aasaanly logo/vector assets, prefer those for crisp rendering; otherwise use the approved raster reference/crops rather than inventing a different logo.
+
+Do not stretch artwork. Preserve aspect ratio and safe areas. The reference contains a sample status bar baked into its top edge: production must use the native OS status bar and must not display a duplicate fake status bar. Recreate the screen content below the native status bar to match the reference proportions. Do not include the floating developer/tools gear, buttons, or loading spinner.
+
+Keep the background pale white/mint, green aasaanly wordmark and accent strokes, tagline, curved mint underline, city/home/trees illustration, Made in India footer with flag and laurel, and layered bottom waves. Keep all these elements in the same order and visual hierarchy.
+
+Use index.html only as a browser preview. Implement the actual splash in the app's native/appropriate splash mechanism. Avoid arbitrary splash delays; transition when initialization is complete.
+
+After implementation, run build/lint checks, test 360x800, 360x780, 393x873 and 432x960, and report changed files, asset usage, platform-specific steps, and any remaining mismatch.

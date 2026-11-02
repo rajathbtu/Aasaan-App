@@ -1,0 +1,20 @@
+Implement the Aasaanly “Confirm Your Service Area” screen using `SERVICE_AREA_UI_UX_SPEC.md` and `design-reference/final-approved-service-area.png` as the source of truth.
+
+The approved design has a simple profile-style back/title header, NO logo, NO subheader, a location search field directly below the header, an interactive map with selected marker and radius overlay, a visible “Pick My Current Location” button, a Selected Location card with address + Change action, a Service Radius card with 5/10/15/20 km choices, and a fixed bottom “Confirm Service Area” CTA. Keep the 360–390 dp phone width; do not stretch.
+
+Before editing, inspect the existing service-area screen, map SDK, location permission flow, geocoding/autocomplete, state model, API contract, onboarding navigation and shared Aasaanly design components. Reuse the current implementation and backend contracts. Do not invent API endpoints, payload fields or navigation routes, and do not add another map SDK without a clear reason.
+
+Implement natively in the existing Expo React Native app, not a WebView. Use the supplied SVG icons where appropriate. The included `assets/map/jhansi-map-placeholder.svg` is ONLY a visual prototype placeholder; do NOT ship it as a production map. Production must use the app's existing map provider with real tiles, marker, camera and a radius circle overlay.
+
+Functional requirements:
+- Search autocomplete selects a real place and updates coordinates, formatted address, map camera, marker and radius overlay together.
+- “Pick My Current Location” requests foreground location permission, handles denied/permanently denied/location-disabled/error cases, obtains GPS coordinates and reverse-geocodes the address.
+- “Change” opens/focuses the existing location picker/search.
+- Map drag/camera settle updates the selected point according to existing app behaviour.
+- Radius chips are single-select; changing radius updates the circle overlay in meters while storing the value in the backend's expected units.
+- Recenter animates to the selected coordinate. Keep map-layers control only if the current SDK supports it.
+- Confirm validates selection, prevents duplicate taps, shows loading/errors, persists via existing service-area API and navigates only after success.
+
+Keep CTA fixed and safe-area aware. Use existing Aasaanly colors, typography, spacing and shared components. Test 360 dp and 390 dp, short screens, search, GPS permission branches, map drag, all radius values and save failures. Run lint, type-check and relevant tests.
+
+At completion, report changed files, map provider reused, permission/geocoding flow, state model and radius unit mapping, API/navigation mapping, tests, and any deviations from the screenshot with reasons.

@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radius, spacing } from '../theme';
 
 const darkenColor = (color: string, amount = 0.14) => {
-  const hex = color.replace('#', '');
+  const hex = (color || '').replace('#', '');
   if (!/^[\da-f]{6}$/i.test(hex)) return colors.greyBorder;
 
   const channels = [0, 2, 4].map((offset) =>

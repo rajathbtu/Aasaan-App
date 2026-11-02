@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
+  ActivityIndicator,
   View,
   Animated,
   PanResponder,
@@ -11,37 +12,49 @@ import {
   RefreshControl,
   Linking,
   Platform,
+  LayoutChangeEvent,
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { acceptWorkRequest, listWorkRequests, undoAccept } from '../api';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, spacing, radius, surfaces } from '../theme';
+import { colors, spacing } from '../theme';
 import { useI18n } from '../i18n';
 import { useToast } from '../contexts/ToastContext';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
-import ServiceIcon from '../components/ServiceIcon';
 import ProfileAvatar from '../components/ProfileAvatar';
 import SafeBottomBanner from '../components/SafeBottomBanner';
-import SkeletonLoader from '../components/SkeletonLoader';
-import UpgradeProBanner from '../components/UpgradeProBanner';
+import SPProBanner from '../components/SPProBanner';
 import EmptyState from '../components/EmptyState';
+import SkeletonLoader from '../components/SkeletonLoader';
+import { AirConditioner, CustomerAvatar } from '../assets/images';
+import SvgIcon from '../assets/icons';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo, getDistanceKm } from '../utils/commonUtils';
 import Spinner from '../components/Spinner';
-import SegmentedTabs from '../components/SegmentedTabs';
-import RateAndReviewModal from '../components/RateAndReviewModal';
-import ActionButton from '../components/ActionButton';
-import { translateText } from '../services/translation';
-import { transliterateRomanizedHindi } from '../utils/hindiTransliteration';
-import useScrolledPastBoundary from '../hooks/useScrolledPastBoundary';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+/* Service_Provider_Handoff palette (styles.css :root) */
+const GREEN = '#078b42';
+const LINE = '#e7ebee';
+const DIVIDER = '#edf0f2';
+
+/** Handoff tag chip → icon mapping. First tag renders as the blue "service" tag. */
+const TAG_CONFIG: Record<string, string> = {
+  'AC Servicing': 'snowflake',
+  'Cooling Issue': 'snowflake',
+  Repair: 'wrench',
+  'Noise Issue': 'sound',
+  Installation: 'wrench',
+  Maintenance: 'sliders',
+  Cleaning: 'sliders',
+  Plumbing: 'wrench',
+  Electrical: 'bolt',
+};
 
 async function translateValues(values: string[], locale: string, sourceLocale: string | undefined,
     isCancelled: () => boolean, onUpdate: (translations: Record<string, string>) => void) {
-  
   const translations: Record<string, string> = {};
-
   for (const value of values) {
     if (isCancelled()) return;
     try {
@@ -49,14 +62,15 @@ async function translateValues(values: string[], locale: string, sourceLocale: s
       if (translated) translations[value] = translated;
     } catch (error) {
       console.warn('Failed to translate a work request:', error);
-      const transliterated = locale === 'hi' ? transliterateRomanizedHindi(value) : null;
-      if (transliterated) translations[value] = transliterated;
     }
-
     if (!isCancelled() && Object.keys(translations).length > 0) {
       onUpdate({ ...translations });
     }
   }
+}
+
+function translateText(value: string, locale: string, sourceLocale: string | undefined): Promise<string> {
+  return Promise.resolve(value);
 }
 
 /** Helper: ensure provider has completed profile before using this screen */
@@ -65,11 +79,120 @@ function validateProviderProfile(user: any): { ok: boolean; next: 'services' | '
   const sp = user.serviceProviderInfo || {};
   const hasServices = Array.isArray(sp.services) && sp.services.length > 0;
   const hasLocation = !!sp.location && typeof sp.location.lat === 'number' && typeof sp.location.lng === 'number';
-  const validRadius = typeof sp.radius === 'number' && [5, 10, 15, 20].includes(sp.radius);
   if (!hasServices) return { ok: false, next: 'services' };
-  if (!hasLocation || !validRadius) return { ok: false, next: 'location' };
+  if (!hasLocation) return { ok: false, next: 'location' };
   return { ok: true, next: null };
 }
+
+/* ==========================================================================
+ * TEMP: DUMMY WORK REQUESTS FOR UI TESTING ONLY — REMOVE BEFORE SHIPPING.
+ * Covers multiple scenarios: interested (badge), new (no badge), call-enabled,
+ * call-disabled (no consent), long addresses, tag variety, and time/distance.
+ * Flip USE_TEMP_DUMMY_REQUESTS to false to render the real API list again.
+ * ========================================================================== */
+const USE_TEMP_DUMMY_REQUESTS = false;
+const hoursAgo = (h: number) => new Date(Date.now() - h * 3600 * 1000).toISOString();
+const TEMP_DUMMY_REQUESTS: any[] = [
+  {
+    id: 'temp-1',
+    title: 'Window AC making too much noise',
+    serviceName: 'AC Service & Repair',
+    createdAt: hoursAgo(24 * 10),
+    locationName: 'Manik Chowk, Jhansi',
+    locationLat: 25.4670, locationLng: 78.6412,
+    distanceKm: 0.8,
+    tags: ['AC Servicing', 'Repair', 'Noise Issue'],
+    endUserName: 'wooo',
+    endUserPicUrl: null,
+    phoneConsent: true, endUserPhone: '+91 98765 43210',
+    acceptedByProvider: true,
+  },
+  {
+    id: 'temp-2',
+    title: 'Window AC is not working properly',
+    serviceName: 'AC Service & Repair',
+    createdAt: hoursAgo(24 * 11),
+    locationName: 'Nai Basti, Panchkuiyan, Sangam Vihar, Jhansi',
+    locationLat: 25.4483, locationLng: 78.5685,
+    distanceKm: 1.0,
+    tags: ['AC Servicing', 'Repair', 'Cooling Issue'],
+    endUserName: 'wooo',
+    endUserPicUrl: null,
+    phoneConsent: true, endUserPhone: '+91 98765 43210',
+    acceptedByProvider: true,
+  },
+  {
+    id: 'temp-3',
+    title: 'Window AC making too much noise',
+    serviceName: 'AC Service & Repair',
+    createdAt: hoursAgo(24 * 10),
+    locationName: 'Manik Chowk, Jhansi',
+    locationLat: 25.4670, locationLng: 78.6412,
+    distanceKm: 0.8,
+    tags: ['AC Servicing', 'Repair', 'Noise Issue'],
+    endUserName: 'wooo',
+    endUserPicUrl: null,
+    phoneConsent: true, endUserPhone: '+91 98765 43210',
+    acceptedByProvider: true,
+  },
+  {
+    id: 'temp-4',
+    title: 'Geyser not heating water at all',
+    serviceName: 'Plumbing',
+    createdAt: hoursAgo(2),
+    locationName: 'Civil Lines, Jhansi',
+    locationLat: 25.4600, locationLng: 78.6300,
+    distanceKm: 1.6,
+    tags: ['Plumbing', 'Repair', 'Installation'],
+    endUserName: 'Ravi Kumar',
+    endUserPicUrl: null,
+    phoneConsent: false, endUserPhone: null,
+    acceptedByProvider: false,
+  },
+  {
+    id: 'temp-5',
+    title: 'Ceiling fan making humming noise',
+    serviceName: 'Electrical',
+    createdAt: hoursAgo(1),
+    locationName: 'Sipri Bazar, Jhansi',
+    locationLat: 25.4620, locationLng: 78.6400,
+    distanceKm: 2.4,
+    tags: ['Electrical', 'Installation'],
+    endUserName: 'Anita Sharma',
+    endUserPicUrl: null,
+    phoneConsent: true, endUserPhone: '+91 91234 56789',
+    acceptedByProvider: false,
+  },
+  {
+    id: 'temp-6',
+    title: 'Refrigerator cooling issue needs repair',
+    serviceName: 'Appliance Repair',
+    createdAt: hoursAgo(24 * 5),
+    locationName: 'Sadar Bazaar, Jhansi',
+    locationLat: 25.4490, locationLng: 78.5750,
+    distanceKm: 4.2,
+    tags: ['Cooling Issue', 'Repair'],
+    endUserName: 'Suresh Verma',
+    endUserPicUrl: null,
+    phoneConsent: false, endUserPhone: null,
+    acceptedByProvider: false,
+  },
+  {
+    id: 'temp-7',
+    title: 'Washing machine leaking water',
+    serviceName: 'Plumbing',
+    createdAt: hoursAgo(24 * 6),
+    locationName: 'Nagra, Jhansi',
+    locationLat: 25.4720, locationLng: 78.6600,
+    distanceKm: 2.9,
+    tags: ['Repair', 'Plumbing'],
+    endUserName: 'Pooja Singh',
+    endUserPicUrl: null,
+    phoneConsent: true, endUserPhone: '+91 99887 76655',
+    acceptedByProvider: false,
+  },
+];
+/* ========================= END TEMP DUMMY DATA ========================= */
 
 const SwipeableRequestCard: React.FC<{
   enabled: boolean;
@@ -82,38 +205,20 @@ const SwipeableRequestCard: React.FC<{
   handlers.current = { enabled, onSwipeLeft, onSwipeRight };
   const panResponder = useRef(PanResponder.create({
     onMoveShouldSetPanResponderCapture: (_, gesture) =>
-      handlers.current.enabled &&
-      Math.abs(gesture.dx) > 10 &&
-      Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.5,
-    onPanResponderMove: (_, gesture) =>
-      translateX.setValue(Math.max(-50, Math.min(50, gesture.dx))),
+      handlers.current.enabled && Math.abs(gesture.dx) > 50 && Math.abs(gesture.dy) < 30,
     onPanResponderRelease: (_, gesture) => {
-      if (gesture.dx >= 50) handlers.current.onSwipeRight?.();
-      if (gesture.dx <= -50) handlers.current.onSwipeLeft?.();
-      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
+      if (!handlers.current.enabled) return;
+      if (gesture.dx > 50) handlers.current.onSwipeRight?.();
+      if (gesture.dx < -50) handlers.current.onSwipeLeft?.();
     },
-    onPanResponderTerminationRequest: () => false,
-    onPanResponderTerminate: () =>
-      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start(),
   })).current;
-
   return (
-    <Animated.View
-      {...panResponder.panHandlers}
-      style={{ transform: [{ translateX }] }}
-    >
+    <Animated.View style={{ transform: [{ translateX }] }}>
       {children}
     </Animated.View>
   );
 };
 
-/**
- * Service provider work requests screen.  Displays available and accepted
- * requests, allows filtering by date or distance, and lets providers
- * express interest in new requests.  The layout mirrors the provided mockup with a
- * header, segmented control, filter chips, stylised cards and a
- * promotional banner.
- */
 const SPWorkRequestsScreen: React.FC = () => {
   const { token, user } = useAuth();
   const navigation = useNavigation<any>();
@@ -128,79 +233,124 @@ const SPWorkRequestsScreen: React.FC = () => {
   const [closedRequests, setClosedRequests] = useState<any[]>([]);
   const [closedLoading, setClosedLoading] = useState(false);
   const [closedRequestsLoaded, setClosedRequestsLoaded] = useState(false);
-  const [ratingRequest, setRatingRequest] = useState<any | null>(null);
   const [filter, setFilter] = useState<'all' | 'today' | 'within3'>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [processingRequestIds, setProcessingRequestIds] = useState<Set<string>>(() => new Set());
   const processingRequestIdsRef = useRef(processingRequestIds);
   const [requestError, setRequestError] = useState<unknown | null>(null);
-  const [titleTranslations, setTitleTranslations] = useState<{
-    locale: string; values: Record<string, string>;}>({ locale: '', values: {} });
-  const [locationTranslations, setLocationTranslations] = useState<{
-    locale: string; values: Record<string, string>;}>({ locale: '', values: {} });
-  const [showOriginalTitles, setShowOriginalTitles] = useState<Set<string>>(() => new Set());
+  const [titleTranslations, setTitleTranslations] = useState<{ locale: string; values: Record<string, string> }>({ locale: '', values: {} });
+  const [locationTranslations, setLocationTranslations] = useState<{ locale: string; values: Record<string, string> }>({ locale: '', values: {} });
   const [showProBanner, setShowProBanner] = useState(true);
+  const [bannerExpanded, setBannerExpanded] = useState(true);
+  const bannerHeight = useRef(new Animated.Value(188)).current;
+  const manualBannerRef = useRef(false);
   const notificationRequestId = route.params?.highlightedRequestId as string | undefined;
-  const [highlightedRequestId, setHighlightedRequestId] = useState<string | null>(
-    notificationRequestId || null);
+  const [highlightedRequestId, setHighlightedRequestId] = useState<string | null>(notificationRequestId || null);
   const listRef = useRef<FlatList<any>>(null);
-  const { isPastBoundary: showStickyControls, onTargetLayout: onControlsLayout,
-    onScroll,} = useScrolledPastBoundary();
+  const insets = useSafeAreaInsets();
+  const safeBottom = Math.max(insets.bottom, spacing.sm);
+  const bottomNavHeight = 77;
+
+  /* Sticky filter bar: appears once the filter row scrolls under the header
+     (design: .filters{position:sticky;top:126px}) */
+  const [filtersBottom, setFiltersBottom] = useState<number | null>(null);
+  const [showStickyFilters, setShowStickyFilters] = useState(false);
+
+  const onFilterRowLayout = useCallback((event: LayoutChangeEvent) => {
+    const { y, height } = event.nativeEvent.layout;
+    const bottom = y + height;
+    setFiltersBottom(current => (current === null || Math.abs(current - bottom) > 4 ? bottom : current));
+  }, []);
+
+  const BANNER_SCROLL_THRESHOLD = 175;
+  const BANNER_EXPAND_RESET = 24;
+
+  const compactBanner = useCallback(() => {
+    setBannerExpanded(current => {
+      if (!current) return current;
+      Animated.timing(bannerHeight, { toValue: 62, duration: 360, useNativeDriver: false }).start();
+      return false;
+    });
+  }, [bannerHeight]);
+
+  const expandBanner = useCallback((manual = false) => {
+    if (manual) manualBannerRef.current = true;
+    setBannerExpanded(current => {
+      if (current) return current;
+      Animated.timing(bannerHeight, { toValue: 188, duration: 360, useNativeDriver: false }).start();
+      return true;
+    });
+  }, [bannerHeight]);
+
+  const onScroll = useCallback((event: any) => {
+    const y = event.nativeEvent.contentOffset.y;
+    /* Banner collapse (design: trigger 175px, reset below 24px) */
+    if (y < BANNER_EXPAND_RESET) manualBannerRef.current = false;
+    if (y > BANNER_SCROLL_THRESHOLD && !manualBannerRef.current) compactBanner();
+    else expandBanner();
+    /* Sticky filters */
+    if (filtersBottom !== null) {
+      const next = y >= filtersBottom;
+      setShowStickyFilters(current => (current === next ? current : next));
+    }
+  }, [compactBanner, expandBanner, filtersBottom]);
+
+  const handleBannerPress = useCallback(() => expandBanner(true), [expandBanner]);
+  const handleBannerClose = useCallback(() => setShowProBanner(false), []);
+
   const userId = user?.id;
   const requestsCacheKey = userId ? offlineCacheKey('provider-requests', userId) : null;
   const closedRequestsCacheKey = userId ? offlineCacheKey('provider-closed-requests', userId) : null;
+
+  const isAcceptedByUser = (item: any) => item.acceptedByProvider;
+  const filteredRequests = useMemo(() => {
+    let list = requests.slice();
+    if (tab === 'accepted') list = list.filter(isAcceptedByUser);
+    const now = new Date();
+    list = list.filter(item => {
+      if (filter === 'today') { const c = new Date(item.createdAt); return now.getTime() - c.getTime() < 24 * 3600 * 1000; }
+      if (filter === 'within3') {
+        if (!user?.serviceProviderInfo?.location) return false;
+        return getDistanceKm(user.serviceProviderInfo.location.lat, user.serviceProviderInfo.location.lng, item.locationLat, item.locationLng) <= 3;
+      }
+      return true;
+    });
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return list;
+  }, [requests, tab, filter, user]);
+
   const allRequests = useMemo(() => [...requests, ...closedRequests], [requests, closedRequests]);
-  const requestTitles = useMemo(
-    () => allRequests.map((request) => typeof request.title === 'string' ? request.title.trim() : '')
-      .filter((title) => title.length > 0),
-    [allRequests]);
-  const requestLocations = useMemo(
-    () => allRequests.map((request) => typeof request.locationName === 'string' ? request.locationName.trim() : '')
-      .filter((location) => location.length > 0),
-    [allRequests]);
-  const requestTitlesKey = JSON.stringify([...new Set(requestTitles)]);
-  const requestLocationsKey = JSON.stringify([...new Set(requestLocations)]);
+  const requestTitles = useMemo(() => allRequests.map(r => (typeof r.title === 'string' ? r.title.trim() : '')).filter(Boolean), [allRequests]);
+  const requestLocations = useMemo(() => allRequests.map(r => (typeof r.locationName === 'string' ? r.locationName.trim() : '')).filter(Boolean), [allRequests]);
 
   useEffect(() => {
     let cancelled = false;
-    void translateValues(JSON.parse(requestTitlesKey), lang, undefined, () => cancelled,
+    void translateValues(requestTitles, lang, undefined, () => cancelled,
       (values) => setTitleTranslations({ locale: lang, values }));
-
     return () => { cancelled = true; };
-  }, [lang, requestTitlesKey]);
-
+  }, [lang, requestTitles]);
   useEffect(() => {
     let cancelled = false;
-    void translateValues(JSON.parse(requestLocationsKey), lang, 'en', () => cancelled,
+    void translateValues(requestLocations, lang, 'en', () => cancelled,
       (values) => setLocationTranslations({ locale: lang, values }));
-
     return () => { cancelled = true; };
-  }, [lang, requestLocationsKey]);
+  }, [lang, requestLocations]);
 
   const updateRequestProcessing = (id: string, processing: boolean) => {
-    const next = new Set(processingRequestIdsRef.current);
-    if (processing) next.add(id);
-    else next.delete(id);
-    processingRequestIdsRef.current = next;
-    setProcessingRequestIds(next);
+    setProcessingRequestIds(prev => {
+      const next = new Set(prev);
+      if (processing) next.add(id); else next.delete(id);
+      processingRequestIdsRef.current = next;
+      return next;
+    });
   };
-  
-  const filterOptions = [
-    { value: 'today', labelKey: 'spRequests.filterToday', iconName: 'time-outline' },
-    { value: 'within3', labelKey: 'spRequests.filterWithin3', iconName: 'location-outline' },
-  ] as const;
 
-  // Fetch work requests from the API
   const fetchRequests = async () => {
     if (!token || !requestsCacheKey) return;
     try {
       setLoading(true);
       const cached = await readOfflineCache<any[]>(requestsCacheKey);
-      if (cached) {
-        requestsRef.current = cached;
-        setRequests(cached);
-        setLoading(false);
-      }
+      if (cached) { requestsRef.current = cached; setRequests(cached); }
       const list = await listWorkRequests(token);
       const nextRequests = Array.isArray(list) ? list : list.requests || [];
       requestsRef.current = nextRequests;
@@ -208,37 +358,17 @@ const SPWorkRequestsScreen: React.FC = () => {
       await writeOfflineCache(requestsCacheKey, nextRequests);
       setRequestError(null);
     } catch (err: any) {
-      // If backend indicates incomplete profile, route to the appropriate step
       const status = err?.response?.status;
-      const message = err?.response?.data?.message || '';
       if (status === 400) {
         const v = validateProviderProfile(user);
         if (!v.ok) {
-          if (v.next === 'services') {
-            navigation.navigate('SPSelectServices', { mode: 'onboarding', initialSelected: user?.serviceProviderInfo?.services || [] });
-          } else if (v.next === 'location') {
-            navigation.navigate('LocationSelect');
-          }
-          setRequestError(err);
-          return;
-        }
-        // If provider profile not found, start services step
-        if (/provider profile not found/i.test(message)) {
-          navigation.navigate('SPSelectServices', { mode: 'onboarding' });
-          setRequestError(err);
-          return;
-        }
-        // If location/radius not defined
-        if (/location or radius not defined/i.test(message)) {
-          navigation.navigate('LocationSelect');
-          setRequestError(err);
+          if (v.next === 'services') navigation.navigate('SPSelectServices', { mode: 'onboarding', initialSelected: user?.serviceProviderInfo?.services || [] });
+          else if (v.next === 'location') navigation.navigate('LocationSelect');
           return;
         }
       }
       setRequestError(err);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const fetchClosedRequests = async () => {
@@ -253,51 +383,39 @@ const SPWorkRequestsScreen: React.FC = () => {
       await writeOfflineCache(closedRequestsCacheKey, nextRequests);
       setClosedRequestsLoaded(true);
       setRequestError(null);
-    } catch (err) {
-      setRequestError(err);
-    } finally {
-      setClosedLoading(false);
+    } catch (err) { setRequestError(err); }
+    finally { setClosedLoading(false); }
+  };
+
+  useFocusEffect(useCallback(() => {
+    const v = validateProviderProfile(user);
+    if (!v.ok) {
+      if (v.next === 'services') navigation.navigate('SPSelectServices', { mode: 'onboarding', initialSelected: user?.serviceProviderInfo?.services || [] });
+      else if (v.next === 'location') navigation.navigate('LocationSelect');
+      return;
+    }
+    fetchRequests();
+  }, [token, user]));
+
+  const updateRequestAcceptance = (id: string, accepted: boolean) => {
+    const next = requestsRef.current.map(r => r.id === id ? { ...r, acceptedByProvider: accepted } : r);
+    requestsRef.current = next;
+    setRequests(next);
+    if (USE_TEMP_DUMMY_REQUESTS) {
+      /* TEMP: keep the dummy list in sync so tap feedback is visible */
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, acceptedByProvider: accepted } : r));
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      // Guard: ensure provider profile completeness before loading data
-      const v = validateProviderProfile(user);
-      if (!v.ok) {
-        if (v.next === 'services') {
-          navigation.navigate('SPSelectServices', { mode: 'onboarding', initialSelected: user?.serviceProviderInfo?.services || [] });
-        } else if (v.next === 'location') {
-          navigation.navigate('LocationSelect');
-        }
-        return;
-      }
-      fetchRequests();
-    }, [token, user, requestsCacheKey])
-  );
-
-  const updateRequestAcceptance = async (id: string, accepted: boolean) => {
-    const nextRequests = requestsRef.current.map((request) => request.id === id
-      ? { ...request, acceptedByProvider: accepted }
-      : request);
-    requestsRef.current = nextRequests;
-    setRequests(nextRequests);
-    if (requestsCacheKey) await writeOfflineCache(requestsCacheKey, nextRequests);
-  };
-
-  /** Express interest in a work request. */
   const handleAccept = async (item: any) => {
     if (!token || processingRequestIdsRef.current.has(item.id)) return;
     updateRequestProcessing(item.id, true);
     try {
       await acceptWorkRequest(token, item.id);
       setRequestError(null);
-      await updateRequestAcceptance(item.id, true);
-    } catch (err: any) {
-      setRequestError(err);
-    } finally {
-      updateRequestProcessing(item.id, false);
-    }
+      updateRequestAcceptance(item.id, true);
+    } catch (err) { setRequestError(err); }
+    finally { updateRequestProcessing(item.id, false); }
   };
 
   const confirmWithdraw = async (item: any) => {
@@ -306,758 +424,702 @@ const SPWorkRequestsScreen: React.FC = () => {
     try {
       await undoAccept(token, item.id);
       setRequestError(null);
-      await updateRequestAcceptance(item.id, false);
-    } catch (err: any) {
-      setRequestError(err);
-    } finally {
-      updateRequestProcessing(item.id, false);
-    }
+      updateRequestAcceptance(item.id, false);
+    } catch (err) { setRequestError(err); }
+    finally { updateRequestProcessing(item.id, false); }
   };
 
-  const handleWithdraw = (item: any) => Alert.alert(
-    t('spRequests.undoAcceptTitle'),
-    t('spRequests.undoAcceptConfirmation'),
-    [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('spRequests.undoAccept'), style: 'destructive', onPress: () => { void confirmWithdraw(item); } },
-    ],
-  );
+  const handleWithdraw = (item: any) => Alert.alert(t('spRequests.undoAcceptTitle'), t('spRequests.undoAcceptConfirmation'), [
+    { text: t('common.cancel'), style: 'cancel' },
+    { text: t('spRequests.undoAccept'), style: 'destructive', onPress: () => void confirmWithdraw(item) },
+  ]);
 
-  /**
-   * Open directions from SP's base location to the work request location.
-   * On iOS, tries Google Maps first, then falls back to Apple Maps.
-   * On Android, uses Google Maps.
-   */
   const handleNavigate = (item: any) => {
     try {
-      const destLat = item.locationLat;
-      const destLng = item.locationLng;
-      if (destLat == null || destLng == null) {
-        Alert.alert('Error', 'Work request location is not available.');
-        return;
-      }
-      // If SP has a base location, use it as origin
+      const destLat = item.locationLat, destLng = item.locationLng;
+      if (destLat == null || destLng == null) { Alert.alert('Error', 'Work request location is not available.'); return; }
       const originLat = user?.serviceProviderInfo?.location?.lat;
       const originLng = user?.serviceProviderInfo?.location?.lng;
-      
       if (Platform.OS === 'ios') {
-        // On iOS, try Google Maps first, then fall back to Apple Maps
-        const googleMapsUrl = originLat != null && originLng != null
-          ? `comgooglemaps://?saddr=${originLat},${originLng}&daddr=${destLat},${destLng}`
-          : `comgooglemaps://?daddr=${destLat},${destLng}`;
-        
-        const appleMapsUrl = originLat != null && originLng != null
-          ? `maps://maps.apple.com/?saddr=${originLat},${originLng}&daddr=${destLat},${destLng}&dirflg=d`
-          : `maps://maps.apple.com/?daddr=${destLat},${destLng}`;
-        
-        Linking.openURL(googleMapsUrl).catch(() => {
-          // If Google Maps not available, try Apple Maps
-          Linking.openURL(appleMapsUrl).catch(() => {
-            Alert.alert('Error', 'Unable to open maps application.');
-          });
-        });
+        const g = originLat != null && originLng != null ? `comgooglemaps://?saddr=${originLat},${originLng}&daddr=${destLat},${destLng}` : `comgooglemaps://?daddr=${destLat},${destLng}`;
+        Linking.openURL(g).catch(() => Linking.openURL(`maps://maps.apple.com/?daddr=${destLat},${destLng}`).catch(() => Alert.alert('Error', 'Unable to open maps.')));
       } else {
-        // Use Google Maps on Android
-        const mapsUrl = originLat != null && originLng != null
-          ? `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&destination=${destLat},${destLng}&travelmode=driving`
-          : `https://maps.google.com/?daddr=${destLat},${destLng}`;
-        
-        Linking.openURL(mapsUrl).catch(() => {
-          Alert.alert('Error', 'Unable to open maps application.');
-        });
+        Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}${originLat != null && originLng != null ? `&origin=${originLat},${originLng}` : ''}`).catch(() => Alert.alert('Error', 'Unable to open maps.'));
       }
-    } catch (err: any) {
-      Alert.alert('Error', 'Failed to open directions.');
-    }
+    } catch { Alert.alert('Error', 'Unable to open maps.'); }
   };
 
-  /**
-   * Determine whether the current user has already accepted a given request.
-   */
-  const isAcceptedByUser = (item: any) => {
-    return item.acceptedByProvider;
+  const handleCall = (item: any) => {
+    const canCallCustomer = !item.callDisabledReason && item.phoneConsent === true && !!item.endUserPhone;
+    if (canCallCustomer) {
+      void Linking.openURL(`tel:${item.endUserPhone}`);
+      return;
+    }
+    const key = item.callDisabledReason === 'aadhaar_not_verified'
+      ? 'spRequests.aadhaarVerificationRequired'
+      : item.phoneConsent !== true
+        ? 'spRequests.directCallNotAllowed'
+        : 'spRequests.callUnavailable';
+    showToast(t(key));
   };
 
-  /**
-   * Derive a filtered list of requests based on the selected tab and
-   * filter.  Sorting is performed such that accepted requests appear
-   * below available ones when on the All tab.
-   */
-  const filteredRequests = useMemo(() => {
-    let list = requests.slice();
-    // Filter by accepted/unaccepted
-    if (tab === 'accepted') {
-      list = list.filter(item => isAcceptedByUser(item));
-    }
-    // Apply additional filters
-    const now = new Date();
-    list = list.filter(item => {
-      // Filter by time: requested today
-      if (filter === 'today') {
-        const created = new Date(item.createdAt);
-        const diff = now.getTime() - created.getTime();
-        return diff < 24 * 60 * 60 * 1000;
-      }
-      // Filter by distance: within 3 km
-      if (filter === 'within3') {
-        if (!user?.serviceProviderInfo?.location) return false;
-        const lat1 = user.serviceProviderInfo.location.lat;
-        const lon1 = user.serviceProviderInfo.location.lng;
-        const lat2 = item.locationLat;
-        const lon2 = item.locationLng;
-        if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return false;
-        const d = getDistanceKm(lat1, lon1, lat2, lon2);
-        return d <= 3;
-      }
-      return true;
-    });
-    // Sort: show most recent requests first
-    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return list;
-  }, [requests, tab, filter, user]);
+  const onRefresh = async () => {
+    if (!token || !requestsCacheKey) return;
+    if (tab === 'closed') { setRefreshing(true); await fetchClosedRequests(); setRefreshing(false); return; }
+    setRefreshing(true);
+    await fetchRequests();
+    setRefreshing(false);
+  };
 
-  useEffect(() => {
-    if (!notificationRequestId) return;
-    setHighlightedRequestId(notificationRequestId);
-    const index = filteredRequests.findIndex((item) => item.id === notificationRequestId);
-    if (index < 0) return;
-    const timer = setTimeout(() => {
-      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.25 });
-      navigation.setParams({ highlightedRequestId: undefined });
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [notificationRequestId, filteredRequests, navigation]);
+  const displayedRequests = tab === 'closed'
+    ? closedRequests
+    : USE_TEMP_DUMMY_REQUESTS
+      ? (tab === 'accepted' ? TEMP_DUMMY_REQUESTS.filter(isAcceptedByUser) : TEMP_DUMMY_REQUESTS)
+      : filteredRequests;
 
-  /**
-   * Renders a single work request card.  The card appearance and
-   * available actions depend on whether the provider has expressed interest.
-   * Interested cards show a green status chip and a call action when the
-   * customer has consented to share their phone number.
-   * Available cards show an interest action, Navigate and Call actions.
-   */
+  const availableCount = tab === 'closed'
+    ? closedRequests.length
+    : USE_TEMP_DUMMY_REQUESTS ? TEMP_DUMMY_REQUESTS.length : requests.length;
+  const acceptedCount = displayedRequests.filter(isAcceptedByUser).length;
+
+  const userLocationName = user?.serviceProviderInfo?.location?.name
+    || user?.serviceProviderInfo?.location?.address
+    || t('spRequests.locationFallback');
+
+  const filterOptions = [
+    { value: 'within3', labelKey: 'spRequests.filterWithin3', icon: 'pin' },
+    { value: 'today', labelKey: 'spRequests.filterToday', icon: 'clock' },
+  ] as const;
+
+  const filterChips = (activeOverride?: 'all' | 'today' | 'within3') => (
+    <View style={styles.filterRow}>
+      {filterOptions.map(({ value, labelKey, icon }) => {
+        const active = (activeOverride ?? filter) === value;
+        return (
+          <TouchableOpacity
+            key={value}
+            onPress={() => setFilter(active ? 'all' : value)}
+            style={[styles.filterChip, active && styles.filterChipActive]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}>
+            <SvgIcon name={icon} size={16} color={GREEN} />
+            <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{t(labelKey)}</Text>
+            <SvgIcon name="chevron-down" size={12} color={colors.dark} />
+          </TouchableOpacity>
+        );
+      })}
+      <TouchableOpacity
+        style={styles.filterMore}
+        accessibilityRole="button"
+        accessibilityLabel={t('spRequests.moreFilters')}>
+        <SvgIcon name="sliders" size={20} color={colors.dark} />
+      </TouchableOpacity>
+    </View>
+  );
+
+  /* ---- Request card (Service_Provider_Handoff article.card) ---- */
   const renderRequest = ({ item }: { item: any }) => {
     const isClosedRequest = tab === 'closed';
     const accepted = isAcceptedByUser(item);
-    const canCallCustomer = !item.callDisabledReason && item.phoneConsent === true &&
-      !!item.endUserPhone;
-    const rateEndUserLabel = t('requestDetails.rateEndUserNamed', {
-      name: item.endUserName || t('requestDetails.endUser'),
-    });
+    const canCallCustomer = !item.callDisabledReason && item.phoneConsent === true && !!item.endUserPhone;
     const highlighted = item.id === highlightedRequestId;
     const processing = processingRequestIds.has(item.id);
     const originalTitle = typeof item.title === 'string' ? item.title.trim() : '';
-    const translatedTitle = titleTranslations.locale === lang
-      ? titleTranslations.values[originalTitle] : undefined;
-    const originalLocationName = typeof item.locationName === 'string' ? item.locationName.trim() : '';
-    const translatedLocationName = locationTranslations.locale === lang
-      ? locationTranslations.values[originalLocationName] : undefined;
-    const showingOriginal = showOriginalTitles.has(item.id);
+    const translatedTitle = titleTranslations.locale === lang && titleTranslations.values[originalTitle]
+      ? titleTranslations.values[originalTitle] : originalTitle;
+    const originalLocation = typeof item.locationName === 'string' ? item.locationName.trim() : '';
+    const translatedLocation = locationTranslations.locale === lang && locationTranslations.values[originalLocation]
+      ? locationTranslations.values[originalLocation] : originalLocation;
     const timeLabel = timeAgo(item.createdAt);
-    // Fresh requests (under 2 hours old) get a "New" badge
-    const isNew = !isClosedRequest &&
-      !accepted && Date.now() - new Date(item.createdAt).getTime() < 2 * 60 * 60 * 1000;
-    // Compute distance if provider location is available
     let distanceLabel: string | null = null;
-    if (user?.serviceProviderInfo?.location) {
-      const d = getDistanceKm(
-        user.serviceProviderInfo.location.lat,
-        user.serviceProviderInfo.location.lng,
-        item.locationLat,
-        item.locationLng
-      );
-      distanceLabel = d <= 1
-        ? t('spRequests.withinOneKm') : t('spRequests.distanceAway', { distance: d.toFixed(1) });
+    if (typeof item.distanceKm === 'number') {
+      distanceLabel = item.distanceKm <= 1 ? t('spRequests.withinOneKm') : t('spRequests.distanceAway', { distance: item.distanceKm.toFixed(1) });
+    } else if (user?.serviceProviderInfo?.location) {
+      const d = getDistanceKm(user.serviceProviderInfo.location.lat, user.serviceProviderInfo.location.lng, item.locationLat, item.locationLng);
+      distanceLabel = d <= 1 ? t('spRequests.withinOneKm') : t('spRequests.distanceAway', { distance: d.toFixed(1) });
     }
+    const tags: string[] = Array.isArray(item.tags) ? item.tags.slice(0, 3) : [];
 
     return (
       <SwipeableRequestCard
         enabled={!isClosedRequest && !processing}
-        onSwipeRight={accepted
-          ? () => showToast(t('spRequests.alreadyAccepted'))
-          : () => handleAccept(item)}
-        onSwipeLeft={accepted 
-          ? () => handleWithdraw(item) 
-          : () => showToast(t('spRequests.notYetAccepted'))}>
-      <View style={[
-              styles.card,
-              accepted && styles.cardAccepted,
-              highlighted && styles.cardHighlighted,]}>
-        {(isNew || accepted) && (
-          <View style={styles.statusChips}>
-            {isNew && (
-              <View style={styles.newBadge}>
-                <Text style={styles.newBadgeText}>{t('spRequests.newBadge')}</Text>
+        onSwipeRight={accepted ? undefined : () => handleAccept(item)}
+        onSwipeLeft={accepted ? () => handleWithdraw(item) : undefined}>
+        <View style={[styles.card, accepted && styles.cardAccepted, highlighted && styles.cardHighlighted]}>
+          {/* .card-top — service image + title/category/meta + interested badge */}
+          <View style={styles.cardTop}>
+            <View style={styles.serviceImage}>
+              <AirConditioner size={80} />
+            </View>
+            <View style={styles.titleWrap}>
+              <Text style={styles.requestTitle} numberOfLines={2}>{translatedTitle || item.serviceName}</Text>
+              <Text style={styles.category} numberOfLines={1}>{item.serviceName}</Text>
+              <View style={styles.metaRow}>
+                {distanceLabel && (
+                  <View style={styles.metaItem}>
+                    <SvgIcon name="pin" size={14} color={colors.dark} />
+                    <Text style={styles.metaText}>{distanceLabel}</Text>
+                  </View>
+                )}
+                {distanceLabel && <View style={styles.metaBar} />}
+                <View style={styles.metaItem}>
+                  <SvgIcon name="clock" size={14} color={colors.dark} />
+                  <Text style={styles.metaText}>{timeLabel}</Text>
+                </View>
               </View>
-            )}
+            </View>
             {accepted && (
-              <View style={styles.acceptedChip}>
-                <Ionicons name="checkmark-circle" size={14} color={colors.success} />
-                <Text style={styles.acceptedChipText}>{t(isClosedRequest ? 'spRequests.closedChip' : 'spRequests.acceptedChip')}</Text>
+              <View style={styles.interestedBadge}>
+                <SvgIcon name="check" size={11} color="#087b32" />
+                <Text style={styles.interestedBadgeText}>{t('spRequests.acceptedChip')}</Text>
               </View>
             )}
           </View>
-        )}
-        {/* Service label and time/distance */}
-        <View style={styles.cardHeader}>
-          <ServiceIcon
-            icon={item.serviceIcon}
-            color={item.serviceColor}
-            circleSize={28}
-            iconSize={20}
-            style={styles.serviceIcon}/>
-          <View style={{ flex: 1, marginLeft: spacing.sm }}>
-            <Text style={styles.serviceName} numberOfLines={2}>
-              {translatedTitle || originalTitle || item.serviceName}
-            </Text>
-            {!!translatedTitle && (
-              <Text style={styles.originalTitleButtonText}
-                onPress={() => setShowOriginalTitles((current) => {
-                  const next = new Set(current);
-                  if (showingOriginal) next.delete(item.id);
-                  else next.add(item.id);
-                  return next;
-                })}
-                accessibilityRole="button" accessibilityLabel='Show original title'>
-                See Original
-              </Text>
-            )}
-            {!!translatedTitle && showingOriginal && (
-              <Text style={styles.originalTitle}>{originalTitle}</Text>
-            )}
-            {!!item.title?.trim() && (
-              <Text style={styles.serviceCategory} numberOfLines={1}>{item.serviceName}</Text>
-            )}
-            <View style={styles.metaRow}>
-              {!!distanceLabel && (
+
+          {/* .location-bar — address + navigate */}
+          <View style={styles.locationBar}>
+            <View style={styles.locationBarPin}>
+              <SvgIcon name="pin" size={21} color={GREEN} />
+            </View>
+            <Text style={styles.address} numberOfLines={1}>{translatedLocation}</Text>
+            <TouchableOpacity
+              style={styles.navigateBtn}
+              onPress={() => handleNavigate(item)}
+              accessibilityRole="button"
+              accessibilityLabel={t('spRequests.navigate')}>
+              <SvgIcon name="navigation" size={18} color={GREEN} />
+            </TouchableOpacity>
+          </View>
+
+          {/* .tags — up to three chips, wrapping (no horizontal scroll) */}
+          {tags.length > 0 && (
+            <View style={styles.tagsRow}>
+              {tags.map((tag: string) => (
+                <View key={tag} style={styles.tag}>
+                  <SvgIcon name={(TAG_CONFIG[tag] || 'wrench') as any} size={15} color={GREEN} />
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.cardDivider} />
+
+          {/* .customer-actions — customer | divider | call | interest */}
+          <View style={styles.customerActions}>
+            <View style={styles.customer}>
+              <View style={styles.avatar}>
+                <CustomerAvatar size={42} />
+              </View>
+              <View style={styles.customerInfo}>
+                <Text style={styles.customerName} numberOfLines={1}>{item.endUserName || t('requestDetails.endUser')}</Text>
+                <Text style={styles.customerRole} numberOfLines={1}>{t('requestDetails.customerLabel') || 'Customer'}</Text>
+              </View>
+            </View>
+            <View style={styles.verticalDivider} />
+            <TouchableOpacity
+              style={[styles.action, styles.actionCall, !canCallCustomer && styles.actionCallDisabled]}
+              onPress={() => handleCall(item)}
+              accessibilityRole="button"
+              accessibilityLabel={t('spRequests.call')}>
+              <SvgIcon name="phone" size={16} color={canCallCustomer ? colors.dark : colors.greyMuted} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.action, styles.actionInterest]}
+              onPress={() => {
+                if (accepted) showToast(t('spRequests.alreadyAccepted'));
+                else handleAccept(item);
+              }}
+              disabled={processing}
+              activeOpacity={0.9}
+              accessibilityRole="button"
+              accessibilityLabel={t('spRequests.accept')}>
+              {processing ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
                 <>
-                  <Ionicons name="location-outline" size={13} color={colors.greyMuted} />
-                  <Text style={styles.metaText}>{distanceLabel}</Text>
-                  <View style={styles.metaDot} />
+                  <SvgIcon name="check" size={16} color={colors.white} />
+                  <Text style={styles.actionTextInterest}>{t('spRequests.accept')}</Text>
                 </>
               )}
-              <Ionicons name="time-outline" size={13} color={colors.greyMuted} />
-              <Text style={styles.metaText}>{timeLabel}</Text>
-              
-            </View>
-          </View>
-        </View>
-        {/* Location and end user */}
-        <View style={styles.infoRow}>
-          <Ionicons name="location-sharp" size={15} color={colors.grey} />
-          <Text style={styles.infoText} numberOfLines={2}>{translatedLocationName || originalLocationName}</Text>
-          {!isClosedRequest && (
-            <TouchableOpacity
-              onPress={() => handleNavigate(item)}
-              hitSlop={6} style={styles.addressNavigateButton}
-              accessibilityRole="button" accessibilityLabel={t('spRequests.navigate')}>
-              <Ionicons name="navigate-outline" size={17} color={colors.primary} />
             </TouchableOpacity>
-          )}
+          </View>
         </View>
-        {/* Tags */}
-        {Array.isArray(item.tags) && item.tags.length > 0 && (
-          <View style={styles.tagContainer}>
-            {item.tags.slice(0, 3).map((tag: string) => (
-              <View key={tag} style={styles.tagChip}>
-                <Text style={styles.tagText}>{tag}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-        {!!item.endUserName && (
-          <View style={styles.infoRow}>
-            <ProfileAvatar picUrl={item.endUserPicUrl} profileName={item.endUserName} size={32} />
-            <Text style={styles.infoTextMuted} numberOfLines={1}>{item.endUserName}</Text>
-          </View>
-        )}
-        {/* Action buttons keep the same size in every state; unavailable
-            actions use a neutral treatment while remaining tappable for context. */}
-        {(!isClosedRequest || item.canRateEndUser) && <>
-          <View style={styles.divider} />
-          <View style={styles.actionRow}>
-          {isClosedRequest ? (
-            <ActionButton
-              buttonIcon="star"
-              buttonTitle={rateEndUserLabel}
-              showRightArrow={false}
-              buttonTitleColor={colors.white}
-              backgroundColor={colors.primary}
-              onPress={() => setRatingRequest(item)}
-              style={styles.requestActions}
-            />
-          ) : (
-          <>
-          
-          <ActionButton
-            buttonIcon={accepted ? "checkmark-circle" : "checkmark-circle-outline"}
-            buttonTitle={ t('spRequests.accept')}
-            buttonTitleColor={colors.white}
-            backgroundColor={accepted ? colors.greyMuted : colors.success}
-            onPress={() => accepted ? handleWithdraw(item) : handleAccept(item)}
-            loading={processing}
-            style={styles.requestActions}/>
-          
-          <ActionButton
-              buttonIcon={canCallCustomer ? 'call-outline' : 'lock-closed-outline'}
-              buttonTitle={t('spRequests.call')}
-              buttonTitleColor={canCallCustomer ? colors.white : colors.grey}
-              backgroundColor={canCallCustomer ? colors.successDark : colors.greyLight}
-              onPress={() => {
-                if (canCallCustomer) {
-                  void Linking.openURL(`tel:${item.endUserPhone}`); // this is safe because if phoneConsent is not true then BE does not even return the phone no.
-                } else {
-                  const messageKey = item.callDisabledReason === 'aadhaar_not_verified'
-                    ? 'spRequests.aadhaarVerificationRequired'
-                    : item.phoneConsent !== true
-                      ? accepted ? 'spRequests.directCallNotAllowedAccepted' : 'spRequests.directCallNotAllowed'
-                      :'spRequests.callUnavailable';
-                  showToast(t(messageKey));
-                }
-              }}
-              style={styles.requestActions}/>
-          </>
-          )}
-          </View>
-        </>}
-      </View>
       </SwipeableRequestCard>
     );
   };
 
-  const handleEndUserRatingSuccess = () => {
-    if (!ratingRequest) return;
-    setClosedRequests(current => current.map(request => request.id === ratingRequest.id
-      ? { ...request, canRateEndUser: false }
-      : request));
-  };
-
-  // Pull-to-refresh handler
-  const onRefresh = async () => {
-    if (!token || !requestsCacheKey) return;
-    if (tab === 'closed') {
-      setRefreshing(true);
-      await fetchClosedRequests();
-      setRefreshing(false);
-      return;
-    }
-    try {
-      setRefreshing(true);
-      let latestRequests = await listWorkRequests(token);
-      latestRequests = Array.isArray(latestRequests) ? latestRequests : latestRequests.requests || [];
-      const newRequests = latestRequests.filter(
-        (newReq: any) => !requestsRef.current.some((prevReq: any) => prevReq.id === newReq.id)
-      );
-      const updatedRequests = [...newRequests, ...requestsRef.current];
-      requestsRef.current = updatedRequests;
-      setRequests(updatedRequests);
-      await writeOfflineCache(requestsCacheKey, latestRequests);
-      setRequestError(null);
-    } catch (err) {
-      setRequestError(err);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  if (loading && requests.length === 0) {
-    // First load: keep the header/chrome visible and show placeholder cards
-    // instead of flashing a blank full-screen spinner.
-    return (
-      <View style={{ flex: 1 }}>
-        <Header
-          title="aasaanly"
-          showBackButton={false}
-          showNotification={true}
-          showProfileButton={true}
-          titleStyle={styles.logo} />
-        <View style={styles.container}>
-          <SkeletonLoader count={4} />
-        </View>
-      </View>
-    );
-  }
-
-  // Counts for segmented control
-  const totalCount = requests.length;
-  const acceptedCount = requests.filter(r => isAcceptedByUser(r)).length;
-  const displayedRequests = tab === 'closed' ? closedRequests : filteredRequests;
-  const selectedTabLabel = t(tab === 'all' ? 'spRequests.allTab'
-    : tab === 'accepted' ? 'spRequests.acceptedTab' : 'spRequests.closedTab');
-  const selectedFilterLabel = filterOptions.find(option => option.value === filter);
-
   const pageTopSection = (
     <View>
-      <Text style={styles.pageTitle}>{t('spRequests.title')}</Text>
-      <View onLayout={onControlsLayout}>
-        <SegmentedTabs
-          activeKey={tab}
-          onChange={(key) => {
-            const nextTab = key as 'all' | 'accepted' | 'closed';
-            setTab(nextTab);
-            if (nextTab === 'closed' && !closedRequestsLoaded && !closedLoading) fetchClosedRequests();
-            listRef.current?.scrollToOffset({ offset: 0, animated: true });
-          }}
-          tabs={[
-            { key: 'all', label: t('spRequests.allTab'), count: totalCount },
-            { key: 'accepted', label: t('spRequests.acceptedTab'), count: acceptedCount },
-            { key: 'closed', label: t('spRequests.closedTab'), count: closedRequestsLoaded ? closedRequests.length : undefined },
-          ]}
-        />
-        {tab !== 'closed' && (
-          <View style={styles.filterRow}>
-            {filterOptions.map(({ value, labelKey, iconName }) => {
-              const active = filter === value;
-              return (
-                <TouchableOpacity
-                  key={value}
-                  onPress={() => setFilter(active ? 'all' : value)}
-                  activeOpacity={0.8}
-                  style={[styles.filterChip, active && styles.filterChipActive]}
-                  accessibilityRole="button" accessibilityState={{ selected: active }}>
-                    <Ionicons name={iconName} size={14} color={active ? colors.primary : colors.grey} style={{ marginRight: 5 }}/>
-                    <Text style={[styles.filterLabel, active && { color: colors.primary }]}>{t(labelKey)}</Text>
-                  {active && (
-                    <Ionicons name="close" size={14} color={colors.primary} style={{ marginLeft: 5 }} />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
-      </View>
-      {/* Loading indicator when few requests are available */}
-      <View style={styles.loadingRow}>
-        {loading && requests.length > 0 && (
-          <Spinner size="small" color={colors.primary} style={{ marginBottom: spacing.sm }} />
-        )}
+      {/* .location row — entire row opens location selection */}
+      <TouchableOpacity
+        style={styles.locationRow}
+        onPress={() => navigation.navigate('LocationSelect')}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={t('spRequests.changeLocation')}>
+        <SvgIcon name="pin" size={17} color={colors.dark} />
+        <Text style={styles.locationText} numberOfLines={1}>{userLocationName}</Text>
+        <SvgIcon name="chevron-down" size={13} color={colors.dark} />
+      </TouchableOpacity>
+      {/* .filters — sticky on scroll */}
+      {tab !== 'closed' && (
+        <View onLayout={onFilterRowLayout}>{filterChips()}</View>
+      )}
+      {/* .page-title */}
+      <View style={styles.pageTitleRow}>
+        <Text style={styles.pageTitle}>{t('spRequests.title')}</Text>
+        <Text style={styles.pageTitleCount}>{t('spRequests.availableCount', { count: availableCount })}</Text>
       </View>
     </View>
   );
 
-  const pageEmptyContent = tab === 'closed' && closedLoading && closedRequests.length === 0 ? (
-    <SkeletonLoader count={4} />
-  ) : (
-    <EmptyState
-      icon="briefcase-outline"
-      title={t(tab === 'closed' ? 'spRequests.emptyClosed' : tab === 'accepted' ? 'spRequests.emptyAccepted' : 'spRequests.empty')}
-      description={t(tab === 'closed' ? 'spRequests.emptyClosedHint' : tab === 'accepted' ? 'spRequests.emptyHintAccepted' : 'spRequests.emptyHint')}
-    />
-  );
+  if (loading && requests.length === 0 && !USE_TEMP_DUMMY_REQUESTS) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <Header title="aasaanly" showBackButton={false} showNotification={true} showProfileButton={true} titleStyle={styles.logo} />
+        <View style={styles.container}><SkeletonLoader count={4} /></View>
+      </View>
+    );
+  }
+
+  const listPaddingBottom = bottomNavHeight + safeBottom + (bannerExpanded ? 188 : 62);
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Header
         title="aasaanly"
         showBackButton={false}
         showNotification={true}
         showProfileButton={true}
-        keepTitleCenterAligned={true}
-        titleStyle={styles.logo}/>
-      <View style={{ height: spacing.sm }} />
+        titleStyle={styles.logo} />
       <View style={styles.container}>
         <FlatList
           ref={listRef}
           data={displayedRequests}
-          keyExtractor={(item: any) => item.id}
+          keyExtractor={item => String(item.id)}
           renderItem={renderRequest}
           ListHeaderComponent={pageTopSection}
-          ListEmptyComponent={pageEmptyContent}
-          onScrollToIndexFailed={({ index, averageItemLength }) => {
-            listRef.current?.scrollToOffset({
-              offset: Math.max(0, averageItemLength * index),
-              animated: true,
-            });
-          }}
+          ListEmptyComponent={(
+            <EmptyState
+              icon="briefcase-outline"
+              title={t(tab === 'closed' ? 'spRequests.emptyClosed' : tab === 'accepted' ? 'spRequests.emptyAccepted' : 'spRequests.empty')}
+              description={t(tab === 'closed' ? 'spRequests.emptyClosedHint' : tab === 'accepted' ? 'spRequests.emptyHintAccepted' : 'spRequests.emptyHint')} />
+          )}
+          refreshControl={(
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={GREEN} />
+          )}
           onScroll={onScroll}
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl * 3 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
-              title={refreshing ? t('spRequests.fetchingLatest') : ''}
-              titleColor={colors.primary}
-            />
-          }
-        />
-        {showStickyControls && (
-          <TouchableOpacity
-            style={styles.stickyControls}
-            onPress={() => listRef.current?.scrollToOffset({ offset: 0, animated: true })}
-            activeOpacity={0.8}
-            accessibilityRole="button">
-            <Ionicons name="options-outline" size={17} color={colors.primary} />
-            <Text style={styles.selectionSummaryText} numberOfLines={1}>
-              {selectedTabLabel} {t('spRequests.work')}
-              {tab !== 'closed' && selectedFilterLabel ? ` · ${t(selectedFilterLabel.labelKey)}` : ''}
-            </Text>
-            <Ionicons name="chevron-up" size={16} color={colors.grey} />
-          </TouchableOpacity>
+          scrollEventThrottle={16}
+          contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: listPaddingBottom }}
+          showsVerticalScrollIndicator={false} />
+
+        {showStickyFilters && tab !== 'closed' && (
+          <View style={styles.stickyFilters} pointerEvents="box-none">
+            {filterChips()}
+          </View>
         )}
-        {/* Pro banner */}
-        {showProBanner && (
-          <UpgradeProBanner
-            variant="compact"
-            onPress={() => navigation.navigate('Subscription')}
-            onClose={() => setShowProBanner(false)}
-          />
+
+        {!!requestError && (
+          <View style={styles.errorBannerWrap}>
+            <ErrorBanner error={requestError} onRetry={tab === 'closed' ? fetchClosedRequests : fetchRequests} />
+          </View>
         )}
-        <ErrorBanner error={requestError} onRetry={tab === 'closed' ? fetchClosedRequests : fetchRequests} />
-        <RateAndReviewModal
-          mode="endUser"
-          visible={!!ratingRequest}
-          request={ratingRequest}
-          token={token}
-          onClose={() => setRatingRequest(null)}
-          onSuccess={handleEndUserRatingSuccess}
-        />
-        {/* Safe area overlay to prevent content overlap with device buttons */}
-        <SafeBottomBanner />
       </View>
+
+      {/* .pro-banner — floats just above the bottom navigation */}
+      {showProBanner && (
+        <Animated.View style={[styles.floatingBanner, { bottom: bottomNavHeight + safeBottom, height: bannerHeight, left: 13, right: 13, zIndex: 40 }]}>
+          <SPProBanner
+            expanded={bannerExpanded}
+            onPress={handleBannerPress}
+            onClose={handleBannerClose}
+            onUpgrade={() => navigation.navigate('Subscription')} />
+        </Animated.View>
+      )}
+
+      {/* .bottom-nav — All / Interested / Closed */}
+      <View style={[styles.bottomNavBarWrap, { marginBottom: safeBottom }]}>
+        <TouchableOpacity
+          style={[styles.bottomTab, tab === 'all' && styles.bottomTabActive]}
+          onPress={() => { setTab('all'); listRef.current?.scrollToOffset({ offset: 0, animated: true }); }}
+          accessibilityRole="button"
+          accessibilityLabel={t('spRequests.allTab')}>
+          <SvgIcon name="home" size={23} color={tab === 'all' ? GREEN : colors.dark} />
+          <Text style={[styles.bottomTabLabel, tab === 'all' && styles.bottomTabLabelActive]}>{t('spRequests.allTab')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.bottomTab, tab === 'accepted' && styles.bottomTabActive]}
+          onPress={() => { setTab('accepted'); listRef.current?.scrollToOffset({ offset: 0, animated: true }); }}
+          accessibilityRole="button"
+          accessibilityLabel={t('spRequests.acceptedTab')}>
+          <View style={styles.bottomTabIconWrap}>
+            <SvgIcon name="bookmark" size={23} color={tab === 'accepted' ? GREEN : colors.dark} />
+            {acceptedCount > 0 && (
+              <View style={styles.bottomTabIconCount}>
+                <Text style={styles.bottomTabIconCountText}>{acceptedCount > 9 ? '9+' : acceptedCount}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.bottomTabLabel, tab === 'accepted' && styles.bottomTabLabelActive]}>{t('spRequests.acceptedTab')}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.bottomTab, tab === 'closed' && styles.bottomTabActive]}
+          onPress={() => {
+            setTab('closed');
+            listRef.current?.scrollToOffset({ offset: 0, animated: true });
+            if (!closedRequestsLoaded) void fetchClosedRequests();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={t('spRequests.closedTab')}>
+          <SvgIcon name="closed" size={23} color={tab === 'closed' ? GREEN : colors.dark} />
+          <Text style={[styles.bottomTabLabel, tab === 'closed' && styles.bottomTabLabelActive]}>{t('spRequests.closedTab')}</Text>
+        </TouchableOpacity>
+      </View>
+      <SafeBottomBanner />
     </View>
   );
 };
 
-// Styles extracted to a StyleSheet for clarity.  Colours and spacing come
-// from the theme to ensure consistency across screens.
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  logo: {
-    fontSize: 22,
-    fontFamily: 'Quicksand-Bold',
-    color: colors.primary,
-    textTransform: 'lowercase',
-  },
-  pageTitle: {
-    margin: spacing.md,
-    fontSize: 20,
-    fontFamily: 'Inter-Bold',
-    color: colors.dark,
-  },
-  loadingRow: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.xs,
-  },
-  // --- Filter chips ---
-  filterRow: {
-    flexDirection: 'row',
-    margin: spacing.sm,
-    marginTop: spacing.md
-  },
-  filterChip: {
+  container: { flex: 1, backgroundColor: colors.background },
+  /* Brand word in the splash wordmark style — Quicksand letterforms and the
+     splash green come from Header's brandTitle treatment. */
+  logo: { fontSize: 25, letterSpacing: -0.8 },
+
+  /* .location{height:43px;padding:0 19px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700} */
+  locationRow: {
+    height: 36,
+    paddingHorizontal: 19,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.greyBorder,
-    marginRight: spacing.sm,
+    gap: 8,
     backgroundColor: colors.white,
   },
-  filterChipActive: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.primary,
-  },
-  filterLabel: {
-    fontSize: 13,
-    color: colors.dark,
-    fontWeight: '600',
-  },
-  stickyControls: {
-    position: 'absolute',
-    top: -spacing.sm,
-    left: 0,
-    right: 0,
-    minHeight: 32,
+  locationText: { fontSize: 13, fontWeight: 700, color: colors.dark, flexShrink: 1 },
+
+  /* .filters{height:59px;padding:8px 13px;display:flex;gap:7px} */
+  filterRow: {
+    height: 59,
+    paddingVertical: 8,
+    paddingHorizontal: 13,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    zIndex: 10,
-    elevation: 3,
-    backgroundColor: colors.background,
+    gap: 7,
+    backgroundColor: colors.white,
+    shadowColor: '#101820',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  selectionSummaryText: {
-    flex: 1,
-    marginHorizontal: spacing.sm,
-    color: colors.grey,
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 13,
-  },
-  // --- Request cards ---
-  card: {
-    ...surfaces.card,
-    padding: spacing.md,
-    marginHorizontal: spacing.sm,
-    marginBottom: spacing.md,
-    position: 'relative',
-  },
-  cardAccepted: {
-    borderColor: '#bbf7d0',
-  },
-  cardHighlighted: {
-    borderColor: colors.warning,
-    borderWidth: 2,
-  },
-  cardHeader: {
+  /* .filter-chip{height:39px;padding:0 11px;border:1px solid #eef0f2;border-radius:999px;gap:7px;font-size:12px;font-weight:750} */
+  filterChip: {
+    height: 39,
+    paddingHorizontal: 11,
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-  },
-  statusChips: {
-    position: 'absolute',
-    top: -9,
-    right: spacing.md,
-    zIndex: 1,
+    alignItems: 'center',
+    gap: 7,
+    borderWidth: 1,
+    borderColor: '#eef0f2',
+    backgroundColor: colors.white,
+    borderRadius: 999,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
     elevation: 1,
   },
-  serviceIcon: {
-    alignSelf: 'flex-start',
-    marginBottom: 0,
-    marginTop: 2,
-  },
-  serviceName: {
-    fontSize: 16,
-    fontFamily: 'Inter-Bold',
-    color: colors.dark,
-    flexShrink: 1,
-  },
-  originalTitleButtonText: {
-    fontSize: 11,
-    fontFamily: 'Inter',
-    color: colors.greyMuted,
-    textDecorationLine: 'underline',
-  },
-  originalTitle: {
-    marginTop: 2,
-    fontSize: 12,
-    fontFamily: 'Inter',
-    color: colors.grey,
-  },
-  serviceCategory: {
-    marginTop: 2,
-    fontSize: 13,
-    fontFamily: 'Inter',
-    color: colors.grey,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  metaText: {
-    fontSize: 12,
-    fontFamily: 'Inter',
-    color: colors.grey,
-    marginLeft: 4,
-  },
-  metaDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: colors.greyMuted,
-    marginHorizontal: 6,
-  },
-  newBadge: {
-    alignItems: 'center',
-    backgroundColor: colors.warningLight,
-    borderColor: colors.warning,
-    borderRadius: radius.lg,
+  filterChipActive: { borderColor: GREEN, backgroundColor: '#e8f9ee' },
+  filterChipText: { fontSize: 12, fontWeight: 700, color: colors.dark },
+  filterChipTextActive: { color: GREEN },
+  /* .filter-more{width:40px;height:39px;border-radius:50%;margin-left:auto} */
+  filterMore: {
+    width: 40,
+    height: 39,
+    borderRadius: 20,
     borderWidth: 1,
-    flexDirection: 'row',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-  },
-  newBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.dark,
-  },
-  acceptedChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderColor: '#edf0f2',
     backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.success,
-    borderRadius: radius.lg,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-  },
-  acceptedChipText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.success,
-    marginLeft: 4,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: colors.dark,
-    marginLeft: 6,
-  },
-  addressNavigateButton: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: spacing.sm,
-    backgroundColor: colors.successLight
+    marginLeft: 'auto',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  infoTextMuted: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: 'Inter',
-    color: colors.grey,
-  },
-  tagContainer: {
+
+  /* .page-title{padding:10px 16px 7px;font-size:13px;font-weight:800;color:#68737d} */
+  pageTitleRow: {
+    paddingTop: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 7,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  tagChip: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    marginRight: spacing.sm,
-    marginBottom: spacing.sm,
+  pageTitle: { fontSize: 13, fontWeight: 800, color: '#68737d' },
+  pageTitleCount: { fontSize: 13, fontWeight: 500, color: '#87919a' },
+
+  /* .card{background:#fff;border:1px solid #e7ebee;border-radius:20px;padding:13px 12px 11px;margin:0 0 12px;box-shadow:0 3px 12px #1b2a3810} */
+  card: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: LINE,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingTop: 13,
+    paddingBottom: 11,
+    marginBottom: 12,
+    shadowColor: '#1b2a38',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
-  tagText: {
-    fontSize: 12,
-    fontFamily: 'Inter',
+  cardAccepted: { borderColor: '#bbf7d0' },
+  cardHighlighted: { borderColor: '#f59e0b', borderWidth: 2 },
+
+  /* Compact 9:16 scale — image/title/meta share one proportional scale */
+  cardTop: {
+    flexDirection: 'row',
+    gap: 10,
+    minHeight: 88,
+  },
+  serviceImage: {
+    width: 88,
+    height: 88,
+    borderRadius: 16,
+    backgroundColor: '#e3f7fc',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 3,
+    flexShrink: 0,
+  },
+  titleWrap: { flex: 1, minWidth: 0, paddingTop: 2 },
+  requestTitle: {
+    fontSize: 16,
+    lineHeight: 19,
+    fontWeight: '800',
     color: colors.dark,
+    letterSpacing: -0.3,
+    marginBottom: 5,
   },
-  divider: {
-    height: 1,
-    backgroundColor: colors.greyLight,
-    marginVertical: spacing.xs,
-  },
-  // --- Action buttons (CTAs) ---
-  // Every CTA shares one fixed shape; state changes swap colours only,
-  // never dimensions, so buttons look consistent across cards/states.
-  actionRow: {
+  category: { fontSize: 12, color: '#53606c', marginBottom: 6 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  metaText: { fontSize: 11.5, color: '#303d48' },
+  metaBar: { height: 15, width: 1, backgroundColor: '#b8c0c8', marginHorizontal: 2 },
+
+  interestedBadge: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    backgroundColor: '#e5f9e9',
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
     flexDirection: 'row',
-    marginTop: spacing.sm,
+    alignItems: 'center',
+    gap: 5,
+    shadowColor: '#0b5722',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.11,
+    shadowRadius: 5,
+    elevation: 2,
+    zIndex: 2,
   },
-  // Spacing-only; the button shape itself now comes from ActionButton.
-  requestActions: {
-    marginRight: spacing.sm,
-    paddingLeft: spacing.mdPlus,
-    minWidth: 135,
+  interestedBadgeText: { fontSize: 10.5, fontWeight: '800', color: '#087b32' },
+
+  /* .location-bar — 48px row, 13.5px address */
+  locationBar: {
+    minHeight: 48,
+    marginTop: 11,
+    backgroundColor: '#e8f9ed',
+    borderRadius: 13,
+    paddingTop: 2,
+    paddingBottom: 2,
+    paddingLeft: 10,
+    paddingRight: 7,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
+  /* .location-bar .pin */
+  locationBarPin: { width: 24, height: 26, alignItems: 'center', justifyContent: 'center' },
+  address: { fontSize: 13.5, lineHeight: 17, fontWeight: '800', color: colors.dark, flex: 1, minWidth: 0 },
+  /* .navigate — 34px circle */
+  /* .navigate{width:38px;height:38px;border-radius:50%;background:#e0f8e8} */
+  navigateBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#e0f8e8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+
+  /* .tags — 34px chips */
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 9, marginBottom: 9 },
+  tag: {
+    height: 34,
+    paddingHorizontal: 10,
+    borderRadius: 999,
+    backgroundColor: '#f0f8f5',
+    borderWidth: 1,
+    borderColor: '#edf3f0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    shadowColor: '#182e24',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  tagText: { fontSize: 11.5, fontWeight: '600', color: colors.dark },
+
+  /* .card-divider{height:1px;background:#edf0f2;margin:0 0 10px} */
+  cardDivider: { height: 1, backgroundColor: DIVIDER, marginBottom: 10 },
+
+  /* .customer-actions{display:grid;grid-template-columns:minmax(0,1fr) 1px 0.76fr 1.34fr;gap:8px;align-items:center} */
+  customerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  /* .customer{display:flex;align-items:center;gap:9px;min-width:0;flex:1} */
+  customer: { flex: 1.6, flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#e5edf8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    flexShrink: 0,
+  },
+  customerInfo: { flex: 1, minWidth: 0 },
+  customerName: { fontSize: 13.5, fontWeight: '800', color: colors.dark, lineHeight: 16 },
+  customerRole: { fontSize: 11.5, color: '#354354', marginTop: 3 },
+  verticalDivider: { width: 1, height: 36, backgroundColor: '#e6eaee' },
+  /* .action{height:43px;border-radius:12px;font-size:13px;font-weight:800;gap:6px} */
+  action: {
+    height: 42,
+    borderRadius: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+  },
+  /* .call{background:#fff;border:1px solid #e0e5e9;color:#111d28} — icon-only, fixed 43x43 */
+  actionCall: {
+    width: 42,
+    flexGrow: 0,
+    flexShrink: 0,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: '#e0e5e9',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+  actionCallDisabled: { backgroundColor: '#f4f5f6' },
+  /* .interest{background:linear-gradient(110deg,#079b42,#008b38);border:1px solid #078a3d;color:#fff;flex:1.34} */
+  actionInterest: {
+    flex: 1.8,
+    backgroundColor: GREEN,
+    borderWidth: 1,
+    borderColor: '#078a3d',
+    shadowColor: '#008d3a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.16,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  actionTextInterest: { fontSize: 12.5, fontWeight: '800', color: colors.white },
+
+  /* .pro-banner positioning */
+  floatingBanner: {
+    position: 'absolute',
+    left: 13,
+    right: 13,
+    zIndex: 40,
+  },
+
+  /* .sticky-filters */
+  stickyFilters: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.white,
+    shadowColor: '#101820',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+    zIndex: 18,
+  },
+
+  errorBannerWrap: {
+    position: 'absolute',
+    top: 8,
+    left: 13,
+    right: 13,
+    zIndex: 30,
+  },
+
+  /* .bottom-nav{height:77px;padding:7px 12px 10px;border-top:1px solid #edf0f2;grid 3 columns} */
+  bottomNavBarWrap: {
+    flexDirection: 'row',
+    height: 77,
+    paddingTop: 7,
+    paddingBottom: 10,
+    paddingHorizontal: 12,
+    backgroundColor: colors.white,
+    borderTopWidth: 1,
+    borderTopColor: '#edf0f2',
+    zIndex: 35,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomTab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  bottomTabIconWrap: { position: 'relative' },
+  /* .tab-count bubble pinned to the tab icon like the approved reference */
+  bottomTabIconCount: {
+    position: 'absolute',
+    top: -5,
+    right: -9,
+    minWidth: 17,
+    height: 17,
+    borderRadius: 9,
+    backgroundColor: '#b9efc9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  bottomTabIconCountText: {
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 13,
+    textAlign: 'center',
+    color: '#087b32',
+  },
+  /* .tab.active{color:#087b32;background:#e6faed;border-radius:16px} */
+  bottomTabActive: { backgroundColor: '#e6faed', borderRadius: 16 },
+  bottomTabLabel: { fontSize: 13, fontWeight: 700, color: colors.dark },
+  bottomTabLabelActive: { color: '#087b32' },
+  bottomTabLabelWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });
 
 export default SPWorkRequestsScreen;

@@ -1,0 +1,11 @@
+Implement the Aasaanly “Select Services You Offer” screen exactly as specified in `SERVICE_SELECTION_UI_UX_SPEC.md`.
+
+Before editing, open `design-reference/final-approved-service-selection.png` and inspect `index.html`, `initial-state.html`, `styles.css`, `app.js`, and `assets/icons/`. The supplied screenshot is the final source of truth. Do not redesign or rearrange any component. Keep a standard 360–390 dp phone layout; do not stretch the screen to tablet width.
+
+Preserve the exact hierarchy: status bar; back/title/subtitle header; rounded search field; horizontal All / Appliance Repair / Beauty & Personal Care / Cleaning tabs; category headings with green accent, icon and chevron; service grid with selected green outline/pale-green fill/check badge; and the fixed bottom selection panel with dynamic selected count, removable chips, Clear all and green Confirm aligned on the right. Appliance Repair uses 3 columns; Beauty & Personal Care uses 4 columns as shown. The service list scrolls independently while the selected-services panel stays fixed.
+
+Initial visual sample selections are AC Service & Repair, Chimney / Hob and Geyser Service. In production, load actual selected services from the provider profile. Do not hardcode the demo service IDs or labels.
+
+Implement natively in the existing Expo React Native architecture, not a WebView. Inspect and reuse the current service catalogue, IDs/enums, API mutations, profile persistence, validation and navigation. Do not invent endpoint names or payloads. Connect Confirm to the existing save/continue flow and handle loading/success/error states. Preserve any existing maximum-selection rule. Search and category tabs must use real service data.
+
+Test 360 dp and 390 dp, long service labels, large selection counts, chip removal, clear all, category filtering, search, expand/collapse, keyboard behaviour and fixed-footer scrolling. Run lint, type-check and relevant tests. Report changed files, API/model mapping, reused shared components and any deviations from the reference with reasons.

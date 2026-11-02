@@ -13,6 +13,7 @@ import { createSubscriptionPaymentOptions, verifySubscriptionPayment } from '../
 import { RazorpayWebPaymentOptions, RazorpayWebResponse } from '../api/razorpayWeb';
 import RazorpayWebView from '../components/RazorpayWebView';
 import { useAuth } from '../contexts/AuthContext';
+import { useGlobalLoader } from '../contexts/GlobalLoaderContext';
 import { colors, spacing, radius, tints } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
@@ -42,6 +43,7 @@ const SubscriptionScreen: React.FC = () => {
   const { token, user, refreshUser } = useAuth();
   const navigation = useNavigation<any>();
   const { t } = useI18n();
+  const { showLoader, hideLoader } = useGlobalLoader();
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'basic' | 'pro' | null>(null);
   const [showPaymentWebView, setShowPaymentWebView] = useState(false);
@@ -67,6 +69,7 @@ const SubscriptionScreen: React.FC = () => {
     }
     
     setLoading(true);
+    showLoader(t('loader.subscribing'));
     
     try {
       if (useCredits) {
@@ -93,6 +96,8 @@ const SubscriptionScreen: React.FC = () => {
           setPaymentOptions(options);
           setCurrentPlanType(plan);
           setShowPaymentWebView(true);
+          // The payment WebView takes over from here — stop blocking.
+          hideLoader();
         } catch (err: any) {
           console.error('Error creating payment options:', err);
           Alert.alert(t('common.error'), err.message || 'Subscription failed');
@@ -124,6 +129,7 @@ const SubscriptionScreen: React.FC = () => {
       }
     } finally {
       setLoading(false);
+      hideLoader();
     }
   };
 
@@ -132,6 +138,7 @@ const SubscriptionScreen: React.FC = () => {
     
     setShowPaymentWebView(false);
     setLoading(true);
+    showLoader(t('loader.processingPayment'));
     
     try {
       const verificationData = {
@@ -163,6 +170,7 @@ const SubscriptionScreen: React.FC = () => {
       Alert.alert(t('common.error'), err.message || t('subscription.paymentFailedDesc'));
     } finally {
       setLoading(false);
+      hideLoader();
     }
   };
 

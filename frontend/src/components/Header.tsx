@@ -1,15 +1,41 @@
 import React, { useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  StatusBar,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, shadows, spacing } from '../theme';
+import { colors, spacing } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotificationCount } from '../contexts/NotificationCountContext';
-import ProfileAvatar from './ProfileAvatar';
+import SvgIcon from '../assets/icons';
+import { BRAND_WORD_COLOR, BRAND_WORD_FONT } from './BrandWord';
 
-type HeaderProps = {
-  title: string;
+/**
+ * Consistent header used across all 4 handoff screens:
+ *  - LocationSelectScreen (Service Area)
+ *  - NotificationsScreen (Notifications)
+ *  - SPSelectServicesScreen (Service Selection)
+ *  - ProfileScreen (Profile)
+ *
+ * Shared pattern:
+ *  - Height 60, padding horizontal 16, gap 13
+ *  - Back button: 38x38, radius 19, bg #EFF8F3
+ *  - Title: font-size 19, font-weight bold, color ink #202B28
+ *  - Border bottom: hairline #E5EBE8
+ *  - Right actions: bell / profile icon buttons
+ */
+const HEADER_HEIGHT = 60;
+const BACK_BUTTON_SIZE = 42;
+const ICON_BUTTON_SIZE = 35;
+const GREEN_PRIMARY = '#079447';
+
+const Header: React.FC<{
+  title?: string;
   showBackButton?: boolean;
   onBackPress?: () => void;
   showNotification?: boolean;
@@ -20,16 +46,8 @@ type HeaderProps = {
   keepTitleCenterAligned?: boolean;
   extraLargeTitle?: boolean;
   subheader?: string;
-  titleStyle?: React.ComponentProps<typeof Text>['style'];
-};
-
-/** Max unread count rendered inside the badge before capping to "20+". */
-const MAX_BADGE_COUNT = 20;
-
-// Shared metrics so every icon control has the same comfortable touch target.
-const ICON_BUTTON_SIZE = 38;
-
-const Header: React.FC<HeaderProps> = ({
+  titleStyle?: any;
+}> = ({
   title,
   showBackButton = true,
   onBackPress,
@@ -51,6 +69,11 @@ const Header: React.FC<HeaderProps> = ({
     ? Math.max(insets.top, StatusBar.currentHeight ?? 0)
     : insets.top;
 
+  const displayTitle = title || 'aasaanly';
+  /* When the header shows the brand word alone, render it with the splash
+     wordmark style so the logo reads identically across the app. */
+  const isBrandTitle = displayTitle.toLowerCase() === 'aasaanly';
+
   const handleBackPress = useCallback(
     () => (onBackPress ? onBackPress() : navigation.goBack()),
     [onBackPress, navigation],
@@ -67,26 +90,26 @@ const Header: React.FC<HeaderProps> = ({
             onPress={handleBackPress}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Go back">
-            <Ionicons name="arrow-back" size={22} color={colors.dark} />
+            accessibilityLabel="Go back"
+          >
+            <SvgIcon name="sa-back" size={22} color={colors.dark} />
           </TouchableOpacity>
         ))}
-
         <View style={[styles.titleContainer, keepTitleCenterAligned && styles.centeredTitleContainer]}>
-          {subheader ? <Text style={styles.subHeaderText}>{subheader}</Text> : null}
           <Text numberOfLines={1} ellipsizeMode="tail"
             style={[
               styles.headerTitle,
               keepTitleCenterAligned && styles.centerAlignedTitle,
               extraLargeTitle && styles.extraLargeTitle,
+              isBrandTitle && styles.brandTitle,
               titleStyle,
             ]}>
-            {title}
+            {displayTitle}
           </Text>
+          {subheader ? <Text numberOfLines={2} style={styles.subHeaderText}>{subheader}</Text> : null}
           {belowHeaderContent}
         </View>
         {keepTitleCenterAligned && <View style={styles.titleContainer} />}
-
         {customRightComponent ?? (
           <View style={styles.rightActions}>
             {showProfileButton && (
@@ -95,19 +118,9 @@ const Header: React.FC<HeaderProps> = ({
                 onPress={handleProfilePress}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel="Open profile"
+                accessibilityLabel="Profile"
               >
-                {user?.picUrl ? (
-                  <ProfileAvatar
-                    picUrl={user?.picUrl}
-                    profileName={user?.name || 'User'}
-                    size={ICON_BUTTON_SIZE}
-                    containerStyle={styles.profileAvatarContainer}
-                  />
-                ) : (
-                  <Ionicons name="person-circle-outline" size={24} color={colors.dark} />
-                )}
-                
+                <SvgIcon name="user" size={20} color={colors.dark} />
               </TouchableOpacity>
             )}
             {showNotification && (
@@ -120,11 +133,11 @@ const Header: React.FC<HeaderProps> = ({
                   unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'
                 }
               >
-                <Ionicons name="notifications-outline" size={22} color={colors.dark} />
+                <SvgIcon name="bell" size={20} color={colors.dark} />
                 {unreadCount > 0 && (
                   <View style={styles.notificationBadge}>
                     <Text style={styles.notificationBadgeText}>
-                      {unreadCount > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : unreadCount}
+                      {unreadCount > 20 ? '20+' : unreadCount}
                     </Text>
                   </View>
                 )}
@@ -140,24 +153,22 @@ const Header: React.FC<HeaderProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: colors.white,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.greyLight,
-    ...shadows.md,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     paddingHorizontal: spacing.lg,
-    minHeight: 56, // Ensure a minimum height for the header row
-    // borderBottomWidth: 1,
-    // borderColor: colors.greyLight,
+    minHeight: HEADER_HEIGHT,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.greyBorder,
+    backgroundColor: colors.white,
   },
   iconButton: {
-    width: ICON_BUTTON_SIZE,
-    height: ICON_BUTTON_SIZE,
-    borderRadius: ICON_BUTTON_SIZE / 2,
-    backgroundColor: colors.surface,
+    width: BACK_BUTTON_SIZE,
+    height: BACK_BUTTON_SIZE,
+    borderRadius: BACK_BUTTON_SIZE / 2,
+    backgroundColor: '#EFF8F3',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -168,8 +179,8 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     flex: 1,
-    // marginLeft: spacing.md,
     justifyContent: 'center',
+    minWidth: 0,
   },
   centeredTitleContainer: {
     position: 'absolute',
@@ -180,21 +191,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontFamily: 'Google Sans Flex-Bold',
+    fontSize: 19,
+    fontFamily: 'Inter-Bold',
+    fontWeight: '800',
     color: colors.dark,
     textAlign: 'left',
+    letterSpacing: -0.3,
+    minWidth: 0,
   },
   centerAlignedTitle: {
     textAlign: 'center',
   },
   subHeaderText: {
-    fontSize: 11,
-    color: colors.greyMuted,
-    fontFamily: 'Google Sans Flex-SemiBold',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 2,
+    fontSize: 12,
+    lineHeight: 15,
+    color: '#68716F',
+    fontFamily: 'Inter',
+    marginTop: 3,
   },
   rightActions: {
     flexDirection: 'row',
@@ -203,17 +216,14 @@ const styles = StyleSheet.create({
   },
   notificationBadge: {
     position: 'absolute',
-    top: -3,
-    right: -3,
-    minWidth: 18,
-    height: 18,
-    paddingHorizontal: 4,
-    borderRadius: 9,
-    backgroundColor: colors.accent,
-    borderWidth: 2,
+    top: 3,
+    right: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: GREEN_PRIMARY,
+    borderWidth: 1,
     borderColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   notificationBadgeText: {
     color: colors.white,
@@ -222,6 +232,13 @@ const styles = StyleSheet.create({
   },
   extraLargeTitle: {
     fontSize: 22,
+  },
+  /* Splash wordmark treatment for brand-only header titles. */
+  brandTitle: {
+    fontFamily: BRAND_WORD_FONT,
+    fontWeight: '700',
+    color: BRAND_WORD_COLOR,
+    letterSpacing: -0.5,
   },
 });
 

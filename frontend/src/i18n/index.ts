@@ -17,10 +17,10 @@ export function useI18n(preferred?: string) {
       let val = get(dict, key) ?? get(fallback, key) ?? key;
       if (typeof val === 'string' && vars) {
         Object.keys(vars).forEach(k => {
-          val = (val as string).replace(new RegExp(`{${k}}`, 'g'), String(vars[k]));
+          val = (val || '').replace(new RegExp(`{${k}}`, 'g'), String(vars[k]));
         });
       }
-      return String(val);
+      return String(val ?? '');
     };
   }, [dict, fallback]);
 
