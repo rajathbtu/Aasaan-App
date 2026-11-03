@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: -apple-system, 'Inter', sans-serif; background: #fff; width: 390px; }
+  .page { background: linear-gradient(180deg,#F4F7FB 0%,#F8FBFD 100%); padding-bottom: 30px; }
+  /* Light top bar — no share button */
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 18px 16px 12px; }
+  .back { width: 42px; height: 42px; border-radius: 21px; background: #E8F8F0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .title { flex: 1; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #172B2A; }
+  .glass { width: 42px; height: 42px; border-radius: 21px; background: #fff; border: 1px solid #edf2ef; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 6px 12px rgba(36,62,82,.12); }
+  .content { padding: 0 16px; }
+  /* Action tiles — rounder corners */
+  .grid { display: flex; gap: 5px; margin-top: 16px; }
+  .tile { flex: 1; min-height: 78px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 12.5px; font-weight: 800; color: #10172B; text-align: center; }
+  .t-edit { background: #EAF5FF; } .t-share { background: #F4EEFF; } .t-close { background: #FFF0F0; }
+  /* Boost banner — white card, larger centered rocket, CTA under subtitle */
+  .banner { margin-top: 20px; border-radius: 12px; overflow: hidden; background: #fff; border: 1px solid #E9EEF3; box-shadow: 0 6px 18px rgba(32,58,77,.07); display: flex; align-items: center; padding: 8px 6px; }
+  .banner svg { flex: none; }
+  .copy { flex: 1; min-width: 0; padding: 12px 8px; }
+  .copy h2 { font-size: 15px; line-height: 1.15; margin: 0 0 6px; font-weight: 800; color: #078C4B; }
+  .copy p { font-size: 12.5px; line-height: 1.35; margin: 0; color: #596579; }
+  .cta { margin-top: 10px; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 12px; background: linear-gradient(90deg,#079B53,#07864B); color: #fff; font-size: 13px; font-weight: 800; padding: 11px 13px; }
+  .label { font-size: 11px; color: #727D89; margin: 24px 0 6px; text-transform: uppercase; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <div class="back">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#172B2A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+    </div>
+    <div class="title">Work Request</div>
+    <div class="glass">
+      <svg width="20" height="20" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2" fill="#172B2A"/><circle cx="12" cy="12" r="2" fill="#172B2A"/><circle cx="12" cy="19" r="2" fill="#172B2A"/></svg>
+    </div>
+  </div>
+  <div class="content">
+    <div class="grid">
+      <div class="tile t-edit"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#168BE5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>Edit<br>Details</div>
+      <div class="tile t-share"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>Share<br>Request</div>
+      <div class="tile t-close"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D31D24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6M9 9l6 6"/></svg>Close<br>Request</div>
+    </div>
+    <div class="label">↓ Boost banner — white card, larger centered rocket, CTA under subtitle</div>
+    <div class="banner">
+      <svg width="66" height="57" viewBox="0 0 220 190"><defs><linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#DDF7EA"/></linearGradient><linearGradient id="flame" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFD45A"/><stop offset="1" stop-color="#F28B25"/></linearGradient></defs><path d="M88 151c-21 10-33 25-39 39 22-3 39-13 50-29" fill="#0DAB68"/><path d="M127 137c10 20 26 30 45 34-4-22-14-37-31-47" fill="#16B978"/><g transform="rotate(34 111 87)"><path d="M111 12C75 44 75 91 91 127h40c16-36 16-83-20-115Z" fill="url(#body)" stroke="#0A9B60" stroke-width="5"/><path d="M91 96h40v31H91Z" fill="#13B978"/><circle cx="111" cy="68" r="15" fill="#DDF7EA" stroke="#079B60" stroke-width="7"/><path d="M91 126 111 167l20-41Z" fill="url(#flame)"/></g><path d="M20 170c12-20 35-21 48-7 15-22 44-16 50 6 20-7 35 4 37 17H20Z" fill="#fff" opacity=".95"/></svg>
+      <div class="copy">
+        <h2>Get More Responses Faster!</h2>
+        <p>Boost your request to reach more verified professionals in your area.</p>
+        <div class="cta">⚡ Boost Request</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

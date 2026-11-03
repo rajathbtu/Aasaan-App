@@ -1,3 +1,0 @@
-function fitCanvas(){const scale=Math.min(window.innerWidth/1024,1);const screen=document.getElementById('screen');screen.style.setProperty('--scale',scale);document.querySelector('.viewport').style.height=(1536*scale)+'px';}fitCanvas();window.addEventListener('resize',fitCanvas);
-document.querySelectorAll('.tab').forEach((tab)=>tab.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(t=>{t.classList.remove('active');t.setAttribute('aria-selected','false')});tab.classList.add('active');tab.setAttribute('aria-selected','true')}));
-document.querySelectorAll('.nav-item').forEach(item=>item.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('selected'));item.classList.add('selected')}));

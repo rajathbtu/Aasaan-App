@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>WorkRequestsScreen implementation mock (390dp)</title>
+<style>
+*{box-sizing:border-box;margin:0}
+body{background:#333;display:flex;justify-content:center;font-family:Inter,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
+.phone{width:390px;min-height:844px;background:#F7FCF9;position:relative;padding-bottom:90px}
+.status{height:34px}
+/* header — unchanged from current implementation */
+.customHeader{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 16px 12px;background:#F7FCF9}
+.headerTitle{font-size:27px;font-weight:800;color:#172B2A;letter-spacing:-1px;line-height:33px}
+.headerSubtitle{font-size:14px;color:#727D89;margin-top:4px;line-height:20px}
+.notificationButton{width:44px;height:44px;border-radius:22px;background:#fff;display:grid;place-items:center;position:relative;box-shadow:0 6px 12px rgba(36,62,82,.12);font-size:19px}
+.notificationDot{position:absolute;top:9px;right:10px;width:9px;height:9px;border-radius:4.5px;background:#E51E2A;border:1.5px solid #fff}
+/* sticky tabs */
+.tabsWrap{background:#F7FCF9;padding:4px 16px 12px;position:sticky;top:0;z-index:5}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;background:#EAF0F3;border-radius:40px;padding:5px;min-height:62px}
+.tab{border:0;border-radius:34px;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 7px;font-size:13.5px;font-weight:600;color:#172033;min-width:0}
+.tab svg{flex:none}
+.tab b{width:30px;height:30px;border-radius:15px;background:#fff;display:grid;place-items:center;font-size:14px;font-weight:800;color:#172033;flex:none}
+.tab.active{background:linear-gradient(90deg,#079E5C,#087B48);color:#fff;font-weight:800;box-shadow:0 4px 10px rgba(0,127,72,.15)}
+.tab.active b{color:#087B48}
+/* cards */
+.list{padding:0 16px}
+.card{position:relative;background:#fff;border-radius:23px;border:1px solid #edf2ef;padding:15px 16px 13px;margin-top:16px;box-shadow:0 7px 22px rgba(28,66,54,.12)}
+.stripe{position:absolute;left:0;top:20px;bottom:20px;width:4px;border-radius:0 5px 5px 0}
+.cardTop{display:flex;gap:12px;align-items:flex-start}
+.art{width:94px;height:108px;border-radius:20px;display:grid;place-items:center;flex:none;color:#079B60;font-size:40px}
+.titleWrap{flex:1;min-width:0;padding-right:64px;position:relative}
+.requestTitle{font-size:18px;font-weight:800;color:#111B35;letter-spacing:-.4px;line-height:22px;margin-bottom:4px}
+.category{font-size:14px;color:#657181;margin-bottom:8px}
+.metaCol{display:flex;flex-direction:column;gap:5px}
+.metaItem{display:flex;align-items:center;gap:6px;color:#5D6879;font-size:12px;line-height:16px}
+.status{position:absolute;top:0;right:0;display:inline-flex;align-items:center;gap:5px;background:#E3F8EC;color:#07864B;font-size:11px;font-weight:800;padding:7px 9px;border-radius:999px;white-space:nowrap}
+.status i{width:7px;height:7px;border-radius:4px;background:#08A84D}
+.status.closed{background:#EEF1F4;color:#5D687A}.status.closed i{background:#98A2AE}
+.interestRow{height:48px;border-radius:17px;display:flex;align-items:center;gap:8px;margin-top:12px;padding:0 10px 0 12px}
+.avatars{display:flex;align-items:center}
+.av{width:30px;height:30px;border-radius:15px;border:1.5px solid #fff;background:#D8CFC4;display:grid;place-items:center;color:#fff;font-size:13px}
+.av+.av{margin-left:-9px}
+.av.fallback{background:#E8EDF2;color:#5D6879}
+.interestText{flex:1;min-width:0;font-size:12px;font-weight:800;color:#111B35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{flex:none;color:#111B35}
+/* CTA */
+.ctaRow{display:flex;justify-content:flex-end;margin:18px 16px 4px}
+.ctaButton{height:52px;border-radius:26px;padding:0 20px;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(90deg,#079D5B,#057A45);box-shadow:0 8px 18px rgba(0,137,76,.2);color:#fff;font-size:15px;font-weight:800}
+/* tab bar */
+.tabbar{position:fixed;bottom:0;width:390px;background:#fff;border-top:1px solid #e5e7eb;display:grid;grid-template-columns:1fr 1fr 1fr;padding:8px 0 20px}
+.ti{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:800}
+.ti .pill{width:50px;height:28px;border-radius:12px;display:grid;place-items:center}
+.ti.sel{color:#079B60}.ti.sel .pill{background:#DDF7EA}.ti:not(.sel){color:#727D89;font-weight:400}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status"></div>
+  <div class="customHeader">
+    <div><div class="headerTitle">My Requests</div><div class="headerSubtitle">Track and manage your service requests</div></div>
+    <div class="notificationButton">&#128276;<span class="notificationDot"></span></div>
+  </div>
+
+  <div class="tabsWrap"><div class="tabs">
+    <button class="tab active"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5m-18 5 9 5 9-5"/></svg>Active Requests<b>7</b></button>
+    <button class="tab"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#172033" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>Completed<b>0</b></button>
+  </div></div>
+
+  <div class="list">
+    <div class="card"><div class="stripe" style="background:#63CF5D"></div>
+      <div class="cardTop">
+        <div class="art" style="background:#E8F8F0">&#128268;</div>
+        <div class="titleWrap">
+          <div class="requestTitle">Electrical Repair</div>
+          <div class="category">Electrician</div>
+          <div class="metaCol">
+            <div class="metaItem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5D6879" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>3 min ago</div>
+            <div class="metaItem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5D6879" stroke-width="1.9"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="2.5"/></svg>Purana Sahar, Jhansi</div>
+          </div>
+          <span class="status"><i></i>Active</span>
+        </div>
+      </div>
+      <div class="interestRow" style="background:linear-gradient(90deg,#F3F5F9,#F7F8FA)">
+        <div class="avatars"><div class="av">R</div><div class="av">A</div><div class="av">V</div></div>
+        <div class="interestText">3 Interested Providers</div>
+        <svg class="chev" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#111B35" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </div>
+    </div>
+
+    <div class="card"><div class="stripe" style="background:#47C7EF"></div>
+      <div class="cardTop">
+        <div class="art" style="background:#D9EDF8">&#10052;&#65039;</div>
+        <div class="titleWrap">
+          <div class="requestTitle">AC Not Cooling</div>
+          <div class="category">AC Service &amp; Repair</div>
+          <div class="metaCol">
+            <div class="metaItem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5D6879" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>23 min ago</div>
+            <div class="metaItem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5D6879" stroke-width="1.9"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="2.5"/></svg>Purana Sahar, Jhansi</div>
+          </div>
+          <span class="status"><i></i>Active</span>
+        </div>
+      </div>
+      <div class="interestRow" style="background:linear-gradient(90deg,#F2F7FB,#EFF8F8)">
+        <div class="avatars"><div class="av">S</div><div class="av">M</div></div>
+        <div class="interestText">2 Interested Providers</div>
+        <svg class="chev" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#111B35" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </div>
+    </div>
+
+    <div class="card"><div class="stripe" style="background:#FFB63D"></div>
+      <div class="cardTop">
+        <div class="art" style="background:#E8F8F0">&#127969;</div>
+        <div class="titleWrap">
+          <div class="requestTitle">Chimney / Hob Service</div>
+          <div class="category">Chimney / Hob</div>
+          <div class="metaCol">
+            <div class="metaItem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5D6879" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>1 hr ago</div>
+            <div class="metaItem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5D6879" stroke-width="1.9"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0z"/><circle cx="12" cy="10" r="2.5"/></svg>Purana Sahar, Jhansi</div>
+          </div>
+          <span class="status"><i></i>Active</span>
+        </div>
+      </div>
+      <div class="interestRow" style="background:linear-gradient(90deg,#F7F5FA,#F3F2FA)">
+        <div class="avatars"><div class="av fallback"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5D6879" stroke-width="1.9"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg></div></div>
+        <div class="interestText">5 Interested Providers</div>
+        <svg class="chev" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#111B35" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="ctaRow"><div class="ctaButton">&#65291; Create New Request</div></div>
+
+  <div class="tabbar">
+    <div class="ti"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#727D89" stroke-width="1.8" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10h-6v-7H9v7H3z"/></svg>Home</div>
+    <div class="ti sel"><span class="pill"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#079B60" stroke-width="1.8" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 7h8M8 11h8M8 15h5"/></svg></span>My Requests</div>
+    <div class="ti"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#727D89" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</div>
+  </div>
+</div>
+</body>
+</html>

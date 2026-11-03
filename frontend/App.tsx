@@ -18,7 +18,7 @@ import { markNotificationRead } from './src/api';
 
 import splashImage from './assets/splash/splash-content-exact.png';
 
-import { colors, radius, spacing } from './src/theme';
+import { colors, consumerColors, consumerFonts, radius, spacing } from './src/theme';
 import * as Notifications from 'expo-notifications';
 
 // Google Fonts via @expo-google-fonts
@@ -261,8 +261,8 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.grey,
+        tabBarActiveTintColor: consumerColors.primary,
+        tabBarInactiveTintColor: consumerColors.muted,
         tabBarStyle: {
           backgroundColor: colors.white,
           borderTopColor: colors.greyLight,
@@ -276,7 +276,7 @@ function MainTabs() {
         }, 
         tabBarLabelStyle: {
           fontSize: 12,
-          fontFamily: 'Google Sans Flex-Bold',
+          fontFamily: consumerFonts.bold,
         },
         tabBarIcon: ({ focused, color, size }) => {
           if (route.name === 'Profile' && user?.picUrl) {
@@ -302,7 +302,7 @@ function MainTabs() {
             iconName = focused ? 'person-circle' : 'person-circle-outline';
           }
           return (
-            <View style={[tabIconContainerStyle, { backgroundColor: focused ? colors.primaryLight : 'transparent' }]}>
+            <View style={[tabIconContainerStyle, { backgroundColor: focused ? consumerColors.selectedMint : 'transparent' }]}>
               <Ionicons name={iconName} size={size} color={color} />
             </View>
           );

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -27,9 +27,9 @@ import SvgIcon from '../assets/icons';
  * Work request details (tags) screen — implemented from the
  * Work_Request_Creation handoff (index.html + styles.css):
  * mint back-circle header with the service name and "Create a work
- * request" subtitle, hero illustration at the top-right, three benefit
- * pills, then white cards for the requirement text, relevant tags,
- * call consent and the work location, with a green gradient
+ * request" subtitle, hero illustration at the top-right, then white
+ * cards for the requirement text (with voice-dictation mic), relevant
+ * tags, call consent and the work location, with a green gradient
  * "Confirm Request" CTA pinned at the bottom.
  *
  * Layout metrics follow the 852 × 1846 handoff canvas proportionally
@@ -39,12 +39,32 @@ import SvgIcon from '../assets/icons';
 
 const REQUEST_TITLE_MAX_LENGTH = 80;
 
+/* Speech locale per app language (BCP-47 tags). */
+const SPEECH_LOCALES: Record<string, string> = {
+  en: 'en-IN',
+  hi: 'hi-IN',
+  gu: 'gu-IN',
+  mr: 'mr-IN',
+  ta: 'ta-IN',
+  kn: 'kn-IN',
+};
+
+/* Voice dictation needs the native expo-speech-recognition module, which
+   only exists in dev-client / production builds. Resolve it defensively so
+   the screen still works (typed input only) in builds without it. */
+let speechModule: typeof import('expo-speech-recognition') | null = null;
+try {
+  speechModule = require('expo-speech-recognition');
+} catch {
+  speechModule = null;
+}
+
 const heroIllustration = require('../assets/images/hero_illustration_reference.png');
 
 const WorkRequestSelectTagsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { token, user } = useAuth();
   const { showLoader, hideLoader } = useGlobalLoader();
   const insets = useSafeAreaInsets();
@@ -58,6 +78,12 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
   const [phoneConsent, setPhoneConsent] = useState(true);
   const [requestInProgress, setRequestInProgress] = useState(false);
   const [requestError, setRequestError] = useState<unknown | null>(null);
+
+  /* Voice dictation state: the text the field had when dictation started,
+     plus everything dictated so far (final + interim) on top of it. */
+  const [listening, setListening] = useState(false);
+  const dictationBaseRef = useRef('');
+  const dictatedRef = useRef('');
 
   /* The confirmed work location: the route param when the user came through
      the flow, otherwise the location they confirmed on the service-area /
@@ -91,6 +117,53 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
     };
   }, [route.params?.selectedLocation, user?.id]);
 
+  /* Live dictation: append speech results on top of the pre-dictation text. */
+  useEffect(() => {
+    if (!speechModule) return;
+    let subscriptions: { remove: () => void }[] = [];
+    try {
+      const Module = speechModule.ExpoSpeechRecognitionModule;
+      subscriptions = [
+        Module.addListener('result', (event: any) => {
+          const transcript: string = event?.results?.[0]?.transcript ?? '';
+          if (!transcript) return;
+          if (event.isFinal) {
+            dictatedRef.current = `${dictatedRef.current} ${transcript}`.trim();
+          }
+          const dictated = event.isFinal
+            ? dictatedRef.current
+            : `${dictatedRef.current} ${transcript}`.trim();
+          const base = dictationBaseRef.current.trimEnd();
+          const joined = base ? `${base} ${dictated}` : dictated;
+          setRequestTitle(Array.from(joined).slice(0, REQUEST_TITLE_MAX_LENGTH).join(''));
+        }),
+        Module.addListener('end', () => setListening(false)),
+        Module.addListener('error', (event: any) => {
+          setListening(false);
+          if (event?.error && event.error !== 'aborted' && event.error !== 'no-speech') {
+            Alert.alert(t('common.error'), 'Could not hear you clearly. Please try again or type instead.');
+          }
+        }),
+      ];
+    } catch {
+      // native module missing in this build — dictation simply stays off
+      speechModule = null;
+    }
+    return () => subscriptions.forEach(sub => sub.remove());
+  }, [t]);
+
+  /* Stop any running dictation when the screen unmounts. */
+  useEffect(() => {
+    const Module = speechModule?.ExpoSpeechRecognitionModule;
+    return () => {
+      try {
+        Module?.stop();
+      } catch {
+        // native module already gone — nothing to stop
+      }
+    };
+  }, []);
+
   const titleCharacterCount = Array.from(requestTitle).length;
   const showTitleCount = REQUEST_TITLE_MAX_LENGTH - titleCharacterCount < 20;
 
@@ -107,6 +180,44 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
     if (Array.from(value).length > REQUEST_TITLE_MAX_LENGTH) return;
     setRequestTitle(value);
   }, []);
+
+  const toggleListening = useCallback(async () => {
+    if (!speechModule) {
+      Alert.alert(
+        'Voice input unavailable',
+        'Speech recognition is not available in this build. Please update the app or type instead.',
+      );
+      return;
+    }
+    if (listening) {
+      try {
+        speechModule.ExpoSpeechRecognitionModule.stop();
+      } catch {
+        setListening(false);
+      }
+      return;
+    }
+    try {
+      const ExpoSpeechRecognitionModule = speechModule.ExpoSpeechRecognitionModule;
+      const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!permission?.granted) {
+        Alert.alert('Microphone needed', 'Allow microphone access so you can dictate your request.');
+        return;
+      }
+      dictatedRef.current = '';
+      dictationBaseRef.current = requestTitle;
+      setListening(true);
+      ExpoSpeechRecognitionModule.start({
+        lang: SPEECH_LOCALES[lang] ?? 'en-IN',
+        interimResults: true,
+        continuous: true,
+        addsPunctuation: true,
+      });
+    } catch {
+      setListening(false);
+      Alert.alert(t('common.error'), 'Voice input could not start. Please try again or type instead.');
+    }
+  }, [listening, requestTitle, lang, t]);
 
   const handleEditLocation = useCallback(() => {
     navigation.navigate('LocationSelect', {
@@ -193,20 +304,6 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
           <Image source={heroIllustration} style={styles.heroArt} resizeMode="contain" />
         </View>
 
-        {/* Benefits row: three pills */}
-        <View style={styles.benefits}>
-          {([
-            { icon: 'shield', text: 'Verified Experts' },
-            { icon: 'bolt', text: 'Quick Response' },
-            { icon: 'shield', text: 'Safe & Reliable' },
-          ] as const).map((b, i) => (
-            <View key={i} style={styles.benefit}>
-              <SvgIcon name={b.icon} size={16} color={consumerColors.primary} />
-              <Text style={styles.benefitText}>{b.text}</Text>
-            </View>
-          ))}
-        </View>
-
         {/* Description card */}
         <View style={styles.card}>
           <View style={styles.cardContent}>
@@ -222,18 +319,28 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                 <Text style={styles.counter}>{titleCharacterCount} / {REQUEST_TITLE_MAX_LENGTH}</Text>
               )}
             </View>
-            <TextInput
-              style={styles.textarea}
-              value={requestTitle}
-              onChangeText={handleTitleChange}
-              placeholder={t('createRequest.selectTags.requestTitlePlaceholder')}
-              placeholderTextColor="#71809d"
-              maxLength={REQUEST_TITLE_MAX_LENGTH}
-              multiline
-              textAlignVertical="top"
-              selectionColor={consumerColors.primary}
-              underlineColorAndroid="transparent"
-            />
+            <View style={styles.textareaWrap}>
+              <TextInput
+                style={styles.textarea}
+                value={requestTitle}
+                onChangeText={handleTitleChange}
+                placeholder={t('createRequest.selectTags.requestTitlePlaceholder')}
+                placeholderTextColor="#71809d"
+                maxLength={REQUEST_TITLE_MAX_LENGTH}
+                multiline
+                textAlignVertical="top"
+                selectionColor={consumerColors.primary}
+                underlineColorAndroid="transparent"
+              />
+              <TouchableOpacity
+                style={[styles.micButton, listening && styles.micButtonActive]}
+                onPress={toggleListening}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={listening ? 'Stop voice input' : 'Dictate with voice'}>
+                <SvgIcon name="mic" size={18} color={listening ? '#e02424' : consumerColors.primary} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -262,7 +369,6 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                         activeOpacity={0.75}
                         accessibilityRole="button"
                         accessibilityState={{ selected }}>
-                        <SvgIcon name={getTagIcon(tag)} size={15} color={selected ? consumerColors.primary : '#26364f'} />
                         <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{tag}</Text>
                         <View style={[styles.tagBadge, selected && styles.tagBadgeSelected]}>
                           <SvgIcon name={selected ? 'check' : 'plus'} size={11} color={selected ? '#fff' : '#98a3b4'} />
@@ -332,8 +438,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                 <SvgIcon name="location" size={17} color={consumerColors.primary} />
               </View>
               <View style={styles.locationCopy}>
-                <Text style={styles.locationCopyBold}>{t('createRequest.addDetails.selectedOnMap')}</Text>
-                <Text style={styles.locationCopySmall}>{locName}</Text>
+                <Text style={styles.locationCopyBold} numberOfLines={2}>{locName}</Text>
               </View>
               <SvgIcon name="chevron" size={16} color="#43516f" style={{ transform: [{ rotate: '90deg' }] }} />
             </TouchableOpacity>
@@ -364,22 +469,6 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
     </View>
   );
 };
-
-function getTagIcon(tag: string): 'snowflake' | 'broom' | 'sparkles' | 'fan' | 'chip' | 'sensor' | 'thermometer' | 'zap' | 'indoor' | 'outdoor' | 'tag' {
-  switch (tag) {
-    case 'AC Servicing': return 'snowflake';
-    case 'AC Cleaning': return 'broom';
-    case 'AC Deep Clean': return 'sparkles';
-    case 'Fan': return 'fan';
-    case 'PCB': return 'chip';
-    case 'Sensor': return 'sensor';
-    case 'Thermostat': return 'thermometer';
-    case 'Voltage Issue': return 'zap';
-    case 'Indoor Unit': return 'indoor';
-    case 'Outdoor Unit': return 'outdoor';
-    default: return 'tag';
-  }
-}
 
 const styles = StyleSheet.create({
   container: {
@@ -418,11 +507,11 @@ const styles = StyleSheet.create({
   },
   serviceName: {
     color: '#080808',
-    fontSize: 22,
+    fontSize: 18,
     fontFamily: consumerFonts.bold,
     fontWeight: '800',
-    letterSpacing: -0.5,
-    lineHeight: 27,
+    letterSpacing: -0.4,
+    lineHeight: 23,
   },
   subtitle: {
     color: '#43516f',
@@ -435,37 +524,6 @@ const styles = StyleSheet.create({
     width: 150,
     height: 104,
     flexShrink: 0,
-  },
-
-  benefits: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 18,
-  },
-  benefit: {
-    flex: 1,
-    minHeight: 48,
-    borderRadius: 24,
-    backgroundColor: '#EFFBF5',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    shadowColor: '#126441',
-    shadowOffset: { width: 0, height: 7 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 4,
-  },
-  benefitText: {
-    color: '#101010',
-    fontSize: 13,
-    fontFamily: consumerFonts.bold,
-    textAlign: 'center',
-    flexShrink: 1,
   },
 
   card: {
@@ -505,11 +563,11 @@ const styles = StyleSheet.create({
   },
   headingH2: {
     color: '#101a35',
-    fontSize: 19,
+    fontSize: 16,
     fontFamily: consumerFonts.bold,
     fontWeight: '800',
     letterSpacing: -0.3,
-    lineHeight: 24,
+    lineHeight: 21,
     marginBottom: 3,
   },
   headingP: {
@@ -531,6 +589,9 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
 
+  textareaWrap: {
+    position: 'relative',
+  },
   textarea: {
     borderWidth: 1.5,
     borderColor: '#dce3ef',
@@ -541,9 +602,25 @@ const styles = StyleSheet.create({
     fontFamily: consumerFonts.regular,
     lineHeight: 21,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingRight: 48,
     minHeight: 110,
     textAlignVertical: 'top',
+  },
+  micButton: {
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E4F8EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micButtonActive: {
+    backgroundColor: '#fdecec',
   },
 
   tagRows: {
@@ -555,15 +632,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tag: {
-    height: 38,
+    height: 32,
     borderWidth: 1.5,
     borderColor: '#dce3ef',
-    borderRadius: 19,
+    borderRadius: 16,
     backgroundColor: '#fff',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    paddingHorizontal: 12,
+    gap: 6,
+    paddingHorizontal: 10,
     flexGrow: 0,
   },
   tagSelected: {
@@ -572,18 +649,18 @@ const styles = StyleSheet.create({
   },
   tagText: {
     color: '#101010',
-    fontSize: 13.5,
+    fontSize: 12.5,
     fontFamily: consumerFonts.regular,
-    lineHeight: 17,
+    lineHeight: 15,
   },
   tagTextSelected: {
     color: '#07864f',
     fontFamily: consumerFonts.bold,
   },
   tagBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     borderWidth: 1.5,
     borderColor: '#aab5c7',
     alignItems: 'center',
@@ -684,15 +761,9 @@ const styles = StyleSheet.create({
   },
   locationCopyBold: {
     color: '#090909',
-    fontSize: 15.5,
+    fontSize: 14.5,
     fontFamily: consumerFonts.bold,
     lineHeight: 19,
-  },
-  locationCopySmall: {
-    color: '#52617f',
-    fontSize: 13.5,
-    fontFamily: consumerFonts.regular,
-    lineHeight: 17,
   },
 
   footer: {

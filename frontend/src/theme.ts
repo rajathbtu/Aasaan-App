@@ -152,14 +152,38 @@ export const consumerColors = {
   closeBg: '#FFF0F1',
   closeBorder: '#FFD7DA',
   closeText: '#C31820',
-  /** Work request detail — Active status pill. */
-  statusBg: '#E1F8EB',
-  statusText: '#078D4E',
-  statusDot: '#08B83F',
+  /** Work request detail + My Requests — Active status pill (unified approved handoff values). */
+  statusBg: '#E3F8EC',
+  statusText: '#07864B',
+  statusDot: '#08A84D',
   /** Work request detail — request location panel surface. */
   locationBg: '#E4F8EE',
   /** Pale-blue service thumbnail square (My Requests + Boost approved designs). */
   serviceArtBg: '#D9EDF8',
+  /** My Requests (approved My_Requests_Handoff) — segmented tab track + active gradient. */
+  tabTrack: '#EAF0F3',
+  tabActiveStart: '#079E5C',
+  tabActiveEnd: '#087B48',
+  /** My Requests card — left accent stripe colours (green / blue / amber category variants). */
+  requestAccentGreen: '#63CF5D',
+  requestAccentBlue: '#47C7EF',
+  requestAccentAmber: '#FFB63D',
+  /** My Requests card — mint category thumbnail tint for non-AC categories. */
+  requestArtMint: '#E8F8F0',
+  /** My Requests card — title / category / meta ink tones. */
+  cardTitle: '#111B35',
+  cardCategory: '#657181',
+  cardMeta: '#5D6879',
+  /** My Requests provider-interest strip gradients (default / blue / amber variants). */
+  stripDefaultStart: '#F3F5F9',
+  stripDefaultEnd: '#F7F8FA',
+  stripBlueStart: '#F2F7FB',
+  stripBlueEnd: '#EFF8F8',
+  stripAmberStart: '#F7F5FA',
+  stripAmberEnd: '#F3F2FA',
+  /** My Requests — Create New Request CTA gradient. */
+  ctaStart: '#079D5B',
+  ctaEnd: '#057A45',
   /** Boost payment option — selected surface gradient + idle radio ring. */
   paymentSelectedBg: '#E9FAF1',
   paymentSelectedBgEnd: '#F3FCF7',
@@ -176,6 +200,7 @@ export const consumerColors = {
 /** Font families available to consumer screens (Inter is loaded in App.tsx). */
 export const consumerFonts = {
   regular: 'Inter',
+  semibold: 'Inter-SemiBold',
   bold: 'Inter-Bold',
 } as const;
 

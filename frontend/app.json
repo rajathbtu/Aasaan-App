@@ -38,7 +38,8 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "CAMERA"
+        "CAMERA",
+        "RECORD_AUDIO"
       ],
       "config": {
         "googleMaps": {
@@ -61,6 +62,13 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Aasaan to use the microphone so you can dictate your request.",
+          "speechRecognitionPermission": "Allow Aasaan to use speech recognition so you can dictate your request."
+        }
+      ],
       [
         "expo-image-picker",
         {

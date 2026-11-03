@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   RefreshControl,
   ScrollView,
+  Share,
   StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
   useWindowDimensions,
@@ -17,7 +18,6 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SvgXml } from 'react-native-svg';
 import SvgIcon from '../assets/icons';
-import { colors } from '../theme';
 import { getWorkRequest } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
@@ -28,21 +28,30 @@ import ErrorBanner from '../components/ErrorBanner';
 import RateAndReviewModal from '../components/RateAndReviewModal';
 import EmptyState from '../components/EmptyState';
 import ProfileAvatar from '../components/ProfileAvatar';
+import { consumerColors } from '../theme';
 
 /**
  * Work Request detail — Interested Service Providers.
  *
- * Implemented 1:1 from Work_Request_Detail_Handoff (index.html + styles.css).
- * The handoff prototype renders a 1024 × 1536 design canvas scaled to the
- * viewport width (`scale = innerWidth / 1024` in app.js); the same
- * proportional scaling is used here for every LAYOUT metric (card sizes,
- * radii, paddings, gaps, artwork, avatars, icon bubbles).
+ * Implemented 1:1 from the corrected Work_Request_Detail_Handoff
+ * (approved_final_design.png + index.html + styles.css). The handoff
+ * prototype renders a 941 px-wide design canvas; the same proportional
+ * scaling (`s = windowWidth / 941`) is used here for every LAYOUT metric
+ * (top bar, card sizes, radii, paddings, gaps, artwork, avatars, tiles).
  *
  * Typography uses the app's standard, cross-screen type scale (header 22,
  * card title 19, section heading 19, body 14, meta 13, captions 12.5 — the
  * same values as WorkRequestsScreen / WorkRequestCreatedScreen /
- * BoostRequestScreen) so text size is consistent across the app instead of
- * shrinking with the canvas factor.
+ * BoostRequestScreen) so text size stays consistent across the app.
+ *
+ * Structure: standard light top bar (mint back circle, bold ink title,
+ * white circular more action — consistent with the other consumer pages),
+ * white request card with Active pill + mint location strip,
+ * pastel action tiles (Edit / Share / Close — Boost lives only in the
+ * bottom banner), Interested Service Providers heading with count badge,
+ * horizontal filter chips (All / Highest Rated / Nearest / Fast Response,
+ * shown only once providers respond), white provider list with Accept
+ * Interest + View Profile, and the green boost banner.
  */
 
 type ProviderCard = {
@@ -89,39 +98,52 @@ type WorkRequest = {
   boosted?: boolean;
 };
 
-const SORT_MODES: Array<{ value: 'best' | 'rating' | 'newest'; labelKey: string }> = [
-  { value: 'best', labelKey: 'sortBestMatch' },
-  { value: 'rating', labelKey: 'sortRating' },
-  { value: 'newest', labelKey: 'sortNewest' },
+type FilterKey = 'all' | 'rating' | 'nearest' | 'fast';
+
+const FILTERS: Array<{ value: FilterKey; labelKey: string }> = [
+  { value: 'all', labelKey: 'filterAll' },
+  { value: 'rating', labelKey: 'filterTopRated' },
+  { value: 'nearest', labelKey: 'filterNearest' },
+  { value: 'fast', labelKey: 'filterFastResponse' },
 ];
 
-/* Handoff palette (styles.css :root) */
+/* Handoff palette (styles.css + approved_final_design.png) */
 const C = {
-  green: '#079B60',
-  deep: '#07864F',
-  ink: '#101A35',
-  headingInk: '#080F1D',
-  cardInk: '#0B1020',
-  muted: '#52617F',
-  time: '#4E5A70',
-  timeIcon: '#475569',
-  sortInk: '#273548',
-  placeholder: '#7A879A',
-  meta: '#334155',
-  actionSmall: '#586477',
-  line: '#E1E7EE',
-  backBg: '#E2F8EE',
-  backIcon: '#081A22',
-  statusBg: '#E1F8EB',
-  statusText: '#078D4E',
-  statusDot: '#08B83F',
-  locationIcon: '#078F55',
-  boostText: '#C84900',
-  boostBorder: '#FFE0B7',
-  closeText: '#C31820',
-  closeBorder: '#FFD7DA',
-  tileBorder: '#DDE5EE',
-  metaTileBg: '#E4F8EF',
+  green: '#078C4B',
+  mint: '#E5F8EF',
+  mintDeep: '#DDF8EC',
+  statusBg: '#E3F8EB',
+  statusText: '#078C4B',
+  statusDot: '#00B44F',
+  ink: '#10172B',
+  muted: '#596579',
+  line: '#E2E9EF',
+  tileEdit: '#EAF5FF',
+  tileShare: '#F4EEFF',
+  tileClose: '#FFF0F0',
+  iconEdit: '#168BE5',
+  /* Approved design renders the Share tile icon violet (handoff asset is
+     green); the artwork is authoritative, so the tile keeps the violet icon. */
+  iconShare: '#7C3AED',
+  iconClose: '#D31D24',
+  filterBorder: '#E1E8F0',
+  filterText: '#39465B',
+  listBorder: '#E9EEF3',
+  rowBorder: '#E8EDF2',
+  metaInk: '#263449',
+  respGreenBg: '#E4F8EC',
+  respGreenText: '#087E45',
+  respBlueBg: '#E6F2FF',
+  respBlueText: '#17569A',
+  respPurpleBg: '#F1E8FF',
+  respPurpleText: '#6D28C7',
+  acceptStart: '#079B53',
+  acceptEnd: '#07864B',
+  acceptedBg: '#E2F6EB',
+  acceptedText: '#087E45',
+  profileBorder: '#DCE4EB',
+  profileBg: '#F8FAFC',
+  profileText: '#172238',
   verifiedBg: '#00B95D',
   star: '#F5A800',
   onlineDot: '#00B85A',
@@ -132,6 +154,13 @@ const FILLED_STAR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24
 
 /* Verified badge — green scalloped seal with white check (assets/verified.svg). */
 const VERIFIED_BADGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 2 2.1 1.4 2.5-.2 1.1 2.3 2.3 1.1-.2 2.5L21 11l-1.2 2.1.2 2.5-2.3 1.1-1.1 2.3-2.5-.2L12 20l-2.1-1.2-2.5.2-1.1-2.3L4 15.6l.2-2.5L3 11l1.2-2.1L4 6.4l2.3-1.1 1.1-2.3 2.5.2Z" fill="#00B95D"/><path d="m8.5 11.5 2.2 2.2 4.8-4.8" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+/* Top-bar overflow glyph — three ink dots (assets/more.svg). */
+const MORE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2" fill="${consumerColors.ink}"/><circle cx="12" cy="12" r="2" fill="${consumerColors.ink}"/><circle cx="12" cy="19" r="2" fill="${consumerColors.ink}"/></svg>`;
+
+/* Approved boost hero rocket (same artwork as BoostRequestScreen) — a
+   transparent vector that sits cleanly on the green banner gradient. */
+const BOOST_ROCKET_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-labelledby="t d"><title id="t">Boost request rocket</title><desc id="d">A green and white rocket launching upward from soft clouds.</desc><defs><linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#DDF7EA"/></linearGradient><linearGradient id="flame" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFD45A"/><stop offset="1" stop-color="#F28B25"/></linearGradient></defs><path d="M88 151c-21 10-33 25-39 39 22-3 39-13 50-29" fill="#0DAB68"/><path d="M127 137c10 20 26 30 45 34-4-22-14-37-31-47" fill="#16B978"/><g transform="rotate(34 111 87)"><path d="M111 12C75 44 75 91 91 127h40c16-36 16-83-20-115Z" fill="url(#body)" stroke="#0A9B60" stroke-width="5"/><path d="M91 96h40v31H91Z" fill="#13B978"/><circle cx="111" cy="68" r="15" fill="#DDF7EA" stroke="#079B60" stroke-width="7"/><path d="M91 126 111 167l20-41Z" fill="url(#flame)"/></g><path d="M20 170c12-20 35-21 48-7 15-22 44-16 50 6 20-7 35 4 37 17H20Z" fill="#fff" opacity=".95"/></svg>`;
 
 /**
  * Human membership duration from the provider join date, matching the
@@ -152,6 +181,16 @@ const membershipDuration = (createdAt?: string | null): string | null => {
   return null;
 };
 
+/* Great-circle distance in km — used only by the "Nearest" filter. */
+const distanceKm = (aLat: number, aLng: number, bLat: number, bLng: number): number => {
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const dLat = toRad(bLat - aLat);
+  const dLng = toRad(bLng - aLng);
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+};
+
 const WorkRequestDetailsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -160,9 +199,8 @@ const WorkRequestDetailsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const timeAgo = buildTimeAgo(t);
   const { width: windowWidth } = useWindowDimensions();
-  /* Handoff canvas scale — identical to fitCanvas() in the prototype's app.js.
-     Applied to layout metrics only; typography uses the standard app scale. */
-  const s = windowWidth / 1024;
+  /* Handoff canvas scale — layout metrics only; typography uses the app scale. */
+  const s = windowWidth / 941;
   const topPadding = Math.max(insets.top, StatusBar.currentHeight ?? 0);
 
   const [request, setRequest] = useState<WorkRequest | null>(route.params?.request || null);
@@ -171,14 +209,19 @@ const WorkRequestDetailsScreen: React.FC = () => {
   );
   const [requestError, setRequestError] = useState<unknown | null>(null);
   const [closeVisible, setCloseVisible] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortMode, setSortMode] = useState<'best' | 'rating' | 'newest'>('best');
+  const [filter, setFilter] = useState<FilterKey>('all');
   const [refreshing, setRefreshing] = useState(false);
   const [acceptingProviderId, setAcceptingProviderId] = useState<string | null>(null);
   const [acceptedProviderIds, setAcceptedProviderIds] = useState<Set<string>>(new Set());
+  const [expandedProviderId, setExpandedProviderId] = useState<string | null>(null);
 
   const requestId = route.params?.id || route.params?.request?.id;
   const cacheKey = requestId && user?.id ? offlineCacheKey('work-request', user.id, requestId) : null;
+
+  /* Light page header — dark status-bar icons, same as the other pages. */
+  useEffect(() => {
+    StatusBar.setBarStyle('dark-content', true);
+  }, []);
 
   const providers = useMemo(() => {
     const list: ProviderCard[] = (request?.acceptedProviders || []).map((p: any) => ({
@@ -189,31 +232,58 @@ const WorkRequestDetailsScreen: React.FC = () => {
     return list;
   }, [request]);
 
-  const filteredProviders = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return providers;
-    return providers.filter((p) => String(p.provider.name || '').toLowerCase().includes(q));
-  }, [providers, searchQuery]);
+  /* Response-time estimate is rendered only when the API actually supplies
+     one — the approved design's "Responds in ~15 mins" pill must never be
+     faked. Accepts a few possible field names so it lights up as soon as
+     the backend starts sending it. */
+  const responseMinutesOf = useCallback((p: ProviderCard): number | null => {
+    const raw =
+      (p.provider as any).responseTimeMinutes ??
+      (p.provider as any).avgResponseMinutes ??
+      (p.provider as any).responseMinutes;
+    const value = Number(raw);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }, []);
+
+  const requestCoords = useMemo(() => {
+    const lat = request?.locationLat ?? request?.location?.lat;
+    const lng = request?.locationLng ?? request?.location?.lng;
+    return typeof lat === 'number' && typeof lng === 'number' ? { lat, lng } : null;
+  }, [request]);
 
   const sortedProviders = useMemo(() => {
-    let list = [...filteredProviders];
-    if (sortMode === 'rating') {
+    let list = [...providers];
+    if (filter === 'rating') {
       list.sort(
         (a, b) =>
           Number(b.provider.providerRating?.average || 0) - Number(a.provider.providerRating?.average || 0)
       );
-    } else if (sortMode === 'newest') {
-      list.sort(
-        (a, b) =>
-          new Date(b.provider.createdAt || 0).getTime() - new Date(a.provider.createdAt || 0).getTime()
-      );
+    } else if (filter === 'nearest') {
+      if (requestCoords) {
+        const dist = (p: ProviderCard) => {
+          const loc = p.provider.serviceProviderInfo?.location;
+          if (typeof loc?.lat !== 'number' || typeof loc?.lng !== 'number') return Number.POSITIVE_INFINITY;
+          return distanceKm(requestCoords.lat, requestCoords.lng, loc.lat, loc.lng);
+        };
+        list.sort((a, b) => dist(a) - dist(b));
+      }
+    } else if (filter === 'fast') {
+      /* Sort by response estimate when the API supplies one; otherwise the
+         list keeps the backend order instead of inventing data. */
+      if (list.some((p) => responseMinutesOf(p) != null)) {
+        list.sort((a, b) => (responseMinutesOf(a) ?? 999) - (responseMinutesOf(b) ?? 999));
+      }
     }
     return list;
-  }, [filteredProviders, sortMode]);
+  }, [providers, filter, requestCoords, responseMinutesOf]);
 
   const serviceName = request?.serviceName || request?.service || t('requestDetails.title');
-  const serviceIcon = request?.serviceIcon;
-  const serviceColor = request?.serviceColor;
+  /* Backend supplies serviceIcon as a Material icon NAME (e.g. "construct"),
+     not an image URL — only treat http(s)/data values as images. */
+  const serviceIconUrl =
+    typeof request?.serviceIcon === 'string' && /^(https?:|data:)/.test(request.serviceIcon)
+      ? request.serviceIcon
+      : null;
   const serviceIconName = resolveServiceIconName(serviceName);
   const locationName = request?.locationName || request?.location?.name || t('userRequests.locationFallback');
   const status = (request?.status || 'active').toString().toLowerCase();
@@ -223,6 +293,34 @@ const WorkRequestDetailsScreen: React.FC = () => {
     if (!request) return;
     navigation.navigate('BoostRequest', { request });
   }, [navigation, request]);
+
+  const handleShare = useCallback(() => {
+    const label = request?.title || serviceName;
+    Share.share({ message: `${label} - ${locationName}` }).catch(() => {
+      // sharing cancelled or failed — silent no-op
+    });
+  }, [request?.title, serviceName, locationName]);
+
+  /* No request-edit route or backend edit endpoint exists yet; the tile is
+     part of the approved design and stays honest until the flow ships. */
+  const handleEdit = useCallback(() => {
+    if (isCompleted) return;
+    Alert.alert(t('requestDetails.editTitle'), t('requestDetails.editUnavailable'), [
+      { text: t('requestDetails.ok') },
+    ]);
+  }, [isCompleted, t]);
+
+  /* Overflow menu reuses the existing close-request flow. */
+  const handleMore = useCallback(() => {
+    const buttons: Array<{ text: string; onPress?: () => void; style?: 'cancel' | 'default' }> = [];
+    if (!isCompleted) buttons.push({ text: t('requestDetails.close'), onPress: () => setCloseVisible(true) });
+    buttons.push({ text: t('requestDetails.ok'), style: 'cancel' });
+    Alert.alert(t('requestDetails.title'), undefined, buttons);
+  }, [isCompleted, t]);
+
+  const toggleProviderProfile = useCallback((id: string) => {
+    setExpandedProviderId((current) => (current === id ? null : id));
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -328,54 +426,74 @@ const WorkRequestDetailsScreen: React.FC = () => {
       (provider as any).completedRequestsCount ??
       (provider as any).completedJobsCount ??
       (provider as any).requestsCompleted;
+    const responseMinutes = responseMinutesOf(item);
+    const responseTone =
+      responseMinutes == null
+        ? null
+        : responseMinutes < 20
+        ? { bg: C.respGreenBg, text: C.respGreenText }
+        : responseMinutes < 45
+        ? { bg: C.respBlueBg, text: C.respBlueText }
+        : { bg: C.respPurpleBg, text: C.respPurpleText };
     const isAccepted = acceptedProviderIds.has(item.id);
     const isPending = acceptingProviderId === item.id;
+    const isExpanded = expandedProviderId === item.id;
+    const workSinceYear = provider.serviceProviderInfo?.workSinceYear;
+    const yearsOfWork = typeof workSinceYear === 'number' && workSinceYear > 0 ? new Date().getFullYear() - workSinceYear : null;
+    const birthYear = provider.serviceProviderInfo?.birthYear;
+    const age = typeof birthYear === 'number' && birthYear > 0 ? new Date().getFullYear() - birthYear : null;
+    const genderRaw = (provider.serviceProviderInfo?.gender || '').toString().toLowerCase();
+    const genderLabel =
+      genderRaw === 'male'
+        ? t('requestDetails.genderMale')
+        : genderRaw === 'female'
+        ? t('requestDetails.genderFemale')
+        : genderRaw === 'transgender' || genderRaw === 'other'
+        ? t('requestDetails.genderTransgender')
+        : null;
+    const bio = provider.serviceProviderInfo?.bio;
+    const providerLoc = provider.serviceProviderInfo?.location;
+    const distance =
+      requestCoords && typeof providerLoc?.lat === 'number' && typeof providerLoc?.lng === 'number'
+        ? distanceKm(requestCoords.lat, requestCoords.lng, providerLoc.lat, providerLoc.lng)
+        : null;
 
     return (
       <View
         key={item.id}
-        style={[
-          styles.provider,
-          {
-            minHeight: 160 * s,
-            borderRadius: 35 * s,
-            paddingVertical: 20 * s,
-            paddingHorizontal: 28 * s,
-            gap: 27 * s,
-          },
-        ]}
+        style={[styles.provider, { paddingVertical: 16 * s, gap: 14 * s }]}
         accessibilityLabel={`Provider ${name}`}
       >
-        <View style={{ width: 122 * s, height: 122 * s, flexShrink: 0 }}>
-          <ProfileAvatar picUrl={provider.picUrl || undefined} profileName={name} size={122 * s} />
+        <View style={{ width: 84 * s, flexShrink: 0 }}>
+          <ProfileAvatar picUrl={provider.picUrl || undefined} profileName={name} size={84 * s} />
           {isOnline && (
             <View
               style={[
                 styles.onlineDot,
                 {
-                  left: 91 * s,
+                  left: 58 * s,
                   bottom: 0,
-                  width: 28 * s,
-                  height: 28 * s,
-                  borderRadius: 14 * s,
-                  borderWidth: 4 * s,
+                  width: Math.max(20 * s, 12),
+                  height: Math.max(20 * s, 12),
+                  borderRadius: Math.max(10 * s, 6),
+                  borderWidth: 3 * s,
                 },
               ]}
             />
           )}
         </View>
         <View style={styles.providerInfo}>
-          <View style={[styles.providerNameRow, { gap: 12 * s, marginBottom: 9 * s }]}>
+          <View style={[styles.providerNameRow, { gap: 6 * s, marginBottom: 5 * s }]}>
             <Text style={styles.providerName} numberOfLines={1}>
               {name}
             </Text>
             {isVerified && (
-              <SvgXml xml={VERIFIED_BADGE_SVG} width={17} height={17} style={{ flexShrink: 0 }} />
+              <SvgXml xml={VERIFIED_BADGE_SVG} width={Math.max(19 * s, 14)} height={Math.max(19 * s, 14)} style={{ flexShrink: 0 }} />
             )}
           </View>
           {reviewCount > 0 && rating != null ? (
-            <View style={[styles.rating, { gap: 10 * s, marginBottom: 13 * s }]}>
-              <SvgXml xml={FILLED_STAR_SVG} width={16} height={16} />
+            <View style={[styles.rating, { gap: 6 * s, marginBottom: 6 * s }]}>
+              <SvgXml xml={FILLED_STAR_SVG} width={Math.max(18 * s, 13)} height={Math.max(18 * s, 13)} />
               <Text style={styles.ratingValue} numberOfLines={1}>
                 {rating.toFixed(1)}
               </Text>
@@ -384,71 +502,131 @@ const WorkRequestDetailsScreen: React.FC = () => {
               </Text>
             </View>
           ) : (
-            <Text style={[styles.noRatings, { marginBottom: 13 * s }]} numberOfLines={1}>
+            <Text style={[styles.noRatings, { marginBottom: 6 * s }]} numberOfLines={1}>
               {t('requestDetails.noRatings')}
             </Text>
           )}
-          <View style={[styles.meta, { gap: 18 * s }]}>
+          <View style={[styles.meta, { gap: 10 * s }]}>
             {typeof completedRequests === 'number' && (
-              <>
-                <View style={[styles.metaItem, { gap: 7 * s }]}>
-                  <View style={styles.metaIconTile}>
-                    <SvgIcon name="briefcase" size={13} color={C.green} />
-                  </View>
-                  <Text style={styles.metaText} numberOfLines={1}>
-                    <Text style={styles.metaTextBold}>{completedRequests}</Text>
-                    {' Requests Completed'}
-                  </Text>
-                </View>
-                <View style={styles.metaDivider} />
-              </>
-            )}
-            <View style={[styles.metaItem, { gap: 7 * s }]}>
-              <View style={styles.metaIconTile}>
-                <SvgIcon name="calendar" size={13} color={C.green} />
+              <View style={[styles.metaItem, { gap: 5 * s }]}>
+                <SvgIcon name="briefcase" size={Math.max(17 * s, 12)} color={C.metaInk} />
+                <Text style={styles.metaText} numberOfLines={1}>
+                  <Text style={styles.metaTextBold}>{completedRequests}</Text>
+                  {' completed'}
+                </Text>
               </View>
+            )}
+            <View style={[styles.metaItem, { gap: 5 * s }]}>
+              <SvgIcon name="calendar" size={Math.max(17 * s, 12)} color={C.metaInk} />
               <Text style={styles.metaText} numberOfLines={1}>
                 {tenureLabel}
               </Text>
             </View>
           </View>
+          {responseTone && (
+            <View
+              style={[
+                styles.response,
+                {
+                  backgroundColor: responseTone.bg,
+                  marginTop: 8 * s,
+                  paddingHorizontal: 9 * s,
+                  paddingVertical: 5 * s,
+                  gap: 6 * s,
+                },
+              ]}
+            >
+              <SvgIcon name="clock" size={Math.max(14 * s, 10)} color={responseTone.text} />
+              <Text style={[styles.responseText, { color: responseTone.text }]} numberOfLines={1}>
+                {t('requestDetails.respondsIn', { mins: responseMinutes as number })}
+              </Text>
+            </View>
+          )}
+          {isExpanded && (
+            <View style={[styles.profileDetails, { marginTop: 8 * s, gap: 3 * s }]}>
+              {!!bio && <Text style={styles.profileBio}>{bio}</Text>}
+              {yearsOfWork != null && (
+                <Text style={styles.profileDetailText}>{t('requestDetails.workExp', { years: yearsOfWork })}</Text>
+              )}
+              {age != null && (
+                <Text style={styles.profileDetailText}>{t('requestDetails.age', { age })}</Text>
+              )}
+              {!!genderLabel && <Text style={styles.profileDetailText}>{genderLabel}</Text>}
+              {distance != null && (
+                <Text style={styles.profileDetailText}>
+                  {distance < 1
+                    ? t('requestDetails.nearYou')
+                    : t('requestDetails.distanceKm', { distance: distance.toFixed(1) })}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
-        <TouchableOpacity
-          onPress={() => handleAcceptInterest(item.id)}
-          disabled={isPending || isAccepted}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel={isAccepted ? t('requestDetails.interestAccepted') : t('requestDetails.acceptInterest')}
-          accessibilityState={{ disabled: isPending || isAccepted, busy: isPending }}
-        >
-          <LinearGradient
-            colors={[C.green, C.deep]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
+        <View style={[styles.providerButtons, { width: Math.max(160 * s, 124), gap: 7 * s }]}>
+          <TouchableOpacity
+            onPress={() => handleAcceptInterest(item.id)}
+            disabled={isPending || isAccepted}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={isAccepted ? t('requestDetails.interestAccepted') : t('requestDetails.acceptInterest')}
+            accessibilityState={{ disabled: isPending || isAccepted, busy: isPending }}
+          >
+            <LinearGradient
+              colors={isAccepted ? [C.acceptedBg, C.acceptedBg] : [C.acceptStart, C.acceptEnd]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={[
+                styles.accept,
+                {
+                  minHeight: Math.max(39 * s, 34),
+                  borderRadius: 22 * s,
+                  paddingHorizontal: 8 * s,
+                  gap: 6 * s,
+                },
+                isPending && styles.acceptPending,
+              ]}
+            >
+              {isPending ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <SvgIcon
+                    name="check"
+                    size={Math.max(16 * s, 11)}
+                    color={isAccepted ? C.acceptedText : '#FFFFFF'}
+                  />
+                  <Text
+                    style={[styles.acceptText, isAccepted && { color: C.acceptedText }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
+                  >
+                    {isAccepted ? t('requestDetails.interestAccepted') : t('requestDetails.acceptInterest')}
+                  </Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => toggleProviderProfile(item.id)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t('requestDetails.viewProfile')}
             style={[
-              styles.accept,
-              {
-                height: 91 * s,
-                minWidth: 233 * s,
-                borderRadius: 22 * s,
-                paddingHorizontal: 23 * s,
-                gap: 14 * s,
-              },
-              isPending && styles.acceptPending,
+              styles.profileButton,
+              { minHeight: Math.max(39 * s, 34), borderRadius: 22 * s, paddingHorizontal: 8 * s },
             ]}
           >
-            {isPending ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <>
-                <SvgIcon name="check" size={16} color="#FFFFFF" />
-                <Text style={styles.acceptText} numberOfLines={1}>
-                  {isAccepted ? t('requestDetails.interestAccepted') : t('requestDetails.acceptInterest')}
-                </Text>
-              </>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
+            <Text
+              style={styles.profileButtonText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
+              {isExpanded ? t('requestDetails.hideProfile') : t('requestDetails.viewProfile')}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -473,23 +651,20 @@ const WorkRequestDetailsScreen: React.FC = () => {
     );
   }
 
-  const isClosedForDisplay = isCompleted;
-
   return (
-    <View style={[styles.container, { paddingTop: topPadding }]}>
-      {/* Canvas background: linear-gradient(115deg,#F8FBFD 0%,#F5F9FC 52%,#F8FBFD 100%) */}
+    <View style={styles.container}>
+      {/* Page background: linear-gradient(180deg,#F4F7FB 0%,#F8FBFD 100%) */}
       <LinearGradient
-        colors={['#F8FBFD', '#F5F9FC', '#F8FBFD']}
-        locations={[0, 0.52, 1]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        colors={['#F4F7FB', '#F8FBFD']}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ paddingBottom: 60 * s }}
+        contentContainerStyle={{ paddingBottom: 24 * s }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           refreshing
@@ -497,240 +672,308 @@ const WorkRequestDetailsScreen: React.FC = () => {
             : undefined
         }
       >
-        {/* header{left:32,top:70,width:950,height:86;display:flex;align-items:center;gap:36} */}
-        <View style={[styles.header, { marginHorizontal: 42 * s, marginLeft: 32 * s, marginTop: 8 * s, height: 88 * s, gap: 36 * s }]}>
+        {/* Standard light top bar — mint back circle, ink title, white
+            circular actions; consistent with the other consumer pages. */}
+        <View
+          style={[styles.topbar, { paddingTop: topPadding, paddingHorizontal: 28 * s, gap: 16 * s }]}
+        >
           <TouchableOpacity
-            style={[styles.back, { width: 88 * s, height: 88 * s, borderRadius: 44 * s }]}
+            style={styles.topBack}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <SvgIcon name="back" size={21} color={C.backIcon} />
+            <SvgIcon name="back" size={Math.max(25 * s, 20)} color={consumerColors.ink} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>
+          <Text style={styles.topbarTitle} numberOfLines={1}>
             {t('requestDetails.title')}
           </Text>
+          <View style={[styles.topTools, { gap: 10 * s }]}>
+            <TouchableOpacity
+              style={styles.topIconGlass}
+              onPress={handleMore}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={t('requestDetails.moreActions')}
+            >
+              <SvgXml xml={MORE_SVG} width={Math.max(25 * s, 20)} height={Math.max(25 * s, 20)} />
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* .request-card{left:31,top:188,width:962,height:393,radius:42,padding:30} */}
-        <View
-          style={[
-            styles.requestCard,
-            {
-              marginHorizontal: 31 * s,
-              marginTop: 32 * s,
-              borderRadius: 42 * s,
-              padding: 30 * s,
-            },
-          ]}
-        >
-          {/* .request-card:after decorative mint wave */}
-          <LinearGradient
-            colors={['rgba(219,249,237,0)', 'rgba(194,246,222,0.75)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{
-              position: 'absolute',
-              right: -70 * s,
-              top: 100 * s,
-              width: 350 * s,
-              height: 230 * s,
-              borderTopLeftRadius: 126 * s,
-              borderBottomLeftRadius: 126 * s,
-            }}
-            pointerEvents="none"
-          />
-          <View style={styles.requestTop}>
-            {/* .service-art{width:240,height:210,radius:35} */}
-            <View style={[styles.serviceArt, { width: 240 * s, height: 210 * s, borderRadius: 35 * s }]}>
-              {serviceIcon ? (
+        <View style={{ paddingHorizontal: 22 * s }}>
+          {/* .request-card */}
+          <View
+            style={[
+              styles.requestCard,
+              { marginTop: 18 * s, borderRadius: 28 * s, padding: 22 * s, gap: 22 * s },
+            ]}
+          >
+            <LinearGradient
+              colors={['rgba(218,250,237,0.04)', 'rgba(166,242,213,0.4)']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                position: 'absolute',
+                right: -120 * s,
+                top: 100 * s,
+                width: 380 * s,
+                height: 160 * s,
+                borderRadius: 190 * s,
+                transform: [{ rotate: '-24deg' }],
+              }}
+              pointerEvents="none"
+            />
+            <View style={[styles.serviceImage, { width: 190 * s, height: 190 * s, borderRadius: 24 * s }]}>
+              {serviceIconUrl ? (
                 <Image
-                  source={{ uri: serviceIcon }}
-                  style={styles.serviceArtImage}
+                  source={{ uri: serviceIconUrl }}
+                  style={styles.serviceImageArt}
                   contentFit="cover"
                   cachePolicy="memory-disk"
                 />
               ) : (
-                <SvgIcon name={serviceIconName} size={240 * s * 0.45} color={serviceColor || C.green} />
+                <SvgIcon
+                  name={serviceIconName}
+                  size={190 * s * 0.42}
+                  color={request.serviceColor || C.green}
+                />
               )}
             </View>
-            {/* .request-copy{left:333,top:30} → 62s after the 240s art */}
-            <View style={[styles.requestCopy, { marginLeft: 62 * s, flex: 1, minWidth: 0 }]}>
-              <Text style={styles.requestTitle} numberOfLines={1}>
-                {request?.title || serviceName}
+            <View style={styles.requestContent}>
+              <View style={[styles.status, isCompleted && styles.statusClosed]}>
+                <View style={[styles.statusDot, isCompleted && { backgroundColor: '#98A2AE' }]} />
+                <Text style={[styles.statusText, isCompleted && { color: '#5D687A' }]}>
+                  {isCompleted ? t('userRequests.statusCompleted') : t('requestDetails.statusActive')}
+                </Text>
+              </View>
+              <Text style={[styles.requestTitle, { marginTop: 10 * s }]} numberOfLines={2}>
+                {request.title || serviceName}
               </Text>
-              <Text style={styles.requestCategory} numberOfLines={1}>
+              <Text style={styles.requestCategory} numberOfLines={2}>
                 {serviceName}
               </Text>
-              <View style={[styles.time, { gap: 17 * s, marginBottom: 20 * s }]}>
-                <SvgIcon name="clock" size={15} color={C.timeIcon} />
+              <View style={[styles.time, { gap: 8 * s, marginBottom: 13 * s }]}>
+                <SvgIcon name="clock" size={Math.max(19 * s, 13)} color={C.muted} />
                 <Text style={styles.timeText} numberOfLines={1}>
                   {timeAgo(request.createdAt) || t('common.relative.justNow')}
                 </Text>
               </View>
-              {/* .status — pill sized to the standard text scale */}
-              <View style={[styles.status, isClosedForDisplay && styles.statusClosed]}>
+              <View
+                style={[
+                  styles.location,
+                  { minHeight: Math.max(48 * s, 38), borderRadius: 14 * s, paddingHorizontal: 12 * s, gap: 10 * s },
+                ]}
+              >
+                <SvgIcon name="location" size={Math.max(22 * s, 15)} color={C.green} />
+                <Text style={styles.locationAddress} numberOfLines={1} ellipsizeMode="tail">
+                  {locationName}
+                </Text>
+                <SvgIcon
+                  name="chevron"
+                  size={Math.max(18 * s, 13)}
+                  color={C.muted}
+                  style={{ transform: [{ rotate: '90deg' }] }}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* .action-grid — Edit / Share / Close (Boost lives only in the
+              banner below, so the request can't be boosted from two places) */}
+          <View style={[styles.actionGrid, { marginTop: 18 * s, marginBottom: 28 * s, gap: 12 * s }]}>
+            {[
+              {
+                key: 'edit',
+                label: t('requestDetails.editTitle'),
+                icon: 'sa-edit' as const,
+                bg: C.tileEdit,
+                color: C.iconEdit,
+                onPress: handleEdit,
+                disabled: isCompleted,
+              },
+              {
+                key: 'share',
+                label: t('requestDetails.shareRequest'),
+                icon: 'share' as const,
+                bg: C.tileShare,
+                color: C.iconShare,
+                onPress: handleShare,
+                disabled: false,
+              },
+              {
+                key: 'close',
+                label: t('requestDetails.close'),
+                icon: 'close-circle' as const,
+                bg: C.tileClose,
+                color: C.iconClose,
+                onPress: () => setCloseVisible(true),
+                disabled: isCompleted,
+              },
+            ].map((tile) => (
+              <TouchableOpacity
+                key={tile.key}
+                onPress={tile.onPress}
+                disabled={tile.disabled}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={tile.label}
+                style={[
+                  styles.action,
+                  {
+                    backgroundColor: tile.bg,
+                    minHeight: Math.max(112 * s, 78),
+                    borderRadius: Math.max(28 * s, 14),
+                    gap: 8 * s,
+                    paddingVertical: 12 * s,
+                    paddingHorizontal: 5 * s,
+                  },
+                  tile.disabled && { opacity: 0.5 },
+                ]}
+              >
+                <SvgIcon name={tile.icon} size={Math.max(34 * s, 22)} color={tile.color} />
+                <Text style={styles.actionLabel} numberOfLines={2}>
+                  {tile.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* .providers */}
+          <View style={[styles.providers, { borderRadius: 24 * s, paddingTop: 12 * s, paddingBottom: 6 * s }]}>
+            <View style={{ paddingHorizontal: 10 * s }}>
+              <View style={[styles.providersTitleRow, { marginBottom: 7 * s }]}>
+                <Text style={styles.providersTitle} numberOfLines={1}>
+                  {t('requestDetails.interestedProvidersTitle')}
+                </Text>
                 <View
                   style={[
-                    styles.statusDot,
-                    { backgroundColor: isClosedForDisplay ? '#98A2AE' : C.statusDot },
+                    styles.countBadge,
+                    {
+                      width: Math.max(34 * s, 22),
+                      height: Math.max(34 * s, 22),
+                      borderRadius: Math.max(17 * s, 11),
+                      marginLeft: 3 * s,
+                    },
                   ]}
-                />
-                <Text style={[styles.statusText, { color: isClosedForDisplay ? '#5D687A' : C.statusText }]}>
-                  {isClosedForDisplay ? t('userRequests.statusCompleted') : t('requestDetails.statusActive')}
-                </Text>
+                >
+                  <Text style={styles.countBadgeText}>{providers.length}</Text>
+                </View>
               </View>
+              <Text style={styles.sectionSubtitle}>
+                {t('requestDetails.interestedProvidersSubtitle')}
+              </Text>
+            </View>
+
+            {/* .filter-row — horizontal chips; hidden until providers respond,
+                filters are meaningless on an empty list */}
+            {providers.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 9 * s, paddingHorizontal: 8 * s, paddingBottom: 14 * s }}
+                style={{ flexGrow: 0 }}
+              >
+                {FILTERS.map((item) => {
+                  const isActive = filter === item.value;
+                  return (
+                    <TouchableOpacity
+                      key={item.value}
+                      onPress={() => setFilter(item.value)}
+                      activeOpacity={0.8}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isActive }}
+                      style={[
+                        styles.filter,
+                        {
+                          paddingHorizontal: Math.max(16 * s, 12),
+                          paddingVertical: Math.max(10 * s, 7),
+                          borderRadius: 25 * s,
+                        },
+                        isActive && styles.filterActive,
+                      ]}
+                    >
+                      <Text
+                        style={[styles.filterText, isActive && styles.filterTextActive]}
+                        numberOfLines={1}
+                      >
+                        {t(`requestDetails.${item.labelKey}`, { count: providers.length })}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+
+            <View style={[styles.providerList, { borderRadius: 23 * s, paddingHorizontal: 14 * s }]}>
+              {sortedProviders.length === 0 ? (
+                <EmptyState
+                  icon="briefcase"
+                  title={t('userRequests.noResponsesTitle')}
+                  description={t('userRequests.noResponsesSubtitle')}
+                  actionLabel={t('requestDetails.boost')}
+                  onAction={handleBoost}
+                />
+              ) : (
+                sortedProviders.map((item, index) => (
+                  <View key={item.id} style={index > 0 ? styles.providerDivider : undefined}>
+                    {renderProviderCard(item)}
+                  </View>
+                ))
+              )}
             </View>
           </View>
 
-          {/* .location — in flow so the card grows with the standard text */}
-          <LinearGradient
-            colors={['#E4F8EE', '#DDF7EB']}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
+          {/* .boost-banner — the single Boost entry point: white card with the
+              approved transparent rocket artwork; copy + Boost CTA stacked */}
+          <View
             style={[
-              styles.location,
-              {
-                marginTop: 15 * s,
-                minHeight: 98 * s,
-                borderRadius: 25 * s,
-                paddingHorizontal: 39 * s,
-                paddingVertical: 8,
-                gap: 37 * s,
-              },
+              styles.boostBanner,
+              { marginTop: 22 * s, marginBottom: 20 * s, minHeight: 120 * s, borderRadius: 23 * s },
             ]}
           >
-            <SvgIcon name="location" size={20} color={C.locationIcon} />
-            <Text style={styles.locationAddress} numberOfLines={1} ellipsizeMode="tail">
-              {locationName}
-            </Text>
-          </LinearGradient>
-        </View>
-
-        {/* .quick-actions{top:609,height:136,gap:22} */}
-        <View style={[styles.quickActions, { marginHorizontal: 31 * s, marginTop: 28 * s, gap: 22 * s }]}>
-          {/* .action.boost */}
-          <TouchableOpacity
-            onPress={handleBoost}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={t('requestDetails.boost')}
-            style={{ flex: 1 }}
-          >
-            <LinearGradient
-              colors={['#FFF3E2', '#FFF8ED']}
-              start={{ x: 0, y: 0.2 }}
-              end={{ x: 1, y: 0.8 }}
-              style={[styles.action, styles.actionBoost, { minHeight: 136 * s, borderRadius: 29 * s, paddingHorizontal: 12, gap: 8 }]}
-            >
-              <View style={[styles.actionIcon, { width: 92 * s, height: 92 * s, borderRadius: 46 * s }]}>
-                <SvgIcon name="rocket" size={22} color={C.boostText} />
-              </View>
-              <View style={styles.actionCopy}>
-                <Text style={styles.actionTitle}>{t('requestDetails.boost')}</Text>
-                <Text style={styles.actionSubtitle} numberOfLines={2}>
-                  Get more responses faster
-                </Text>
-              </View>
-              <Text style={[styles.actionChevron, { color: C.boostText }]}>›</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-          {/* .action.close */}
-          <TouchableOpacity
-            onPress={() => setCloseVisible(true)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={t('requestDetails.close')}
-            disabled={isClosedForDisplay}
-            style={{ flex: 1 }}
-          >
-            <LinearGradient
-              colors={['#FFF0F1', '#FFF6F6']}
-              start={{ x: 0, y: 0.2 }}
-              end={{ x: 1, y: 0.8 }}
-              style={[styles.action, styles.actionClose, { minHeight: 136 * s, borderRadius: 29 * s, paddingHorizontal: 12, gap: 8 }]}
-            >
-              <View style={[styles.actionIcon, { width: 92 * s, height: 92 * s, borderRadius: 46 * s }]}>
-                <SvgIcon name="close-circle" size={22} color={C.closeText} />
-              </View>
-              <View style={styles.actionCopy}>
-                <Text style={styles.actionTitle}>{t('requestDetails.close')}</Text>
-                <Text style={styles.actionSubtitle} numberOfLines={2}>
-                  Mark this request as completed
-                </Text>
-              </View>
-              <Text style={[styles.actionChevron, { color: C.closeText }]}>›</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-
-        {/* .providers{left:32,top:790,width:960} */}
-        <View style={[styles.providers, { marginHorizontal: 32 * s, marginTop: 45 * s }]}>
-          <Text style={styles.providersTitle} numberOfLines={2}>
-            {t('requestDetails.interestedProviders', { count: providers.length })}
-          </Text>
-          <Text style={styles.sectionSubtitle} numberOfLines={2}>
-            {t('requestDetails.interestedProvidersSubtitle')}
-          </Text>
-
-          {/* .tools — standard field height/typography like the other screens */}
-          <View style={[styles.tools, { height: 46, gap: 10, marginBottom: 14 * s }]}>
-            <View
-              style={[
-                styles.search,
-                { height: 46, borderRadius: 23, paddingHorizontal: 14, gap: 8 },
-              ]}
-            >
-              <SvgIcon name="search" size={18} color={C.sortInk} />
-              <TextInput
-                style={[styles.searchInput, { height: 44 }]}
-                placeholder={t('requestDetails.searchProvidersPlaceholder')}
-                placeholderTextColor={C.placeholder}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCapitalize="none"
-                spellCheck={false}
-              />
-            </View>
-            <TouchableOpacity
-              style={[styles.sort, { height: 46, borderRadius: 23, gap: 7, paddingHorizontal: 12 }]}
-              onPress={() => {
-                const modes: Array<'best' | 'rating' | 'newest'> = ['best', 'rating', 'newest'];
-                const next = modes[(modes.indexOf(sortMode) + 1) % modes.length];
-                setSortMode(next);
-              }}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel={t('requestDetails.sortTitle')}
-            >
-              <SvgIcon name="sort" size={16} color={C.sortInk} />
-              <Text style={styles.sortLabel} numberOfLines={1}>
-                {t(
-                  'requestDetails.sortLabel',
-                  {
-                    mode: t(
-                      'requestDetails.' +
-                        (SORT_MODES.find((m) => m.value === sortMode)?.labelKey || 'sortBestMatch')
-                    ),
-                  }
-                )}
+            <SvgXml
+              xml={BOOST_ROCKET_SVG}
+              width={160 * s}
+              height={160 * s * (190 / 220)}
+              style={styles.boostArt}
+            />
+            <View style={[styles.boostCopy, { paddingVertical: 12 * s, paddingHorizontal: 8 * s }]}>
+              <Text style={styles.boostTitle} numberOfLines={2}>
+                {t('requestDetails.boostBannerTitle')}
               </Text>
-              <SvgIcon name="chevron-down" size={15} color={C.sortInk} />
-            </TouchableOpacity>
-          </View>
-
-          {/* .provider-list{gap:18} */}
-          <View style={{ gap: 18 * s }}>
-            {sortedProviders.length === 0 ? (
-              <EmptyState
-                icon="briefcase"
-                title={t('userRequests.noResponsesTitle')}
-                description={t('userRequests.noResponsesSubtitle')}
-              />
-            ) : (
-              sortedProviders.map(renderProviderCard)
-            )}
+              <Text style={styles.boostBody} numberOfLines={3}>
+                {t('requestDetails.boostBannerBody')}
+              </Text>
+              <TouchableOpacity
+                onPress={handleBoost}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={t('requestDetails.boost')}
+                style={{ alignSelf: 'flex-start', marginTop: 10 * s }}
+              >
+                <LinearGradient
+                  colors={[C.acceptStart, C.acceptEnd]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={[
+                    styles.boostCta,
+                    {
+                      minHeight: Math.max(42 * s, 34),
+                      borderRadius: 24 * s,
+                      paddingHorizontal: 13 * s,
+                      gap: 6 * s,
+                    },
+                  ]}
+                >
+                  <SvgIcon name="bolt" size={Math.max(17 * s, 12)} color="#FFFFFF" />
+                  <Text style={styles.boostCtaText} numberOfLines={1}>
+                    {t('requestDetails.boost')}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -758,25 +1001,28 @@ const T = {
   category: 14,
   time: 13,
   status: 12.5,
-  locationLabel: 12.5,
   locationAddress: 15,
-  actionTitle: 16,
-  actionSubtitle: 12.5,
+  actionLabel: 13.5,
   sectionTitle: 19,
   sectionSubtitle: 14,
-  searchInput: 15,
-  sortLabel: 13.5,
+  countBadge: 13.5,
+  filter: 13.5,
   providerName: 16.5,
   ratingValue: 14.5,
   ratingCount: 13,
   meta: 13,
-  accept: 14,
+  response: 11.5,
+  accept: 13.5,
+  profile: 13.5,
+  boostTitle: 15,
+  boostBody: 12.5,
+  cta: 13,
 } as const;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F9FC',
+    backgroundColor: '#F4F7FB',
   },
   emptyText: {
     color: C.ink,
@@ -788,88 +1034,87 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  /* Header */
-  header: {
+  /* Top bar — standard light header, consistent with the other pages */
+  topbar: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingBottom: 14,
   },
-  back: {
-    backgroundColor: C.backBg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  headerTitle: {
+  topbarTitle: {
+    flex: 1,
+    minWidth: 0,
+    color: consumerColors.ink,
     fontSize: T.headerTitle,
     lineHeight: 27,
     letterSpacing: -0.5,
     fontFamily: 'Inter-Bold',
-    color: C.headingInk,
-    flexShrink: 1,
+  },
+  topBack: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: consumerColors.mint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  topIconGlass: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: consumerColors.white,
+    borderWidth: 1,
+    borderColor: consumerColors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    shadowColor: '#243E52',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  topTools: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   /* Request card */
   requestCard: {
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    overflow: 'hidden',
-    shadowColor: '#1F4255',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12.5,
-    elevation: 6,
-  },
-  requestTop: {
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'flex-start',
-  },
-  requestCopy: {
-    alignItems: 'flex-start',
-  },
-  serviceArt: {
-    backgroundColor: C.statusBg,
     overflow: 'hidden',
-    flexShrink: 0,
+    shadowColor: '#1A364D',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.1,
+    shadowRadius: 22,
+    elevation: 5,
+  },
+  serviceImage: {
+    backgroundColor: C.mintDeep,
+    overflow: 'hidden',
+    alignSelf: 'flex-start',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  serviceArtImage: {
+  serviceImageArt: {
     width: '100%',
     height: '100%',
   },
-  requestTitle: {
-    fontSize: T.requestTitle,
-    lineHeight: 23,
-    letterSpacing: -0.3,
-    fontFamily: 'Inter-Bold',
-    color: C.cardInk,
-    marginBottom: 4,
-  },
-  requestCategory: {
-    fontSize: T.category,
-    lineHeight: 18,
-    fontFamily: 'Inter',
-    color: C.time,
-    marginBottom: 7,
-  },
-  time: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  timeText: {
-    fontSize: T.time,
-    fontFamily: 'Inter',
-    color: C.time,
-    flexShrink: 1,
+  requestContent: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'flex-start',
   },
   status: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: C.statusBg,
-    paddingHorizontal: 12,
+    paddingHorizontal: 11,
     paddingVertical: 5,
     borderRadius: 999,
     gap: 6,
-    alignSelf: 'flex-start',
   },
   statusClosed: {
     backgroundColor: '#EEF1F4',
@@ -885,10 +1130,36 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     color: C.statusText,
   },
-  /* Location panel */
-  location: {
+  requestTitle: {
+    fontSize: T.requestTitle,
+    lineHeight: 23,
+    letterSpacing: -0.3,
+    fontFamily: 'Inter-Bold',
+    color: C.ink,
+    marginBottom: 4,
+  },
+  requestCategory: {
+    fontSize: T.category,
+    lineHeight: 18,
+    fontFamily: 'Inter',
+    color: C.muted,
+    marginBottom: 7,
+  },
+  time: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  timeText: {
+    fontSize: T.time,
+    fontFamily: 'Inter',
+    color: C.muted,
+    flexShrink: 1,
+  },
+  location: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: C.mint,
   },
   locationAddress: {
     flex: 1,
@@ -896,131 +1167,104 @@ const styles = StyleSheet.create({
     fontSize: T.locationAddress,
     lineHeight: 20,
     fontFamily: 'Inter-Bold',
-    color: C.cardInk,
+    color: C.ink,
   },
-  /* Quick actions */
-  quickActions: {
+  /* Action tiles */
+  actionGrid: {
     flexDirection: 'row',
   },
   action: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    paddingVertical: 10,
-    shadowColor: '#1F4255',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.09,
-    shadowRadius: 7,
-    elevation: 4,
-  },
-  actionBoost: {
-    borderColor: C.boostBorder,
-  },
-  actionClose: {
-    borderColor: C.closeBorder,
-  },
-  actionIcon: {
-    backgroundColor: 'rgba(255,255,255,0.55)',
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.95)',
+    shadowColor: '#1E384E',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.09,
+    shadowRadius: 14,
+    elevation: 3,
   },
-  actionCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 3,
-  },
-  actionTitle: {
-    fontSize: 15.5,
-    lineHeight: 20,
+  actionLabel: {
+    fontSize: T.actionLabel,
+    lineHeight: 17,
     fontFamily: 'Inter-Bold',
-  },
-  actionSubtitle: {
-    fontSize: 12.5,
-    lineHeight: 16,
-    fontFamily: 'Inter',
-    color: C.actionSmall,
-  },
-  actionChevron: {
-    fontSize: 20,
-    lineHeight: 22,
-    fontWeight: '300',
-    fontFamily: 'Inter',
+    color: C.ink,
+    textAlign: 'center',
   },
   /* Providers section */
-  providers: {},
+  providers: {
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  providersTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   providersTitle: {
     fontSize: T.sectionTitle,
     lineHeight: 24,
     letterSpacing: -0.3,
     fontFamily: 'Inter-Bold',
-    color: C.headingInk,
-    marginBottom: 5,
+    color: C.ink,
+    flexShrink: 1,
+  },
+  countBadge: {
+    backgroundColor: C.green,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  countBadgeText: {
+    fontSize: T.countBadge,
+    fontFamily: 'Inter-Bold',
+    color: '#FFFFFF',
   },
   sectionSubtitle: {
     fontSize: T.sectionSubtitle,
-    lineHeight: 18,
+    lineHeight: 19,
     fontFamily: 'Inter',
     color: C.muted,
-    marginBottom: 11,
+    marginBottom: 16,
   },
-  /* Search + sort */
-  tools: {
-    flexDirection: 'row',
-  },
-  search: {
-    flex: 1,
-    minWidth: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: C.tileBorder,
+  filter: {
     backgroundColor: '#FFFFFF',
-    shadowColor: '#1F4255',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: C.filterBorder,
+    shadowColor: '#203A4D',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 9,
+    elevation: 2,
   },
-  searchInput: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: 16,
-    fontFamily: 'Inter',
-    color: C.sortInk,
-    padding: 0,
+  filterActive: {
+    backgroundColor: C.green,
+    borderColor: C.green,
   },
-  sort: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: C.tileBorder,
-    backgroundColor: '#FFFFFF',
-    flexShrink: 0,
-    shadowColor: '#1F4255',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  sortLabel: {
-    fontSize: 14.5,
+  filterText: {
+    fontSize: T.filter,
     fontFamily: 'Inter-Bold',
-    color: C.sortInk,
-    flexShrink: 1,
+    color: C.filterText,
   },
-  /* Provider cards — geometry is applied inline with the canvas scale s */
+  filterTextActive: {
+    color: '#FFFFFF',
+  },
+  providerList: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: C.listBorder,
+    shadowColor: '#203A4D',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 4,
+  },
   provider: {
-    backgroundColor: 'rgba(255,255,255,0.96)',
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#1F4255',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.09,
-    shadowRadius: 9.5,
-    elevation: 4,
-    overflow: 'visible',
+  },
+  providerDivider: {
+    borderTopWidth: 1,
+    borderTopColor: C.rowBorder,
   },
   onlineDot: {
     position: 'absolute',
@@ -1038,10 +1282,10 @@ const styles = StyleSheet.create({
   },
   providerName: {
     fontSize: T.providerName,
-    lineHeight: 20,
+    lineHeight: 21,
     letterSpacing: -0.3,
     fontFamily: 'Inter-Bold',
-    color: C.headingInk,
+    color: C.ink,
     flexShrink: 1,
   },
   rating: {
@@ -1051,12 +1295,13 @@ const styles = StyleSheet.create({
   ratingValue: {
     fontSize: T.ratingValue,
     fontFamily: 'Inter-Bold',
-    color: C.ink,
+    color: C.metaInk,
   },
   ratingCount: {
     fontSize: T.ratingCount,
     fontFamily: 'Inter',
     color: C.muted,
+    flexShrink: 1,
   },
   noRatings: {
     fontSize: T.ratingCount,
@@ -1073,42 +1318,113 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexShrink: 1,
   },
-  metaIconTile: {
-    width: 24,
-    height: 24,
-    borderRadius: 8,
-    backgroundColor: C.metaTileBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
   metaText: {
     fontSize: T.meta,
     fontFamily: 'Inter',
-    color: C.meta,
+    color: C.metaInk,
     flexShrink: 1,
   },
   metaTextBold: {
     fontFamily: 'Inter-Bold',
-    color: C.meta,
+    color: C.metaInk,
   },
-  metaDivider: {
-    width: 1,
-    height: 16,
-    backgroundColor: C.line,
+  response: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderRadius: 18,
+  },
+  responseText: {
+    fontSize: T.response,
+    fontFamily: 'Inter-Bold',
+  },
+  profileDetails: {
+    alignSelf: 'stretch',
+  },
+  profileBio: {
+    fontSize: T.meta,
+    lineHeight: 18,
+    fontFamily: 'Inter',
+    color: C.muted,
+  },
+  profileDetailText: {
+    fontSize: T.meta,
+    lineHeight: 18,
+    fontFamily: 'Inter',
+    color: C.metaInk,
+  },
+  providerButtons: {
     flexShrink: 0,
   },
   accept: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
   acceptPending: {
     opacity: 0.85,
   },
   acceptText: {
     fontSize: T.accept,
+    fontFamily: 'Inter-Bold',
+    color: '#FFFFFF',
+    flexShrink: 1,
+  },
+  profileButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: C.profileBorder,
+    backgroundColor: C.profileBg,
+  },
+  profileButtonText: {
+    fontSize: T.profile,
+    fontFamily: 'Inter-Bold',
+    color: C.profileText,
+  },
+  /* Boost banner — white card matching the other list cards */
+  boostBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: C.listBorder,
+    overflow: 'hidden',
+    shadowColor: '#203A4D',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    elevation: 4,
+  },
+  boostArt: {
+    alignSelf: 'center',
+    flexShrink: 0,
+  },
+  boostCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  boostTitle: {
+    fontSize: T.boostTitle,
+    lineHeight: 19,
+    fontFamily: 'Inter-Bold',
+    color: C.green,
+    marginBottom: 6,
+  },
+  boostBody: {
+    fontSize: T.boostBody,
+    lineHeight: 17,
+    fontFamily: 'Inter',
+    color: C.muted,
+  },
+  boostCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  boostCtaText: {
+    fontSize: T.cta,
     fontFamily: 'Inter-Bold',
     color: '#FFFFFF',
   },

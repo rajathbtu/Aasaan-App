@@ -1,5 +1,0 @@
-const screen=document.getElementById("screen");const viewport=document.querySelector(".viewport");function fit(){const scale=Math.min(window.innerWidth/852,1);screen.style.setProperty("--scale",scale);viewport.style.height=(1846*scale)+"px";}fit();window.addEventListener("resize",fit);
-const field=document.getElementById("requirement"),counter=document.getElementById("counter");field.addEventListener("input",()=>counter.textContent=`${field.value.length} / 80`);
-document.querySelectorAll(".tag").forEach(tag=>tag.addEventListener("click",()=>{const active=tag.classList.toggle("selected");tag.setAttribute("aria-pressed",String(active));tag.querySelector("i img").src=active?"assets/check.svg":"assets/plus.svg";}));
-document.querySelector(".back").addEventListener("click",()=>history.back());
-document.getElementById("confirm").addEventListener("click",()=>{if(!field.value.trim()){field.focus();alert("Please describe what needs to be done.");return;}alert("Prototype only — connect this button to the existing Aasaanly request API.");});
