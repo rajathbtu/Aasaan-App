@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleProp, StyleSheet, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, surfaces } from '../theme';
+import { consumerColors, consumerTypography } from '../theme';
 
 type ServicesSearchBarProps = {
   value: string;
@@ -9,7 +9,7 @@ type ServicesSearchBarProps = {
   placeholder?: string;
   placeholders?: string[];
   style?: StyleProp<ViewStyle>;
-  inputRef?: React.Ref<TextInput>;
+  inputRef?: React.Ref<any>;
 };
 
 const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
@@ -39,18 +39,19 @@ const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
 
   return (
     <View style={[styles.wrapper, style]}>
-      <Ionicons name="search" size={20} color={colors.greyMuted} style={styles.searchIcon} />
+      <Ionicons name="search" size={24} color={consumerColors.muted} style={styles.searchIcon} />
       <TextInput
         ref={inputRef}
         style={styles.input}
         placeholder={currentPlaceholder}
-        placeholderTextColor={colors.greyMuted}
+        placeholderTextColor="#929ba6"
         value={value}
         onChangeText={onChangeText}
+        selectionColor={consumerColors.primary}
       />
       {value.trim() !== '' && (
         <TouchableOpacity style={styles.resetButton} hitSlop={10} onPress={() => onChangeText('')}>
-          <Ionicons name="close-circle" size={20} color={colors.greyMuted} />
+          <Ionicons name="close-circle" size={20} color={consumerColors.muted} />
         </TouchableOpacity>
       )}
     </View>
@@ -59,25 +60,34 @@ const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
 
 const styles = StyleSheet.create({
   wrapper: {
-    ...surfaces.field,
-    position: 'relative',
+    height: 58,
+    backgroundColor: consumerColors.white,
+    borderWidth: 1,
+    borderColor: '#edf2ef',
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 17,
+    shadowColor: '#1a4331',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.10,
+    shadowRadius: 20,
+    elevation: 6,
   },
   searchIcon: {
-    position: 'absolute',
-    left: spacing.md,
-    top: 12,
+    // Icon is a flex item per the design spec (gap 12px), not absolutely positioned.
   },
   input: {
-    paddingHorizontal: spacing.md,
-    paddingLeft: spacing.xl * 1.5,
-    paddingVertical: spacing.md,
-    fontSize: 16,
-    color: colors.dark,
-    outlineStyle: 'none' as any,
+    flex: 1,
+    minWidth: 0,
+    color: consumerColors.ink,
+    fontSize: consumerTypography.searchInput.fontSize,
+    paddingVertical: 0,
   },
   resetButton: {
     position: 'absolute',
-    right: spacing.md,
+    right: 17,
     top: 10,
     padding: 4,
   },

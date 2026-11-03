@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#F7FAFC">
+<title>Aasaanly — My Requests</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="viewport"><main class="screen" id="screen">
+  <header class="header">
+    <h1>My Requests</h1>
+    <p>Track and manage your service requests</p>
+    <button class="notification" aria-label="Notifications"><img src="assets/bell.svg" alt=""><i></i></button>
+  </header>
+  <div class="tabs" role="tablist">
+    <button class="tab active" role="tab" aria-selected="true">Active Requests <b>1</b></button>
+    <button class="tab" role="tab" aria-selected="false">Completed <b>0</b></button>
+  </div>
+  <article class="request-card">
+    <div class="service-row">
+      <img class="service-art" src="assets/ac_service_illustration_reference.png" alt="Air conditioner service illustration">
+      <div class="service-copy">
+        <h2>AC Service &amp; Repair</h2>
+        <p>AC Service &amp; Repair</p>
+        <div class="time"><img src="assets/clock.svg" alt="">Just now</div>
+      </div>
+      <span class="status"><i></i>Active</span>
+    </div>
+    <div class="separator"></div>
+    <div class="location-row">
+      <span class="location-icon"><img src="assets/location.svg" alt=""></span>
+      <div><span class="eyebrow">Request Location</span><strong>Jhansi, Uttar Pradesh</strong></div>
+    </div>
+  </article>
+  <button class="settings" aria-label="Settings"><img src="assets/settings.svg" alt=""></button>
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <button class="nav-item"><span class="nav-icon"><img src="assets/plus-circle.svg" alt=""></span><span>Create</span></button>
+    <button class="nav-item selected"><span class="nav-icon"><img src="assets/requests.svg" alt=""></span><span>My Requests</span></button>
+    <button class="nav-item"><span class="nav-icon"><img src="assets/profile.svg" alt=""></span><span>Profile</span></button>
+  </nav>
+</main></div>
+<script src="app.js"></script>
+</body>
+</html>

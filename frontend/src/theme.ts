@@ -93,6 +93,107 @@ export const tints = {
 };
 
 
+/**
+ * Consumer home design tokens — sampled from the approved Consumer_Home_Handoff
+ * design so the consumer home screen (and future consumer pages) share one
+ * consistent visual system: primary green #079B60, dark green #07864F, mint
+ * #E8F8F0, selected mint #DDF7EA, page #F7FCF9, ink #172B2A, muted #727D89.
+ */
+export const consumerColors = {
+  /** Primary brand green (wordmark, active states, accents). */
+  primary: '#079B60',
+  /** Darker green for active chip text / view-all / deep accents. */
+  primaryDark: '#07864F',
+  /** Soft mint tint for chip bubbles, selected chip backgrounds, unread tiles. */
+  mint: '#E8F8F0',
+  /** Selected chip background and active bottom-tab bubble. */
+  selectedMint: '#DDF7EA',
+  /** Page / screen background. */
+  page: '#F7FCF9',
+  /** Primary heading / body text. */
+  ink: '#172B2A',
+  /** Secondary / helper / placeholder text. */
+  muted: '#727D89',
+  /** Pure white surface. */
+  white: '#FFFFFF',
+  /** Default card / search / chip border. */
+  border: '#edf2ef',
+  /** Service card border. */
+  serviceBorder: '#edf1ef',
+  /** Subtle lift colour for shadows (green-tinted). */
+  shadowTint: '#1a4331',
+  /** Category group heading marker (vertical bar). */
+  groupMarker: '#10b879',
+  /** Service bubble pastel tints (cyan / slate / rose / blue / violet / orange). */
+  bubbleCyanBg: '#e4f8fa',
+  bubbleCyanBorder: '#bde8ec',
+  bubbleCyanStroke: '#08a7b8',
+  bubbleSlateBg: '#f0f4f5',
+  bubbleSlateBorder: '#dce4e7',
+  bubbleSlateStroke: '#8195a0',
+  bubbleRoseBg: '#fdecee',
+  bubbleRoseBorder: '#f5d6d9',
+  bubbleRoseStroke: '#d92f3b',
+  bubbleBlueBg: '#eaf3ff',
+  bubbleBlueBorder: '#d6e6ff',
+  bubbleBlueStroke: '#268fe7',
+  bubbleVioletBg: '#f3ecff',
+  bubbleVioletBorder: '#e5d9ff',
+  bubbleVioletStroke: '#8d4de8',
+  bubbleOrangeBg: '#fff2e7',
+  bubbleOrangeBorder: '#ffe0c5',
+  bubbleOrangeStroke: '#f08a19',
+
+  /** Work request detail — Boost request tile (warm amber). */
+  boostBg: '#FFF3E2',
+  boostBorder: '#FFE0B7',
+  boostText: '#C84900',
+  /** Work request detail — Close request tile (soft red). */
+  closeBg: '#FFF0F1',
+  closeBorder: '#FFD7DA',
+  closeText: '#C31820',
+  /** Work request detail — Active status pill. */
+  statusBg: '#E1F8EB',
+  statusText: '#078D4E',
+  statusDot: '#08B83F',
+  /** Work request detail — request location panel surface. */
+  locationBg: '#E4F8EE',
+  /** Pale-blue service thumbnail square (My Requests + Boost approved designs). */
+  serviceArtBg: '#D9EDF8',
+  /** Boost payment option — selected surface gradient + idle radio ring. */
+  paymentSelectedBg: '#E9FAF1',
+  paymentSelectedBgEnd: '#F3FCF7',
+  radioIdle: '#9AA6B5',
+  /** Boost payment option — credit-points pill (unselected style). */
+  pointsPillBg: '#EEF1F5',
+  pointsPillText: '#687486',
+  /** Boost hero panel gradient (approved Boost_Request_Handoff). */
+  heroMintStart: '#DDF8EB',
+  heroMintMid: '#E4FAF5',
+  heroMintEnd: '#C8F4DF',
+} as const;
+
+/** Font families available to consumer screens (Inter is loaded in App.tsx). */
+export const consumerFonts = {
+  regular: 'Inter',
+  bold: 'Inter-Bold',
+} as const;
+
+/** Consumer typography scale, matched to the approved design. */
+export const consumerTypography = {
+  wordmark: { fontSize: 35, fontWeight: '800' as const, letterSpacing: -1.8, lineHeight: 1.1 },
+  h1: { fontSize: 30, fontWeight: '800' as const, letterSpacing: -1, lineHeight: 1.17 },
+  body: { fontSize: 17, fontWeight: '400' as const, lineHeight: 1.45 },
+  section: { fontSize: 23, fontWeight: '600' as const, letterSpacing: -0.6 },
+  group: { fontSize: 19, fontWeight: '600' as const },
+  service: { fontSize: 15, fontWeight: '500' as const, lineHeight: 1.35 },
+  chip: { fontSize: 14, fontWeight: '500' as const },
+  searchInput: { fontSize: 16 },
+  location: { fontSize: 15 },
+  viewAll: { fontSize: 13, fontWeight: '700' as const },
+  navLabel: { fontSize: 13, fontWeight: '600' as const },
+} as const;
+
 export const shadows = {
   /** Hairline lift — used for resting cards such as work request cards. */
   sm: {

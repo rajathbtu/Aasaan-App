@@ -97,3 +97,19 @@ export const AadhaarVerificationIllustration: React.FC<{ width?: number; height?
     style={{ flexShrink: 0 }}
   />
 );
+
+/**
+ * Consumer home hero illustration — approved design asset (home_hero_illustration.svg).
+ * viewBox 0 0 420 300. Rendered on the right side of the hero band.
+ */
+export const HomeHeroIllustration: React.FC<{ width?: number; height?: number }> = ({
+  width = 210,
+  height = 150,
+}) => (
+  <SvgXml
+    xml={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 300"><defs><linearGradient id="m" x2="1" y2="1"><stop stop-color="#E4F8EF"/><stop offset="1" stop-color="#BCEED7"/></linearGradient><linearGradient id="c" x2="1" y2="1"><stop stop-color="#477CB2"/><stop offset="1" stop-color="#244D7D"/></linearGradient></defs><path d="M30 173C13 103 80 32 166 48c52-34 130-16 155 35 71 1 93 62 65 119-17 35-52 58-103 58H99c-44 0-68-34-69-87Z" fill="url(#m)"/><path d="M281 0v52m-15 0h30l-6 20h-18Z" stroke="#25323A" stroke-width="3" fill="#25323A"/><path d="M338 223c-4-53 0-92 12-132" stroke="#4B8A58" stroke-width="5" fill="none"/><path d="M349 123c-39-2-51-28-43-48 29 2 48 18 43 48Zm2 30c36-29 58-20 61 2-17 20-42 22-61-2Zm-8 26c-34-12-40-36-26-52 25 9 38 28 26 52Zm12-76c-3-29 16-43 34-35 1 24-13 39-34 35Z" fill="#3A9A55"/><path d="M329 217h49l-7 57h-35Z" fill="#E6E3DA"/><path d="M93 148c0-18 14-32 32-32h95c18 0 32 14 32 32v75H93Z" fill="url(#c)"/><path d="M105 143c0-17 12-29 29-29h80c17 0 29 12 29 29v57H105Z" fill="#5C8DBE"/><path d="M83 165c-13 0-23 11-23 24v53c0 11 9 20 20 20h26V166Zm175 0c13 0 23 11 23 24v53c0 11-9 20-20 20h-26V166Z" fill="#315E91"/><path d="M105 198h124v51c0 13-10 23-23 23h-78c-13 0-23-10-23-23Z" fill="#376D9F"/><path d="M146 126c22-12 47-8 60 7l-12 48h-51Z" fill="#F5F6F5"/><path d="M109 269v18m119-18v18" stroke="#604B3B" stroke-width="6" stroke-linecap="round"/></svg>`}
+    width={width}
+    height={height}
+    style={{ flexShrink: 0 }}
+  />
+);

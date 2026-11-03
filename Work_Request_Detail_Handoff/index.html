@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#F7FAFC">
+<title>Aasaanly — Work Request</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="viewport"><main class="screen" id="screen">
+  <header class="header">
+    <button class="back" aria-label="Back"><img src="assets/back.svg" alt=""></button>
+    <h1>Work Request</h1>
+  </header>
+
+  <section class="request-card">
+    <img class="service-art" src="assets/chimney_hob_service_art.png" alt="Chimney and hob service">
+    <div class="request-copy">
+      <h2>Chimney / Hob</h2>
+      <p>Chimney / Hob Service</p>
+      <div class="time"><img src="assets/clock.svg" alt="">Requested 1 hr ago</div>
+      <span class="status"><i></i>Active</span>
+    </div>
+    <div class="location">
+      <img src="assets/location.svg" alt="">
+      <div><span>Request Location</span><strong>Jhansi, Uttar Pradesh</strong></div>
+    </div>
+  </section>
+
+  <section class="quick-actions">
+    <button class="action boost"><span class="action-icon"><img src="assets/rocket.svg" alt=""></span><span><b>Boost Request</b><small>Get more responses faster</small></span><span class="chevron">›</span></button>
+    <button class="action close"><span class="action-icon"><img src="assets/close-circle.svg" alt=""></span><span><b>Close Request</b><small>Mark this request<br>as completed</small></span><span class="chevron">›</span></button>
+  </section>
+
+  <section class="providers">
+    <h2>Interested Service Providers <span>(5)</span></h2>
+    <p class="section-subtitle">Service providers who want to work on your request</p>
+    <div class="tools">
+      <label class="search"><img src="assets/search.svg" alt=""><input id="search" type="search" placeholder="Search providers"></label>
+      <button class="sort" id="sort"><img src="assets/sort.svg" alt="">Sort: Best Match <span>⌄</span></button>
+    </div>
+
+    <div class="provider-list" id="provider-list">
+      <article class="provider" data-name="Amit Home Services" data-rating="4.8">
+        <div class="avatar-wrap"><img class="avatar" src="assets/provider_amit_sample.png" alt="Amit Home Services"><i></i></div>
+        <div class="provider-info">
+          <h3>Amit Home Services <img class="verified" src="assets/verified.svg" alt="Verified"></h3>
+          <div class="rating"><img src="assets/star.svg" alt=""><b>4.8</b><span>(256 reviews)</span></div>
+          <div class="meta"><span><img src="assets/briefcase.svg" alt=""><b>183</b> Requests Completed</span><i></i><span><img src="assets/calendar.svg" alt="">Member for 2.1 yrs</span></div>
+        </div>
+        <button class="accept"><img src="assets/check.svg" alt="">Accept Interest</button>
+      </article>
+
+      <article class="provider" data-name="Sharma Kitchen Services" data-rating="4.6">
+        <div class="avatar-wrap"><img class="avatar" src="assets/provider_sharma_sample.png" alt="Sharma Kitchen Services"><i></i></div>
+        <div class="provider-info">
+          <h3>Sharma Kitchen Services <img class="verified" src="assets/verified.svg" alt="Verified"></h3>
+          <div class="rating"><img src="assets/star.svg" alt=""><b>4.6</b><span>(118 reviews)</span></div>
+          <div class="meta"><span><img src="assets/briefcase.svg" alt=""><b>96</b> Requests Completed</span><i></i><span><img src="assets/calendar.svg" alt="">Member for 1.4 yrs</span></div>
+        </div>
+        <button class="accept"><img src="assets/check.svg" alt="">Accept Interest</button>
+      </article>
+
+      <article class="provider" data-name="EcoFix Appliances" data-rating="4.7">
+        <div class="avatar-wrap"><img class="avatar" src="assets/provider_ecofix_sample.png" alt="EcoFix Appliances"><i></i></div>
+        <div class="provider-info">
+          <h3>EcoFix Appliances <img class="verified" src="assets/verified.svg" alt="Verified"></h3>
+          <div class="rating"><img src="assets/star.svg" alt=""><b>4.7</b><span>(320 reviews)</span></div>
+          <div class="meta"><span><img src="assets/briefcase.svg" alt=""><b>421</b> Requests Completed</span><i></i><span><img src="assets/calendar.svg" alt="">Member for 3.5 yrs</span></div>
+        </div>
+        <button class="accept"><img src="assets/check.svg" alt="">Accept Interest</button>
+      </article>
+    </div>
+    <p class="prototype-note">Showing 3 sample provider cards from the visual reference. Connect the complete list to the existing API.</p>
+  </section>
+</main></div>
+<script src="app.js"></script>
+</body>
+</html>

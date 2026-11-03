@@ -162,7 +162,6 @@ const LocationSelectScreen: React.FC = () => {
   const radiusOptions = [5, 10, 15, 20];
 
   const displayLocationName = selectedLocation?.name || selectedLocation?.description || '';
-  const hasSelection = !!displayLocationName;
 
   return (
     <View style={styles.screen}>
@@ -222,28 +221,30 @@ const LocationSelectScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
 
-        {/* Selected Location card */}
-        {hasSelection && (
-          <View style={styles.locationCard}>
-            <View style={styles.pinTile}>
-              <SvgIcon name="sa-pin" size={24} color={SA.green} />
-            </View>
-            <View style={styles.locationCopy}>
-              <Text style={[styles.locationTitle, { minWidth: 0 }]} numberOfLines={1} ellipsizeMode="tail">
-                {t('sp.selectLocation.selectedLocationTitle')}
-              </Text>
-              <Text style={[styles.locationAddress, { minWidth: 0 }]} numberOfLines={1} ellipsizeMode="tail">
-                {displayLocationName}
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.changeLocation} onPress={() => locationSearchRef.current?.openSearchModal()} activeOpacity={0.7}>
-              <SvgIcon name="sa-edit" size={18} color={SA.green} />
-              <Text style={styles.changeText} numberOfLines={1} ellipsizeMode="tail">
-                Change
-              </Text>
-            </TouchableOpacity>
+        {/* Selected Location card — always visible; the address follows the
+            map/search selection and updates itself as the map moves */}
+        <View style={styles.locationCard}>
+          <View style={styles.pinTile}>
+            <SvgIcon name="sa-pin" size={24} color={SA.green} />
           </View>
-        )}
+          <View style={styles.locationCopy}>
+            <Text style={[styles.locationTitle, { minWidth: 0 }]}>
+              {t('sp.selectLocation.selectedLocationTitle')}
+            </Text>
+            <Text style={[styles.locationAddress, { minWidth: 0 }]} numberOfLines={2} ellipsizeMode="tail">
+              {displayLocationName ||
+                (isLocationResolving
+                  ? 'Updating location…'
+                  : 'Move the map or search to set the location')}
+            </Text>
+          </View>
+          <TouchableOpacity style={styles.changeLocation} onPress={() => locationSearchRef.current?.openSearchModal()} activeOpacity={0.7}>
+            <SvgIcon name="sa-edit" size={18} color={SA.green} />
+            <Text style={styles.changeText} numberOfLines={1} ellipsizeMode="tail">
+              Change
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Service Radius card */}
         <View style={styles.radiusCard}>

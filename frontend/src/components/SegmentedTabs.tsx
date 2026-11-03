@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
-import { colors, radius, spacing } from '../theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { consumerColors, consumerFonts } from '../theme';
 
 export type SegmentedTab = {
   key: string;
@@ -14,27 +15,51 @@ type SegmentedTabsProps = {
   onChange: (key: string) => void;
 };
 
+/**
+ * Pill tab track from the approved My_Requests_Handoff design:
+ * light-grey rounded track, selected tab filled with the brand green
+ * gradient and a white count badge, unselected tab plain with a white
+ * count badge.
+ */
 const SegmentedTabs: React.FC<SegmentedTabsProps> = ({ tabs, activeKey, onChange }) => (
   <View style={styles.container}>
     {tabs.map((tab) => {
       const active = tab.key === activeKey;
+      const label = (
+        <Text style={[styles.label, active && styles.labelActive]} numberOfLines={1}>
+          {tab.label}
+        </Text>
+      );
+      const badge = tab.count !== undefined && (
+        <View style={styles.countBadge}>
+          <Text style={[styles.countText, active && styles.countTextActive]}>{tab.count}</Text>
+        </View>
+      );
       return (
         <TouchableOpacity
           key={tab.key}
-          style={[styles.button, active && styles.buttonActive]}
+          style={styles.button}
           onPress={() => onChange(tab.key)}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
           accessibilityRole="tab"
           accessibilityState={{ selected: active }}
         >
-          <View style={styles.content}>
-            <Text style={[styles.label, active && styles.labelActive]}>{tab.label}</Text>
-            {tab.count !== undefined && (
-              <View style={[styles.countBadge, active && styles.countBadgeActive]}>
-                <Text style={[styles.countText, active && styles.countTextActive]}>{tab.count}</Text>
-              </View>
-            )}
-          </View>
+          {active ? (
+            <LinearGradient
+              colors={[consumerColors.primary, consumerColors.primaryDark]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={styles.buttonSurface}
+            >
+              {label}
+              {badge}
+            </LinearGradient>
+          ) : (
+            <View style={[styles.buttonSurface, styles.buttonSurfaceIdle]}>
+              {label}
+              {badge}
+            </View>
+          )}
         </TouchableOpacity>
       );
     })}
@@ -44,55 +69,51 @@ const SegmentedTabs: React.FC<SegmentedTabsProps> = ({ tabs, activeKey, onChange
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: colors.greyLight,
-    padding: spacing.xs,
+    backgroundColor: '#EEF1F5',
+    borderRadius: 999,
+    padding: 4,
   },
   button: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: radius.lg,
+  },
+  buttonSurface: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    gap: 8,
+  },
+  buttonSurfaceIdle: {
+    backgroundColor: 'transparent',
+  },
+  label: {
+    fontSize: 15,
+    fontFamily: consumerFonts.regular,
+    color: '#171D26',
+    flexShrink: 1,
+  },
+  labelActive: {
+    fontFamily: consumerFonts.bold,
+    color: consumerColors.white,
+  },
+  countBadge: {
+    minWidth: 26,
+    height: 24,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    backgroundColor: consumerColors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonActive: {
-    backgroundColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  label: {
-    fontSize: 14,
-    color: colors.dark,
-    fontFamily: 'Google Sans Flex-SemiBold',
-  },
-  labelActive: {
-    color: colors.white,
-  },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  countBadge: {
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    marginLeft: spacing.sm,
-    borderRadius: radius.xl,
-    backgroundColor: colors.white,
-  },
-  countBadgeActive: {
-    backgroundColor: colors.white,
-  },
   countText: {
-    fontSize: 12,
-    color: colors.dark,
-    fontWeight: '600',
+    fontSize: 13,
+    fontFamily: consumerFonts.bold,
+    color: '#202833',
   },
   countTextActive: {
-    color: colors.primary,
-    fontWeight: '700',
+    color: consumerColors.primaryDark,
   },
 });
 

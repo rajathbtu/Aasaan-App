@@ -1,0 +1,4 @@
+function fitCanvas(){const scale=Math.min(window.innerWidth/1024,1);document.getElementById('screen').style.setProperty('--scale',scale);document.querySelector('.viewport').style.height=(1536*scale)+'px';}fitCanvas();window.addEventListener('resize',fitCanvas);
+const search=document.getElementById('search');search.addEventListener('input',()=>{const q=search.value.toLowerCase();document.querySelectorAll('.provider').forEach(card=>card.hidden=!card.dataset.name.toLowerCase().includes(q));});
+document.getElementById('sort').addEventListener('click',()=>{const list=document.getElementById('provider-list');const cards=[...list.children];cards.sort((a,b)=>Number(b.dataset.rating)-Number(a.dataset.rating));cards.forEach(card=>list.appendChild(card));});
+document.querySelectorAll('.accept').forEach(button=>button.addEventListener('click',()=>{button.textContent='Interest Accepted';button.disabled=true;button.classList.add('accepted');}));

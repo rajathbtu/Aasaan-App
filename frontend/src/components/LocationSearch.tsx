@@ -366,7 +366,7 @@ const LocationSearch = React.forwardRef<{
     );
   };
 
-  const scheduleCenterLocationUpdate = (region: Region) => { // delay the reverse geocoding to avoid excessive API calls while user is interacting with the map
+  const scheduleCenterLocationUpdate = (region: Region) => { // short debounce so the selected-address card follows the map quickly without spamming the geocoder
     if (regionChangeTimeout.current) {
       clearTimeout(regionChangeTimeout.current);
     }
@@ -377,7 +377,7 @@ const LocationSearch = React.forwardRef<{
       if (requestId !== latestMapSelectionRequest.current) return;
       onSelect({ lat: region.latitude, lng: region.longitude, ...geocodedLocation });
       setIsLocationResolving(false);
-    }, 3000);
+    }, 700);
   };
 
   useEffect(() => {
@@ -463,9 +463,10 @@ const LocationSearch = React.forwardRef<{
                 }}
                 onRegionChangeComplete={(region: Region) => {
                   if (!regionsAreClose(mapRegion, region)) { // Only update if new region differs meaningfully
-                    console.log('Map region changed:', region.latitude, region.longitude);
                     setMapRegion(region);
                     scheduleCenterLocationUpdate(region);
+                  } else {
+                    setIsLocationResolving(false);
                   }
                   setIsMapInteracting(false);
                 }}

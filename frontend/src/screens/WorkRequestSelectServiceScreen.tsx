@@ -1,53 +1,131 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity, TextInput } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { colors, spacing, radius, shadows } from '../theme';
-import Header from '../components/Header';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, spacing } from '../theme';
+import { consumerColors, consumerFonts } from '../theme';
 import ErrorBanner from '../components/ErrorBanner';
 import type { Location } from '../components/LocationSearch';
-import { Service, ServiceCard, ServiceCategoryGrid, useServiceCatalog } from '../components/ServiceSelection';
+import { Service, useServiceCatalog } from '../components/ServiceSelection';
+import ServiceIcon from '../components/ServiceIcon';
 import ServicesSearchBar from '../components/ServicesSearchBar';
 import { useI18n } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotificationCount } from '../contexts/NotificationCountContext';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
+import { locationManager } from '../services/LocationManager';
+import { reverseGeocode } from '../services/googlePlacesApi';
 import useScrolledPastBoundary from '../hooks/useScrolledPastBoundary';
+import { BRAND_WORD_COLOR, BRAND_WORD_FONT, BrandWord } from '../components/BrandWord';
+import { HomeHeroIllustration } from '../assets/images';
+import SvgIcon from '../assets/icons';
+
+/**
+ * Service selection (Create tab) — implemented from the
+ * Work_Request_Selection_Handoff design: aasaanly wordmark header with the
+ * user's location below and a notification bell, "Get work done with
+ * aasaanly" hero, search bar (sticky under the header once scrolled past),
+ * category chips, Recently Used and the grouped All Services grid.
+ *
+ * The service list, icons and colours come from the shared service catalog
+ * (the same source the service-provider flow uses) rendered through the
+ * shared ServiceIcon chip, so both flows always match. Typography uses the
+ * app's standard cross-screen scale and labels wrap instead of truncating.
+ */
 
 const RECENT_SERVICES_KEY = (userId: string) => `recent_services_${userId}`;
-const MAX_RECENT_SERVICES = 3;
+const MAX_RECENT_SERVICES = 4;
+
+/* Category chip icons — mirrors the category mapping used by the
+   service-provider flow (SPSelectServicesScreen). */
+const CATEGORY_ICON_RULES: Array<[RegExp, string]> = [
+  [/appliance/i, 'appliance'],
+  [/clean|pest/i, 'cleaning'],
+  [/home|maid|cook|baby|servant|garden/i, 'home'],
+  [/vehicle|car\b|driver/i, 'car'],
+  [/beauty|salon|spa|personal/i, 'ss-scissors'],
+];
+
+const categoryIcon = (category: string): string => {
+  for (const [pattern, icon] of CATEGORY_ICON_RULES) {
+    if (pattern.test(category)) return icon;
+  }
+  return 'grid';
+};
+
+/* Short human label from a Google geocode result (area, region). */
+const describeGeocodeResult = (result: any): string => {
+  const components: Array<{ long_name: string; short_name: string; types: string[] }> =
+    result?.address_components || [];
+  const pick = (type: string, short = false): string | null => {
+    const found = components.find((c) => c.types.includes(type));
+    return found ? (short ? found.short_name : found.long_name) : null;
+  };
+  const area =
+    pick('sublocality') || pick('sublocality_level_1') || pick('locality') || pick('premise');
+  const region =
+    pick('administrative_area_level_1', true) || pick('administrative_area_level_1');
+  if (area && region) return `${area}, ${region}`;
+  return result?.formatted_address || 'Current location';
+};
 
 const WorkRequestSelectServiceScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t } = useI18n();
+  const { unreadCount } = useNotificationCount();
+  const insets = useSafeAreaInsets();
+  const topPadding = Math.max(insets.top, StatusBar.currentHeight ?? 0);
 
   const userId = useAuth()?.user?.id;
   const { services, query, setQuery, filtered, servicesError, refreshInBackground } = useServiceCatalog(userId);
-  const serviceSelectionScrollViewRef  = useRef<ScrollView>(null);
-  const serviceSearchInputRef  = useRef<TextInput>(null);
-  const { targetScrollY: searchBarScrollOffset,
-    isPastBoundary: showHeaderSearch,
-    onTargetLayout: onSearchBarLayout, onScroll,
-  } = useScrolledPastBoundary();
+  const { isPastBoundary: showStickySearch, onTargetLayout: onSearchBarLayout, onScroll } =
+    useScrolledPastBoundary();
+  const locationAttemptedRef = useRef(false);
   const [recentServices, setRecentServices] = useState<Service[]>([]);
   const [savedLocation, setSavedLocation] = useState<Location | null>(null);
+  const [currentLocationLabel, setCurrentLocationLabel] = useState<string | null>(null);
+  const [selectedChip, setSelectedChip] = useState<string>('all');
 
-  useFocusEffect(useCallback(() => {
-    let isActive = true;
-    void (async () => {
-      const locations = userId
-        ? await readOfflineCache<Location[]>(offlineCacheKey('saved-locations', userId))
-        : null;
-      if (isActive) {
-        setSavedLocation(locations?.[0] ?? null);
-      }
-    })();
-    return () => {
-      isActive = false;
-    };
-  }, [userId]));
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      void (async () => {
+        const locations = userId
+          ? await readOfflineCache<Location[]>(offlineCacheKey('saved-locations', userId))
+          : null;
+        if (!isActive) return;
+        const saved = locations?.[0] ?? null;
+        setSavedLocation(saved);
+        /* Without a confirmed location, fall back to the user's current
+           device location (resolved once per session). */
+        if (saved || locationAttemptedRef.current) return;
+        locationAttemptedRef.current = true;
+        try {
+          const gps = await locationManager.getGPSLocation(true);
+          if (!gps || !isActive) return;
+          const data = await reverseGeocode({ latlng: `${gps.latitude},${gps.longitude}` });
+          if (!isActive) return;
+          const result = data?.results?.[0];
+          if (result) setCurrentLocationLabel(describeGeocodeResult(result));
+        } catch {
+          // Location unavailable or permission denied — keep the generic placeholder.
+        }
+      })();
+      return () => {
+        isActive = false;
+      };
+    }, [userId])
+  );
 
   useEffect(() => {
-    // Load recently used services for the user
     (async () => {
       try {
         if (userId) {
@@ -88,11 +166,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     });
   };
 
-  const focusSearch = () => {
-    serviceSelectionScrollViewRef.current?.scrollTo({ y: searchBarScrollOffset ?? 0, animated: true });
-    requestAnimationFrame(() => serviceSearchInputRef .current?.focus());
-  };
-
   const savedLocationName = savedLocation?.description;
   const hasData = services && services.length > 0;
 
@@ -102,246 +175,501 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     t('createRequest.selectService.searchPlaceholder2')
   ];
 
+  const filteredServices = useMemo(() => {
+    if (!services) return [];
+    const q = query.trim().toLowerCase();
+    return services.filter((s) => {
+      const catMatch = selectedChip === 'all' || s.category === selectedChip;
+      const qMatch =
+        !q ||
+        s.name.toLowerCase().includes(q) ||
+        (Array.isArray(s.alias) && s.alias.some((alias) => alias.toLowerCase().includes(q))) ||
+        (Array.isArray(s.tags) && s.tags.some((tag) => tag.toLowerCase().includes(q)));
+      return catMatch && qMatch;
+    });
+  }, [services, query, selectedChip]);
+
+  /* Grouped by the service's own category — the same grouping the
+     service-provider flow uses. */
+  const groupedServices = useMemo(() => {
+    const map: Record<string, Service[]> = {};
+    filteredServices.forEach((s) => {
+      const key = s.category || 'Other';
+      if (!map[key]) map[key] = [];
+      map[key].push(s);
+    });
+    return map;
+  }, [filteredServices]);
+
+  const groupKeys = useMemo(() => Object.keys(groupedServices), [groupedServices]);
+
+  const categories = useMemo(
+    () => Array.from(new Set((services || []).map((s) => s.category).filter(Boolean))) as string[],
+    [services]
+  );
+
+  const noResults = hasData && filteredServices.length === 0 && query.trim() !== '';
+  const headerLocationLabel = savedLocationName || currentLocationLabel || 'Select your location';
+
+  const renderServiceCard = (service: Service, recent = false) => (
+    <TouchableOpacity
+      key={service.id}
+      style={[styles.serviceCard, recent && styles.recentCard]}
+      onPress={() => handleServicePress(service)}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel={service.name}>
+      <ServiceIcon
+        icon={service.icon}
+        color={service.color}
+        circleSize={56}
+        iconSize={26}
+        style={styles.serviceIconCircle}
+      />
+      <Text style={styles.serviceLabel}>{service.name}</Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.light }}>
-      {/* Top bar */}
-      <Header title="aasaanly" showNotification={true} showBackButton={false}
-        belowHeaderContent={
-          <TouchableOpacity
-            style={styles.locationHeaderButton}
-            onPress={openLocationSelection}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel={savedLocationName ? `${savedLocationName}, ${t('common.change')}` : t('sp.selectLocation.selectLocation')}>
-            <Ionicons name="location-outline" size={13} color={colors.grey} />
-            <Text style={styles.locationHeaderText} numberOfLines={1}>
-              {savedLocationName || t('sp.selectLocation.selectLocation')}
+    <View style={styles.container}>
+      {/* Header: safe-area padded so it never sits under the status bar */}
+      <View style={[styles.header, { paddingTop: topPadding + 8 }]}>
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeftColumn}>
+            <Text style={styles.wordmark}>
+              <BrandWord />
             </Text>
-            <Ionicons name="chevron-down" size={16} color={colors.primary} />
-          </TouchableOpacity>
-        }
-        customLeftComponent={showHeaderSearch ? (
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={openLocationSelection}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`${headerLocationLabel}, change location`}>
+              <SvgIcon name="pin" size={17} color="#263638" />
+              <Text style={styles.locationText}>{headerLocationLabel}</Text>
+              <SvgIcon name="chevron-down" size={14} color={consumerColors.primary} />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity
-            style={styles.headerSearchButton}
-            onPress={focusSearch}
+            style={styles.bellButton}
+            onPress={() => navigation.navigate('Notifications')}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel={t('createRequest.selectService.searchPlaceholder')}>
-            <Ionicons name="search-outline" size={22} color={colors.dark} />
+            accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}>
+            <SvgIcon name="bell" size={24} color={colors.dark} />
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {unreadCount > 20 ? '20+' : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
-        ) : null}
-        keepTitleCenterAligned={true}
-        titleStyle={[styles.logo]}/>
+        </View>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}
-          ref={serviceSelectionScrollViewRef }
-          onScroll={onScroll}
-          scrollEventThrottle={16}>
-
-          {/* Hero: title + illustration */}
-          <View style={styles.heroSection}>
-            <View style={styles.heroTextWrap}>
-              <Text style={[styles.heroTitle]}>
-                Get work done
-                <Text style={styles.heroTitleAccent}> aasaanly</Text>
-              </Text>
-              <Text style={styles.heroSubtitle}>Trusted professionals, at your service</Text>
-            </View>
-            <Image
-              source={require('../../assets/sofa_graphic_banner.png')}
-              style={styles.heroArt}
-              resizeMode="contain"
-            />
+        {/* Search bar becomes sticky under the header once the in-content
+            search scrolls past */}
+        {showStickySearch && (
+          <View style={styles.stickySearchWrap}>
+            <ServicesSearchBar placeholders={placeholderTexts} value={query} onChangeText={setQuery} />
           </View>
+        )}
+      </View>
 
-          {/* Search bar */}
-          <View style={styles.searchSection} onLayout={onSearchBarLayout }>
-            <ServicesSearchBar
-              placeholders={placeholderTexts}
-              value={query}
-              onChangeText={setQuery}
-              inputRef={serviceSearchInputRef }
-            />
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ ...styles.scrollContent, paddingBottom: 100 + Math.max(0, insets.bottom) }}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled">
+
+        {/* Hero: compact copy left, illustration right */}
+        <View style={styles.hero}>
+          <View style={styles.heroTextWrap}>
+            <Text style={styles.heroTitle}>
+              Get work done with <BrandWord />
+            </Text>
+            <Text style={styles.heroSubtitle}>Trusted professionals, at your service</Text>
           </View>
+          <HomeHeroIllustration width={150} height={107} />
+        </View>
 
-          {!hasData && (
-            <View style={styles.loadingState}>
-              <ActivityIndicator color={colors.primary} />
-              <Text style={styles.loadingText}>Loading services...</Text>
+        {/* Search */}
+        <View style={styles.searchWrap} onLayout={onSearchBarLayout}>
+          <ServicesSearchBar
+            placeholders={placeholderTexts}
+            value={query}
+            onChangeText={setQuery}
+          />
+        </View>
+
+        {/* Horizontal category chip strip — real categories from the shared
+            service catalog (same list as the service-provider flow) */}
+        {!hasData ? null : (
+          <View style={styles.chipStrip}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              decelerationRate="fast"
+              contentContainerStyle={styles.chipScrollContent}
+            >
+              <TouchableOpacity
+                style={[styles.chip, selectedChip === 'all' && styles.chipActive]}
+                onPress={() => setSelectedChip('all')}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityState={{ selected: selectedChip === 'all' }}>
+                <SvgIcon name="grid" size={18} color={consumerColors.primary} />
+                <Text style={[styles.chipLabel, selectedChip === 'all' && styles.chipLabelActive]}>
+                  All
+                </Text>
+              </TouchableOpacity>
+              {categories.map((category) => {
+                const active = category === selectedChip;
+                return (
+                  <TouchableOpacity
+                    key={category}
+                    style={[styles.chip, active && styles.chipActive]}
+                    onPress={() => setSelectedChip(category)}
+                    activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}>
+                    <SvgIcon name={categoryIcon(category) as any} size={18} color={consumerColors.primary} />
+                    <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+              <View style={styles.chipSpacer} />
+            </ScrollView>
+          </View>
+        )}
+
+        {!hasData && (
+          <View style={styles.loadingState}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={styles.loadingText}>Loading services...</Text>
+          </View>
+        )}
+
+        {/* Recently Used */}
+        {hasData && query.trim() === '' && recentServices.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHead}>
+              <Text style={styles.sectionTitle}>{t('createRequest.selectService.recentlyUsed')}</Text>
+              <TouchableOpacity
+                style={styles.viewAll}
+                onPress={() => { setSelectedChip('all'); setQuery(''); }}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel="View All">
+                <Text style={styles.viewAllText}>View All ›</Text>
+              </TouchableOpacity>
             </View>
-          )}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recentRow}
+            >
+              {recentServices.map((svc) => renderServiceCard(svc, true))}
+            </ScrollView>
+          </View>
+        )}
 
-          {/* Recently Used */}
-          {hasData && query.trim() === '' && recentServices.length > 0 && (
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { marginBottom: spacing.lg }]}>
-                {t('createRequest.selectService.recentlyUsed')}
-              </Text>
-              <View style={styles.gridRow}>
-                {recentServices.map((svc) => <ServiceCard key={svc.id} service={svc} onPress={() => handleServicePress(svc)} />)}
-              </View>
-            </View>
-          )}
+        {/* All Services — grouped by the catalog's own categories */}
+        {hasData && (
+          <View style={styles.section}>
+            {query.trim() === '' && <Text style={styles.sectionTitle}>{t('createRequest.selectService.allServices')}</Text>}
+            {groupKeys.map((key) => {
+              const items = groupedServices[key];
+              if (!items || items.length === 0) return null;
+              return (
+                <View key={key} style={styles.groupSection}>
+                  <View style={styles.groupRow}>
+                    <View style={styles.groupMarker} />
+                    <Text style={styles.groupTitle}>{key}</Text>
+                  </View>
+                  <View style={styles.gridRow}>
+                    {items.map((item) => (
+                      <View key={item.id} style={styles.gridCell}>
+                        {renderServiceCard(item)}
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
 
-          {/* All Services */}
-          {hasData && (
-            <View style={styles.section}>
-              {query.trim() === '' && <Text style={styles.sectionTitle}>{t('createRequest.selectService.allServices')}</Text>}
-              <ServiceCategoryGrid servicesByCategory={filtered} onServicePress={handleServicePress} />
-            </View>
-          )}
+        {hasData && noResults && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No matching services found</Text>
+          </View>
+        )}
 
-          {hasData && Object.keys(filtered).length === 0 && (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIcon}>
-                <Ionicons name="search-outline" size={24} color={colors.primary} />
-              </View>
-              <Text style={styles.emptyText}>{t('No matching service found')}</Text>
-            </View>
-          )}
-
-          {/* Trust banner */}
-          {hasData && query.trim() === '' && (
-            <View style={styles.trustBanner}>
-              <View style={styles.trustIconWrap}>
-                <Ionicons name="sparkles-outline" size={26} color={colors.primary} />
-              </View>
-              <View style={styles.trustTextWrap}>
-                <Text style={styles.trustTitle}>Find the right help, aasaanly</Text>
-                <Text style={styles.trustSubtitle}>Explore services & choose what works for you</Text>
-              </View>
-            </View>
-          )}
-
-        </ScrollView>
+      </ScrollView>
       <ErrorBanner error={servicesError} onRetry={refreshInBackground} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  logo: {
-    fontSize: 22,
-    fontFamily: 'Quicksand-Bold',
-    color: colors.primary,
-    textTransform: 'lowercase',
+  // -- Container --
+  container: {
+    flex: 1,
+    backgroundColor: consumerColors.page,
   },
-  // -- Hero --
-  heroSection: {
+
+  // -- Header --
+  header: {
+    backgroundColor: consumerColors.page,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 24,
+    paddingBottom: 8,
+  },
+  headerLeftColumn: {
+    gap: 2,
+    flex: 1,
+    minWidth: 0,
+  },
+  /* Exact brand tokens — identical to the role-selection screen. */
+  wordmark: {
+    color: BRAND_WORD_COLOR,
+    fontFamily: BRAND_WORD_FONT,
+    fontWeight: '700',
+    fontSize: 28,
+    letterSpacing: -1.1,
+    lineHeight: 34,
+    includeFontPadding: false,
+  },
+  locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    marginBottom: spacing.md,
+    gap: 6,
+    paddingVertical: 6,
+  },
+  locationText: {
+    color: '#263638',
+    fontSize: 15,
+    fontFamily: consumerFonts.regular,
+    flexShrink: 1,
+  },
+  bellButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: consumerColors.mint,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: consumerColors.primary,
+    borderWidth: 1,
+    borderColor: consumerColors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  notificationBadgeText: {
+    color: consumerColors.white,
+    fontSize: 10,
+    fontWeight: '700',
+    fontFamily: consumerFonts.bold,
+  },
+  stickySearchWrap: {
+    paddingHorizontal: 22,
+    paddingTop: 2,
+    paddingBottom: 10,
+  },
+
+  // -- Hero --
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
   },
   heroTextWrap: {
     flex: 1,
-    paddingRight: spacing.xs,
+    minWidth: 0,
   },
   heroTitle: {
-    fontSize: 24,
-    fontFamily: 'Google Sans Flex-Bold',
     color: colors.dark,
-  },
-  heroTitleAccent: {
-    color: colors.primary,
+    fontSize: 24,
+    fontFamily: consumerFonts.bold,
+    fontWeight: '800',
+    letterSpacing: -0.7,
+    lineHeight: 29,
+    marginBottom: 8,
+    includeFontPadding: false,
   },
   heroSubtitle: {
-    fontSize: 14,
-    fontFamily: 'Google Sans Flex',
-    color: colors.grey,
-  },
-  heroArt: {
-    width: 132,
-    height: 120,
+    color: consumerColors.muted,
+    fontSize: 14.5,
+    fontFamily: consumerFonts.regular,
+    lineHeight: 20,
   },
 
   // -- Search --
-  searchSection: {
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.xs,
-    marginBottom: spacing.lg,
+  searchWrap: {
+    marginTop: 12,
+    marginBottom: 14,
   },
-  headerSearchButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.surface,
+
+  // -- Chips --
+  chipStrip: {
+    marginHorizontal: -22,
+    marginBottom: 8,
+  },
+  chipScrollContent: {
+    paddingHorizontal: 22,
+    paddingTop: 2,
+    paddingBottom: 12,
+    gap: 9,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
+  },
+  chipSpacer: {
+    width: 22,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    borderWidth: 1,
+    borderColor: consumerColors.border,
+    backgroundColor: consumerColors.white,
+    borderRadius: 999,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    shadowColor: '#1a4331',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  chipActive: {
+    backgroundColor: consumerColors.selectedMint,
+    borderColor: consumerColors.selectedMint,
+  },
+  chipLabel: {
+    color: consumerColors.ink,
+    fontSize: 14,
+    fontFamily: consumerFonts.regular,
+  },
+  chipLabelActive: {
+    color: '#087f50',
+    fontFamily: consumerFonts.bold,
   },
 
   // -- Sections --
   scrollContent: {
-    paddingBottom: spacing.xl,
-  },
-  locationHeaderButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.sm,
-    gap: spacing.xs,
-    width: 260,
-  },
-  locationHeaderText: {
-    color: colors.dark,
-    fontSize: 13,
-    fontFamily: 'Google Sans Flex',
-    flexShrink: 1,
+    paddingHorizontal: 22,
   },
   section: {
-    marginBottom: spacing.xl,
-    paddingHorizontal: spacing.lg,
+    marginTop: 12,
+  },
+  sectionHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   sectionTitle: {
+    color: consumerColors.ink,
+    fontSize: 19,
+    fontFamily: consumerFonts.bold,
+    letterSpacing: -0.4,
+  },
+  viewAll: {
+    backgroundColor: '#e1f8ed',
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 13,
+  },
+  viewAllText: {
+    color: '#087e50',
     fontSize: 13,
     fontWeight: '700',
-    color: colors.primary,
-    marginBottom: spacing.lg,
-    textTransform: 'uppercase',
+  },
+  recentRow: {
+    gap: 10,
+  },
+
+  // -- Service card (compact) --
+  serviceCard: {
+    borderWidth: 1,
+    borderColor: '#edf1ef',
+    backgroundColor: consumerColors.white,
+    borderRadius: 16,
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    alignSelf: 'center',
+    shadowColor: '#1f4133',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  recentCard: {
+    width: 116,
+  },
+  serviceIconCircle: {
+    marginBottom: 0,
+  },
+  serviceLabel: {
+    color: '#243333',
+    fontSize: 13.5,
+    fontFamily: consumerFonts.regular,
+    lineHeight: 17.5,
+    textAlign: 'center',
+    alignSelf: 'stretch',
+  },
+
+  // -- Group headings --
+  groupSection: {
+    marginBottom: 12,
+  },
+  groupRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 2,
+    marginBottom: 10,
+  },
+  groupMarker: {
+    width: 4,
+    height: 20,
+    borderRadius: 4,
+    backgroundColor: '#10b879',
+  },
+  groupTitle: {
+    color: consumerColors.ink,
+    fontSize: 17,
+    fontFamily: consumerFonts.bold,
   },
   gridRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    columnGap: spacing.lg,
+    gap: 10,
   },
-
-  // -- Trust banner --
-  trustBanner: {
-    ...shadows.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primarySoft,
-    borderRadius: radius.xl,
-    padding: spacing.lg,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-  trustIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.lg,
-  },
-  trustTextWrap: {
-    flex: 1,
-    paddingRight: spacing.sm,
-  },
-  trustTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.dark,
-  },
-  trustSubtitle: {
-    fontSize: 13,
-    color: colors.grey,
-    marginTop: 2,
+  gridCell: {
+    width: '31.5%',
   },
 
   // -- States --
@@ -356,20 +684,12 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: spacing.xxl,
-  },
-  emptyIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primaryLight,
-    marginBottom: spacing.md,
+    paddingVertical: 40,
   },
   emptyText: {
-    color: colors.grey,
+    color: consumerColors.muted,
     fontSize: 15,
+    textAlign: 'center',
   },
 });
 
