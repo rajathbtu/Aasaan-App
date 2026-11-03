@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
@@ -15,7 +16,6 @@ import { consumerColors, consumerFonts } from '../theme';
 import ErrorBanner from '../components/ErrorBanner';
 import type { Location } from '../components/LocationSearch';
 import { Service, useServiceCatalog } from '../components/ServiceSelection';
-import ServiceIcon from '../components/ServiceIcon';
 import ServicesSearchBar from '../components/ServicesSearchBar';
 import { useI18n } from '../i18n';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,25 +24,78 @@ import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/o
 import { locationManager } from '../services/LocationManager';
 import { reverseGeocode } from '../services/googlePlacesApi';
 import useScrolledPastBoundary from '../hooks/useScrolledPastBoundary';
-import { BRAND_WORD_COLOR, BRAND_WORD_FONT, BrandWord } from '../components/BrandWord';
+import { BrandWord } from '../components/BrandWord';
 import { HomeHeroIllustration } from '../assets/images';
 import SvgIcon from '../assets/icons';
 
 /**
  * Service selection (Create tab) — implemented from the
- * Work_Request_Selection_Handoff design: aasaanly wordmark header with the
- * user's location below and a notification bell, "Get work done with
- * aasaanly" hero, search bar (sticky under the header once scrolled past),
- * category chips, Recently Used and the grouped All Services grid.
+ * Work_Request_Selection_Handoff design: location header with notification
+ * bell, "Get work done with aasaanly" hero, search bar (sticky under the
+ * header once scrolled past), category chips, Recently Used and the grouped
+ * All Services grid.
  *
- * The service list, icons and colours come from the shared service catalog
- * (the same source the service-provider flow uses) rendered through the
- * shared ServiceIcon chip, so both flows always match. Typography uses the
- * app's standard cross-screen scale and labels wrap instead of truncating.
+ * The service list is the shared catalog (same source as the
+ * service-provider flow), and the service cards reuse the exact
+ * SPSelectServicesScreen card spec: fixed three-per-row dimensions,
+ * single-green ss-* icons without a circular background and the same
+ * bordered white container. Typography stays on the app's standard scale
+ * and labels wrap instead of truncating.
  */
 
 const RECENT_SERVICES_KEY = (userId: string) => `recent_services_${userId}`;
 const MAX_RECENT_SERVICES = 4;
+
+/* Icon + card tokens copied from SPSelectServicesScreen so both flows
+   render service cards identically. */
+const SS = {
+  green: '#079B5C',
+  cardBorder: '#E3E8E5',
+  serviceName: '#101714',
+} as const;
+
+/* Real catalogue service ids → handoff SVG icons (SPSelectServicesScreen map). */
+const SERVICE_ICON_MAP: Record<string, string> = {
+  ac_service_repair: 'ss-ac',
+  chimney_hob: 'ss-chimney',
+  gas_stove_hob: 'ss-flame',
+  geyser_service: 'ss-geyser',
+  inverter_ups: 'ss-battery',
+  microwave_oven: 'ss-microwave',
+  refrigerator_service: 'ss-fridge',
+  ro_water_purifier: 'ss-water',
+  tv_home_entertainment: 'ss-tv',
+  makeup_artist: 'ss-brush',
+  massage_spa: 'ss-spa',
+  mehendi_artist: 'ss-flower',
+  salon_beautician_at_home: 'ss-scissors',
+  home_cleaning: 'ss-cleaning',
+  specialized_cleaning: 'ss-cleaning',
+  floor_surface_cleaning: 'ss-cleaning',
+  pest_control: 'ss-cleaning',
+  water_tank_cleaning: 'ss-cleaning',
+};
+
+const getServiceIcon = (service: Service): string | null => {
+  const mapped = SERVICE_ICON_MAP[service.id];
+  if (mapped) return mapped;
+  const name = (service.name || '').toLowerCase();
+  if (name.includes('air condition') || /\bac\b/.test(name)) return 'ss-ac';
+  if (name.includes('chimney') || name.includes('hob')) return 'ss-chimney';
+  if (name.includes('gas') || name.includes('stove') || name.includes('flame')) return 'ss-flame';
+  if (name.includes('geyser')) return 'ss-geyser';
+  if (name.includes('inverter') || name.includes('ups')) return 'ss-battery';
+  if (name.includes('microwave') || name.includes('oven')) return 'ss-microwave';
+  if (name.includes('refrigerator') || name.includes('fridge')) return 'ss-fridge';
+  if (name.includes('purifier') || name.includes('water')) return 'ss-water';
+  if (name.includes('tv') || name.includes('television') || name.includes('entertainment')) return 'ss-tv';
+  if (name.includes('makeup')) return 'ss-brush';
+  if (name.includes('massage') || name.includes('spa')) return 'ss-spa';
+  if (name.includes('mehendi')) return 'ss-flower';
+  if (name.includes('salon') || name.includes('beautician') || name.includes('scissor')) return 'ss-scissors';
+  if (name.includes('clean')) return 'ss-cleaning';
+  return null;
+};
 
 /* Category chip icons — mirrors the category mapping used by the
    service-provider flow (SPSelectServicesScreen). */
@@ -61,22 +114,6 @@ const categoryIcon = (category: string): string => {
   return 'grid';
 };
 
-/* Short human label from a Google geocode result (area, region). */
-const describeGeocodeResult = (result: any): string => {
-  const components: Array<{ long_name: string; short_name: string; types: string[] }> =
-    result?.address_components || [];
-  const pick = (type: string, short = false): string | null => {
-    const found = components.find((c) => c.types.includes(type));
-    return found ? (short ? found.short_name : found.long_name) : null;
-  };
-  const area =
-    pick('sublocality') || pick('sublocality_level_1') || pick('locality') || pick('premise');
-  const region =
-    pick('administrative_area_level_1', true) || pick('administrative_area_level_1');
-  if (area && region) return `${area}, ${region}`;
-  return result?.formatted_address || 'Current location';
-};
-
 const WorkRequestSelectServiceScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t } = useI18n();
@@ -85,13 +122,13 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const topPadding = Math.max(insets.top, StatusBar.currentHeight ?? 0);
 
   const userId = useAuth()?.user?.id;
-  const { services, query, setQuery, filtered, servicesError, refreshInBackground } = useServiceCatalog(userId);
+  const { services, query, setQuery, servicesError, refreshInBackground } = useServiceCatalog(userId);
   const { isPastBoundary: showStickySearch, onTargetLayout: onSearchBarLayout, onScroll } =
     useScrolledPastBoundary();
   const locationAttemptedRef = useRef(false);
   const [recentServices, setRecentServices] = useState<Service[]>([]);
   const [savedLocation, setSavedLocation] = useState<Location | null>(null);
-  const [currentLocationLabel, setCurrentLocationLabel] = useState<string | null>(null);
+  const [currentCityLabel, setCurrentCityLabel] = useState<string | null>(null);
   const [selectedChip, setSelectedChip] = useState<string>('all');
 
   useFocusEffect(
@@ -101,29 +138,43 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
         const locations = userId
           ? await readOfflineCache<Location[]>(offlineCacheKey('saved-locations', userId))
           : null;
-        if (!isActive) return;
-        const saved = locations?.[0] ?? null;
-        setSavedLocation(saved);
-        /* Without a confirmed location, fall back to the user's current
-           device location (resolved once per session). */
-        if (saved || locationAttemptedRef.current) return;
-        locationAttemptedRef.current = true;
-        try {
-          const gps = await locationManager.getGPSLocation(true);
-          if (!gps || !isActive) return;
-          const data = await reverseGeocode({ latlng: `${gps.latitude},${gps.longitude}` });
-          if (!isActive) return;
-          const result = data?.results?.[0];
-          if (result) setCurrentLocationLabel(describeGeocodeResult(result));
-        } catch {
-          // Location unavailable or permission denied — keep the generic placeholder.
-        }
+        if (isActive) setSavedLocation(locations?.[0] ?? null);
       })();
       return () => {
         isActive = false;
       };
     }, [userId])
   );
+
+  /* Live current city for the header — fetched once per session. */
+  useEffect(() => {
+    if (locationAttemptedRef.current) return;
+    locationAttemptedRef.current = true;
+    let active = true;
+    (async () => {
+      try {
+        const gps = await locationManager.getGPSLocation(true);
+        if (!gps || !active) return;
+        const data = await reverseGeocode({ latlng: `${gps.latitude},${gps.longitude}` });
+        if (!active) return;
+        const result = data?.results?.[0];
+        if (!result) return;
+        const components: Array<{ long_name: string; types: string[] }> =
+          result.address_components || [];
+        const city =
+          components.find((c) => c.types.includes('locality'))?.long_name ||
+          components.find((c) => c.types.includes('sublocality'))?.long_name ||
+          components.find((c) => c.types.includes('administrative_area_level_1'))?.long_name;
+        setCurrentCityLabel(city || result.formatted_address || null);
+      } catch {
+        // Location unavailable or permission denied — fall back to the saved
+        // location or the generic placeholder.
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -166,7 +217,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     });
   };
 
-  const savedLocationName = savedLocation?.description;
   const hasData = services && services.length > 0;
 
   const placeholderTexts = [
@@ -209,47 +259,51 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   );
 
   const noResults = hasData && filteredServices.length === 0 && query.trim() !== '';
-  const headerLocationLabel = savedLocationName || currentLocationLabel || 'Select your location';
+  /* Header shows the live current city (GPS → reverse geocoded); falls back
+     to the confirmed saved location, then the generic placeholder. */
+  const headerLocationLabel = currentCityLabel || savedLocation?.description || 'Select your location';
 
-  const renderServiceCard = (service: Service, recent = false) => (
-    <TouchableOpacity
-      key={service.id}
-      style={[styles.serviceCard, recent && styles.recentCard]}
-      onPress={() => handleServicePress(service)}
-      activeOpacity={0.75}
-      accessibilityRole="button"
-      accessibilityLabel={service.name}>
-      <ServiceIcon
-        icon={service.icon}
-        color={service.color}
-        circleSize={56}
-        iconSize={26}
-        style={styles.serviceIconCircle}
-      />
-      <Text style={styles.serviceLabel}>{service.name}</Text>
-    </TouchableOpacity>
-  );
+  const renderServiceCard = (service: Service, recent = false) => {
+    const svgIcon = getServiceIcon(service);
+    return (
+      <TouchableOpacity
+        key={service.id}
+        style={[styles.serviceCard, recent && styles.recentCard]}
+        onPress={() => handleServicePress(service)}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel={service.name}>
+        <View style={styles.serviceIconWrap}>
+          {svgIcon ? (
+            <SvgIcon name={svgIcon as any} size={34} color={SS.green} />
+          ) : (
+            <Ionicons
+              name={(service.icon && (Ionicons as any).glyphMap[service.icon] ? service.icon : 'construct') as any}
+              size={32}
+              color={SS.green}
+            />
+          )}
+        </View>
+        <Text style={styles.serviceLabel}>{service.name}</Text>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
       {/* Header: safe-area padded so it never sits under the status bar */}
       <View style={[styles.header, { paddingTop: topPadding + 8 }]}>
         <View style={styles.headerRow}>
-          <View style={styles.headerLeftColumn}>
-            <Text style={styles.wordmark}>
-              <BrandWord />
-            </Text>
-            <TouchableOpacity
-              style={styles.locationButton}
-              onPress={openLocationSelection}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel={`${headerLocationLabel}, change location`}>
-              <SvgIcon name="pin" size={17} color="#263638" />
-              <Text style={styles.locationText}>{headerLocationLabel}</Text>
-              <SvgIcon name="chevron-down" size={14} color={consumerColors.primary} />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.locationButton}
+            onPress={openLocationSelection}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`${headerLocationLabel}, change location`}>
+            <SvgIcon name="pin" size={18} color="#263638" />
+            <Text style={styles.locationText}>{headerLocationLabel}</Text>
+            <SvgIcon name="chevron-down" size={14} color={consumerColors.primary} />
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.bellButton}
             onPress={() => navigation.navigate('Notifications')}
@@ -392,11 +446,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
                     <Text style={styles.groupTitle}>{key}</Text>
                   </View>
                   <View style={styles.gridRow}>
-                    {items.map((item) => (
-                      <View key={item.id} style={styles.gridCell}>
-                        {renderServiceCard(item)}
-                      </View>
-                    ))}
+                    {items.map((item) => renderServiceCard(item))}
                   </View>
                 </View>
               );
@@ -430,26 +480,14 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: 24,
     paddingBottom: 8,
-  },
-  headerLeftColumn: {
-    gap: 2,
-    flex: 1,
-    minWidth: 0,
-  },
-  /* Exact brand tokens — identical to the role-selection screen. */
-  wordmark: {
-    color: BRAND_WORD_COLOR,
-    fontFamily: BRAND_WORD_FONT,
-    fontWeight: '700',
-    fontSize: 28,
-    letterSpacing: -1.1,
-    lineHeight: 34,
-    includeFontPadding: false,
+    gap: 10,
   },
   locationButton: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -457,8 +495,8 @@ const styles = StyleSheet.create({
   },
   locationText: {
     color: '#263638',
-    fontSize: 15,
-    fontFamily: consumerFonts.regular,
+    fontSize: 15.5,
+    fontFamily: consumerFonts.bold,
     flexShrink: 1,
   },
   bellButton: {
@@ -605,38 +643,43 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   recentRow: {
-    gap: 10,
+    gap: 8,
   },
 
-  // -- Service card (compact) --
+  // -- Service card — exact SPSelectServicesScreen three-column spec --
   serviceCard: {
     borderWidth: 1,
-    borderColor: '#edf1ef',
-    backgroundColor: consumerColors.white,
-    borderRadius: 16,
-    flexDirection: 'column',
+    borderColor: SS.cardBorder,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
+    justifyContent: 'flex-start',
     gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 6,
-    alignSelf: 'center',
-    shadowColor: '#1f4133',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
+    minHeight: 106,
+    paddingTop: 10,
+    paddingBottom: 9,
+    paddingHorizontal: 5,
+    width: '31.6%',
+    shadowColor: '#12271C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
     elevation: 3,
   },
   recentCard: {
-    width: 116,
+    width: 110,
   },
-  serviceIconCircle: {
-    marginBottom: 0,
+  serviceIconWrap: {
+    width: '100%',
+    height: 39,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   serviceLabel: {
-    color: '#243333',
-    fontSize: 13.5,
-    fontFamily: consumerFonts.regular,
-    lineHeight: 17.5,
+    fontSize: 12.5,
+    lineHeight: 15.5,
+    fontWeight: '500',
+    color: SS.serviceName,
     textAlign: 'center',
     alignSelf: 'stretch',
   },
@@ -666,10 +709,7 @@ const styles = StyleSheet.create({
   gridRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-  },
-  gridCell: {
-    width: '31.5%',
+    gap: 8,
   },
 
   // -- States --
