@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../theme';
 import { consumerColors, consumerFonts } from '../theme';
@@ -45,6 +45,25 @@ import SvgIcon from '../assets/icons';
 
 const RECENT_SERVICES_KEY = (userId: string) => `recent_services_${userId}`;
 const MAX_RECENT_SERVICES = 4;
+
+/**
+ * Route params and saved-cache entries describe a place slightly differently
+ * (description vs name, place_id vs placeId) — normalise both to the shape the
+ * header label and the request flow expect.
+ */
+const toSavedLocation = (loc: any): Location | null => {
+  if (!loc) return null;
+  const description = String(loc.description || loc.name || '').trim();
+  const lat = typeof loc.lat === 'number' && Number.isFinite(loc.lat) ? loc.lat : undefined;
+  const lng = typeof loc.lng === 'number' && Number.isFinite(loc.lng) ? loc.lng : undefined;
+  if (!description && lat == null) return null;
+  return {
+    place_id: loc.place_id || loc.placeId || '',
+    description: description || 'Selected location',
+    lat,
+    lng,
+  };
+};
 
 /* Icon + card tokens copied from SPSelectServicesScreen so both flows
    render service cards identically. */
@@ -116,6 +135,7 @@ const categoryIcon = (category: string): string => {
 
 const WorkRequestSelectServiceScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { t } = useI18n();
   const { unreadCount } = useNotificationCount();
   const insets = useSafeAreaInsets();
@@ -126,11 +146,18 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const { isPastBoundary: showStickySearch, onTargetLayout: onSearchBarLayout, onScroll } =
     useScrolledPastBoundary();
   const locationAttemptedRef = useRef(false);
+  /* The location confirmed on LocationSelect, handed back as a route param. */
+  const confirmedLocationParam = route.params?.selectedLocation as Location | undefined;
+  /* Remembers which param was already applied so an older param can never
+     replace a newer confirmation read from the cache. */
+  const appliedLocationParamRef = useRef<Location | undefined>(undefined);
   const [recentServices, setRecentServices] = useState<Service[]>([]);
   const [savedLocation, setSavedLocation] = useState<Location | null>(null);
   const [currentCityLabel, setCurrentCityLabel] = useState<string | null>(null);
   const [selectedChip, setSelectedChip] = useState<string>('all');
 
+  /* Header location: the address just confirmed on LocationSelect first, then
+     the saved-locations cache (which survives a restart), then the live city. */
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
@@ -138,12 +165,22 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
         const locations = userId
           ? await readOfflineCache<Location[]>(offlineCacheKey('saved-locations', userId))
           : null;
-        if (isActive) setSavedLocation(locations?.[0] ?? null);
+        if (!isActive) return;
+
+        const fromParam = toSavedLocation(confirmedLocationParam);
+        const isFreshParam = !!fromParam && confirmedLocationParam !== appliedLocationParamRef.current;
+        appliedLocationParamRef.current = confirmedLocationParam;
+
+        const fromCache = (locations || [])
+          .map((location) => toSavedLocation(location))
+          .find((location): location is Location => !!location) || null;
+
+        setSavedLocation((current) => (isFreshParam ? fromParam : null) || fromCache || fromParam || current || null);
       })();
       return () => {
         isActive = false;
       };
-    }, [userId])
+    }, [userId, confirmedLocationParam])
   );
 
   /* Live current city for the header — fetched once per session. */

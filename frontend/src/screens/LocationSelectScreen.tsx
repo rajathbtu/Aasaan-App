@@ -73,8 +73,21 @@ const LocationSelectScreen: React.FC = () => {
   const locationSearchRef = useRef<{ detectLocation: () => void; openSearchModal: () => void } | null>(null);
 
   const handleSelectLocation = (loc: any) => {
-    setSelectedLocation(!loc ? null : { name: loc.description || loc.name, place_id: loc.place_id || loc.placeId, lat: loc.lat, lng: loc.lng });
-    setSearchQuery(loc?.description || loc?.name || '');
+    /* The map reports the picked point twice: first the bare coordinates (so
+       the card can react instantly), then the resolved address. Clearing the
+       search box reports null — that must never discard a confirmed spot. */
+    if (!loc) return;
+    const lat = typeof loc.lat === 'number' && Number.isFinite(loc.lat) ? loc.lat : undefined;
+    const lng = typeof loc.lng === 'number' && Number.isFinite(loc.lng) ? loc.lng : undefined;
+    const description = String(loc.description || loc.name || '').trim();
+    setSelectedLocation({
+      name: description,
+      description,
+      place_id: loc.place_id || loc.placeId,
+      lat,
+      lng,
+    });
+    if (description) setSearchQuery(description);
   };
 
   useEffect(() => {
@@ -107,24 +120,52 @@ const LocationSelectScreen: React.FC = () => {
 
     if (isRequestCreationMode) {
       const placeId = selectedLocation.place_id || selectedLocation.placeId;
-      if (user?.id && placeId) {
+      const description =
+        String(selectedLocation.name || selectedLocation.description || '').trim() || 'Selected location';
+      /* One canonical shape for every consumer: the saved-locations cache,
+         the screen that shows the header label, and the request payload. */
+      const confirmedLocation = {
+        place_id: placeId,
+        name: description,
+        description,
+        lat: selectedLocation.lat,
+        lng: selectedLocation.lng,
+      };
+
+      if (user?.id) {
         const cacheKey = offlineCacheKey('saved-locations', user.id);
-        const savedLocations = (await readOfflineCache<Array<{ place_id: string }>>(cacheKey)) || [];
+        const savedLocations = (await readOfflineCache<Array<{ place_id?: string; lat?: number; lng?: number }>>(cacheKey)) || [];
+        /* De-duplicate by place_id when present, otherwise by rounded
+           coordinates — so map-picked locations (which may have no Google
+           place id) are still persisted and returned to the opener. */
+        const sameSpot = (l: { place_id?: string; lat?: number; lng?: number }) =>
+          (placeId && l.place_id && l.place_id === placeId) ||
+          (!placeId &&
+            typeof l.lat === 'number' && typeof l.lng === 'number' &&
+            Math.abs(l.lat - confirmedLocation.lat) < 0.0005 &&
+            Math.abs(l.lng - confirmedLocation.lng) < 0.0005);
         await writeOfflineCache(cacheKey, [
-          { place_id: placeId, description: selectedLocation.name || selectedLocation.description, lat: selectedLocation.lat, lng: selectedLocation.lng },
-          ...savedLocations.filter((location) => location.place_id !== placeId),
+          confirmedLocation,
+          ...savedLocations.filter((location) => !sameSpot(location)),
         ].slice(0, 3));
       }
       if (returnToServiceSelection) {
-        navigation.goBack();
+        /* Return to the service-selection tab carrying the confirmed address,
+           so its header swaps "Select your location" for the chosen address
+           the moment this screen closes (the saved-locations cache written
+           above is the durable fallback). */
+        navigation.navigate('Main', {
+          screen: 'Create',
+          params: { selectedLocation: confirmedLocation },
+        });
       } else if (route.params?.returnToTagsRouteKey) {
         navigation.dispatch({
-          ...CommonActions.setParams({ selectedLocation }),
+          ...CommonActions.setParams({ selectedLocation: confirmedLocation }),
           source: route.params.returnToTagsRouteKey,
         });
         navigation.goBack();
       } else {
-        navigation.navigate('WorkRequestSelectTags', {serviceId, serviceName, serviceTags, selectedLocation, });
+        navigation.navigate('WorkRequestSelectTags', {serviceId, serviceName, serviceTags, selectedLocation: confirmedLocation, });
       }
       return;
     }
@@ -232,10 +273,9 @@ const LocationSelectScreen: React.FC = () => {
               {t('sp.selectLocation.selectedLocationTitle')}
             </Text>
             <Text style={[styles.locationAddress, { minWidth: 0 }]} numberOfLines={2} ellipsizeMode="tail">
-              {displayLocationName ||
-                (isLocationResolving
-                  ? 'Updating location…'
-                  : 'Move the map or search to set the location')}
+              {isLocationResolving
+                ? 'Locating…'
+                : displayLocationName || 'Move the map or search to set the location'}
             </Text>
           </View>
           <TouchableOpacity style={styles.changeLocation} onPress={() => locationSearchRef.current?.openSearchModal()} activeOpacity={0.7}>

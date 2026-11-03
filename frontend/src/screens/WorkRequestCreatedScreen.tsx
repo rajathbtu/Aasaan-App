@@ -1,29 +1,58 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Share } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Share,
+  StatusBar,
+  useWindowDimensions,
+} from 'react-native';
 import { useNavigation, useRoute, usePreventRemove } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SvgXml } from 'react-native-svg';
 import { useI18n } from '../i18n';
 import { consumerColors, consumerFonts, spacing } from '../theme';
 import { buildTimeAgo } from '../utils/commonUtils';
 import { resolveServiceIconName } from '../utils/serviceIcon';
 import SvgIcon from '../assets/icons';
 import ActionButton from '../components/ActionButton';
+import { BrandWord } from '../components/BrandWord';
 
 /**
  * Confirmation screen displayed after a work request has been created.
- * Matches the approved Work_Request_Success_Handoff design exactly:
- * brand wordmark header with circular close, success hero with the
- * celebratory check badge, request summary card, mint service-location
- * row, share / view-my-requests action row, the single vertical
- * "What happens next?" three-step timeline and the mint boost banner.
- * There is deliberately no horizontal status timeline.
+ *
+ * Implemented 1:1 from Work_Request_Created_Confirmation_Handoff
+ * (approved_final_design.png + index.html + styles.css). The handoff
+ * prototype renders a 1024 × 1536 design canvas scaled to the viewport
+ * width (`scale = innerWidth / 1024` in app.js); the same proportional
+ * scaling is used here for every LAYOUT metric (card sizes, radii,
+ * paddings, gaps, artwork, icon backplates) — identical to the
+ * WorkRequestDetailsScreen convention.
+ *
+ * Typography uses the app's standard, cross-screen type scale (hero 25,
+ * card/section titles 19, body 14, meta 13, captions 12.5 — the same
+ * values as WorkRequestsScreen / WorkRequestDetailsScreen /
+ * BoostRequestScreen) so text size stays consistent across the app.
+ *
+ * Structure per the approved design: brand wordmark header with circular
+ * close, success hero with the celebratory check artwork, request summary
+ * card with Live pill, read-only Request Location panel, share /
+ * view-my-requests action row, ONE horizontal three-step "What happens
+ * next?" section with numbered mint backplates and chevron arrows, and
+ * the mint boost banner with the approved rocket artwork.
  */
 const WorkRequestCreatedScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  /* Handoff canvas scale — identical to fitCanvas() in the prototype's app.js.
+     Applied to layout metrics only; typography uses the standard app scale. */
+  const s = windowWidth / 1024;
   const timeAgo = buildTimeAgo(t);
   const { request, locationName: locationNameParam, serviceName: serviceNameParam } = (route.params as any) || {};
   const displayRequest = request && {
@@ -33,7 +62,14 @@ const WorkRequestCreatedScreen: React.FC = () => {
   };
 
   const isLive = request?.status === 'active' || request?.status === 'live';
-  const serviceIcon = displayRequest?.serviceIcon;
+  /* The API returns serviceIcon as a Material icon NAME (e.g. "construct"),
+     not an image URL — only render it as an image when it is a real URL;
+     otherwise fall back to the resolved category SVG icon (same treatment
+     as the My Requests list cards). */
+  const serviceIconUrl =
+    typeof displayRequest?.serviceIcon === 'string' && /^(https?:|data:)/.test(displayRequest.serviceIcon)
+      ? displayRequest.serviceIcon
+      : null;
   const serviceIconName = resolveServiceIconName(displayRequest?.serviceName);
   const createdLabel = t('createRequest.created.createdBadge');
   const relativeCreated = timeAgo(request?.createdAt);
@@ -69,7 +105,12 @@ const WorkRequestCreatedScreen: React.FC = () => {
   if (!request) {
     return (
       <View style={styles.emptyContainer}>
-        <SuccessBadgeArt />
+        <Image
+          source={require('../assets/images/success_check_illustration.png')}
+          style={styles.emptyArt}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+        />
         <Text style={styles.emptyTitle}>{t('createRequest.created.title')}</Text>
         <ActionButton
           fullWidth
@@ -83,197 +124,209 @@ const WorkRequestCreatedScreen: React.FC = () => {
     );
   }
 
+  const nextSteps = [
+    { n: '1', icon: 'bell' as const, title: t('createRequest.created.step1Title'), desc: t('createRequest.created.step1Desc') },
+    { n: '2', icon: 'chat-dots' as const, title: t('createRequest.created.step2Title'), desc: t('createRequest.created.step2Desc') },
+    { n: '3', icon: 'handshake' as const, title: t('createRequest.created.step3Title'), desc: t('createRequest.created.step3Desc') },
+  ];
+
   return (
-    <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-      {/* Custom brand header: wordmark left, close button right */}
-      <View style={styles.headerRow}>
-        <Text style={styles.brandWordmark}>aasaanly</Text>
-        <TouchableOpacity style={styles.closeButton} onPress={closeScreen} activeOpacity={0.7}>
-          <SvgIcon name="close" size={18} color={consumerColors.ink} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Success hero: copy left, celebratory check badge right */}
-      <View style={styles.heroContainer}>
-        <View style={styles.heroCopy}>
-          <Text style={styles.heroTitle}>
-            {t('createRequest.created.titleBefore')}{' '}
-            <Text style={styles.heroTitleCreated}>{createdLabel}</Text>
-            <Text>{' 🎉'}</Text>
-          </Text>
-          <Text style={styles.heroSubtitle}>{t('createRequest.created.subtitle')}</Text>
+    <View style={styles.root}>
+      {/* Canvas background: linear-gradient(125deg,#F8FBFF 0%,#F3FBF8 55%,#F0FBF7 100%) */}
+      <LinearGradient
+        colors={['#F8FBFF', '#F3FBF8', '#F0FBF7']}
+        locations={[0, 0.55, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: Math.max(insets.top, StatusBar.currentHeight ?? 0) }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Custom brand header: wordmark left, circular white close right */}
+        <View style={styles.headerRow}>
+          <BrandWord style={styles.brandWordmark} />
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={closeScreen}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+          >
+            <SvgIcon name="close" size={18} color={consumerColors.ink} />
+          </TouchableOpacity>
         </View>
-        <View style={styles.heroArtContainer}>
-          <SvgXml xml={SUCCESS_BADGE_SVG} width={124} height={124} style={{ flexShrink: 0 }} />
-        </View>
-      </View>
 
-      {/* Request summary card */}
-      <View style={styles.requestCard}>
-        <View style={styles.serviceRow}>
-          <View style={styles.serviceImage}>
-            {serviceIcon ? (
-              <Image
-                source={{ uri: serviceIcon }}
-                style={styles.serviceArtImage}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-              />
-            ) : (
-              <SvgIcon name={serviceIconName} size={42} color={consumerColors.primary} />
+        {/* Success hero: copy left, approved celebratory check artwork right */}
+        <View style={styles.heroContainer}>
+          <View style={styles.heroCopy}>
+            <Text style={styles.heroTitle}>
+              {t('createRequest.created.titleBefore')}{' '}
+              <Text style={styles.heroTitleCreated}>{createdLabel}</Text>
+              <Text>{' 🎉'}</Text>
+            </Text>
+            <Text style={styles.heroSubtitle}>{t('createRequest.created.subtitle')}</Text>
+          </View>
+          <Image
+            source={require('../assets/images/success_check_illustration.png')}
+            style={[styles.heroArt, { width: 385 * s, height: 302 * s }]}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+          />
+        </View>
+
+        {/* Request summary card */}
+        <View style={[styles.requestCard, { borderRadius: 38 * s, marginTop: 26 * s, padding: 26 * s }]}>
+          <View style={styles.serviceRow}>
+            <View style={[styles.serviceImage, { width: 200 * s, height: 158 * s, borderRadius: 29 * s }]}>
+              {serviceIconUrl ? (
+                <Image
+                  source={{ uri: serviceIconUrl }}
+                  style={styles.serviceArtImage}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                />
+              ) : (
+                <SvgIcon name={serviceIconName} size={42} color={consumerColors.primary} />
+              )}
+            </View>
+            <View style={[styles.verticalRule, { height: 126 * s, marginHorizontal: 31 * s }]} />
+            <View style={styles.serviceCopy}>
+              <Text style={styles.requestTitle} numberOfLines={2} ellipsizeMode="tail">
+                {displayRequest.serviceName}
+              </Text>
+              <Text style={styles.requestCategory}>Service Request</Text>
+              <View style={styles.metaRow}>
+                <SvgIcon name="clock" size={14} color={consumerColors.muted} style={{ marginRight: 6 }} />
+                <Text style={styles.metaText}>{createdTimeLabel}</Text>
+              </View>
+            </View>
+            {isLive && (
+              <View style={styles.livePill}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveText}>Live</Text>
+              </View>
             )}
           </View>
-          <View style={styles.verticalRule} />
-          <View style={styles.serviceCopy}>
-            <Text style={styles.requestTitle} numberOfLines={2} ellipsizeMode="tail">
-              {displayRequest.serviceName}
+        </View>
+
+        {/* Request location panel — read-only, label + saved address */}
+        <LinearGradient
+          colors={['#E6F8F0', '#DDF8EC']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={[styles.locationRow, { borderRadius: 29 * s, minHeight: 98 * s, marginTop: 26 * s, paddingHorizontal: 31 * s, gap: 30 * s }]}
+        >
+          <View style={[styles.locationIcon, { width: 72 * s, height: 72 * s, borderRadius: 36 * s }]}>
+            <SvgIcon name="location" size={Math.max(36 * s, 18)} color={consumerColors.primary} />
+          </View>
+          <View style={styles.locationCopy}>
+            <Text style={styles.locationLabel}>{t('createRequest.created.locationLabel')}</Text>
+            <Text style={styles.locationAddress} numberOfLines={1} ellipsizeMode="tail">
+              {displayRequest.locationName || t('userRequests.locationFallback')}
             </Text>
-            <Text style={styles.requestCategory}>Service Request</Text>
-            <View style={styles.metaRow}>
-              <SvgIcon name="clock" size={14} color={consumerColors.muted} style={{ marginRight: 6 }} />
-              <Text style={styles.metaText}>{createdTimeLabel}</Text>
-            </View>
           </View>
-          {isLive && (
-            <View style={styles.livePill}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>Live</Text>
-            </View>
-          )}
-        </View>
-      </View>
+          <SvgIcon name="chevron" size={15} color="#52617F" style={{ transform: [{ rotate: '90deg' }] }} />
+        </LinearGradient>
 
-      {/* Service location row */}
-      <View style={styles.locationRow}>
-        <View style={styles.locationIcon}>
-          <SvgIcon name="location" size={17} color={consumerColors.primary} />
+        {/* Action row: Share Request + View My Requests */}
+        <View style={[styles.actionRow, { marginTop: 24 * s, gap: 29 * s }]}>
+          <TouchableOpacity style={styles.shareButton} onPress={handleShare} activeOpacity={0.7}>
+            <SvgIcon name="share" size={17} color={consumerColors.ink} style={{ marginRight: 8 }} />
+            <Text style={styles.shareTitle}>{t('createRequest.created.shareRequest')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={goToMyRequests} activeOpacity={0.8} style={styles.viewRequestsTouch}>
+            <LinearGradient
+              colors={[consumerColors.primary, consumerColors.primaryDark]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={styles.viewRequestsButton}
+            >
+              <SvgIcon name="list" size={16} color={consumerColors.white} style={{ marginRight: 8 }} />
+              <Text style={styles.viewRequestsTitle} numberOfLines={1}>
+                {t('createRequest.created.viewMyRequests')}
+              </Text>
+              <SvgIcon name="chevron" size={14} color={consumerColors.white} style={{ transform: [{ rotate: '90deg' }] }} />
+            </LinearGradient>
+          </TouchableOpacity>
         </View>
-        <Text style={styles.locationAddress} numberOfLines={1} ellipsizeMode="tail">
-          {displayRequest.locationName || t('userRequests.locationFallback')}
-        </Text>
-        <View style={styles.locationChevronWrap}>
-          <SvgIcon name="chevron" size={15} color={consumerColors.muted} style={{ transform: [{ rotate: '90deg' }] }} />
-        </View>
-      </View>
 
-      {/* Action row: Share Request + View My Requests */}
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.shareButton} onPress={handleShare} activeOpacity={0.7}>
-          <SvgIcon name="share" size={17} color={consumerColors.ink} style={{ marginRight: 8 }} />
-          <Text style={styles.shareTitle}>{t('createRequest.created.shareRequest')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={goToMyRequests} activeOpacity={0.8} style={styles.viewRequestsTouch}>
-          <LinearGradient
-            colors={[consumerColors.primary, consumerColors.primaryDark]}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={styles.viewRequestsButton}
-          >
-            <SvgIcon name="list" size={16} color={consumerColors.white} style={{ marginRight: 8 }} />
-            <Text style={styles.viewRequestsTitle}>{t('createRequest.created.viewMyRequests')}</Text>
-            <SvgIcon name="chevron" size={14} color={consumerColors.white} style={{ transform: [{ rotate: '90deg' }] }} />
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-
-      {/* What's Next? — single vertical three-step timeline */}
-      <View style={styles.nextCard}>
-        <Text style={styles.nextTitle}>{t('createRequest.created.nextTitle')}</Text>
-        <View style={styles.stepsList}>
-          {/* Thin mint connector joining the three numbered circles */}
-          <View style={styles.stepsConnector} pointerEvents="none" />
-          <View style={styles.stepItem}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>1</Text>
-            </View>
-            <View style={styles.stepIconTile}>
-              <SvgIcon name="bell" size={19} color={consumerColors.primary} />
-            </View>
-            <View style={styles.stepTextWrap}>
-              <Text style={styles.stepTitle} numberOfLines={2} ellipsizeMode="tail">
-                {t('createRequest.created.step1Title')}
-              </Text>
-              <Text style={styles.stepDesc} numberOfLines={2} ellipsizeMode="tail">
-                {t('createRequest.created.step1Desc')}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.stepItem}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>2</Text>
-            </View>
-            <View style={styles.stepIconTile}>
-              <SvgIcon name="chat-dots" size={19} color={consumerColors.primary} />
-            </View>
-            <View style={styles.stepTextWrap}>
-              <Text style={styles.stepTitle} numberOfLines={2} ellipsizeMode="tail">
-                {t('createRequest.created.step2Title')}
-              </Text>
-              <Text style={styles.stepDesc} numberOfLines={2} ellipsizeMode="tail">
-                {t('createRequest.created.step2Desc')}
-              </Text>
-            </View>
-          </View>
-          <View style={[styles.stepItem, styles.stepItemLast]}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>3</Text>
-            </View>
-            <View style={styles.stepIconTile}>
-              <SvgIcon name="handshake" size={19} color={consumerColors.primary} />
-            </View>
-            <View style={styles.stepTextWrap}>
-              <Text style={styles.stepTitle} numberOfLines={2} ellipsizeMode="tail">
-                {t('createRequest.created.step3Title')}
-              </Text>
-              <Text style={styles.stepDesc} numberOfLines={2} ellipsizeMode="tail">
-                {t('createRequest.created.step3Desc')}
-              </Text>
-            </View>
+        {/* What happens next? — single horizontal three-step process */}
+        <View style={[styles.nextCard, { borderRadius: 38 * s, marginTop: 34 * s, paddingHorizontal: 34 * s, paddingVertical: 22 * s }]}>
+          <Text style={styles.nextTitle}>{t('createRequest.created.nextTitle')}</Text>
+          <View style={styles.stepsGrid}>
+            {nextSteps.map((step, index) => (
+              <React.Fragment key={step.n}>
+                {index > 0 && (
+                  <View style={[styles.stepArrowSlot, { marginTop: 34 * s, width: 28 * s + 6 }]}>
+                    <SvgIcon name="chevron" size={Math.max(29 * s, 14)} color="#64748B" />
+                  </View>
+                )}
+                <View style={styles.stepColumn}>
+                  <View style={[styles.stepIconPlate, { width: 96 * s, height: 96 * s, borderRadius: 48 * s }]}>
+                    <SvgIcon name={step.icon} size={Math.max(49 * s, 22)} color="#078F55" />
+                    <View style={[styles.stepBadge, { width: Math.max(36 * s, 16), height: Math.max(36 * s, 16), borderRadius: Math.max(18 * s, 8) }]}>
+                      <Text style={[styles.stepBadgeText, { fontSize: Math.max(22 * s, 10) }]}>{step.n}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.stepTitle} numberOfLines={2} ellipsizeMode="tail">
+                    {step.title}
+                  </Text>
+                  <Text style={styles.stepDesc} numberOfLines={3} ellipsizeMode="tail">
+                    {step.desc}
+                  </Text>
+                </View>
+              </React.Fragment>
+            ))}
           </View>
         </View>
-      </View>
 
-      {/* Boost banner — mint rounded banner with rocket */}
-      <View style={styles.boostBanner}>
-        <View style={styles.boostRocket}>
-          <SvgXml xml={BOOST_ROCKET_SVG} width={58} height={50} style={{ flexShrink: 0 }} />
-        </View>
-        <View style={styles.boostDivider} />
-        <View style={styles.boostCopy}>
-          <Text style={styles.boostTitle} numberOfLines={1} ellipsizeMode="tail">
-            {t('createRequest.created.boostTitle')}
-          </Text>
-          <Text style={styles.boostSubtitle} numberOfLines={2} ellipsizeMode="tail">
-            {t('createRequest.created.boostSubtitle')}
-          </Text>
-        </View>
-        <TouchableOpacity style={styles.boostButton} onPress={handleBoost} activeOpacity={0.7}>
-          <SvgIcon name="bolt" size={14} color={consumerColors.primary} style={{ marginRight: 6 }} />
-          <Text style={styles.boostButtonTitle} numberOfLines={1}>
-            {t('createRequest.created.boostButton')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        {/* Boost banner — mint gradient banner with approved rocket artwork;
+            the Boost action sits below the copy so the title and subtitle
+            keep the full text width (per approved layout feedback). */}
+        <LinearGradient
+          colors={['#DDF8EF', '#E7FAF4']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={[styles.boostBanner, { borderRadius: 38 * s, marginTop: 30 * s }]}
+        >
+          <Image
+            source={require('../assets/images/boost_rocket_illustration.png')}
+            style={[styles.boostRocket, { width: 225 * s, height: 165 * s }]}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+          />
+          <View style={styles.boostCopy}>
+            <Text style={styles.boostTitle}>{t('createRequest.created.boostTitle')}</Text>
+            <Text style={styles.boostSubtitle} numberOfLines={2} ellipsizeMode="tail">
+              {t('createRequest.created.boostSubtitle')}
+            </Text>
+            <TouchableOpacity style={styles.boostButton} onPress={handleBoost} activeOpacity={0.7}>
+              <SvgIcon name="bolt" size={14} color={consumerColors.primary} style={{ marginRight: 6 }} />
+              <Text style={styles.boostButtonTitle} numberOfLines={1} ellipsizeMode="tail">
+                {t('createRequest.created.boostButton')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </ScrollView>
+    </View>
   );
 };
 
-const CARD_RADIUS = 20;
-
-/* ── Illustrations (inline SVG matched to the approved handoff assets) ── */
-
-/* Celebratory green check badge with confetti — approved success hero. */
-const SUCCESS_BADGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-labelledby="t d"><title id="t">Request created</title><desc id="d">A green celebratory check badge with confetti.</desc><defs><linearGradient id="seal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2BC48A"/><stop offset="1" stop-color="#0A9C5C"/></linearGradient></defs><ellipse cx="110" cy="205" rx="62" ry="10" fill="#DDF3E7"/><g stroke-linecap="round" stroke-width="7" fill="none"><path d="M30 60l12 12" stroke="#F2C230"/><path d="M190 56l-12 13" stroke="#F2C230"/><path d="M22 128h16" stroke="#19B978"/><path d="M182 132h16" stroke="#19B978"/><path d="M64 24l7 14" stroke="#19B978"/><path d="M158 22l-6 15" stroke="#F2C230"/><path d="M108 10v14" stroke="#F2C230"/></g><g fill="url(#seal)"><circle cx="110" cy="46" r="26"/><circle cx="149" cy="57" r="26"/><circle cx="170" cy="94" r="26"/><circle cx="170" cy="138" r="26"/><circle cx="149" cy="175" r="26"/><circle cx="110" cy="186" r="26"/><circle cx="71" cy="175" r="26"/><circle cx="50" cy="138" r="26"/><circle cx="50" cy="94" r="26"/><circle cx="71" cy="57" r="26"/><circle cx="110" cy="116" r="72"/></g><path d="m76 118 24 24 46-52" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-
-const BOOST_ROCKET_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 190" role="img" aria-labelledby="t d"><title id="t">Boost request rocket</title><desc id="d">A green and white rocket launching upward from soft clouds.</desc><defs><linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#DDF7EA"/></linearGradient><linearGradient id="flame" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFD45A"/><stop offset="1" stop-color="#F28B25"/></linearGradient></defs><path d="M88 151c-21 10-33 25-39 39 22-3 39-13 50-29" fill="#0DAB68"/><path d="M127 137c10 20 26 30 45 34-4-22-14-37-31-47" fill="#16B978"/><g transform="rotate(34 111 87)"><path d="M111 12C75 44 75 91 91 127h40c16-36 16-83-20-115Z" fill="url(#body)" stroke="#0A9B60" stroke-width="5"/><path d="M91 96h40v31H91Z" fill="#13B978"/><circle cx="111" cy="68" r="15" fill="#DDF7EA" stroke="#079B60" stroke-width="7"/><path d="M91 126 111 167l20-41Z" fill="url(#flame)"/></g><path d="M20 170c12-20 35-21 48-7 15-22 44-16 50 6 20-7 35 4 37 17H20Z" fill="#fff" opacity=".95"/></svg>`;
-
-/* Renders the success badge in the no-request fallback state. */
-const SuccessBadgeArt: React.FC = () => <SvgXml xml={SUCCESS_BADGE_SVG} width={140} height={140} style={{ marginBottom: spacing.lg }} />;
+/* ── Layout geometry is applied inline with the canvas scale s (see header
+      comment); typography stays on the fixed cross-screen app scale. ── */
 
 const styles = StyleSheet.create({
-  scrollView: {
+  root: {
     flex: 1,
     backgroundColor: consumerColors.page,
+  },
+  scrollView: {
+    flex: 1,
   },
   scrollContent: {
     paddingBottom: spacing.xl,
@@ -284,6 +337,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: consumerColors.page,
     paddingHorizontal: spacing.lg,
+  },
+  emptyArt: {
+    width: 140,
+    height: 110,
+    marginBottom: spacing.lg,
   },
   emptyTitle: {
     fontSize: 20,
@@ -298,14 +356,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: consumerColors.page,
+    paddingTop: 10,
+    paddingBottom: 6,
   },
   brandWordmark: {
     fontSize: 28,
-    fontFamily: consumerFonts.bold,
-    color: consumerColors.primary,
-    letterSpacing: -1.5,
+    lineHeight: 34,
+    letterSpacing: -1.1,
   },
   closeButton: {
     width: 40,
@@ -322,8 +379,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    gap: spacing.md,
+    marginTop: 10,
+    gap: 12,
   },
   heroCopy: {
     flex: 1,
@@ -341,53 +398,45 @@ const styles = StyleSheet.create({
     color: consumerColors.primary,
   },
   heroSubtitle: {
-    fontSize: 14.5,
+    fontSize: 14,
     fontFamily: consumerFonts.regular,
     color: consumerColors.muted,
-    lineHeight: 21,
+    lineHeight: 20,
   },
-  heroArtContainer: {
-    width: 124,
-    alignItems: 'center',
-    justifyContent: 'center',
+  heroArt: {
+    flexShrink: 0,
   },
   /* Request summary card */
   requestCard: {
-    backgroundColor: consumerColors.white,
-    borderRadius: CARD_RADIUS,
+    backgroundColor: 'rgba(255,255,255,0.94)',
     borderWidth: 1,
     borderColor: consumerColors.border,
     marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    padding: spacing.lg,
     shadowColor: '#1F4255',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
     elevation: 5,
   },
   serviceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
   },
   serviceImage: {
-    width: 78,
-    height: 78,
-    borderRadius: 18,
     backgroundColor: consumerColors.mint,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    flexShrink: 0,
   },
   serviceArtImage: {
     width: '100%',
     height: '100%',
   },
   verticalRule: {
-    width: 1,
-    height: 62,
-    backgroundColor: '#E2EAE5',
+    width: 1.5,
+    backgroundColor: '#D9E2E9',
+    flexShrink: 0,
   },
   serviceCopy: {
     flex: 1,
@@ -423,6 +472,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 'auto',
+    alignSelf: 'flex-start',
   },
   liveDot: {
     width: 7,
@@ -436,42 +486,41 @@ const styles = StyleSheet.create({
     fontFamily: consumerFonts.bold,
     color: consumerColors.statusText,
   },
-  /* Location row */
+  /* Location panel */
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: consumerColors.locationBg,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   locationIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
     backgroundColor: consumerColors.white,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 11,
+    flexShrink: 0,
   },
-  locationAddress: {
+  locationCopy: {
     flex: 1,
     minWidth: 0,
+    gap: 2,
+  },
+  locationLabel: {
+    fontSize: 12.5,
+    fontFamily: consumerFonts.regular,
+    color: consumerColors.muted,
+    lineHeight: 15,
+  },
+  locationAddress: {
     fontSize: 15,
     fontFamily: consumerFonts.bold,
     color: consumerColors.ink,
-  },
-  locationChevronWrap: {
-    marginLeft: 8,
+    lineHeight: 19,
   },
   /* Action row */
   actionRow: {
     flexDirection: 'row',
     marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    gap: 10,
   },
   shareButton: {
     flex: 1,
@@ -479,20 +528,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: consumerColors.white,
-    borderWidth: 1,
-    borderColor: '#E1E7EE',
+    borderWidth: 1.5,
+    borderColor: '#DDE5EC',
     borderRadius: 14,
     paddingVertical: 13,
     shadowColor: '#1F4255',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.11,
+    shadowRadius: 16,
     elevation: 2,
   },
   shareTitle: {
     fontSize: 14.5,
     fontFamily: consumerFonts.bold,
     color: consumerColors.ink,
+    flexShrink: 1,
   },
   viewRequestsTouch: {
     flex: 1,
@@ -504,9 +554,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 13,
     shadowColor: consumerColors.primaryDark,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 17,
     elevation: 4,
   },
   viewRequestsTitle: {
@@ -514,143 +564,123 @@ const styles = StyleSheet.create({
     fontFamily: consumerFonts.bold,
     color: consumerColors.white,
     marginRight: 6,
+    flexShrink: 1,
   },
-  /* What's Next card */
+  /* What's Next card — horizontal three-step grid */
   nextCard: {
-    backgroundColor: consumerColors.white,
-    borderRadius: CARD_RADIUS,
+    backgroundColor: 'rgba(255,255,255,0.92)',
     borderWidth: 1,
     borderColor: consumerColors.border,
     marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    padding: spacing.lg,
     shadowColor: '#1F4255',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 9 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
     elevation: 5,
   },
   nextTitle: {
     fontSize: 19,
     fontFamily: consumerFonts.bold,
     color: consumerColors.ink,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
-  stepsList: {
-    position: 'relative',
-  },
-  stepsConnector: {
-    position: 'absolute',
-    left: 12,
-    top: 14,
-    bottom: 26,
-    width: 2,
-    borderRadius: 1,
-    backgroundColor: '#CDEEDF',
-  },
-  stepItem: {
+  stepsGrid: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 20,
   },
-  stepItemLast: {
-    marginBottom: 0,
-  },
-  stepNumber: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: consumerColors.selectedMint,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  stepNumberText: {
-    fontSize: 13.5,
-    fontFamily: consumerFonts.bold,
-    color: consumerColors.primaryDark,
-  },
-  stepIconTile: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: consumerColors.mint,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  stepTextWrap: {
+  stepColumn: {
     flex: 1,
     minWidth: 0,
+    paddingLeft: 8,
+  },
+  stepArrowSlot: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  stepIconPlate: {
+    backgroundColor: consumerColors.statusBg,
+    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  stepBadge: {
+    position: 'absolute',
+    right: -2,
+    top: -2,
+    backgroundColor: consumerColors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepBadgeText: {
+    fontFamily: consumerFonts.bold,
+    color: consumerColors.white,
   },
   stepTitle: {
-    fontSize: 15,
+    fontSize: 13.5,
     fontFamily: consumerFonts.bold,
     color: consumerColors.ink,
-    marginBottom: 2,
+    lineHeight: 17,
+    marginBottom: 3,
   },
   stepDesc: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: consumerFonts.regular,
     color: consumerColors.muted,
-    lineHeight: 18,
+    lineHeight: 15.5,
   },
   /* Boost banner */
   boostBanner: {
-    backgroundColor: '#E9F8F0',
-    borderRadius: CARD_RADIUS,
     marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
     marginBottom: spacing.xl,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#DDF2E6',
+    borderColor: 'rgba(10,158,99,0.08)',
   },
   boostRocket: {
-    width: 58,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  boostDivider: {
-    width: 1,
-    height: 46,
-    backgroundColor: '#D5EFE2',
+    alignSelf: 'flex-end',
+    flexShrink: 0,
   },
   boostCopy: {
     flex: 1,
     minWidth: 0,
+    borderLeftWidth: 1.5,
+    borderLeftColor: '#B6DCCE',
+    paddingLeft: 12,
+    paddingVertical: 12,
   },
   boostTitle: {
     fontSize: 15,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.primary,
-    marginBottom: 2,
+    color: consumerColors.primaryDark,
+    marginBottom: 3,
   },
   boostSubtitle: {
     fontSize: 12,
     fontFamily: consumerFonts.regular,
     color: consumerColors.muted,
-    lineHeight: 17,
+    lineHeight: 16,
   },
   boostButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: consumerColors.primary,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderWidth: 2,
+    borderColor: '#078F55',
     borderRadius: 999,
     paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingVertical: 8,
+    marginTop: 9,
   },
   boostButtonTitle: {
     fontSize: 12.5,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.primary,
+    color: consumerColors.primaryDark,
   },
   primaryButton: {
     paddingVertical: spacing.md,

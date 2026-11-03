@@ -1,17 +1,32 @@
-# Aasaanly — Work Request / Interested Providers Handoff
+# Aasaanly Work Request — Corrected Final Handoff
 
-## Contents
-- `approved_final_design.png` — authoritative reference (1024 × 1536).
-- `index.html` — standalone visual prototype.
-- `styles.css` — measured layout, typography, colors, card styling and proportional canvas.
-- `app.js` — canvas scaling, provider search, rating sort prototype and accept-button demo.
-- `assets/chimney_hob_service_art.png` — sample service illustration.
-- `assets/provider_*_sample.png` — sample provider avatar crops from the design.
-- `assets/*.svg` — separate UI icons.
-- `IMPLEMENTATION_PROMPT.md` — detailed agent prompt for native React Native integration.
+This package rebuilds the HTML/CSS prototype and fixes the SVG icon color issue.
 
 ## Preview
-Extract the ZIP and open `index.html` in a browser. The prototype uses a 1024 × 1536 canvas and scales to the viewport width.
+Open `index.html` in a browser. It is a visual prototype, not a production app.
 
-## Important
-The three provider cards and their names/metrics are sample visual content from the approved reference. Production must fetch the actual interested-provider list and use live profile photos, ratings, review counts, completed request counts, membership dates and verification status. The Accept Interest button in this prototype is demonstrative only; connect it to the existing backend mutation and confirmation flow.
+## Why the previous icons could break
+The earlier SVG files used `stroke="currentColor"` and were loaded through `<img src="...svg">`. External SVG images do not inherit the parent element's CSS `color`. The replacement SVG files have explicit colors in their markup, so they render consistently as standalone assets.
+
+## Package contents
+- `approved_final_design.png` — complete 941 × 1672 visual reference.
+- `index.html` — screen structure.
+- `styles.css` — full styling and responsive breakpoints.
+- `app.js` — prototype filter sorting and button feedback.
+- `assets/` — a category-matched chimney/hob vector illustration, boost artwork, sample avatars and standalone SVG icons.
+- `IMPLEMENTATION_PROMPT.md` — detailed React Native implementation instructions.
+
+## Production integration notes
+Provider profiles and metrics are sample content. Replace them with live API data. Connect buttons to the existing Aasaanly navigation and backend endpoints. The HTML demo handlers intentionally do not call production APIs.
+
+## Alignment and asset validation
+- Request location is a full-width row below the request summary, not constrained to the text column.
+- Provider cards use a dedicated avatar/details/actions grid on wider screens and a stacked two-row layout on narrow screens; action buttons never overlap provider text.
+- The four request actions use a four-column equal-width grid with minimum sizing to prevent overflow.
+- SVGs use explicit stroke/fill colors. The share action has its own green SVG so it remains visible on a pale tile.
+- Every referenced local image/SVG path was checked to exist; SVG files were parsed as XML.
+
+## Additional handoff documents
+- `DESIGN_SPEC.md` — exact layout, dimensions, colors and asset manifest.
+- `ILLUSTRATION_PROMPTS.md` — reusable prompts for the service and boost illustrations.
+- `QA_REPORT.md` — validation performed and remaining browser/device QA.

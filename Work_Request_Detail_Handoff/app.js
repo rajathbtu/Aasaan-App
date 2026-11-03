@@ -1,4 +1,20 @@
-function fitCanvas(){const scale=Math.min(window.innerWidth/1024,1);document.getElementById('screen').style.setProperty('--scale',scale);document.querySelector('.viewport').style.height=(1536*scale)+'px';}fitCanvas();window.addEventListener('resize',fitCanvas);
-const search=document.getElementById('search');search.addEventListener('input',()=>{const q=search.value.toLowerCase();document.querySelectorAll('.provider').forEach(card=>card.hidden=!card.dataset.name.toLowerCase().includes(q));});
-document.getElementById('sort').addEventListener('click',()=>{const list=document.getElementById('provider-list');const cards=[...list.children];cards.sort((a,b)=>Number(b.dataset.rating)-Number(a.dataset.rating));cards.forEach(card=>list.appendChild(card));});
-document.querySelectorAll('.accept').forEach(button=>button.addEventListener('click',()=>{button.textContent='Interest Accepted';button.disabled=true;button.classList.add('accepted');}));
+const list=document.querySelector('.provider-list');
+const filters=[...document.querySelectorAll('.filter')];
+const original=[...document.querySelectorAll('.provider')];
+filters.forEach(button=>button.addEventListener('click',()=>{
+  filters.forEach(item=>item.classList.toggle('active',item===button));
+  const mode=button.dataset.sort;
+  const sorted=[...original];
+  if(mode==='rating') sorted.sort((a,b)=>Number(b.dataset.rating)-Number(a.dataset.rating));
+  if(mode==='nearby') sorted.sort((a,b)=>Number(a.dataset.distance)-Number(b.dataset.distance));
+  if(mode==='fast') sorted.sort((a,b)=>Number(a.dataset.response)-Number(b.dataset.response));
+  sorted.forEach(card=>list.appendChild(card));
+}));
+document.querySelectorAll('.accept').forEach(button=>button.addEventListener('click',()=>{
+  button.innerHTML='Accepted';button.classList.add('accepted');button.disabled=true;
+}));
+document.querySelectorAll('[data-action],.boost-cta,.profile').forEach(button=>button.addEventListener('click',()=>{
+  const action=button.dataset.action || (button.classList.contains('profile')?'profile':'boost');
+  alert('Prototype only: connect '+action+' to the existing Aasaanly app route/API.');
+}));
+document.querySelector('.back').addEventListener('click',()=>history.back());

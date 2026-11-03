@@ -26,6 +26,9 @@
         "NSCameraUsageDescription": "Aasaan uses the camera to capture a profile photo.",
         "NSPhotoLibraryUsageDescription": "Aasaan uses your photo gallery to let you select a profile photo.",
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyBAazR3Knx18n1pRiKSMPSz_U-TgZHndLE"
       }
     },
     "android": {
@@ -36,7 +39,12 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "CAMERA"
-      ]
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyBAazR3Knx18n1pRiKSMPSz_U-TgZHndLE"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/icon.png"

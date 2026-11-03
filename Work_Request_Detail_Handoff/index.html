@@ -2,79 +2,98 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#F7FAFC">
-<title>Aasaanly — Work Request</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#075C36">
+<title>Aasaanly | Work Request</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="viewport"><main class="screen" id="screen">
-  <header class="header">
-    <button class="back" aria-label="Back"><img src="assets/back.svg" alt=""></button>
+<div class="app-shell">
+  <div class="statusbar"><span>8:13</span><span class="system-icons">●　◈　▰　◉</span></div>
+  <header class="topbar">
+    <button class="top-icon back" aria-label="Go back"><img src="assets/back.svg" alt=""></button>
     <h1>Work Request</h1>
+    <div class="top-tools">
+      <button class="top-icon glass" aria-label="Share request"><img src="assets/share.svg" alt=""></button>
+      <button class="top-icon glass" aria-label="More actions"><img src="assets/more.svg" alt=""></button>
+    </div>
   </header>
 
-  <section class="request-card">
-    <img class="service-art" src="assets/chimney_hob_service_art.png" alt="Chimney and hob service">
-    <div class="request-copy">
-      <h2>Chimney / Hob</h2>
-      <p>Chimney / Hob Service</p>
-      <div class="time"><img src="assets/clock.svg" alt="">Requested 1 hr ago</div>
-      <span class="status"><i></i>Active</span>
-    </div>
-    <div class="location">
-      <img src="assets/location.svg" alt="">
-      <div><span>Request Location</span><strong>Jhansi, Uttar Pradesh</strong></div>
-    </div>
-  </section>
+  <main>
+    <section class="request-card">
+      <div class="service-image"><img src="assets/chimney_hob_illustration.svg" alt="Chimney and hob service illustration"></div>
+      <div class="request-content">
+        <span class="status"><i></i>Active</span>
+        <h2>Chimney / Hob</h2>
+        <p class="category">Chimney / Hob Service</p>
+        <p class="request-time"><img src="assets/clock.svg" alt="">Requested 3 hours ago</p>
+      </div>
+      <div class="request-location"><img src="assets/location.svg" alt=""><strong>Jhansi, Uttar Pradesh</strong><img class="location-arrow" src="assets/chevron.svg" alt=""></div>
+    </section>
 
-  <section class="quick-actions">
-    <button class="action boost"><span class="action-icon"><img src="assets/rocket.svg" alt=""></span><span><b>Boost Request</b><small>Get more responses faster</small></span><span class="chevron">›</span></button>
-    <button class="action close"><span class="action-icon"><img src="assets/close-circle.svg" alt=""></span><span><b>Close Request</b><small>Mark this request<br>as completed</small></span><span class="chevron">›</span></button>
-  </section>
+    <section class="action-grid" aria-label="Request actions">
+      <button class="action action-boost" data-action="boost"><img src="assets/rocket.svg" alt=""><span>Boost<br>Request</span></button>
+      <button class="action action-edit" data-action="edit"><img src="assets/edit.svg" alt=""><span>Edit<br>Details</span></button>
+      <button class="action action-share" data-action="share"><img src="assets/share-green.svg" alt=""><span>Share<br>Request</span></button>
+      <button class="action action-close" data-action="close"><img src="assets/close-request.svg" alt=""><span>Close<br>Request</span></button>
+    </section>
 
-  <section class="providers">
-    <h2>Interested Service Providers <span>(5)</span></h2>
-    <p class="section-subtitle">Service providers who want to work on your request</p>
-    <div class="tools">
-      <label class="search"><img src="assets/search.svg" alt=""><input id="search" type="search" placeholder="Search providers"></label>
-      <button class="sort" id="sort"><img src="assets/sort.svg" alt="">Sort: Best Match <span>⌄</span></button>
-    </div>
+    <section class="providers">
+      <header class="providers-heading">
+        <div><h2>Interested Service Providers <b>5</b></h2><p>Providers who want to work on your request</p></div>
+      </header>
+      <div class="filter-row" role="group" aria-label="Sort providers">
+        <button class="filter active" data-sort="all">All (5)</button>
+        <button class="filter" data-sort="rating">Highest Rated</button>
+        <button class="filter" data-sort="nearby">Nearest</button>
+        <button class="filter" data-sort="fast">Fast Response</button>
+      </div>
 
-    <div class="provider-list" id="provider-list">
-      <article class="provider" data-name="Amit Home Services" data-rating="4.8">
-        <div class="avatar-wrap"><img class="avatar" src="assets/provider_amit_sample.png" alt="Amit Home Services"><i></i></div>
-        <div class="provider-info">
-          <h3>Amit Home Services <img class="verified" src="assets/verified.svg" alt="Verified"></h3>
-          <div class="rating"><img src="assets/star.svg" alt=""><b>4.8</b><span>(256 reviews)</span></div>
-          <div class="meta"><span><img src="assets/briefcase.svg" alt=""><b>183</b> Requests Completed</span><i></i><span><img src="assets/calendar.svg" alt="">Member for 2.1 yrs</span></div>
-        </div>
-        <button class="accept"><img src="assets/check.svg" alt="">Accept Interest</button>
-      </article>
+      <div class="provider-list">
+        <article class="provider" data-rating="4.8" data-distance="2" data-response="15">
+          <img class="avatar" src="assets/provider_amit_sample.png" alt="Sample profile portrait">
+          <div class="provider-details">
+            <h3>Amit Home Services <img class="verified" src="assets/verified.svg" alt="Verified"></h3>
+            <p class="rating"><img src="assets/star.svg" alt=""><strong>4.8</strong><span>(256 reviews)</span></p>
+            <div class="metrics"><span><img src="assets/completed.svg" alt="">183 completed</span><span><img src="assets/calendar.svg" alt="">Member for 2.1 yrs</span></div>
+            <small class="response green"><img src="assets/clock.svg" alt="">Responds in ~15 mins</small>
+          </div>
+          <div class="provider-buttons"><button class="accept"><img src="assets/check.svg" alt="">Accept Interest</button><button class="profile">View Profile</button></div>
+        </article>
 
-      <article class="provider" data-name="Sharma Kitchen Services" data-rating="4.6">
-        <div class="avatar-wrap"><img class="avatar" src="assets/provider_sharma_sample.png" alt="Sharma Kitchen Services"><i></i></div>
-        <div class="provider-info">
-          <h3>Sharma Kitchen Services <img class="verified" src="assets/verified.svg" alt="Verified"></h3>
-          <div class="rating"><img src="assets/star.svg" alt=""><b>4.6</b><span>(118 reviews)</span></div>
-          <div class="meta"><span><img src="assets/briefcase.svg" alt=""><b>96</b> Requests Completed</span><i></i><span><img src="assets/calendar.svg" alt="">Member for 1.4 yrs</span></div>
-        </div>
-        <button class="accept"><img src="assets/check.svg" alt="">Accept Interest</button>
-      </article>
+        <article class="provider" data-rating="4.6" data-distance="1" data-response="25">
+          <img class="avatar" src="assets/provider_sharma_sample.png" alt="Sample profile portrait">
+          <div class="provider-details">
+            <h3>Sharma Kitchen Services <img class="verified" src="assets/verified.svg" alt="Verified"></h3>
+            <p class="rating"><img src="assets/star.svg" alt=""><strong>4.6</strong><span>(118 reviews)</span></p>
+            <div class="metrics"><span><img src="assets/completed.svg" alt="">96 completed</span><span><img src="assets/calendar.svg" alt="">Member for 1.4 yrs</span></div>
+            <small class="response blue"><img src="assets/clock.svg" alt="">Responds in ~25 mins</small>
+          </div>
+          <div class="provider-buttons"><button class="accept"><img src="assets/check.svg" alt="">Accept Interest</button><button class="profile">View Profile</button></div>
+        </article>
 
-      <article class="provider" data-name="EcoFix Appliances" data-rating="4.7">
-        <div class="avatar-wrap"><img class="avatar" src="assets/provider_ecofix_sample.png" alt="EcoFix Appliances"><i></i></div>
-        <div class="provider-info">
-          <h3>EcoFix Appliances <img class="verified" src="assets/verified.svg" alt="Verified"></h3>
-          <div class="rating"><img src="assets/star.svg" alt=""><b>4.7</b><span>(320 reviews)</span></div>
-          <div class="meta"><span><img src="assets/briefcase.svg" alt=""><b>421</b> Requests Completed</span><i></i><span><img src="assets/calendar.svg" alt="">Member for 3.5 yrs</span></div>
-        </div>
-        <button class="accept"><img src="assets/check.svg" alt="">Accept Interest</button>
-      </article>
-    </div>
-    <p class="prototype-note">Showing 3 sample provider cards from the visual reference. Connect the complete list to the existing API.</p>
-  </section>
-</main></div>
+        <article class="provider" data-rating="4.7" data-distance="3" data-response="10">
+          <img class="avatar" src="assets/provider_ecofix_sample.png" alt="Sample profile portrait">
+          <div class="provider-details">
+            <h3>EcoFix Appliances <img class="verified" src="assets/verified.svg" alt="Verified"></h3>
+            <p class="rating"><img src="assets/star.svg" alt=""><strong>4.7</strong><span>(320 reviews)</span></p>
+            <div class="metrics"><span><img src="assets/completed.svg" alt="">421 completed</span><span><img src="assets/calendar.svg" alt="">Member for 3.5 yrs</span></div>
+            <small class="response purple"><img src="assets/bolt.svg" alt="">Responds in ~10 mins</small>
+          </div>
+          <div class="provider-buttons"><button class="accept"><img src="assets/check.svg" alt="">Accept Interest</button><button class="profile">View Profile</button></div>
+        </article>
+      </div>
+      <p class="demo-note">Preview data: 3 sample providers shown from 5 interested providers.</p>
+    </section>
+
+    <section class="boost-banner">
+      <img class="boost-art" src="assets/boost_rocket_illustration.png" alt="Rocket illustration">
+      <div class="boost-copy"><h2>Get More Responses Faster!</h2><p>Boost your request to reach more<br>verified professionals in your area.</p></div>
+      <button class="boost-cta"><img src="assets/bolt.svg" alt="">Boost Request</button>
+    </section>
+  </main>
+  <div class="bottom-system-nav"><span></span><span></span><span></span></div>
+</div>
 <script src="app.js"></script>
 </body>
 </html>

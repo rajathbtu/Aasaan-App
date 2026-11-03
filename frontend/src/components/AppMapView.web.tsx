@@ -19,6 +19,7 @@ type MapViewProps = {
   provider?: string;
   style?: any;
   initialRegion?: Region | null;
+  mapType?: 'standard' | 'satellite';
   serviceArea?: {
     center: { latitude: number; longitude: number };
     radius: number;
@@ -26,6 +27,8 @@ type MapViewProps = {
   onPanDrag?: () => void;
   onRegionChangeComplete?: (region: Region) => void;
   onMapReady?: () => void;
+  /** Mirrors react-native-maps' press event so the same handler works on web. */
+  onPress?: (event: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => void;
   showsUserLocation?: boolean;
   showsMyLocationButton?: boolean;
 };
@@ -34,9 +37,10 @@ type GoogleMap = {
   setCenter: (center: { lat: number; lng: number }) => void;
   panTo: (center: { lat: number; lng: number }) => void;
   setZoom: (zoom: number) => void;
+  setMapTypeId: (mapTypeId: string) => void;
   getCenter: () => { lat: () => number; lng: () => number } | null;
   getZoom: () => number | null;
-  addListener: (eventName: string, handler: () => void) => { remove: () => void };
+  addListener: (eventName: string, handler: (event?: any) => void) => { remove: () => void };
 };
 
 type GoogleCircle = {
@@ -119,16 +123,21 @@ declare global {
 }
 
 const AppMapView = forwardRef<MapViewType, MapViewProps>((props, ref) => {
-  const { initialRegion, serviceArea, onMapReady, onPanDrag, onRegionChangeComplete } = props;
+  const { initialRegion, serviceArea, onMapReady, onPanDrag, onRegionChangeComplete, onPress, mapType } = props;
   const mapElementRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GoogleMap | null>(null);
   const circleRef = useRef<GoogleCircle | null>(null);
   const regionCallbackRef = useRef(onRegionChangeComplete);
+  const pressCallbackRef = useRef(onPress);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     regionCallbackRef.current = onRegionChangeComplete;
   }, [onRegionChangeComplete]);
+
+  useEffect(() => {
+    pressCallbackRef.current = onPress;
+  }, [onPress]);
 
   useEffect(() => {
     let cancelled = false;
@@ -140,6 +149,7 @@ const AppMapView = forwardRef<MapViewType, MapViewProps>((props, ref) => {
         const map = new google.maps.Map(mapElementRef.current, {
           center: { lat: initialRegion.latitude, lng: initialRegion.longitude },
           zoom: regionToZoom(initialRegion),
+          mapTypeId: mapType === 'satellite' ? 'satellite' : 'roadmap',
           streetViewControl: false,
           mapTypeControl: false,
           fullscreenControl: false,
@@ -159,6 +169,18 @@ const AppMapView = forwardRef<MapViewType, MapViewProps>((props, ref) => {
           });
         }
         map.addListener('dragstart', () => onPanDrag?.());
+        /* Tap-to-select: react-native-maps reports touches through onPress
+           with a nativeEvent.coordinate — reproduce that exact shape on web
+           so LocationSearch needs no platform branch. */
+        map.addListener('click', (event: any) => {
+          const latLng = event?.latLng;
+          if (!latLng) return;
+          pressCallbackRef.current?.({
+            nativeEvent: {
+              coordinate: { latitude: latLng.lat(), longitude: latLng.lng() },
+            },
+          });
+        });
         map.addListener('idle', () => {
           const region = zoomToRegion(map);
           if (region) regionCallbackRef.current?.(region);
@@ -183,6 +205,11 @@ const AppMapView = forwardRef<MapViewType, MapViewProps>((props, ref) => {
     map.setCenter({ lat: initialRegion.latitude, lng: initialRegion.longitude });
     map.setZoom(regionToZoom(initialRegion));
   }, [initialRegion]);
+
+  /* Layers toggle — mirrors react-native-maps' mapType prop. */
+  useEffect(() => {
+    mapRef.current?.setMapTypeId(mapType === 'satellite' ? 'satellite' : 'roadmap');
+  }, [mapType]);
 
   useEffect(() => {
     if (!serviceArea || !circleRef.current) return;
@@ -217,7 +244,11 @@ const styles = StyleSheet.create({
     height: '100%',
   } as any,
   errorOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     backgroundColor: '#e8ecef',
   },
 });

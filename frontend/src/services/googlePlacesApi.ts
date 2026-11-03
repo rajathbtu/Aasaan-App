@@ -46,6 +46,7 @@ const webGet = async <T>(
   const url = `${BASE_URL}/google-places/${endpoint}`;
   const res = await axios.get(url, {
     params,
+    timeout: 6000,
     // BASE_URL on dev is an ngrok tunnel — skip its browser warning
     // interstitial (matches the existing /api behaviour).
     headers: { 'ngrok-skip-browser-warning': 'true' },
@@ -54,7 +55,7 @@ const webGet = async <T>(
 };
 
 const nativeGet = async <T>(url: string): Promise<T> => {
-  const res = await axios.get(url);
+  const res = await axios.get(url, { timeout: 6000 });
   return res.data as T;
 };
 

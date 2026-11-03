@@ -6,6 +6,7 @@ import locationMarkerIcon from '../../assets/location_marker.png';
 import SvgIcon from '../assets/icons';
 import { colors, spacing, radius, sizes } from '../theme';
 import { locationManager, useLocation } from '../services/LocationManager';
+import * as ExpoLocation from 'expo-location';
 import EdgeLoader from './EdgeLoader';
 import Header from './Header';
 import ErrorBanner from './ErrorBanner';
@@ -110,6 +111,14 @@ const LocationSearch = React.forwardRef<{
   const autoSelectedCurrentLocation = useRef(false);
   const regionChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestMapSelectionRequest = useRef(0);
+  const userInteractedRef = useRef(false);
+  /* Set when the map is moved by the component itself (tap-to-select, search
+     result, GPS detect). The resulting region-change event must not schedule
+     a second lookup for the same spot. */
+  const programmaticCenterRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  /* Id of the selection still waiting for its address (0 = none). Keeps a
+     stray idle event from clearing the resolving state too early. */
+  const pendingSelectionRef = useRef(0);
   const mapRef = useRef<MapViewType | null>(null);
   const selectedPlaceId = initialLocation?.place_id ?? initialLocation?.placeId;
   const recentLocations = savedLocations.filter((location) => location.place_id !== selectedPlaceId);
@@ -153,21 +162,27 @@ const LocationSearch = React.forwardRef<{
       return;
     }
 
-    const region = initialLocation?.lat && initialLocation?.lng
-      ? getRegionFromLocation({ latitude: initialLocation.lat, longitude: initialLocation.lng }, isServiceArea)
-      : liveDefaultRegion;
-
-    setMapRegion((currentRegion) => {
-      if (currentRegion && regionsAreClose(currentRegion, region)) 
-        return currentRegion;
-      return region;
-    });
     setIsMapReady(true);
 
-    if (mapRef.current) {
-      animateToRegion(region);
+    /* Center on an explicit initial location, keyed on its coordinates (not
+       object identity — the parent recreates the object on every card
+       update). Never re-animates from here: the map is already where the
+       user put it, and re-animating would yank it mid-selection. */
+    const lat = initialLocation?.lat;
+    const lng = initialLocation?.lng;
+    if (lat != null && lng != null) {
+      const region = getRegionFromLocation({ latitude: lat, longitude: lng }, isServiceArea);
+      setMapRegion((currentRegion) =>
+        currentRegion && regionsAreClose(currentRegion, region) ? currentRegion : region
+      );
+      return;
     }
-  }, [enableMap, initialLocation, liveDefaultRegion, isServiceArea]);
+
+    /* No explicit location: fall back to the live default region, but only
+       until the user starts choosing a spot themselves. */
+    if (userInteractedRef.current) return;
+    setMapRegion((currentRegion) => currentRegion ?? liveDefaultRegion);
+  }, [enableMap, initialLocation?.lat, initialLocation?.lng, isServiceArea, liveDefaultRegion]);
 
   const fetchSuggestions = async (text: string) => {
     if (!text) {
@@ -207,25 +222,6 @@ const LocationSearch = React.forwardRef<{
     return place.description; // Fallback to the full description if terms are insufficient
   };
 
-  const removeStateCountryAndPostalCode = (result: any) => { // this is for treating api responses from geocode api.. places api gives different reponse structure 
-    const addressComponents = result?.address_components || [];
-
-    const filteredComponents = addressComponents.filter((component: any) => {
-      const types = component?.types || [];
-      return !types.some((type: string) => ['plus_code','street_number','route','premise','subpremise','country', 'administrative_area_level_1', 'administrative_area_level_2', 'postal_code'].includes(type));
-    });
-
-    const cleanedNames = filteredComponents
-      .map((component: any) => component?.long_name || component?.short_name)
-      .filter(Boolean);
-
-    if (cleanedNames.length > 0) {
-      return cleanedNames.join(', ');
-    }
-
-    return result?.formatted_address || '';
-  };
-
   const handleSelect = async (place: any) => {
     if (place.place_id === 'current_location') {
       setIsSearchOverlayVisible(false);
@@ -236,6 +232,14 @@ const LocationSearch = React.forwardRef<{
     const cleanedPlaceName = removeStateAndCountry(place);
     setSuggestions([]);
     setIsSearchOverlayVisible(false);
+    /* A pending map-settle lookup must not overwrite the place the user just
+       picked from the search results. */
+    if (regionChangeTimeout.current) {
+      clearTimeout(regionChangeTimeout.current);
+      regionChangeTimeout.current = null;
+    }
+    latestMapSelectionRequest.current += 1;
+    pendingSelectionRef.current = 0;
 
     if (!place.place_id) {
       onSelect({ ...place, description: cleanedPlaceName });
@@ -271,6 +275,7 @@ const LocationSearch = React.forwardRef<{
     if (regionChangeTimeout.current) 
       clearTimeout(regionChangeTimeout.current);
     latestMapSelectionRequest.current += 1;
+    pendingSelectionRef.current = 0;
     setIsLocationResolving(true);
     setLocationError(null);
     let detectedLocation = cachedLocation; // Use cached location if available
@@ -345,39 +350,110 @@ const LocationSearch = React.forwardRef<{
 
   const reverseGeocodeLocation = async (latitude: number, longitude: number) => {
     setLocationError(null);
+    /* 1) Google geocoder — rich address components. */
     try {
       const data = await reverseGeocode({ latlng: `${latitude},${longitude}` });
-      if (data.results && data.results.length > 0)
-        return {
-          description: removeStateCountryAndPostalCode(data.results[0]),
-          place_id: data.results[0].place_id,
+      if (data?.results && data.results.length > 0) {
+        const result = data.results[0];
+        const components: Array<{ long_name: string; short_name: string; types: string[] }> =
+          result.address_components || [];
+        const pick = (types: string[], short = false): string | null => {
+          for (const type of types) {
+            const found = components.find((c) => c.types.includes(type));
+            if (found) return short ? found.short_name : found.long_name;
+          }
+          return null;
         };
+        /* Clean "Area, City" label (e.g. "Civil Lines, Jhansi") — the most
+           specific area plus the city, de-duplicated, no street noise. */
+        const area = pick(['neighborhood', 'sublocality_level_2', 'sublocality_level_1', 'sublocality']);
+        const city = pick(['locality', 'administrative_area_level_2', 'administrative_area_level_1']);
+        const label = Array.from(new Set([area, city].filter(Boolean))).join(', ');
+        if (label) {
+          return { description: label, name: label, place_id: result.place_id };
+        }
+      }
     } catch (error) {
       setLocationError(error);
     }
-    return { description: 'Selected location' };
+    /* 2) OS geocoder fallback (expo-location) — works without an API key. */
+    try {
+      const places = await ExpoLocation.reverseGeocodeAsync({ latitude, longitude });
+      const place = places?.[0];
+      if (place) {
+        const area = place.district || place.subregion || place.street || null;
+        const city = place.city || place.region || null;
+        const label = Array.from(new Set([area, city].filter(Boolean))).join(', ');
+        if (label) return { description: label, name: label, place_id: undefined as any };
+      }
+    } catch {
+      // OS geocoder unavailable — fall through to the generic label.
+    }
+    return { description: 'Selected location', name: 'Selected location' };
   };
 
-  const regionsAreClose = (r1: Region | null, r2: Region | null, delta = 0.00005) => {
-    if (!r1 || !r2) return false;
-    return (
-      Math.abs((r1.latitude ?? 0) - (r2.latitude ?? 0)) < delta &&
-      Math.abs((r1.longitude ?? 0) - (r2.longitude ?? 0)) < delta
-    );
+  const isSameCoordinate = (
+    a: { latitude: number; longitude: number } | null,
+    b: { latitude: number; longitude: number } | null,
+    delta = 0.00005
+  ) => {
+    if (!a || !b) return false;
+    return Math.abs(a.latitude - b.latitude) < delta && Math.abs(a.longitude - b.longitude) < delta;
   };
 
-  const scheduleCenterLocationUpdate = (region: Region) => { // short debounce so the selected-address card follows the map quickly without spamming the geocoder
+  const regionsAreClose = (r1: Region | null, r2: Region | null, delta = 0.00005) =>
+    isSameCoordinate(r1, r2, delta);
+
+  /**
+   * The single entry point for "the user picked this spot on the map".
+   *
+   * The coordinates are handed to the opener immediately (so the selected
+   * location card stops showing the previous address and switches to its
+   * locating state), then the resolved address follows as soon as the
+   * reverse geocoder answers. Latest request wins, so a fast second tap can
+   * never be overwritten by a slower first lookup.
+   */
+  const selectMapCoordinate = async (
+    latitude: number,
+    longitude: number,
+    options?: { moveMap?: boolean }
+  ) => {
+    if (regionChangeTimeout.current) {
+      clearTimeout(regionChangeTimeout.current);
+      regionChangeTimeout.current = null;
+    }
+
+    if (options?.moveMap) {
+      const latitudeDelta = mapRegion?.latitudeDelta ?? (isServiceArea ? CITY_LEVEL_DELTA : 0.01);
+      const longitudeDelta = mapRegion?.longitudeDelta ?? (isServiceArea ? CITY_LEVEL_DELTA : 0.01);
+      const region: Region = { latitude, longitude, latitudeDelta, longitudeDelta };
+      programmaticCenterRef.current = { latitude, longitude };
+      setMapRegion(region);
+      animateToRegion(region, 250);
+    }
+
+    const requestId = ++latestMapSelectionRequest.current;
+    pendingSelectionRef.current = requestId;
+    setIsLocationResolving(true);
+    onSelect({ lat: latitude, lng: longitude });
+
+    const geocodedLocation = await reverseGeocodeLocation(latitude, longitude);
+    if (requestId !== latestMapSelectionRequest.current) return;
+    if (pendingSelectionRef.current === requestId) pendingSelectionRef.current = 0;
+    onSelect({ lat: latitude, lng: longitude, ...geocodedLocation });
+    setIsLocationResolving(false);
+  };
+
+  const scheduleCenterLocationUpdate = (region: Region) => {
+    // short debounce so the selected-address card follows the map quickly
+    // without spamming the geocoder
     if (regionChangeTimeout.current) {
       clearTimeout(regionChangeTimeout.current);
     }
 
-    const requestId = ++latestMapSelectionRequest.current;
-    regionChangeTimeout.current = setTimeout(async () => {
-      const geocodedLocation = await reverseGeocodeLocation(region.latitude, region.longitude);
-      if (requestId !== latestMapSelectionRequest.current) return;
-      onSelect({ lat: region.latitude, lng: region.longitude, ...geocodedLocation });
-      setIsLocationResolving(false);
-    }, 700);
+    regionChangeTimeout.current = setTimeout(() => {
+      void selectMapCoordinate(region.latitude, region.longitude);
+    }, 450);
   };
 
   useEffect(() => {
@@ -416,7 +492,7 @@ const LocationSearch = React.forwardRef<{
 
   const renderLocationOption = (item: { place_id: string; description: string }, iconName?: string) => (
     <TouchableOpacity
-      key={item.place_id}
+      key={item.place_id || item.description}
       onPress={() => handleSelect(item)}
     >
       <View style={styles.suggestionRow}>
@@ -458,17 +534,49 @@ const LocationSearch = React.forwardRef<{
                   radius: serviceAreaRadiusKm * 1000,
                 } : undefined}
                 onPanDrag={() => {
+                  userInteractedRef.current = true;
+                  /* A drag is the user driving again — any pending
+                     programmatic recenter no longer applies. */
+                  programmaticCenterRef.current = null;
                   setIsMapInteracting(true);
                   setIsLocationResolving(true);
                 }}
+                onPress={(e: any) => {
+                  /* Tap-to-select: choosing a spot on the map moves the centre
+                     pin onto it and reverse-geocodes the address, so the
+                     selected-location card follows the tap. */
+                  const coordinate = e?.nativeEvent?.coordinate;
+                  const latitude = Number(coordinate?.latitude);
+                  const longitude = Number(coordinate?.longitude);
+                  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+                  if (latitude === 0 && longitude === 0) return;
+                  userInteractedRef.current = true;
+                  setIsMapInteracting(false);
+                  void selectMapCoordinate(latitude, longitude, { moveMap: true });
+                }}
                 onRegionChangeComplete={(region: Region) => {
+                  userInteractedRef.current = true;
+                  setIsMapInteracting(false);
+
+                  /* The component itself just moved the map (tap, search
+                     result, GPS) — that spot is already being resolved. */
+                  const programmaticCenter = programmaticCenterRef.current;
+                  if (
+                    programmaticCenter &&
+                    pendingSelectionRef.current &&
+                    isSameCoordinate(programmaticCenter, region, 0.0005)
+                  ) {
+                    programmaticCenterRef.current = null;
+                    setMapRegion(region);
+                    return;
+                  }
+
                   if (!regionsAreClose(mapRegion, region)) { // Only update if new region differs meaningfully
                     setMapRegion(region);
                     scheduleCenterLocationUpdate(region);
-                  } else {
+                  } else if (!pendingSelectionRef.current) {
                     setIsLocationResolving(false);
                   }
-                  setIsMapInteracting(false);
                 }}
                 onMapReady={() => setIsMapReady(true)}
                 showsUserLocation={true}
@@ -552,7 +660,7 @@ const LocationSearch = React.forwardRef<{
                 contentContainerStyle={styles.recentLocationsContent}>
                 {recentLocations.map((item) => (
                   <TouchableOpacity
-                    key={item.place_id}
+                    key={item.place_id || `${item.lat},${item.lng}`}
                     style={styles.recentLocationTag}
                     onPress={() => void handleSelect(item)}
                     activeOpacity={0.8}
