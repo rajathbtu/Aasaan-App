@@ -812,61 +812,62 @@ const WorkRequestDetailsScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* .action-grid — Edit / Share / Mark as Completed (Boost lives only
-              in the banner below; Close Request sits in the header overflow) */}
-          <View style={[styles.actionGrid, { marginTop: 18 * s, marginBottom: 28 * s, gap: 12 * s }]}>
-            {[
-              {
-                key: 'edit',
-                /* Two-line tile caption: first word on top, rest below. */
-                label: t('requestDetails.editTitle').replace(' ', '\n'),
-                icon: 'sa-edit' as const,
-                color: C.iconEdit,
-                onPress: handleEdit,
-                disabled: isCompleted,
-              },
-              {
-                key: 'share',
-                label: t('requestDetails.shareRequest').replace(' ', '\n'),
-                icon: 'share' as const,
-                color: C.iconShare,
-                onPress: handleShare,
-                disabled: false,
-              },
-              {
-                key: 'complete',
-                label: t('requestDetails.markCompleted').replace(' ', '\n'),
-                icon: 'check' as const,
-                color: C.green,
-                onPress: () => setCloseVisible(true),
-                disabled: isCompleted,
-              },
-            ].map((tile) => (
-              <TouchableOpacity
-                key={tile.key}
-                onPress={tile.onPress}
-                disabled={tile.disabled}
-                activeOpacity={0.8}
-                accessibilityRole="button"
-                accessibilityLabel={tile.label}
-                style={[
-                  styles.action,
-                  {
-                    minHeight: Math.max(112 * s, 78),
-                    borderRadius: Math.max(28 * s, 14),
-                    gap: 8 * s,
-                    paddingVertical: 12 * s,
-                    paddingHorizontal: 5 * s,
-                  },
-                  tile.disabled && { opacity: 0.5 },
-                ]}
-              >
-                <SvgIcon name={tile.icon} size={Math.max(34 * s, 22)} color={tile.color} />
-                <Text style={styles.actionLabel} numberOfLines={2}>
-                  {tile.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          {/* .action-grid — Edit / Share / Mark Completed, using the same
+              container, icon-tile and label styling as the BoostRequestScreen
+              benefit row (Top Placement / Higher Visibility / Urgent Badge):
+              mint 42pt icon tiles, 20pt primary icons, 13pt bold labels and
+              hairline dividers. Boost lives only in the banner below. */}
+          <View style={[styles.actionGrid, { marginTop: 18 * s, marginBottom: 28 * s }]}>
+            <TouchableOpacity
+              onPress={handleEdit}
+              disabled={isCompleted}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t('requestDetails.editTitle')}
+              style={[styles.action, isCompleted && { opacity: 0.5 }]}
+            >
+              <View style={styles.actionIconTile}>
+                <SvgIcon name="sa-edit" size={20} color={consumerColors.primary} />
+              </View>
+              <Text style={styles.actionLabel}>
+                {t('requestDetails.editTitle').replace(' ', '\n')}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.actionDivider} />
+
+            <TouchableOpacity
+              onPress={handleShare}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t('requestDetails.shareRequest')}
+              style={styles.action}
+            >
+              <View style={styles.actionIconTile}>
+                <SvgIcon name="share" size={20} color={consumerColors.primary} />
+              </View>
+              <Text style={styles.actionLabel}>
+                {t('requestDetails.shareRequest').replace(' ', '\n')}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.actionDivider} />
+
+            <TouchableOpacity
+              onPress={() => setCloseVisible(true)}
+              disabled={isCompleted}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={t('requestDetails.markCompleted')}
+              style={[styles.action, isCompleted && { opacity: 0.5 }]}
+            >
+              <View style={styles.actionIconTile}>
+                <SvgIcon name="check" size={20} color={consumerColors.primary} />
+              </View>
+              <Text style={styles.actionLabel}>
+                {t('requestDetails.markCompleted').replace(' ', '\n')}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* .providers */}
@@ -1065,7 +1066,6 @@ const T = {
   category: 14,
   time: 13,
   status: 12.5,
-  actionLabel: 13.5,
   sectionTitle: 19,
   sectionSubtitle: 14,
   filter: 13.5,
@@ -1257,28 +1257,38 @@ const styles = StyleSheet.create({
     color: C.green,
   },
   /* Action tiles */
+  /* Same look as the BoostRequestScreen benefit items (Top Placement /
+     Higher Visibility / Urgent Badge): borderless stacks — mint icon tile
+     on top, bold centered label below, hairline divider between items. */
   actionGrid: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
   action: {
     flex: 1,
     alignItems: 'center',
+    gap: 8,
+  },
+  actionIconTile: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    backgroundColor: '#E4F8EF',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: C.listBorder,
-    shadowColor: '#1E384E',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.09,
-    shadowRadius: 14,
-    elevation: 3,
+    alignItems: 'center',
+    flexShrink: 0,
   },
   actionLabel: {
-    fontSize: T.actionLabel,
-    lineHeight: 17,
+    fontSize: 13,
     fontFamily: 'Inter-Bold',
-    color: C.ink,
+    color: '#101827',
     textAlign: 'center',
+  },
+  actionDivider: {
+    width: 1.5,
+    height: 40,
+    backgroundColor: '#DCE4EC',
+    marginHorizontal: 6,
   },
   /* Providers section */
   providers: {
