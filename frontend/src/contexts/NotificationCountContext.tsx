@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { AppState, InteractionManager } from 'react-native';
+import { AppState } from 'react-native';
 import { getNotifications } from '../api';
 import { useAuth } from './AuthContext';
 import { offlineCacheKey, readOfflineCache } from '../utils/offlineCache';
@@ -23,6 +23,15 @@ const NotificationCountContext = createContext<NotificationCountContextProps | u
 /** Extra idle delay before hitting the network (ms). */
 const REFRESH_DELAY_MS = 2000;
 
+/** Runs a callback during idle periods, with setTimeout fallback. */
+const runAfterInteractions = (callback: () => void) => {
+  if (typeof requestIdleCallback !== 'undefined') {
+    requestIdleCallback(callback);
+  } else {
+    setTimeout(callback, 1);
+  }
+};
+
 const countCachedUnread = (list: unknown): number =>
   Array.isArray(list) ? list.filter((n: any) => n && !n.read).length : 0;
 
@@ -36,7 +45,7 @@ export const NotificationCountProvider: React.FC<{ children: React.ReactNode }> 
     // Debounce: collapse bursts of triggers into a single request.
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      void InteractionManager.runAfterInteractions(async () => {
+      void runAfterInteractions(async () => {
         try {
           const unread = await getNotifications(token, true);
           setUnreadCount(Array.isArray(unread) ? unread.length : 0);
