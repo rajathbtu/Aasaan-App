@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxl*2,
+    paddingTop: spacing.xxl,
   },
   iconWrap: {
     width: 88,
@@ -67,6 +67,7 @@ const styles = StyleSheet.create({
   },
   action: {
     marginTop: spacing.lg,
+    marginBottom: spacing.lg,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 999,

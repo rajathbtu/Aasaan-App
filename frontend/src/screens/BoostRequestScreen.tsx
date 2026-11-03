@@ -194,8 +194,17 @@ const BoostRequestScreen: React.FC = () => {
 
   const alreadyBoosted = !!request.boosted;
   const serviceName = request.serviceName || request.service || t('boostRequest.title');
-  const serviceIcon = request.serviceIcon;
+  /* Backend supplies serviceIcon as a Material icon NAME (e.g. "construct"),
+     not an image URL — only treat http(s)/data values as images, otherwise
+     the <Image> silently renders nothing. Mirrors WorkRequestDetailsScreen. */
+  const serviceIconUrl =
+    typeof request.serviceIcon === 'string' && /^(https?:|data:)/.test(request.serviceIcon)
+      ? request.serviceIcon
+      : null;
   const serviceIconName = resolveServiceIconName(serviceName);
+  /* Benefit labels are two-word tags (e.g. "Top Placement") — stack the words
+     so each one gets its own full line instead of truncating beside the icon. */
+  const stackWords = (label: string) => label.split(/\s+/).join('\n');
   const locationName = request.locationName || t('userRequests.locationFallback');
   const relativeCreated = timeAgo(request.createdAt);
   const createdTimeLabel = relativeCreated ? `Requested ${relativeCreated}` : 'Requested just now';
@@ -216,9 +225,9 @@ const BoostRequestScreen: React.FC = () => {
         <View style={styles.requestCard}>
           <View style={styles.serviceRow}>
             <View style={styles.serviceImage}>
-              {serviceIcon ? (
+              {serviceIconUrl ? (
                 <Image
-                  source={{ uri: serviceIcon }}
+                  source={{ uri: serviceIconUrl }}
                   style={styles.serviceArtImage}
                   contentFit="cover"
                   cachePolicy="memory-disk"
@@ -281,8 +290,8 @@ const BoostRequestScreen: React.FC = () => {
               <View style={styles.benefitIconTile}>
                 <SvgIcon name="bolt" size={20} color={consumerColors.primary} />
               </View>
-              <Text style={styles.benefitLabel} numberOfLines={2} ellipsizeMode="tail">
-                {t('boostRequest.benefitVisibilityLabel')}
+              <Text style={styles.benefitLabel}>
+                {stackWords(t('boostRequest.benefitVisibilityLabel'))}
               </Text>
             </View>
             <View style={styles.benefitDivider} />
@@ -290,8 +299,8 @@ const BoostRequestScreen: React.FC = () => {
               <View style={styles.benefitIconTile}>
                 <SvgIcon name="trophy" size={20} color={consumerColors.primary} />
               </View>
-              <Text style={styles.benefitLabel} numberOfLines={2} ellipsizeMode="tail">
-                {t('boostRequest.benefitPlacementLabel')}
+              <Text style={styles.benefitLabel}>
+                {stackWords(t('boostRequest.benefitPlacementLabel'))}
               </Text>
             </View>
             <View style={styles.benefitDivider} />
@@ -299,8 +308,8 @@ const BoostRequestScreen: React.FC = () => {
               <View style={styles.benefitIconTile}>
                 <SvgIcon name="badge" size={20} color={consumerColors.primary} />
               </View>
-              <Text style={styles.benefitLabel} numberOfLines={2} ellipsizeMode="tail">
-                {t('boostRequest.benefitUrgentBadgeLabel')}
+              <Text style={styles.benefitLabel}>
+                {stackWords(t('boostRequest.benefitUrgentBadgeLabel'))}
               </Text>
             </View>
           </View>
@@ -568,7 +577,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   heroHeadline: {
-    fontSize: 21,
+    fontSize: 18,
     fontFamily: consumerFonts.bold,
     color: '#0B1426',
     letterSpacing: -0.4,
@@ -610,9 +619,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   benefitItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     flex: 1,
   },
   benefitIconTile: {
@@ -628,7 +636,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: consumerFonts.bold,
     color: '#101827',
-    flexShrink: 1,
+    textAlign: 'center',
   },
   benefitDivider: {
     width: 1.5,
