@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
 import { useAuth } from '../../../contexts/AuthContext';
+import { useTheme } from '../../../contexts/ThemeContext';
+import type { ConsumerPalette } from '../../../theme/palette';
 import {
   AadhaarVerificationIllustration,
   ArrowBack,
@@ -27,34 +29,6 @@ import {
   readSandboxAadhaarOfflineEkycError,
   verifySandboxAadhaarOfflineEkycOtp,
 } from '../../../api/kyc/sandbox/aadhaarOfflineEkyc';
-
-/** Approved design tokens. */
-const C = {
-  /** Primary green. */
-  green: '#079B60',
-  /** Dark green. */
-  greenDark: '#07864F',
-  /** Pale mint surface. */
-  mint: '#E8F8F0',
-  /** Strong mint accent. */
-  mintStrong: '#D8F4E7',
-  /** Charcoal text. */
-  ink: '#17232C',
-  /** Muted grey copy. */
-  muted: '#66717F',
-  /** Subtle border. */
-  border: '#E1E9E6',
-  /** White surface. */
-  surface: '#FFFFFF',
-  /** Page background. */
-  page: '#F7FCF9',
-  /** Input border (slightly different from --border in CSS). */
-  inputBorder: '#D5DDE3',
-  /** Consent card background. */
-  consentBg: '#F0FAF5',
-  /** Error text. */
-  error: '#C43D3D',
-} as const;
 
 /** Stages the screen moves through during a verification attempt. */
 type KycState = 'idle' | 'sending' | 'awaiting_otp' | 'verifying' | 'success' | 'failed';
@@ -88,6 +62,8 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
   const { token, refreshUser } = useAuth();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const { consumer: C, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   const [state, setState] = useState<KycState>('idle');
   const [aadhaar, setAadhaar] = useState('');
@@ -209,7 +185,7 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
       <View style={styles.resultCard}>
         <View style={styles.resultCardHeader}>
           <View style={styles.resultIcon}>
-            <ActivityIndicator size="small" color={C.green} />
+            <ActivityIndicator size="small" color={C.primary} />
           </View>
           <Text style={styles.resultCardTitle}>Verified Aadhaar details</Text>
         </View>
@@ -272,7 +248,7 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
               <>
                 {/* OTP entry stage */}
                 <View style={styles.formHeading}>
-                  <IdentityCard size={24} color={C.green} />
+                  <IdentityCard size={24} color={C.primary} />
                   <View style={styles.formHeadingTextWrap}>
                     <Text style={styles.formHeadingTitle} numberOfLines={1} ellipsizeMode="tail">
                       Enter the OTP
@@ -303,6 +279,7 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
                     setOtp(digits);
                   }}
                   keyboardType="number-pad"
+                  keyboardAppearance={isDark ? 'dark' : 'light'}
                   maxLength={OTP_LENGTH}
                   autoFocus
                   returnKeyType="done"
@@ -323,12 +300,12 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
                     accessibilityLabel="Verify Aadhaar">
                     {isBusy ? (
                       <View style={styles.busyRow}>
-                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <ActivityIndicator size="small" color={C.onPrimary} />
                         <Text style={styles.submitButtonText}>{busyLabel}</Text>
                       </View>
                     ) : (
                       <View style={styles.submitIconRow}>
-                        <SendIcon size={20} color="#FFFFFF" />
+                        <SendIcon size={20} color={C.onPrimary} />
                         <Text style={styles.submitButtonText}>Verify Aadhaar</Text>
                       </View>
                     )}
@@ -348,7 +325,7 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
               <>
                 {/* Aadhaar number entry stage */}
                 <View style={styles.formHeading}>
-                  <IdentityCard size={30} color={C.green} />
+                  <IdentityCard size={30} color={C.primary} />
                   <View>
                     <Text style={styles.formHeadingTitle}>Aadhaar Number</Text>
                     <Text style={styles.formHeadingBody}>
@@ -361,7 +338,7 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
                   <Text style={styles.fieldLabel}>Aadhaar number</Text>
                 </View>
                 <View style={styles.inputWrap}>
-                  <IdentityCard size={25} color="#A0AAB6" />
+                  <IdentityCard size={25} color={C.muted} />
                   <TextInput
                     style={styles.input}
                     value={aadhaar}
@@ -371,9 +348,10 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
                       if (error) setError(null);
                     }}
                     keyboardType="number-pad"
+                    keyboardAppearance={isDark ? 'dark' : 'light'}
                     maxLength={14}
                     placeholder="1234 5678 9012"
-                    placeholderTextColor="#A0AAB6"
+                    placeholderTextColor={C.muted}
                     returnKeyType="done"
                     accessibilityLabel="Aadhaar number"
                   />
@@ -409,12 +387,12 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
                     accessibilityLabel="Send OTP">
                     {isBusy ? (
                       <View style={styles.busyRow}>
-                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <ActivityIndicator size="small" color={C.onPrimary} />
                         <Text style={styles.submitButtonText}>{busyLabel}</Text>
                       </View>
                     ) : (
                       <View style={styles.submitIconRow}>
-                        <SendIcon size={20} color="#FFFFFF" />
+                        <SendIcon size={20} color={C.onPrimary} />
                         <Text style={styles.submitButtonText}>Send OTP</Text>
                       </View>
                     )}
@@ -445,7 +423,7 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
 
 export default SandboxAadhaarOfflineEkycScreen;
 
-const styles = StyleSheet.create({
+const makeStyles = (C: ConsumerPalette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.page,
@@ -497,7 +475,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   heroTitleGreen: {
-    color: C.green,
+    color: C.primary,
   },
   heroBody: {
     fontSize: 14,
@@ -509,12 +487,12 @@ const styles = StyleSheet.create({
   },
 
   formCard: {
-    backgroundColor: C.surface,
+    backgroundColor: C.white,
     borderWidth: 1,
     borderColor: C.border,
     borderRadius: 20,
     padding: 18,
-    shadowColor: '#1C4231',
+    shadowColor: C.shadowTint,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.07,
     shadowRadius: 16,
@@ -563,7 +541,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: C.inputBorder,
     borderRadius: 12,
-    backgroundColor: C.surface,
+    backgroundColor: C.white,
   },
   otpRow: {
     flexDirection: 'row',
@@ -578,7 +556,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: C.inputBorder,
     borderRadius: 12,
-    backgroundColor: C.surface,
+    backgroundColor: C.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -605,13 +583,13 @@ const styles = StyleSheet.create({
   hint: {
     fontSize: 12,
     lineHeight: 16,
-    color: '#87919D',
+    color: C.muted,
     marginTop: 8,
     marginBottom: 4,
   },
   errorText: {
     fontSize: 12,
-    color: C.error,
+    color: C.errorText,
     marginTop: 4,
     marginHorizontal: 2,
   },
@@ -633,21 +611,21 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderWidth: 2,
-    borderColor: '#89959E',
+    borderColor: C.muted,
     borderRadius: 5,
-    backgroundColor: C.surface,
+    backgroundColor: C.white,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
   customCheckChecked: {
-    borderColor: C.green,
-    backgroundColor: C.green,
+    borderColor: C.primary,
+    backgroundColor: C.primary,
   },
   checkMark: {
     width: 5,
     height: 10,
-    borderColor: '#FFFFFF',
+    borderColor: C.onPrimary,
     borderWidth: 0,
     borderBottomWidth: 2,
     borderRightWidth: 2,
@@ -656,7 +634,7 @@ const styles = StyleSheet.create({
   consentText: {
     fontSize: 13,
     lineHeight: 18,
-    color: '#25323A',
+    color: C.ink,
     flex: 1,
     flexShrink: 1,
   },
@@ -668,12 +646,12 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 48,
     borderRadius: 14,
-    backgroundColor: C.green,
+    backgroundColor: C.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
-    shadowColor: C.green,
+    shadowColor: C.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.16,
     shadowRadius: 12,
@@ -687,7 +665,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 14.5,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: C.onPrimary,
     letterSpacing: -0.3,
   },
   submitIconRow: {
@@ -714,18 +692,18 @@ const styles = StyleSheet.create({
   finePrint: {
     fontSize: 11,
     lineHeight: 15,
-    color: '#89939D',
+    color: C.muted,
     textAlign: 'center',
     marginTop: 12,
   },
 
   resultCard: {
-    backgroundColor: C.surface,
+    backgroundColor: C.white,
     borderWidth: 1,
     borderColor: C.border,
     borderRadius: 20,
     padding: 18,
-    shadowColor: '#1C4231',
+    shadowColor: C.shadowTint,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.07,
     shadowRadius: 16,
@@ -742,7 +720,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: C.mintStrong,
+    backgroundColor: C.mintDeep,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -778,11 +756,11 @@ const styles = StyleSheet.create({
   },
 
   errorBanner: {
-    backgroundColor: '#fef2f2',
+    backgroundColor: C.closeBg,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: C.closeBorder,
     marginTop: 16,
   },
   errorHeader: {
@@ -795,11 +773,11 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: C.error,
+    backgroundColor: C.errorText,
   },
   errorTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: C.error,
+    color: C.errorText,
   },
 });

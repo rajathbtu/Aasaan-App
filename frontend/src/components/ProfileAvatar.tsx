@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
-import { colors, spacing, borders } from '../theme';
+import { spacing } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 import { getOptimizedProfileImageUrl } from '../utils/profileImage';
 
 type ProfileAvatarProps = {
@@ -11,6 +13,12 @@ type ProfileAvatarProps = {
   containerStyle?: StyleProp<ViewStyle>;
 };
 
+/**
+ * Fixed deterministic pastel pairs for name initials. They behave like the
+ * self-contained SVG/PNG artworks (see DARK_MODE_CONTRACT rule 12): the pastel
+ * background and its dark ink are always paired, so each chip stays readable
+ * in both light and dark mode without per-hue palette tokens.
+ */
 const initialColors = [
   { background: '#FCE4D6', text: '#9A3412' },
   { background: '#CCFBF1', text: '#115E59' },
@@ -23,6 +31,8 @@ const initialColors = [
 ];
 
 const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ picUrl, profileName, size = 48 ,containerStyle,}) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const initial = String(profileName).charAt(0).toUpperCase();
   const colorIndex = (initial.charCodeAt(0) || 0) % initialColors.length;
   const initialColor = initialColors[colorIndex];
@@ -44,17 +54,18 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ picUrl, profileName, size
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   initial: {
     fontWeight: '700',
-    color: colors.primary,
+    color: C.primary,
   },
   imageWrapper: {
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
-    ...borders.subtle,
+    borderWidth: 1,
+    borderColor: C.greyLight,
   },
   image: {
     width: '100%',

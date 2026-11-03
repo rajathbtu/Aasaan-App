@@ -41,7 +41,9 @@ import {
   ProfileIcon,
   ProfileIconName,
 } from '../assets/profile-handoff';
-import { profileColors as C, profileFonts as F } from '../theme/profile';
+import { profileFonts as F } from '../theme/profile';
+import type { ProfilePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 type ProfileSelector = 'workSinceYear' | 'birthYear' | 'gender';
@@ -101,6 +103,7 @@ const ProfileScreen: React.FC = () => {
   const { user, token, updateUser, logout, refreshUser } = useAuth();
   const { t, lang } = useI18n();
   const { showToast } = useToast();
+  const { profile: C, isDark, mode, setMode } = useTheme();
   const insets = useSafeAreaInsets();
   const isBottomTabsDisplayed = useNavigationState(state => state.type === 'tab');
 
@@ -114,7 +117,6 @@ const ProfileScreen: React.FC = () => {
   const [bioDraft, setBioDraft] = useState('');
   const [activeSelector, setActiveSelector] = useState<ProfileSelector | null>(null);
   const [savingField, setSavingField] = useState<SavingField>(null);
-  const [darkMode, setDarkMode] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isPhotoSourcePickerVisible, setIsPhotoSourcePickerVisible] = useState(false);
@@ -172,6 +174,8 @@ const ProfileScreen: React.FC = () => {
   }, [allServices]);
 
   const isProvider = user?.role === 'serviceProvider';
+  const darkMode = mode === 'dark';
+  const styles = useMemo(() => makeStyles(C), [C]);
   const spInfo = user?.serviceProviderInfo;
   const services = Array.isArray(spInfo?.services) ? (spInfo!.services as string[]) : [];
   const locationName = spInfo?.location?.name || spInfo?.location?.description || '';
@@ -506,7 +510,7 @@ const ProfileScreen: React.FC = () => {
             </View>
             {Platform.OS !== 'web' && (
               <View style={styles.cameraBtn} pointerEvents="none">
-                <ProfileIcon name="camera" size={16} color={C.white} />
+                <ProfileIcon name="camera" size={16} color={C.onPrimary} />
               </View>
             )}
           </TouchableOpacity>
@@ -537,7 +541,7 @@ const ProfileScreen: React.FC = () => {
               accessibilityRole="button"
               accessibilityLabel={t('profile.verifyAadhaar')}
             >
-              <ProfileIcon name="fingerprint" size={20} color={C.white} />
+              <ProfileIcon name="fingerprint" size={20} color={C.onPrimary} />
               <Text style={styles.verifyBtnText}>{t('profile.verifyAadhaar')}</Text>
               <Text style={styles.verifyArrow}>→</Text>
             </TouchableOpacity>
@@ -595,6 +599,7 @@ const ProfileScreen: React.FC = () => {
                   value={nameDraft}
                   onChangeText={setNameDraft}
                   autoFocus
+                  keyboardAppearance={isDark ? 'dark' : 'light'}
                   placeholder={t('profile.yourName')}
                   placeholderTextColor={C.muted}
                   returnKeyType="done"
@@ -704,7 +709,7 @@ const ProfileScreen: React.FC = () => {
                   const name = serviceNameMap[serviceId] || formatServiceName(serviceId);
                   return (
                     <View key={serviceId} style={styles.chip}>
-                      <ProfileIcon name={serviceIcon(name)} size={16} color="#176C4C" />
+                      <ProfileIcon name={serviceIcon(name)} size={16} color={C.chipGreen} />
                       <Text style={styles.chipText} numberOfLines={1}>{name}</Text>
                     </View>
                   );
@@ -785,6 +790,7 @@ const ProfileScreen: React.FC = () => {
                     onChangeText={setBioDraft}
                     autoFocus
                     multiline
+                    keyboardAppearance={isDark ? 'dark' : 'light'}
                     placeholder={t('profile.aboutMePlaceholder')}
                     placeholderTextColor={C.muted}
                     accessibilityLabel={t('profile.aboutMe')}
@@ -848,10 +854,10 @@ const ProfileScreen: React.FC = () => {
             </View>
             <Switch
               value={darkMode}
-              onValueChange={setDarkMode}
-              trackColor={{ false: '#D8DFDB', true: C.primary }}
-              thumbColor={C.white}
-              ios_backgroundColor="#D8DFDB"
+              onValueChange={(value) => setMode(value ? 'dark' : 'light')}
+              trackColor={{ false: isDark ? '#3A4A42' : '#D8DFDB', true: C.primary }}
+              thumbColor={C.onPrimary}
+              ios_backgroundColor={isDark ? '#3A4A42' : '#D8DFDB'}
               accessibilityRole="switch"
               accessibilityLabel={t('profile.darkMode')}
               accessibilityState={{ checked: darkMode }}
@@ -931,7 +937,7 @@ const ProfileScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: ProfilePalette) => StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: C.page,
@@ -960,9 +966,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 16,
     paddingBottom: 17,
-    backgroundColor: '#F2FBF6',
+    backgroundColor: C.heroBg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E6F4EC',
+    borderColor: C.heroBorder,
     borderRadius: 20,
     marginBottom: 14,
   },
@@ -1055,13 +1061,13 @@ const styles = StyleSheet.create({
   verifyBtnText: {
     fontFamily: F.bold,
     fontSize: 14,
-    color: C.white,
+    color: C.onPrimary,
     flexShrink: 1,
   },
   verifyArrow: {
     fontFamily: F.bold,
     fontSize: 16,
-    color: C.white,
+    color: C.onPrimary,
   },
   photoNote: {
     marginTop: 10,
@@ -1193,7 +1199,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontFamily: F.semiBold,
     fontSize: 11,
-    color: '#176C4C',
+    color: C.chipGreen,
   },
   emptyText: {
     fontFamily: F.regular,

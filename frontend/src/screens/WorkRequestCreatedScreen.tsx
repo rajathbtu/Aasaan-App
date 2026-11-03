@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useI18n } from '../i18n';
-import { consumerColors, consumerFonts, spacing } from '../theme';
+import { consumerFonts, spacing } from '../theme';
+import type { ConsumerPalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 import { buildTimeAgo } from '../utils/commonUtils';
 import { resolveServiceIconName } from '../utils/serviceIcon';
 import SvgIcon from '../assets/icons';
@@ -48,6 +50,8 @@ const WorkRequestCreatedScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { t } = useI18n();
+  const { consumer: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   /* Handoff canvas scale — identical to fitCanvas() in the prototype's app.js.
@@ -115,8 +119,8 @@ const WorkRequestCreatedScreen: React.FC = () => {
         <ActionButton
           fullWidth
           buttonTitle={t('createRequest.created.viewMyRequests')}
-          buttonTitleColor={consumerColors.white}
-          backgroundColor={consumerColors.primary}
+          buttonTitleColor={C.onPrimary}
+          backgroundColor={C.primary}
           onPress={goToMyRequests}
           style={styles.primaryButton}
         />
@@ -132,9 +136,10 @@ const WorkRequestCreatedScreen: React.FC = () => {
 
   return (
     <View style={styles.root}>
-      {/* Canvas background: linear-gradient(125deg,#F8FBFF 0%,#F3FBF8 55%,#F0FBF7 100%) */}
+      {/* Canvas background: was linear-gradient(125deg,#F8FBFF 0%,#F3FBF8 55%,#F0FBF7 100%) —
+          the three stops are sub-perceptually different, so all map to C.page. */}
       <LinearGradient
-        colors={['#F8FBFF', '#F3FBF8', '#F0FBF7']}
+        colors={[C.page, C.page, C.page]}
         locations={[0, 0.55, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -156,7 +161,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel="Close"
           >
-            <SvgIcon name="close" size={18} color={consumerColors.ink} />
+            <SvgIcon name="close" size={18} color={C.ink} />
           </TouchableOpacity>
         </View>
 
@@ -190,7 +195,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
                   cachePolicy="memory-disk"
                 />
               ) : (
-                <SvgIcon name={serviceIconName} size={42} color={consumerColors.primary} />
+                <SvgIcon name={serviceIconName} size={42} color={C.primary} />
               )}
             </View>
             <View style={[styles.verticalRule, { height: 126 * s, marginHorizontal: 31 * s }]} />
@@ -200,7 +205,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
               </Text>
               <Text style={styles.requestCategory}>Service Request</Text>
               <View style={styles.metaRow}>
-                <SvgIcon name="clock" size={14} color={consumerColors.muted} style={{ marginRight: 6 }} />
+                <SvgIcon name="clock" size={14} color={C.muted} style={{ marginRight: 6 }} />
                 <Text style={styles.metaText}>{createdTimeLabel}</Text>
               </View>
             </View>
@@ -214,14 +219,16 @@ const WorkRequestCreatedScreen: React.FC = () => {
         </View>
 
         {/* Request location panel — read-only, label + saved address */}
+        {/* Mint gradient panel — mapped to the family's mint→mintDeep pair
+            (was #E6F8F0 → #DDF8EC, sub-perceptual shift). */}
         <LinearGradient
-          colors={['#E6F8F0', '#DDF8EC']}
+          colors={[C.mint, C.mintDeep]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={[styles.locationRow, { borderRadius: 29 * s, minHeight: 98 * s, marginTop: 26 * s, paddingHorizontal: 31 * s, gap: 30 * s }]}
         >
           <View style={[styles.locationIcon, { width: 72 * s, height: 72 * s, borderRadius: 36 * s }]}>
-            <SvgIcon name="location" size={Math.max(36 * s, 18)} color={consumerColors.primary} />
+            <SvgIcon name="location" size={Math.max(36 * s, 18)} color={C.primary} />
           </View>
           <View style={styles.locationCopy}>
             <Text style={styles.locationLabel}>{t('createRequest.created.locationLabel')}</Text>
@@ -229,27 +236,27 @@ const WorkRequestCreatedScreen: React.FC = () => {
               {displayRequest.locationName || t('userRequests.locationFallback')}
             </Text>
           </View>
-          <SvgIcon name="chevron" size={15} color="#52617F" style={{ transform: [{ rotate: '90deg' }] }} />
+          <SvgIcon name="chevron" size={15} color={C.cardMeta} style={{ transform: [{ rotate: '90deg' }] }} />
         </LinearGradient>
 
         {/* Action row: Share Request + View My Requests */}
         <View style={[styles.actionRow, { marginTop: 24 * s, gap: 29 * s }]}>
           <TouchableOpacity style={styles.shareButton} onPress={handleShare} activeOpacity={0.7}>
-            <SvgIcon name="share" size={17} color={consumerColors.ink} style={{ marginRight: 8 }} />
+            <SvgIcon name="share" size={17} color={C.ink} style={{ marginRight: 8 }} />
             <Text style={styles.shareTitle}>{t('createRequest.created.shareRequest')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={goToMyRequests} activeOpacity={0.8} style={styles.viewRequestsTouch}>
             <LinearGradient
-              colors={[consumerColors.primary, consumerColors.primaryDark]}
+              colors={[C.ctaStart, C.ctaEnd]}
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
               style={styles.viewRequestsButton}
             >
-              <SvgIcon name="list" size={16} color={consumerColors.white} style={{ marginRight: 8 }} />
+              <SvgIcon name="list" size={16} color={C.onPrimary} style={{ marginRight: 8 }} />
               <Text style={styles.viewRequestsTitle} numberOfLines={1}>
                 {t('createRequest.created.viewMyRequests')}
               </Text>
-              <SvgIcon name="chevron" size={14} color={consumerColors.white} style={{ transform: [{ rotate: '90deg' }] }} />
+              <SvgIcon name="chevron" size={14} color={C.onPrimary} style={{ transform: [{ rotate: '90deg' }] }} />
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -262,12 +269,12 @@ const WorkRequestCreatedScreen: React.FC = () => {
               <React.Fragment key={step.n}>
                 {index > 0 && (
                   <View style={[styles.stepArrowSlot, { marginTop: 34 * s, width: 28 * s + 6 }]}>
-                    <SvgIcon name="chevron" size={Math.max(29 * s, 14)} color="#64748B" />
+                    <SvgIcon name="chevron" size={Math.max(29 * s, 14)} color={C.muted} />
                   </View>
                 )}
                 <View style={styles.stepColumn}>
                   <View style={[styles.stepIconPlate, { width: 96 * s, height: 96 * s, borderRadius: 48 * s }]}>
-                    <SvgIcon name={step.icon} size={Math.max(49 * s, 22)} color="#078F55" />
+                    <SvgIcon name={step.icon} size={Math.max(49 * s, 22)} color={C.deepGreen} />
                     <View style={[styles.stepBadge, { width: Math.max(36 * s, 16), height: Math.max(36 * s, 16), borderRadius: Math.max(18 * s, 8) }]}>
                       <Text style={[styles.stepBadgeText, { fontSize: Math.max(22 * s, 10) }]}>{step.n}</Text>
                     </View>
@@ -288,7 +295,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
             the Boost action sits below the copy so the title and subtitle
             keep the full text width (per approved layout feedback). */}
         <LinearGradient
-          colors={['#DDF8EF', '#E7FAF4']}
+          colors={[C.heroMintStart, C.heroMintMid]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={[styles.boostBanner, { borderRadius: 38 * s, marginTop: 30 * s }]}
@@ -305,7 +312,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
               {t('createRequest.created.boostSubtitle')}
             </Text>
             <TouchableOpacity style={styles.boostButton} onPress={handleBoost} activeOpacity={0.7}>
-              <SvgIcon name="bolt" size={14} color={consumerColors.primary} style={{ marginRight: 6 }} />
+              <SvgIcon name="bolt" size={14} color={C.primary} style={{ marginRight: 6 }} />
               <Text style={styles.boostButtonTitle} numberOfLines={1} ellipsizeMode="tail">
                 {t('createRequest.created.boostButton')}
               </Text>
@@ -320,10 +327,11 @@ const WorkRequestCreatedScreen: React.FC = () => {
 /* ── Layout geometry is applied inline with the canvas scale s (see header
       comment); typography stays on the fixed cross-screen app scale. ── */
 
-const styles = StyleSheet.create({
+const makeStyles = (C: ConsumerPalette) =>
+  StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: consumerColors.page,
+    backgroundColor: C.page,
   },
   scrollView: {
     flex: 1,
@@ -335,7 +343,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: consumerColors.page,
+    backgroundColor: C.page,
     paddingHorizontal: spacing.lg,
   },
   emptyArt: {
@@ -346,7 +354,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     marginBottom: spacing.lg,
     textAlign: 'center',
   },
@@ -368,11 +376,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: consumerColors.white,
+    backgroundColor: C.white,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: consumerColors.border,
+    borderColor: C.border,
   },
   /* Hero */
   heroContainer: {
@@ -389,18 +397,18 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 25,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     lineHeight: 31,
     letterSpacing: -0.9,
     marginBottom: 8,
   },
   heroTitleCreated: {
-    color: consumerColors.primary,
+    color: C.primary,
   },
   heroSubtitle: {
     fontSize: 14,
     fontFamily: consumerFonts.regular,
-    color: consumerColors.muted,
+    color: C.muted,
     lineHeight: 20,
   },
   heroArt: {
@@ -408,9 +416,11 @@ const styles = StyleSheet.create({
   },
   /* Request summary card */
   requestCard: {
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    // Was rgba(255,255,255,0.94): the 6% translucency is sub-perceptual and
+    // has no token; the opaque card token keeps dark mode readable.
+    backgroundColor: C.white,
     borderWidth: 1,
-    borderColor: consumerColors.border,
+    borderColor: C.border,
     marginHorizontal: spacing.lg,
     shadowColor: '#1F4255',
     shadowOffset: { width: 0, height: 10 },
@@ -423,7 +433,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   serviceImage: {
-    backgroundColor: consumerColors.mint,
+    backgroundColor: C.mint,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -435,7 +445,7 @@ const styles = StyleSheet.create({
   },
   verticalRule: {
     width: 1.5,
-    backgroundColor: '#D9E2E9',
+    backgroundColor: C.profileBorder,
     flexShrink: 0,
   },
   serviceCopy: {
@@ -445,14 +455,14 @@ const styles = StyleSheet.create({
   requestTitle: {
     fontSize: 19,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     lineHeight: 23,
     marginBottom: 4,
   },
   requestCategory: {
     fontSize: 14,
     fontFamily: consumerFonts.regular,
-    color: consumerColors.muted,
+    color: C.muted,
     marginBottom: 8,
   },
   metaRow: {
@@ -462,10 +472,10 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 13,
     fontFamily: consumerFonts.regular,
-    color: consumerColors.muted,
+    color: C.muted,
   },
   livePill: {
-    backgroundColor: consumerColors.statusBg,
+    backgroundColor: C.statusBg,
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: 999,
@@ -478,13 +488,13 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: consumerColors.statusDot,
+    backgroundColor: C.statusDot,
     marginRight: 6,
   },
   liveText: {
     fontSize: 12.5,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.statusText,
+    color: C.statusText,
   },
   /* Location panel */
   locationRow: {
@@ -495,7 +505,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   locationIcon: {
-    backgroundColor: consumerColors.white,
+    backgroundColor: C.white,
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
@@ -508,13 +518,13 @@ const styles = StyleSheet.create({
   locationLabel: {
     fontSize: 12.5,
     fontFamily: consumerFonts.regular,
-    color: consumerColors.muted,
+    color: C.muted,
     lineHeight: 15,
   },
   locationAddress: {
     fontSize: 15,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     lineHeight: 19,
   },
   /* Action row */
@@ -527,9 +537,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: consumerColors.white,
+    backgroundColor: C.white,
     borderWidth: 1.5,
-    borderColor: '#DDE5EC',
+    borderColor: C.profileBorder,
     borderRadius: 14,
     paddingVertical: 13,
     shadowColor: '#1F4255',
@@ -541,7 +551,7 @@ const styles = StyleSheet.create({
   shareTitle: {
     fontSize: 14.5,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     flexShrink: 1,
   },
   viewRequestsTouch: {
@@ -553,7 +563,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 14,
     paddingVertical: 13,
-    shadowColor: consumerColors.primaryDark,
+    shadowColor: C.shadowTint,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
     shadowRadius: 17,
@@ -562,15 +572,16 @@ const styles = StyleSheet.create({
   viewRequestsTitle: {
     fontSize: 14.5,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.white,
+    color: C.onPrimary,
     marginRight: 6,
     flexShrink: 1,
   },
   /* What's Next card — horizontal three-step grid */
   nextCard: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    // Was rgba(255,255,255,0.92): see requestCard note.
+    backgroundColor: C.white,
     borderWidth: 1,
-    borderColor: consumerColors.border,
+    borderColor: C.border,
     marginHorizontal: spacing.lg,
     shadowColor: '#1F4255',
     shadowOffset: { width: 0, height: 9 },
@@ -581,7 +592,7 @@ const styles = StyleSheet.create({
   nextTitle: {
     fontSize: 19,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     marginBottom: spacing.md,
   },
   stepsGrid: {
@@ -599,7 +610,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   stepIconPlate: {
-    backgroundColor: consumerColors.statusBg,
+    backgroundColor: C.statusBg,
     alignSelf: 'center',
     justifyContent: 'center',
     alignItems: 'center',
@@ -609,25 +620,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: -2,
     top: -2,
-    backgroundColor: consumerColors.primary,
+    backgroundColor: C.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   stepBadgeText: {
     fontFamily: consumerFonts.bold,
-    color: consumerColors.white,
+    color: C.onPrimary,
   },
   stepTitle: {
     fontSize: 13.5,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     lineHeight: 17,
     marginBottom: 3,
   },
   stepDesc: {
     fontSize: 12,
     fontFamily: consumerFonts.regular,
-    color: consumerColors.muted,
+    color: C.muted,
     lineHeight: 15.5,
   },
   /* Boost banner */
@@ -638,6 +649,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
     borderWidth: 1,
+    // 8%-alpha brand-green hairline: kept literal — translucent tint has no token.
     borderColor: 'rgba(10,158,99,0.08)',
   },
   boostRocket: {
@@ -648,20 +660,20 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     borderLeftWidth: 1.5,
-    borderLeftColor: '#B6DCCE',
+    borderLeftColor: C.heroMintEnd,
     paddingLeft: 12,
     paddingVertical: 12,
   },
   boostTitle: {
     fontSize: 15,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.primaryDark,
+    color: C.primaryDark,
     marginBottom: 3,
   },
   boostSubtitle: {
     fontSize: 12,
     fontFamily: consumerFonts.regular,
-    color: consumerColors.muted,
+    color: C.muted,
     lineHeight: 16,
   },
   boostButton: {
@@ -669,9 +681,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    // Was rgba(255,255,255,0.72): see requestCard note.
+    backgroundColor: C.white,
     borderWidth: 2,
-    borderColor: '#078F55',
+    borderColor: C.deepGreen,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -680,7 +693,7 @@ const styles = StyleSheet.create({
   boostButtonTitle: {
     fontSize: 12.5,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.primaryDark,
+    color: C.primaryDark,
   },
   primaryButton: {
     paddingVertical: spacing.md,

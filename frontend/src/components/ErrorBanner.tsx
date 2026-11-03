@@ -1,13 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import axios from 'axios';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing } from '../theme';
+import { spacing } from '../theme';
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 import { useI18n } from '../i18n';
 import ActionButton from './ActionButton';
-
-/** Warm red used by the banner's surfaces and the retry pill. */
-const RETRY_BG = '#fd7b7b';
 
 type ErrorBannerProps = {
   error: unknown | null;
@@ -26,6 +25,8 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
   error,
   onRetry,
 }) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { t } = useI18n();
   if (!error) return null;
 
@@ -39,7 +40,7 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
   return (
     <View style={styles.errorBanner} accessibilityRole="alert">
       <View style={styles.errorIconContainer}>
-        <Ionicons name="cloud-offline-outline" size={20} color={colors.error} />
+        <Ionicons name="cloud-offline-outline" size={20} color={C.error} />
       </View>
       <View style={styles.errorMessageContainer}>
         <Text style={styles.errorTitle}>{t(titleKey)}</Text>
@@ -50,8 +51,8 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
       {onRetry && (
         <ActionButton
           buttonTitle={retryLabel}
-          buttonTitleColor={colors.white}
-          backgroundColor={RETRY_BG}
+          buttonTitleColor={C.onPrimary}
+          backgroundColor={C.error}
           onPress={onRetry}
           style={styles.retryButton}
         />
@@ -60,7 +61,7 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   errorBanner: {
     position: 'relative',
     flexDirection: 'row',
@@ -68,11 +69,13 @@ const styles = StyleSheet.create({
     padding: 12,
     marginHorizontal: 12,
     marginBottom: 5,
-    backgroundColor: '#fcebeb',
+    backgroundColor: C.dangerSoft,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#fecaca',
-    shadowColor: colors.black,
+    /* No pale-red border token exists in the base palette; dangerSoft is the
+       nearest token (approximation noted in the dark-mode report). */
+    borderColor: C.dangerSoft,
+    shadowColor: C.black,
     shadowOpacity: 0.12,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
@@ -85,20 +88,20 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fef2f2',
+    backgroundColor: C.white,
     marginRight: 10,
   },
   errorMessageContainer: {
     flex: 1,
   },
   errorTitle: {
-    color: colors.dark,
+    color: C.dark,
     fontSize: 14,
     fontWeight: '700',
     marginBottom: 2,
   },
   errorMessage: {
-    color: colors.grey,
+    color: C.grey,
     fontSize: 13,
   },
   retryButton: {

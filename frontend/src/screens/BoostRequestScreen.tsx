@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, StatusBar } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,8 +11,9 @@ import { RazorpayWebPaymentOptions, RazorpayWebResponse } from '../api/razorpayW
 import RazorpayWebView from '../components/RazorpayWebView';
 import { useAuth } from '../contexts/AuthContext';
 import { useGlobalLoader } from '../contexts/GlobalLoaderContext';
-import { consumerColors, consumerFonts, spacing } from '../theme';
-import { colors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import { consumerFonts, spacing } from '../theme';
+import type { ConsumerPalette } from '../theme/palette';
 import { useI18n } from '../i18n';
 import { buildTimeAgo } from '../utils/commonUtils';
 import { resolveServiceIconName } from '../utils/serviceIcon';
@@ -38,6 +39,8 @@ const BoostRequestScreen: React.FC = () => {
   const { token, user, refreshUser } = useAuth();
   const { t } = useI18n();
   const { showLoader, hideLoader } = useGlobalLoader();
+  const { consumer: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const timeAgo = buildTimeAgo(t);
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
@@ -214,7 +217,7 @@ const BoostRequestScreen: React.FC = () => {
       {/* Custom header: mint back circle + bold title */}
       <View style={styles.headerRow}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-          <SvgIcon name="back" size={20} color={consumerColors.ink} />
+          <SvgIcon name="back" size={20} color={C.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('boostRequest.title')}</Text>
         <View style={styles.headerSpacer} />
@@ -233,7 +236,7 @@ const BoostRequestScreen: React.FC = () => {
                   cachePolicy="memory-disk"
                 />
               ) : (
-                <SvgIcon name={serviceIconName} size={46} color={consumerColors.primary} />
+                <SvgIcon name={serviceIconName} size={46} color={C.primary} />
               )}
             </View>
             <View style={styles.verticalRule} />
@@ -245,12 +248,12 @@ const BoostRequestScreen: React.FC = () => {
                 {serviceName}
               </Text>
               <View style={styles.timeRow}>
-                <SvgIcon name="clock" size={14} color={consumerColors.muted} style={{ marginRight: 6 }} />
+                <SvgIcon name="clock" size={14} color={C.muted} style={{ marginRight: 6 }} />
                 <Text style={styles.timeText}>{createdTimeLabel}</Text>
               </View>
               {/* Read-only saved request location — no edit affordance */}
               <View style={styles.locationPill}>
-                <SvgIcon name="location" size={14} color={consumerColors.primary} style={{ marginRight: 6 }} />
+                <SvgIcon name="location" size={14} color={C.primary} style={{ marginRight: 6 }} />
                 <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
                   {locationName}
                 </Text>
@@ -261,7 +264,7 @@ const BoostRequestScreen: React.FC = () => {
 
         {/* Boost hero banner */}
         <LinearGradient
-          colors={[consumerColors.heroMintStart, consumerColors.heroMintMid, consumerColors.heroMintEnd]}
+          colors={[C.heroMintStart, C.heroMintMid, C.heroMintEnd]}
           start={{ x: 0, y: 0.4 }}
           end={{ x: 1, y: 0.6 }}
           style={styles.heroBanner}
@@ -288,7 +291,7 @@ const BoostRequestScreen: React.FC = () => {
           <View style={styles.benefitRow}>
             <View style={styles.benefitItem}>
               <View style={styles.benefitIconTile}>
-                <SvgIcon name="bolt" size={20} color={consumerColors.primary} />
+                <SvgIcon name="bolt" size={20} color={C.primary} />
               </View>
               <Text style={styles.benefitLabel}>
                 {stackWords(t('boostRequest.benefitVisibilityLabel'))}
@@ -297,7 +300,7 @@ const BoostRequestScreen: React.FC = () => {
             <View style={styles.benefitDivider} />
             <View style={styles.benefitItem}>
               <View style={styles.benefitIconTile}>
-                <SvgIcon name="trophy" size={20} color={consumerColors.primary} />
+                <SvgIcon name="trophy" size={20} color={C.primary} />
               </View>
               <Text style={styles.benefitLabel}>
                 {stackWords(t('boostRequest.benefitPlacementLabel'))}
@@ -306,7 +309,7 @@ const BoostRequestScreen: React.FC = () => {
             <View style={styles.benefitDivider} />
             <View style={styles.benefitItem}>
               <View style={styles.benefitIconTile}>
-                <SvgIcon name="badge" size={20} color={consumerColors.primary} />
+                <SvgIcon name="badge" size={20} color={C.primary} />
               </View>
               <Text style={styles.benefitLabel}>
                 {stackWords(t('boostRequest.benefitUrgentBadgeLabel'))}
@@ -336,7 +339,7 @@ const BoostRequestScreen: React.FC = () => {
                 {selectedOption === 'money' && <View style={styles.radioInner} />}
               </View>
               <View style={styles.paymentIconWrap}>
-                <SvgIcon name="wallet" size={20} color={consumerColors.primary} />
+                <SvgIcon name="wallet" size={20} color={C.primary} />
               </View>
               <View style={styles.paymentCopy}>
                 <Text style={styles.optionTitle} numberOfLines={1} ellipsizeMode="tail">
@@ -375,7 +378,7 @@ const BoostRequestScreen: React.FC = () => {
                 {selectedOption === 'credits' && <View style={styles.radioInner} />}
               </View>
               <View style={[styles.paymentIconWrap, !hasEnoughCredits && styles.paymentIconDisabled]}>
-                <SvgIcon name="coins" size={20} color={hasEnoughCredits ? consumerColors.primary : '#5D687A'} />
+                <SvgIcon name="coins" size={20} color={hasEnoughCredits ? C.primary : C.cardMeta} />
               </View>
               <View style={styles.paymentCopy}>
                 <Text style={styles.optionTitle} numberOfLines={1} ellipsizeMode="tail">
@@ -405,12 +408,12 @@ const BoostRequestScreen: React.FC = () => {
           accessibilityRole="button"
         >
           <LinearGradient
-            colors={[consumerColors.primary, consumerColors.primaryDark]}
+            colors={[C.ctaStart, C.ctaEnd]}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
             style={[styles.ctaButton, (loading || alreadyBoosted || (selectedOption === 'credits' && !hasEnoughCredits)) && styles.ctaDisabled]}
           >
-            <SvgIcon name="bolt" size={18} color={consumerColors.white} style={{ marginRight: 9 }} />
+            <SvgIcon name="bolt" size={18} color={C.onPrimary} style={{ marginRight: 9 }} />
             <Text style={styles.ctaTitle} numberOfLines={1} ellipsizeMode="tail">
               {alreadyBoosted
                 ? t('boostRequest.ctaAlreadyBoosted')
@@ -436,14 +439,15 @@ const BoostRequestScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: ConsumerPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: consumerColors.page,
+    backgroundColor: C.page,
   },
   scrollView: {
     flex: 1,
-    backgroundColor: consumerColors.page,
+    backgroundColor: C.page,
   },
   scrollContent: {
     paddingHorizontal: spacing.lg,
@@ -456,13 +460,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
-    backgroundColor: consumerColors.page,
+    backgroundColor: C.page,
   },
   backButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: consumerColors.mint,
+    backgroundColor: C.mint,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
@@ -470,16 +474,16 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     flex: 1,
   },
   headerSpacer: {},
   /* Request summary card */
   requestCard: {
-    backgroundColor: consumerColors.white,
+    backgroundColor: C.white,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: consumerColors.border,
+    borderColor: C.border,
     padding: spacing.lg,
     marginBottom: spacing.lg,
     shadowColor: '#1F4255',
@@ -497,7 +501,7 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 20,
-    backgroundColor: consumerColors.serviceArtBg,
+    backgroundColor: C.serviceArtBg,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -510,7 +514,7 @@ const styles = StyleSheet.create({
   verticalRule: {
     width: 1.5,
     height: 84,
-    backgroundColor: '#D5DDE6',
+    backgroundColor: C.profileBorder,
     flexShrink: 0,
   },
   requestCopy: {
@@ -520,14 +524,14 @@ const styles = StyleSheet.create({
   requestTitle: {
     fontSize: 19,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     lineHeight: 23,
     marginBottom: 4,
   },
   requestCategory: {
     fontSize: 14,
     fontFamily: consumerFonts.regular,
-    color: consumerColors.muted,
+    color: C.muted,
     marginBottom: 7,
   },
   timeRow: {
@@ -538,12 +542,12 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 12.5,
     fontFamily: consumerFonts.regular,
-    color: consumerColors.muted,
+    color: C.muted,
   },
   locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E5F8EF',
+    backgroundColor: C.locationBg,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
@@ -552,7 +556,7 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 13,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     flexShrink: 1,
   },
   /* Boost hero banner */
@@ -579,14 +583,14 @@ const styles = StyleSheet.create({
   heroHeadline: {
     fontSize: 18,
     fontFamily: consumerFonts.bold,
-    color: '#0B1426',
+    color: C.cardTitle,
     letterSpacing: -0.4,
     marginBottom: 2,
   },
   heroFaster: {
     fontSize: 30,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.primary,
+    color: C.primary,
     fontStyle: 'italic',
     letterSpacing: -1.2,
     marginBottom: 8,
@@ -594,7 +598,7 @@ const styles = StyleSheet.create({
   heroText: {
     fontSize: 13.5,
     fontFamily: consumerFonts.regular,
-    color: '#334155',
+    color: C.filterText,
     lineHeight: 19,
   },
   heroRocketWrap: {
@@ -609,7 +613,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 19,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     letterSpacing: -0.3,
     marginBottom: spacing.md,
   },
@@ -627,7 +631,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 13,
-    backgroundColor: '#E4F8EF',
+    backgroundColor: C.locationBg,
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
@@ -635,13 +639,13 @@ const styles = StyleSheet.create({
   benefitLabel: {
     fontSize: 13,
     fontFamily: consumerFonts.bold,
-    color: '#101827',
+    color: C.cardTitle,
     textAlign: 'center',
   },
   benefitDivider: {
     width: 1.5,
     height: 40,
-    backgroundColor: '#DCE4EC',
+    backgroundColor: C.profileBorder,
     marginHorizontal: 6,
   },
   /* Payment section */
@@ -657,49 +661,49 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   optionCardIdle: {
-    backgroundColor: consumerColors.white,
-    borderColor: '#E1E7EE',
+    backgroundColor: C.white,
+    borderColor: C.filterBorder,
   },
   optionCardSelected: {
-    backgroundColor: consumerColors.paymentSelectedBg,
-    borderColor: '#00B96B',
+    backgroundColor: C.paymentSelectedBg,
+    borderColor: C.verifiedBg,
   },
   optionCardDisabled: {
-    backgroundColor: '#F7F9FA',
-    borderColor: '#E5E9EE',
+    backgroundColor: C.profileBg,
+    borderColor: C.filterBorder,
   },
   radioOuter: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: consumerColors.radioIdle,
+    borderColor: C.radioIdle,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-    backgroundColor: consumerColors.white,
+    backgroundColor: C.white,
   },
   radioOuterSelected: {
-    borderColor: consumerColors.primary,
+    borderColor: C.primary,
   },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: consumerColors.primary,
+    backgroundColor: C.primary,
   },
   paymentIconWrap: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#E7F8EF',
+    backgroundColor: C.mint,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
     flexShrink: 0,
   },
   paymentIconDisabled: {
-    backgroundColor: '#F3F5F8',
+    backgroundColor: C.stripDefaultStart,
   },
   paymentCopy: {
     flex: 1,
@@ -708,19 +712,19 @@ const styles = StyleSheet.create({
   optionTitle: {
     fontSize: 15.5,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     marginBottom: 3,
   },
   optionSubtitle: {
     fontSize: 12.5,
     fontFamily: consumerFonts.regular,
-    color: consumerColors.muted,
+    color: C.muted,
     lineHeight: 16,
   },
   optionShortfall: {
     fontSize: 12.5,
     fontFamily: consumerFonts.regular,
-    color: colors.error,
+    color: C.errorText,
     lineHeight: 16,
     marginTop: 2,
   },
@@ -728,25 +732,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: consumerColors.selectedMint,
+    backgroundColor: C.selectedMint,
     flexShrink: 0,
   },
   pricePillText: {
     fontSize: 14,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.primary,
+    color: C.primary,
   },
   pointsPill: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: consumerColors.pointsPillBg,
+    backgroundColor: C.pointsPillBg,
     flexShrink: 0,
   },
   pointsPillText: {
     fontSize: 14,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.pointsPillText,
+    color: C.pointsPillText,
   },
   /* CTA */
   ctaButton: {
@@ -756,7 +760,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: consumerColors.primaryDark,
+    shadowColor: C.shadowTint,
     shadowOffset: { width: 0, height: 7 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
@@ -768,19 +772,19 @@ const styles = StyleSheet.create({
   ctaTitle: {
     fontSize: 16,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.white,
+    color: C.onPrimary,
     flexShrink: 1,
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: consumerColors.page,
+    backgroundColor: C.page,
     paddingHorizontal: spacing.lg,
   },
   emptyText: {
     fontSize: 16,
-    color: consumerColors.ink,
+    color: C.ink,
   },
 });
 

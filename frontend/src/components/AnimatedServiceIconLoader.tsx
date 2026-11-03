@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
   Easing,
@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import SvgIcon from '../assets/icons';
 import { BrandWord } from './BrandWord';
-import { colors } from '../theme';
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
 /**
  * Animated service-icon loader — the Aasaanly brand loading indicator.
@@ -61,6 +62,8 @@ const AnimatedServiceIconLoader: React.FC<AnimatedServiceIconLoaderProps> = ({
   showBrand = false,
   style,
 }) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const activeIndex = useRef(0);
   const iconSize = Math.round(size * 0.34);
 
@@ -179,7 +182,7 @@ const AnimatedServiceIconLoader: React.FC<AnimatedServiceIconLoaderProps> = ({
                 accessible={false}
                 importantForAccessibility="no-hide-descendants"
               >
-                <SvgIcon name={icon} size={iconSize} color={colors.primary} />
+                <SvgIcon name={icon} size={iconSize} color={C.primary} />
               </Animated.View>
             );
           })}
@@ -190,7 +193,7 @@ const AnimatedServiceIconLoader: React.FC<AnimatedServiceIconLoaderProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -198,9 +201,9 @@ const styles = StyleSheet.create({
   tile: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primarySoft,
+    backgroundColor: C.primarySoft,
     borderWidth: 1,
-    borderColor: colors.primaryBorder,
+    borderColor: C.primaryBorder,
   },
   iconStack: {
     position: 'relative',

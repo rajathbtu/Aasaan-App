@@ -1,6 +1,8 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GOOGLE_PLACES_API_KEY } from '../config';
+import { DARK_MAP_STYLE, type BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
 export type Region = {
   latitude: number;
@@ -38,6 +40,7 @@ type GoogleMap = {
   panTo: (center: { lat: number; lng: number }) => void;
   setZoom: (zoom: number) => void;
   setMapTypeId: (mapTypeId: string) => void;
+  setOptions: (options: Record<string, unknown>) => void;
   getCenter: () => { lat: () => number; lng: () => number } | null;
   getZoom: () => number | null;
   addListener: (eventName: string, handler: (event?: any) => void) => { remove: () => void };
@@ -124,12 +127,18 @@ declare global {
 
 const AppMapView = forwardRef<MapViewType, MapViewProps>((props, ref) => {
   const { initialRegion, serviceArea, onMapReady, onPanDrag, onRegionChangeComplete, onPress, mapType } = props;
+  const { base: C, isDark } = useTheme();
   const mapElementRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<GoogleMap | null>(null);
   const circleRef = useRef<GoogleCircle | null>(null);
   const regionCallbackRef = useRef(onRegionChangeComplete);
   const pressCallbackRef = useRef(onPress);
+  /* The map is created once, so live values reach the constructor through a
+     ref (same pattern as the callback refs above) instead of re-running the
+     effect and rebuilding the map on every mode change. */
+  const isDarkRef = useRef(isDark);
   const [error, setError] = useState(false);
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   useEffect(() => {
     regionCallbackRef.current = onRegionChangeComplete;
@@ -138,6 +147,10 @@ const AppMapView = forwardRef<MapViewType, MapViewProps>((props, ref) => {
   useEffect(() => {
     pressCallbackRef.current = onPress;
   }, [onPress]);
+
+  useEffect(() => {
+    isDarkRef.current = isDark;
+  }, [isDark]);
 
   useEffect(() => {
     let cancelled = false;
@@ -154,6 +167,7 @@ const AppMapView = forwardRef<MapViewType, MapViewProps>((props, ref) => {
           mapTypeControl: false,
           fullscreenControl: false,
           clickableIcons: false,
+          styles: isDarkRef.current ? DARK_MAP_STYLE : undefined,
         });
         mapRef.current = map;
         if (serviceArea) {
@@ -211,6 +225,11 @@ const AppMapView = forwardRef<MapViewType, MapViewProps>((props, ref) => {
     mapRef.current?.setMapTypeId(mapType === 'satellite' ? 'satellite' : 'roadmap');
   }, [mapType]);
 
+  /* Dark mode restyle — mirrors react-native-maps' customMapStyle. */
+  useEffect(() => {
+    mapRef.current?.setOptions({ styles: isDark ? DARK_MAP_STYLE : undefined });
+  }, [isDark]);
+
   useEffect(() => {
     if (!serviceArea || !circleRef.current) return;
     circleRef.current.setCenter({ lat: serviceArea.center.latitude, lng: serviceArea.center.longitude });
@@ -238,7 +257,7 @@ const AppMapView = forwardRef<MapViewType, MapViewProps>((props, ref) => {
   );
 });
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   mapElement: {
     width: '100%',
     height: '100%',
@@ -249,7 +268,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: '#e8ecef',
+    backgroundColor: C.greyLight,
   },
 });
 

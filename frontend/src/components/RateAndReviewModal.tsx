@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   ScrollView,
@@ -9,16 +9,15 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '../theme';
+import { radius, spacing } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 import { useI18n } from '../i18n';
 import { closeWorkRequest, rateEndUser } from '../api/index';
 import ActionButton from './ActionButton';
 import ErrorBanner from './ErrorBanner';
 import ProfileAvatar from './ProfileAvatar';
 import SafeBottomBanner from './SafeBottomBanner';
-
-const ratingStarColor = '#ffad00';
-const ratingStarOutlineColor = colors.greyMuted;
 
 interface RateAndReviewModalProps {
   visible: boolean;
@@ -38,6 +37,8 @@ const RateAndReviewModal: React.FC<RateAndReviewModalProps> = ({
   onSuccess,
 }) => {
   const { t } = useI18n();
+  const { base: C, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [selectedProviderId, setSelectedProviderId] = useState<string | 'none' | null>(null);
   const [stars, setStars] = useState(0);
   const [review, setReview] = useState('');
@@ -104,7 +105,7 @@ const RateAndReviewModal: React.FC<RateAndReviewModalProps> = ({
             showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={styles.header}>
             <View style={styles.headerIcon}>
-              <Ionicons name='star-outline' size={20} color={colors.primary} />
+              <Ionicons name='star-outline' size={20} color={C.primary} />
             </View>
             <View style={styles.heading}>
               <Text style={styles.headerTitle}>
@@ -120,7 +121,7 @@ const RateAndReviewModal: React.FC<RateAndReviewModalProps> = ({
               onPress={onClose}
               style={styles.closeButton}
               accessibilityLabel={t('requestDetails.ok')} >
-              <Ionicons name="close" size={20} color={colors.grey} />
+              <Ionicons name="close" size={20} color={C.grey} />
             </TouchableOpacity>
           </View>
           {isRatingEndUser ? (
@@ -131,7 +132,7 @@ const RateAndReviewModal: React.FC<RateAndReviewModalProps> = ({
                   <Text style={styles.providerName} numberOfLines={1}>{ratedEndUserName}</Text>
                   {ratedEndUserLocation ? (
                     <View style={styles.endUserLocation}>
-                      <Ionicons name="location-outline" size={15} color={colors.grey} />
+                      <Ionicons name="location-outline" size={15} color={C.grey} />
                       <Text style={styles.providerSubtitle} numberOfLines={2}>{ratedEndUserLocation}</Text>
                     </View>
                   ) : null}
@@ -173,7 +174,7 @@ const RateAndReviewModal: React.FC<RateAndReviewModalProps> = ({
                 accessibilityState={{ selected: selectedProviderId === 'none' }}>
                 <View style={styles.providerCardHeader}>
                   <View style={styles.noneAvatar}>
-                    <Ionicons name="person-outline" size={16} color={colors.grey} />
+                    <Ionicons name="person-outline" size={16} color={C.grey} />
                   </View>
                   <View style={styles.providerDetails}>
                     <Text style={styles.providerName}>{t('requestDetails.noProviderTitle')}</Text>
@@ -203,7 +204,7 @@ const RateAndReviewModal: React.FC<RateAndReviewModalProps> = ({
                     <Ionicons
                       name={value <= stars ? 'star' : 'star-outline'}
                       size={36}
-                      color={value <= stars ? ratingStarColor : ratingStarOutlineColor} />
+                      color={value <= stars ? C.amber : C.greyMuted} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -216,9 +217,10 @@ const RateAndReviewModal: React.FC<RateAndReviewModalProps> = ({
                   value={review}
                   onChangeText={setReview}
                   placeholder={t('requestDetails.ratingReviewPlaceholder')}
-                  placeholderTextColor={colors.greyMuted}
+                  placeholderTextColor={C.greyMuted}
                   multiline maxLength={500}
                   textAlignVertical="top"
+                  keyboardAppearance={isDark ? 'dark' : 'light'}
                   style={styles.reviewInput}
                   accessibilityLabel={t('requestDetails.ratingReviewPlaceholder')}/>
                 <Text style={styles.reviewCount}>{review.length}/500</Text>
@@ -234,16 +236,16 @@ const RateAndReviewModal: React.FC<RateAndReviewModalProps> = ({
             onPress={submit}
             disabled={isSubmitting || (isRatingEndUser && !stars)}
             loading={isSubmitting}
-            buttonTitleColor={colors.white}
-            backgroundColor={colors.primary}
+            buttonTitleColor={C.onPrimary}
+            backgroundColor={C.primary}
             style={styles.submitButton}
           />
           <ActionButton
             buttonIcon="close-circle-outline"
             buttonTitle={t('common.cancel')}
             onPress={onClose}
-            buttonTitleColor={colors.primary}
-            backgroundColor={colors.white}
+            buttonTitleColor={C.primary}
+            backgroundColor={C.white}
             style={styles.cancelButton}
           />
           </ScrollView>
@@ -254,24 +256,28 @@ const RateAndReviewModal: React.FC<RateAndReviewModalProps> = ({
   );
 };
 
-const SelectionMark: React.FC<{ selected: boolean }> = ({ selected }) => (
-  <View style={[styles.selectionMark, selected && styles.selectionMarkSelected]}>
-    {selected && <Ionicons name="checkmark" size={14} color={colors.white} />}
-  </View>
-);
+const SelectionMark: React.FC<{ selected: boolean }> = ({ selected }) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  return (
+    <View style={[styles.selectionMark, selected && styles.selectionMarkSelected]}>
+      {selected && <Ionicons name="checkmark" size={14} color={C.onPrimary} />}
+    </View>
+  );
+};
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: C.scrim,
   },
   sheet: {
     maxHeight: '90%',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xl,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
   },
@@ -286,7 +292,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.greyBorder,
+    backgroundColor: C.greyBorder,
     marginBottom: spacing.lg,
   },
   header: {
@@ -300,7 +306,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primaryLight,
+    backgroundColor: C.primaryLight,
     marginRight: spacing.md,
   },
   heading: {
@@ -310,12 +316,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: colors.dark,
+    color: C.dark,
   },
   headerSubtitle: {
     marginTop: 3,
     fontSize: 13,
-    color: colors.grey,
+    color: C.grey,
   },
   closeButton: {
     width: 36,
@@ -323,7 +329,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: C.surface,
   },
   starsRow: {
     flexDirection: 'row',
@@ -335,16 +341,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   providerCard: {
-    backgroundColor: colors.paper,
+    backgroundColor: C.paper,
     borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.greyBorder,
+    borderColor: C.greyBorder,
     boxShadow: '0px 1px 3px rgba(0, 0, 0, 0.1)',
   },
   providerCardSelected: {
-    borderColor: colors.primary,
+    borderColor: C.primary,
   },
   providerCardHeader: {
     flexDirection: 'row',
@@ -354,7 +360,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: colors.surface,
+    backgroundColor: C.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.md,
@@ -366,10 +372,10 @@ const styles = StyleSheet.create({
   providerName: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.dark,
+    color: C.dark,
   },
   providerSubtitle: {
-    color: colors.grey,
+    color: C.grey,
     fontSize: 12,
     marginTop: 3,
   },
@@ -384,23 +390,23 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: colors.greyBorder,
+    borderColor: C.greyBorder,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: spacing.sm,
   },
   selectionMarkSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
+    borderColor: C.primary,
+    backgroundColor: C.primary,
   },
   ratingSection: {
     marginTop: spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: colors.greyLight,
+    borderTopColor: C.greyLight,
     paddingTop: spacing.md,
   },
   ratingTitle: {
-    color: colors.dark,
+    color: C.dark,
     fontWeight: '700',
     fontSize: 15,
     marginBottom: spacing.sm,
@@ -414,27 +420,27 @@ const styles = StyleSheet.create({
   },
   ratingHint: {
     fontSize: 12,
-    color: colors.grey,
+    color: C.grey,
   },
   reviewInputContainer: {
     minHeight: 82,
     borderWidth: 1,
-    borderColor: colors.greyBorder,
+    borderColor: C.greyBorder,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xs,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
   },
   reviewInput: {
     minHeight: 48,
     padding: 0,
-    color: colors.dark,
+    color: C.dark,
     fontSize: 14,
   },
   reviewCount: {
     alignSelf: 'flex-end',
-    color: colors.grey,
+    color: C.grey,
     fontSize: 11,
   },
   submitButton: {

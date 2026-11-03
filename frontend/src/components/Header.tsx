@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,9 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing } from '../theme';
+import { spacing } from '../theme';
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotificationCount } from '../contexts/NotificationCountContext';
 import SvgIcon from '../assets/icons';
@@ -24,15 +26,14 @@ import { BRAND_WORD_COLOR, BRAND_WORD_FONT } from './BrandWord';
  *
  * Shared pattern:
  *  - Height 60, padding horizontal 16, gap 13
- *  - Back button: 38x38, radius 19, bg #EFF8F3
- *  - Title: font-size 19, font-weight bold, color ink #202B28
- *  - Border bottom: hairline #E5EBE8
+ *  - Back button: 38x38, radius 19, bg C.mintButton
+ *  - Title: font-size 19, font-weight bold, color C.dark
+ *  - Border bottom: hairline C.greyBorder
  *  - Right actions: bell / profile icon buttons
  */
 const HEADER_HEIGHT = 60;
 const BACK_BUTTON_SIZE = 42;
 const ICON_BUTTON_SIZE = 35;
-const GREEN_PRIMARY = '#079447';
 
 const Header: React.FC<{
   title?: string;
@@ -61,6 +62,8 @@ const Header: React.FC<{
   subheader,
   titleStyle,
 }) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -92,7 +95,7 @@ const Header: React.FC<{
             accessibilityRole="button"
             accessibilityLabel="Go back"
           >
-            <SvgIcon name="sa-back" size={22} color={colors.dark} />
+            <SvgIcon name="sa-back" size={22} color={C.dark} />
           </TouchableOpacity>
         ))}
         <View style={[styles.titleContainer, keepTitleCenterAligned && styles.centeredTitleContainer]}>
@@ -120,7 +123,7 @@ const Header: React.FC<{
                 accessibilityRole="button"
                 accessibilityLabel="Profile"
               >
-                <SvgIcon name="user" size={20} color={colors.dark} />
+                <SvgIcon name="user" size={20} color={C.dark} />
               </TouchableOpacity>
             )}
             {showNotification && (
@@ -133,7 +136,7 @@ const Header: React.FC<{
                   unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'
                 }
               >
-                <SvgIcon name="bell" size={20} color={colors.dark} />
+                <SvgIcon name="bell" size={20} color={C.dark} />
                 {unreadCount > 0 && (
                   <View style={styles.notificationBadge}>
                     <Text style={styles.notificationBadgeText}>
@@ -150,9 +153,9 @@ const Header: React.FC<{
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   safeArea: {
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
   },
   headerRow: {
     flexDirection: 'row',
@@ -161,21 +164,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     minHeight: HEADER_HEIGHT,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.greyBorder,
-    backgroundColor: colors.white,
+    borderBottomColor: C.greyBorder,
+    backgroundColor: C.white,
   },
   iconButton: {
     width: BACK_BUTTON_SIZE,
     height: BACK_BUTTON_SIZE,
     borderRadius: BACK_BUTTON_SIZE / 2,
-    backgroundColor: '#EFF8F3',
+    backgroundColor: C.mintButton,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileAvatarContainer: {
     marginRight: 0,
     borderWidth: 1,
-    borderColor: colors.greyMuted,
+    borderColor: C.greyMuted,
   },
   titleContainer: {
     flex: 1,
@@ -194,7 +197,7 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontFamily: 'Inter-Bold',
     fontWeight: '800',
-    color: colors.dark,
+    color: C.dark,
     textAlign: 'left',
     letterSpacing: -0.3,
     minWidth: 0,
@@ -205,7 +208,7 @@ const styles = StyleSheet.create({
   subHeaderText: {
     fontSize: 12,
     lineHeight: 15,
-    color: '#68716F',
+    color: C.grey,
     fontFamily: 'Inter',
     marginTop: 3,
   },
@@ -221,12 +224,12 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: GREEN_PRIMARY,
+    backgroundColor: C.brandDark,
     borderWidth: 1,
-    borderColor: colors.white,
+    borderColor: C.white,
   },
   notificationBadgeText: {
-    color: colors.white,
+    color: C.onPrimary,
     fontSize: 10,
     fontWeight: '700',
   },

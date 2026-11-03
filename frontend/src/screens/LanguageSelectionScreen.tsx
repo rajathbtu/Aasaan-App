@@ -19,29 +19,8 @@ import BlockingLoader from '../components/BlockingLoader';
 import SvgIcon from '../assets/icons';
 import { useToast } from '../contexts/ToastContext';
 import { prepareTargetLanguage } from '../services/translation';
-
-/**
- * Exact tokens from approved design
- * (design canvas 393×873 — values are used at device scale).
- */
-const LS = {
-  brand: '#079B60',
-  brandDeep: '#008B52',
-  brandBright: '#0CBD7B',
-  mint: '#EAF9F1',
-  mintStrong: '#D9F5E7',
-  ink: '#17221F',
-  title: '#17201E',
-  muted: '#77818C',
-  border: '#DCE1E6',
-  surface: '#FFFFFF',
-  canvas: '#FBFCFD',
-  selectionBorder: '#D4D9DF',
-  footerBorder: '#E8ECEF',
-  backBg: '#E8F8EF',
-  pillBg: '#E9F8F0',
-  selectedBg: '#F0FBF5',
-};
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
 /**
  * Translation illustration — hand-authored editable SVG (no vector
@@ -71,10 +50,11 @@ const LANGUAGE_ART = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 2
   <path d="M84 144l-2-14-13 8" fill="none" stroke="#078d56" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-/* Soft two-layer mint wave along the bottom edge (approved reference). */
-const BOTTOM_WAVE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 48" preserveAspectRatio="none">
-  <path d="M0 48V30C80 12 170 8 250 16c56 6 104 4 140-6v38H0Z" fill="#EAF9F1"/>
-  <path d="M0 48V38c90-10 190-6 260 2 50 6 96 4 130-4v12H0Z" fill="#D9F5E7"/>
+/* Soft two-layer mint wave along the bottom edge (approved reference).
+   Fill colours come from the active palette so the wave tracks dark mode. */
+const bottomWaveXml = (C: BasePalette) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 48" preserveAspectRatio="none">
+  <path d="M0 48V30C80 12 170 8 250 16c56 6 104 4 140-6v38H0Z" fill="${C.primarySoft}"/>
+  <path d="M0 48V38c90-10 190-6 260 2 50 6 96 4 130-4v12H0Z" fill="${C.mintStrong}"/>
 </svg>`;
 
 /**
@@ -92,6 +72,8 @@ const LanguageSelectionScreen: React.FC = () => {
   const { width } = useWindowDimensions();
   const { setLanguage, user } = useAuth();
   const { showToast } = useToast();
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const preferred = (route.params && route.params.preferred) || undefined;
   // Mode: 'edit' used when opened for profile-update flows, 'onboarding' otherwise
   const mode: 'edit' | 'onboarding' = (route.params?.mode as any) === 'edit' ? 'edit' : 'onboarding';
@@ -167,7 +149,7 @@ const LanguageSelectionScreen: React.FC = () => {
       <View pointerEvents="none" style={styles.topGlow} />
       {/* Mint wave hugging the bottom edge (approved reference) */}
       <View pointerEvents="none" style={styles.waveWrap}>
-        <SvgXml xml={BOTTOM_WAVE} width="100%" height={48} />
+        <SvgXml xml={bottomWaveXml(C)} width="100%" height={48} />
       </View>
 
       <View style={{ paddingTop: insets.top }} />
@@ -181,18 +163,18 @@ const LanguageSelectionScreen: React.FC = () => {
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
             accessibilityLabel="Go back">
-            <SvgIcon name="sa-back" size={26} color={LS.brandDeep} />
+            <SvgIcon name="sa-back" size={26} color={C.brandDeep} />
           </TouchableOpacity>
         ) : (
           // Onboarding keeps the app's existing no-exit behaviour: no back control.
           <View style={styles.backPlaceholder} />
         )}
         <View style={styles.currentPill} accessibilityLabel={`Current language ${getLanguageDisplay(activeLocale)}`}>
-          <SvgIcon name="ls-globe" size={20} color={LS.brandDeep} />
+          <SvgIcon name="ls-globe" size={20} color={C.brandDeep} />
           <Text style={[styles.pillText, { fontFamily: F.bold }]}>
             {getLanguageDisplay(activeLocale)}
           </Text>
-          <SvgIcon name="chevron-down" size={12} color={LS.ink} />
+          <SvgIcon name="chevron-down" size={12} color={C.dark} />
         </View>
       </View>
 
@@ -234,7 +216,7 @@ const LanguageSelectionScreen: React.FC = () => {
                   </Text>
                 </View>
                 <View style={[styles.selection, selected && styles.selectionSelected]}>
-                  {selected ? <SvgIcon name="ls-check" size={16} color="#FFFFFF" /> : null}
+                  {selected ? <SvgIcon name="ls-check" size={16} color={C.onPrimary} /> : null}
                 </View>
               </TouchableOpacity>
             );
@@ -252,12 +234,12 @@ const LanguageSelectionScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel={t.language.continue}>
             <LinearGradient
-              colors={['#0BBD7B', '#079C60']}
+              colors={[C.brandBright, C.brand]}
               start={{ x: 0, y: 0.5 }}
               end={{ x: 1, y: 0.5 }}
               style={styles.continueButton}>
               <Text style={[styles.continueText, { fontFamily: F.bold }]}>{t.language.continue}</Text>
-              <SvgIcon name="ss-arrow-right" size={22} color="#FFFFFF" />
+              <SvgIcon name="ss-arrow-right" size={22} color={C.onPrimary} />
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -268,10 +250,10 @@ const LanguageSelectionScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: LS.canvas,
+    backgroundColor: C.canvas,
     overflow: 'hidden',
   },
   /* radial-gradient(ellipse at 50% 16%, rgba(224,249,237,.45), transparent 30%) */
@@ -283,7 +265,7 @@ const styles = StyleSheet.create({
     width: 360,
     height: 260,
     borderRadius: 180,
-    backgroundColor: '#E0F9ED',
+    backgroundColor: C.backBg,
     opacity: 0.45,
   },
   waveWrap: {
@@ -309,7 +291,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: LS.backBg,
+    backgroundColor: C.backBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -322,7 +304,7 @@ const styles = StyleSheet.create({
     height: 52,
     paddingHorizontal: 18,
     borderRadius: 26,
-    backgroundColor: LS.pillBg,
+    backgroundColor: C.pillBg,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -331,7 +313,7 @@ const styles = StyleSheet.create({
   pillText: {
     fontSize: 15,
     fontWeight: '700',
-    color: LS.ink,
+    color: C.dark,
   },
 
   listContent: {
@@ -351,21 +333,21 @@ const styles = StyleSheet.create({
   },
   /* h1{font-weight:800;letter-spacing:-1.35px;line-height:1.12} — size via clamp */
   headline: {
-    color: LS.title,
+    color: C.dark,
     fontWeight: '800',
     letterSpacing: -1.2,
     textAlign: 'center',
   },
   /* h1 span{color:var(--brand-deep)} */
   headlineAccent: {
-    color: LS.brandDeep,
+    color: C.brandDeep,
   },
   /* .intro p{margin:12px auto 27px;font-size:15px;line-height:1.45;font-weight:500;max-width:340px} */
   helper: {
     fontSize: 15,
     lineHeight: 22,
     fontWeight: '500',
-    color: LS.muted,
+    color: C.grey,
     textAlign: 'center',
     marginTop: 12,
     marginBottom: 27,
@@ -385,9 +367,9 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     paddingHorizontal: 15,
     borderWidth: 1.5,
-    borderColor: LS.border,
+    borderColor: C.greyLight,
     borderRadius: 22,
-    backgroundColor: LS.surface,
+    backgroundColor: C.white,
     shadowColor: '#142D24',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.045,
@@ -397,8 +379,8 @@ const styles = StyleSheet.create({
   /* .language-card.selected{border:2px solid var(--brand-bright);background:#f0fbf5;padding:10.5px 14.5px} */
   cardSelected: {
     borderWidth: 2,
-    borderColor: LS.brandBright,
-    backgroundColor: LS.selectedBg,
+    borderColor: C.brandBright,
+    backgroundColor: C.selectedBg,
     paddingVertical: 10.5,
     paddingHorizontal: 14.5,
   },
@@ -430,14 +412,14 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 21,
     fontWeight: '700',
-    color: LS.ink,
+    color: C.dark,
   },
   /* .language-copy small{color:var(--muted);font-size:14px;font-weight:500} */
   cardSubtitle: {
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '500',
-    color: LS.muted,
+    color: C.grey,
   },
   /* .selection{width:27px;height:27px;border:2px solid #d4d9df;border-radius:50%} */
   selection: {
@@ -445,14 +427,14 @@ const styles = StyleSheet.create({
     height: 27,
     borderRadius: 13.5,
     borderWidth: 2,
-    borderColor: LS.selectionBorder,
+    borderColor: C.selectionBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   /* .selected-check{border-color:var(--brand-bright);background:var(--brand-bright)} */
   selectionSelected: {
-    borderColor: LS.brandBright,
-    backgroundColor: LS.brandBright,
+    borderColor: C.brandBright,
+    backgroundColor: C.brandBright,
   },
 
   /* .footer{position:fixed;bottom:0;padding:14px 20px calc(18px + safe-area);background:rgba(255,255,255,.96);border-top:1px solid #e8ecef} */
@@ -464,9 +446,9 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   footerBox: {
-    backgroundColor: 'rgba(255,255,255,0.97)',
+    backgroundColor: C.white,
     borderTopWidth: 1,
-    borderTopColor: LS.footerBorder,
+    borderTopColor: C.footerBorder,
     paddingTop: 14,
     paddingHorizontal: 20,
     paddingBottom: 18,
@@ -488,7 +470,7 @@ const styles = StyleSheet.create({
   continueText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: C.onPrimary,
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useMemo } from 'react';
 import {
   StyleProp,
   StyleSheet,
@@ -9,7 +9,9 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '../theme';
+import { radius, spacing } from '../theme';
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
 /**
  * Label + icon + input row used by the onboarding screens.
@@ -54,10 +56,13 @@ const FormField: React.FC<FormFieldProps> = ({
   onBlur,
   containerStyle,
 }) => {
+  const { base: C, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+
   return (
     <View style={[styles.section, containerStyle]}>
       <View style={styles.header}>
-        <Ionicons name={icon} size={16} color={colors.greyMuted} style={styles.headerIcon} />
+        <Ionicons name={icon} size={16} color={C.greyMuted} style={styles.headerIcon} />
         <Text style={styles.label}>{label}</Text>
       </View>
 
@@ -70,7 +75,8 @@ const FormField: React.FC<FormFieldProps> = ({
             value={value}
             onChangeText={onChangeText}
             placeholder={placeholder}
-            placeholderTextColor={colors.greyMuted}
+            placeholderTextColor={C.greyMuted}
+            keyboardAppearance={isDark ? 'dark' : 'light'}
             keyboardType={keyboardType}
             maxLength={maxLength}
             onFocus={onFocus}
@@ -87,7 +93,7 @@ const FormField: React.FC<FormFieldProps> = ({
 
       {error ? (
         <View style={styles.errorRow}>
-          <Ionicons name="alert-circle" size={12} color={colors.error} style={styles.errorIcon} />
+          <Ionicons name="alert-circle" size={12} color={C.error} style={styles.errorIcon} />
           <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : null}
@@ -95,7 +101,7 @@ const FormField: React.FC<FormFieldProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   section: {
     marginBottom: spacing.lg,
   },
@@ -110,12 +116,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.dark,
+    color: C.dark,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.greyLight,
+    backgroundColor: C.greyLight,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
@@ -126,19 +132,19 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
     paddingRight: spacing.md,
     borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: colors.greyBorder,
+    borderRightColor: C.greyBorder,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    color: colors.dark,
+    color: C.dark,
     paddingVertical: 0,
   },
   value: {
     flex: 1,
     fontSize: 16,
     fontWeight: '600',
-    color: colors.dark,
+    color: C.dark,
   },
   trailing: {
     marginLeft: spacing.md,
@@ -154,7 +160,7 @@ const styles = StyleSheet.create({
   errorText: {
     flex: 1,
     fontSize: 12,
-    color: colors.error,
+    color: C.error,
   },
 });
 

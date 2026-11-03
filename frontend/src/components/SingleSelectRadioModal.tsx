@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '../theme';
+import { radius, spacing } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 import SafeBottomBanner from './SafeBottomBanner';
 
 type Option = { label: string; value: string; icon?: keyof typeof Ionicons.glyphMap };
@@ -24,59 +26,63 @@ const SingleSelectRadioModal: React.FC<Props> = ({
   showRadio = true,
   onSelect,
   onClose,
-}) => (
-  <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-    <View style={styles.overlay}>
-      <TouchableOpacity
-        style={StyleSheet.absoluteFill}
-        activeOpacity={1}
-        onPress={onClose}
-        accessibilityRole="button"
-        accessibilityLabel="Close selector"/>
-      <View style={styles.sheet}>
-        <Text style={styles.title}>{title}</Text>
-        <FlatList
-          data={options}
-          keyExtractor={item => item.value || 'empty'}
-          initialScrollIndex={options.length > 10
-            ? Math.max(0, options.findIndex(item => item.value === selectedValue))
-            : undefined}
-          getItemLayout={(_, index) => ({ length: 52, offset: 52 * index, index })}
-          renderItem={({ item }) => {
-            const selected = item.value === selectedValue;
-            return (
-              <TouchableOpacity
-                style={styles.option}
-                onPress={() => onSelect(item.value)}
-                accessibilityRole={showRadio ? 'radio' : 'button'}
-                accessibilityState={showRadio ? { checked: selected } : undefined}>
-                <View style={styles.optionLabel}>
-                  {item.icon && <Ionicons name={item.icon} size={20} color={colors.primary} />}
-                  <Text style={styles.optionText}>{item.label}</Text>
-                </View>
-                {showRadio && (
-                  <View style={[styles.radio, selected && styles.radioSelected]}>
-                    {selected && <View style={styles.radioDot} />}
+}) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.overlay}>
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Close selector"/>
+        <View style={styles.sheet}>
+          <Text style={styles.title}>{title}</Text>
+          <FlatList
+            data={options}
+            keyExtractor={item => item.value || 'empty'}
+            initialScrollIndex={options.length > 10
+              ? Math.max(0, options.findIndex(item => item.value === selectedValue))
+              : undefined}
+            getItemLayout={(_, index) => ({ length: 52, offset: 52 * index, index })}
+            renderItem={({ item }) => {
+              const selected = item.value === selectedValue;
+              return (
+                <TouchableOpacity
+                  style={styles.option}
+                  onPress={() => onSelect(item.value)}
+                  accessibilityRole={showRadio ? 'radio' : 'button'}
+                  accessibilityState={showRadio ? { checked: selected } : undefined}>
+                  <View style={styles.optionLabel}>
+                    {item.icon && <Ionicons name={item.icon} size={20} color={C.primary} />}
+                    <Text style={styles.optionText}>{item.label}</Text>
                   </View>
-                )}
-              </TouchableOpacity>
-            );
-          }}/>
+                  {showRadio && (
+                    <View style={[styles.radio, selected && styles.radioSelected]}>
+                      {selected && <View style={styles.radioDot} />}
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            }}/>
+        </View>
       </View>
-    </View>
-    <SafeBottomBanner />
-  </Modal>
-);
+      <SafeBottomBanner />
+    </Modal>
+  );
+};
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: C.scrim,
   },
   sheet: {
     maxHeight: '75%',
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderTopLeftRadius: radius.md,
     borderTopRightRadius: radius.md,
     paddingHorizontal: spacing.lg,
@@ -84,7 +90,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
   title: {
-    color: colors.dark,
+    color: C.dark,
     fontSize: 18,
     fontFamily: 'Google Sans Flex-Bold',
     marginBottom: spacing.sm,
@@ -95,11 +101,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.greyLight,
+    borderBottomColor: C.greyLight,
     paddingHorizontal: spacing.xs,
   },
   optionText: {
-    color: colors.dark,
+    color: C.dark,
     fontSize: 16,
     fontFamily: 'Google Sans Flex'
   },
@@ -109,18 +115,18 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: colors.greyMuted,
+    borderColor: C.greyMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
   radioSelected: {
-    borderColor: colors.primary,
+    borderColor: C.primary,
   },
   radioDot: {
     width: 11,
     height: 11,
     borderRadius: 6,
-    backgroundColor: colors.primary,
+    backgroundColor: C.primary,
   },
 });
 

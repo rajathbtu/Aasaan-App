@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,24 +18,8 @@ import { RoleNeighborhood, RoleConsumerArt, RoleExpertArt } from '../assets/imag
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n';
 import BlockingLoader from '../components/BlockingLoader';
-
-/* Exact colour tokens from approved design */
-const RS = {
-  green: '#079B5C',
-  brandGreen: '#079B45',
-  ctaGreen: '#08AD73',
-  labelGreen: '#087F50',
-  ink: '#172027',
-  muted: '#596575',
-  cardBorder: '#E0E8E5',
-  selectedSurface: '#EDFBF3',
-  labelBg: '#E8F8EE',
-  benefitTile: '#E4F8ED',
-  benefitText: '#18231E',
-  radioBorder: '#AEB9C0',
-  hint: '#89938F',
-  footerBorder: '#E9EEEB',
-};
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
 type Role = 'endUser' | 'serviceProvider';
 
@@ -52,6 +36,8 @@ const RoleSelectScreen: React.FC = () => {
   // Mode: 'edit' when opened from profile-update flows, otherwise 'onboarding'
   const mode: 'edit' | 'onboarding' = (route.params?.mode as any) === 'edit' ? 'edit' : 'onboarding';
   const { user, updateUser } = useAuth();
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const [selectedRole, setSelectedRole] = useState<Role | null>(
@@ -117,7 +103,7 @@ const RoleSelectScreen: React.FC = () => {
         </View>
 
         <View style={styles.roleLabel}>
-          <SvgIcon name={labelIcon as any} size={16} color={RS.labelGreen} />
+          <SvgIcon name={labelIcon as any} size={16} color={C.labelGreen} />
           <Text style={styles.roleLabelText}>{label}</Text>
         </View>
 
@@ -128,7 +114,7 @@ const RoleSelectScreen: React.FC = () => {
           {benefits.map((benefit) => (
             <View key={benefit.lines.join(' ')} style={styles.benefit}>
               <View style={styles.benefitTile}>
-                <SvgIcon name={benefit.icon as any} size={16} color={RS.green} />
+                <SvgIcon name={benefit.icon as any} size={16} color={C.brand} />
               </View>
               <Text style={styles.benefitLabel}>
                 {benefit.lines.map((line, i) => (
@@ -145,7 +131,7 @@ const RoleSelectScreen: React.FC = () => {
         <View
           style={[styles.roleSelect, selected && styles.roleSelectSelected]}
           pointerEvents="none">
-          {selected && <SvgIcon name="check" size={14} color="#FFFFFF" />}
+          {selected && <SvgIcon name="check" size={14} color={C.onPrimary} />}
         </View>
       </TouchableOpacity>
     );
@@ -212,11 +198,11 @@ const RoleSelectScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel={t('roleSelect.confirmButton')}>
           {saving ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={C.onPrimary} />
           ) : (
             <>
               <Text style={styles.confirmText}>{t('roleSelect.confirmButton')}</Text>
-              <SvgIcon name="ss-arrow-right" size={19} color="#FFFFFF" />
+              <SvgIcon name="ss-arrow-right" size={19} color={C.onPrimary} />
             </>
           )}
         </TouchableOpacity>
@@ -226,10 +212,10 @@ const RoleSelectScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
   },
   headerTitle: {
     fontSize: 19,
@@ -260,7 +246,7 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontWeight: '500',
     letterSpacing: -0.7,
-    color: RS.ink,
+    color: C.dark,
   },
   /* .intro h2 span{font-size:32px;font-weight:850;color:#079b45;letter-spacing:-1.3px} */
   introBrand: {
@@ -276,7 +262,7 @@ const styles = StyleSheet.create({
   introSubtitle: {
     fontSize: 13.5,
     lineHeight: 18,
-    color: RS.muted,
+    color: C.grey,
     maxWidth: 290,
   },
   /* .role-list{display:flex;flex-direction:column;gap:14px;padding:2px 0 5px} */
@@ -289,9 +275,9 @@ const styles = StyleSheet.create({
   card: {
     minHeight: 176,
     borderWidth: 2,
-    borderColor: RS.cardBorder,
+    borderColor: C.cardBorder,
     borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     paddingVertical: 12,
     paddingHorizontal: 12,
     alignItems: 'flex-start',
@@ -304,9 +290,9 @@ const styles = StyleSheet.create({
   },
   /* .role-card.selected{border:2px solid green;background:#edfbf3;green shadow} */
   cardSelected: {
-    borderColor: RS.green,
-    backgroundColor: RS.selectedSurface,
-    shadowColor: '#079B5C',
+    borderColor: C.brand,
+    backgroundColor: C.selectedSurface,
+    shadowColor: C.brand,
     shadowOpacity: 0.12,
   },
   /* .role-art{position:absolute;right:0;bottom:8px;width:44%;height:60%;object-fit:contain}
@@ -334,13 +320,13 @@ const styles = StyleSheet.create({
     gap: 7,
     paddingHorizontal: 11,
     borderRadius: 15,
-    backgroundColor: RS.labelBg,
+    backgroundColor: C.labelBg,
     zIndex: 2,
   },
   roleLabelText: {
     fontSize: 12,
     fontWeight: '700',
-    color: RS.labelGreen,
+    color: C.labelGreen,
   },
   /* .role-title{font-size:20px;line-height:1.12;font-weight:820;letter-spacing:-.65px;margin:14px 0 7px;max-width:70%} */
   roleTitle: {
@@ -348,7 +334,7 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     fontWeight: '800',
     letterSpacing: -0.5,
-    color: RS.ink,
+    color: C.dark,
     marginTop: 9,
     marginBottom: 4,
     maxWidth: '64%',
@@ -358,7 +344,7 @@ const styles = StyleSheet.create({
   roleDesc: {
     fontSize: 11,
     lineHeight: 14.5,
-    color: RS.muted,
+    color: C.grey,
     maxWidth: '62%',
     zIndex: 2,
   },
@@ -384,7 +370,7 @@ const styles = StyleSheet.create({
     width: 25,
     height: 25,
     borderRadius: 9,
-    backgroundColor: RS.benefitTile,
+    backgroundColor: C.benefitTile,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -393,14 +379,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 12,
     fontWeight: '500',
-    color: RS.benefitText,
+    color: C.benefitText,
     flexShrink: 1,
   },
   benefitLine: {
     fontSize: 10,
     lineHeight: 12,
     fontWeight: '500',
-    color: RS.benefitText,
+    color: C.benefitText,
   },
   /* .role-select{position:absolute;right:16px;top:17px;width:26px;height:26px;border-radius:50%;
      border:2px solid #aeb9c0;background:#fff} */
@@ -412,29 +398,29 @@ const styles = StyleSheet.create({
     height: 23,
     borderRadius: 11.5,
     borderWidth: 2,
-    borderColor: RS.radioBorder,
-    backgroundColor: '#FFFFFF',
+    borderColor: C.radioBorder,
+    backgroundColor: C.white,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 3,
   },
   roleSelectSelected: {
-    backgroundColor: RS.green,
-    borderColor: RS.green,
+    backgroundColor: C.brand,
+    borderColor: C.brand,
   },
   /* .selection-hint{font-size:11px;text-align:center;color:#89938f;margin:8px 0 0} */
   selectionHint: {
     fontSize: 11,
     lineHeight: 15,
     textAlign: 'center',
-    color: RS.hint,
+    color: C.hint,
     marginTop: 6,
   },
   /* .footer{border-top:1px solid #e9eeeb;padding:12px 16px 14px} */
   footer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     borderTopWidth: 1,
-    borderTopColor: RS.footerBorder,
+    borderTopColor: C.footerBorder,
     paddingTop: 11,
     paddingHorizontal: 16,
   },
@@ -443,7 +429,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 50,
     borderRadius: 13,
-    backgroundColor: RS.ctaGreen,
+    backgroundColor: C.green2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -460,7 +446,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   confirmText: {
-    color: '#FFFFFF',
+    color: C.onPrimary,
     fontSize: 16,
     fontWeight: '800',
   },

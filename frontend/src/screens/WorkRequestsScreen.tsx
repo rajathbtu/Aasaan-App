@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,8 +16,10 @@ import EmptyState from '../components/EmptyState';
 import ProfileAvatar from '../components/ProfileAvatar';
 import { listWorkRequests } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useI18n } from '../i18n';
-import { consumerColors, consumerFonts, spacing } from '../theme';
+import { consumerFonts, spacing } from '../theme';
+import type { ConsumerPalette } from '../theme/palette';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo } from '../utils/commonUtils';
 import { resolveServiceIconName } from '../utils/serviceIcon';
@@ -40,29 +42,30 @@ type CardVariant = {
   stripEnd: string;
 };
 
-const CARD_VARIANTS: Record<'green' | 'blue' | 'amber', CardVariant> = {
+const makeCardVariants = (C: ConsumerPalette): Record<'green' | 'blue' | 'amber', CardVariant> => ({
   green: {
-    artBg: consumerColors.requestArtMint,
-    stripStart: consumerColors.stripDefaultStart,
-    stripEnd: consumerColors.stripDefaultEnd,
+    artBg: C.requestArtMint,
+    stripStart: C.stripDefaultStart,
+    stripEnd: C.stripDefaultEnd,
   },
   blue: {
-    artBg: consumerColors.serviceArtBg,
-    stripStart: consumerColors.stripBlueStart,
-    stripEnd: consumerColors.stripBlueEnd,
+    artBg: C.serviceArtBg,
+    stripStart: C.stripBlueStart,
+    stripEnd: C.stripBlueEnd,
   },
   amber: {
-    artBg: consumerColors.requestArtMint,
-    stripStart: consumerColors.stripAmberStart,
-    stripEnd: consumerColors.stripAmberEnd,
+    artBg: C.requestArtMint,
+    stripStart: C.stripAmberStart,
+    stripEnd: C.stripAmberEnd,
   },
-};
+});
 
 /** AC requests use the blue variant, chimney/hob & flame the amber one, every other category green. */
-const resolveCardVariant = (iconName: string): CardVariant => {
-  if (iconName === 'ss-ac') return CARD_VARIANTS.blue;
-  if (iconName === 'ss-chimney' || iconName === 'ss-flame') return CARD_VARIANTS.amber;
-  return CARD_VARIANTS.green;
+const resolveCardVariant = (iconName: string, C: ConsumerPalette): CardVariant => {
+  const variants = makeCardVariants(C);
+  if (iconName === 'ss-ac') return variants.blue;
+  if (iconName === 'ss-chimney' || iconName === 'ss-flame') return variants.amber;
+  return variants.green;
 };
 
 /**
@@ -80,6 +83,8 @@ const WorkRequestsScreen: React.FC = () => {
   const { token, user } = useAuth();
   const navigation = useNavigation<any>();
   const { t } = useI18n();
+  const { consumer: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [requestsByTab, setRequestsByTab] = useState<RequestsByTab>({
     active: [],
@@ -177,12 +182,12 @@ const WorkRequestsScreen: React.FC = () => {
         accessibilityLabel={t('userRequests.createNewRequest')}
       >
         <LinearGradient
-          colors={[consumerColors.ctaStart, consumerColors.ctaEnd]}
+          colors={[C.ctaStart, C.ctaEnd]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={styles.ctaButton}
         >
-          <SvgIcon name="plus" size={20} color={consumerColors.white} />
+          <SvgIcon name="plus" size={20} color={C.onPrimary} />
           <Text style={styles.ctaLabel}>{t('userRequests.createNewRequest')}</Text>
         </LinearGradient>
       </TouchableOpacity>
@@ -243,7 +248,7 @@ const WorkRequestsScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel={t('userRequests.title')}
         >
-          <SvgIcon name="bell" size={21} color={consumerColors.ink} />
+          <SvgIcon name="bell" size={21} color={C.ink} />
           <View style={styles.notificationDot} />
         </TouchableOpacity>
       </View>
@@ -268,6 +273,8 @@ type ConsumerRequestCardProps = {
  */
 const ConsumerRequestCard: React.FC<ConsumerRequestCardProps> = ({ request, onPress }) => {
   const { t } = useI18n();
+  const { consumer: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const timeAgo = buildTimeAgo(t);
   const isClosed = request.status === 'closed' || request.status === 'completed';
   const categoryLabel = request.serviceName || request.service || t('userRequests.locationFallback');
@@ -275,7 +282,7 @@ const ConsumerRequestCard: React.FC<ConsumerRequestCardProps> = ({ request, onPr
   const locationName = request.locationName || t('userRequests.locationFallback');
   const timeLabel = timeAgo(request.createdAt);
   const serviceIconName = resolveServiceIconName(categoryLabel);
-  const variant = resolveCardVariant(serviceIconName);
+  const variant = resolveCardVariant(serviceIconName, C);
   const responseCount = typeof request.responseCount === 'number' ? request.responseCount : 0;
   const interestLabel = responseCount === 1
     ? t('userRequests.interestedProviderTitle')
@@ -298,7 +305,7 @@ const ConsumerRequestCard: React.FC<ConsumerRequestCardProps> = ({ request, onPr
     }
     return (
       <View style={[styles.stackAvatar, styles.stackAvatarFallback]}>
-        <SvgIcon name="user" size={15} color={consumerColors.cardMeta} />
+        <SvgIcon name="user" size={15} color={C.cardMeta} />
       </View>
     );
   };
@@ -309,7 +316,7 @@ const ConsumerRequestCard: React.FC<ConsumerRequestCardProps> = ({ request, onPr
         {/* Top row: service artwork, title, category, meta column, status badge */}
         <View style={styles.cardTop}>
           <View style={[styles.serviceArtWrap, { backgroundColor: variant.artBg }]}>
-            <SvgIcon name={serviceIconName} size={40} color={consumerColors.primary} />
+            <SvgIcon name={serviceIconName} size={40} color={C.primary} />
           </View>
           <View style={styles.titleWrap}>
             <Text style={styles.requestTitle} numberOfLines={2} ellipsizeMode="tail">
@@ -320,11 +327,11 @@ const ConsumerRequestCard: React.FC<ConsumerRequestCardProps> = ({ request, onPr
             </Text>
             <View style={styles.metaCol}>
               <View style={styles.metaItem}>
-                <SvgIcon name="clock" size={14} color={consumerColors.cardMeta} />
+                <SvgIcon name="clock" size={14} color={C.cardMeta} />
                 <Text style={styles.metaText}>{timeLabel}</Text>
               </View>
               <View style={styles.metaItem}>
-                <SvgIcon name="pin" size={14} color={consumerColors.cardMeta} />
+                <SvgIcon name="pin" size={14} color={C.cardMeta} />
                 <Text style={styles.metaText} numberOfLines={1} ellipsizeMode="tail">
                   {locationName}
                 </Text>
@@ -356,7 +363,7 @@ const ConsumerRequestCard: React.FC<ConsumerRequestCardProps> = ({ request, onPr
             <Text style={styles.interestText} numberOfLines={1} ellipsizeMode="tail">
               {interestLabel}
             </Text>
-            <SvgIcon name="chevron" size={17} color={consumerColors.cardTitle} />
+            <SvgIcon name="chevron" size={17} color={C.cardTitle} />
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -364,10 +371,11 @@ const ConsumerRequestCard: React.FC<ConsumerRequestCardProps> = ({ request, onPr
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: ConsumerPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: consumerColors.page,
+    backgroundColor: C.page,
   },
   listContent: {
     // Extra bottom room so the last card clears the floating Create CTA.
@@ -382,7 +390,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
-    backgroundColor: consumerColors.page,
+    backgroundColor: C.page,
   },
   headerCopy: {
     flex: 1,
@@ -391,14 +399,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 27,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     letterSpacing: -1,
     lineHeight: 33,
   },
   headerSubtitle: {
     fontSize: 14,
     fontFamily: consumerFonts.regular,
-    color: consumerColors.muted,
+    color: C.muted,
     marginTop: 4,
     lineHeight: 20,
   },
@@ -406,7 +414,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: consumerColors.white,
+    backgroundColor: C.white,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#243E52',
@@ -422,22 +430,22 @@ const styles = StyleSheet.create({
     width: 9,
     height: 9,
     borderRadius: 4.5,
-    backgroundColor: '#E51E2A',
+    backgroundColor: C.iconClose,
     borderWidth: 1.5,
-    borderColor: consumerColors.white,
+    borderColor: C.white,
   },
   /* Sticky segmented tabs — track spans the full list width */
   tabsWrap: {
-    backgroundColor: consumerColors.page,
+    backgroundColor: C.page,
     paddingTop: spacing.xs,
     paddingBottom: spacing.md,
   },
   /* Consumer request card */
   card: {
-    backgroundColor: consumerColors.white,
+    backgroundColor: C.white,
     borderRadius: CARD_RADIUS,
     borderWidth: 1,
-    borderColor: consumerColors.border,
+    borderColor: C.border,
     padding: spacing.lg,
     paddingTop: 15,
     paddingBottom: 13,
@@ -473,7 +481,7 @@ const styles = StyleSheet.create({
   requestTitle: {
     fontSize: 18,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.cardTitle,
+    color: C.cardTitle,
     letterSpacing: -0.4,
     lineHeight: 22,
     marginBottom: 4,
@@ -481,7 +489,7 @@ const styles = StyleSheet.create({
   requestCategory: {
     fontSize: 14,
     fontFamily: consumerFonts.regular,
-    color: consumerColors.cardCategory,
+    color: C.cardCategory,
     marginBottom: 8,
   },
   metaCol: {
@@ -496,7 +504,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 12,
     fontFamily: consumerFonts.regular,
-    color: consumerColors.cardMeta,
+    color: C.cardMeta,
     lineHeight: 16,
   },
   statusBadge: {
@@ -506,30 +514,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: consumerColors.statusBg,
+    backgroundColor: C.statusBg,
     paddingHorizontal: 9,
     paddingVertical: 7,
     borderRadius: 999,
   },
   statusBadgeClosed: {
-    backgroundColor: '#EEF1F4',
+    backgroundColor: C.pointsPillBg,
   },
   statusDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: consumerColors.statusDot,
+    backgroundColor: C.statusDot,
   },
   statusDotClosed: {
-    backgroundColor: '#98A2AE',
+    backgroundColor: C.radioIdle,
   },
   statusText: {
     fontSize: 11,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.statusText,
+    color: C.statusText,
   },
   statusTextClosed: {
-    color: '#5D687A',
+    color: C.cardMeta,
   },
   /* Provider-interest strip */
   interestRow: {
@@ -549,7 +557,7 @@ const styles = StyleSheet.create({
   stackAvatar: {
     marginRight: 0,
     borderWidth: 1.5,
-    borderColor: consumerColors.white,
+    borderColor: C.white,
   },
   stackAvatarOverlap: {
     marginLeft: -9,
@@ -558,7 +566,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#E8EDF2',
+    backgroundColor: C.rowBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -567,7 +575,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     fontSize: 12,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.cardTitle,
+    color: C.cardTitle,
   },
   /* Floating Create New Request CTA */
   ctaOverlay: {
@@ -592,7 +600,7 @@ const styles = StyleSheet.create({
   ctaLabel: {
     fontSize: 15,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.white,
+    color: C.onPrimary,
   },
 });
 

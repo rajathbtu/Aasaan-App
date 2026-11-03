@@ -22,6 +22,7 @@ import { SvgXml } from 'react-native-svg';
 import SvgIcon from '../assets/icons';
 import { getWorkRequest } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useI18n } from '../i18n';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo } from '../utils/commonUtils';
@@ -30,7 +31,8 @@ import ErrorBanner from '../components/ErrorBanner';
 import RateAndReviewModal from '../components/RateAndReviewModal';
 import EmptyState from '../components/EmptyState';
 import ProfileAvatar from '../components/ProfileAvatar';
-import { consumerColors, spacing } from '../theme';
+import { spacing } from '../theme';
+import type { ConsumerPalette } from '../theme/palette';
 
 /**
  * Work Request detail — Interested Service Providers.
@@ -112,52 +114,17 @@ const FILTERS: Array<{ value: FilterKey; labelKey: string }> = [
   { value: 'fast', labelKey: 'filterFastResponse' },
 ];
 
-/* Handoff palette (styles.css + approved_final_design.png) */
-const C = {
-  green: '#078C4B',
-  mintDeep: '#DDF8EC',
-  statusBg: '#E3F8EB',
-  statusText: '#078C4B',
-  statusDot: '#00B44F',
-  ink: '#10172B',
-  muted: '#596579',
-  line: '#E2E9EF',
-  iconEdit: '#168BE5',
-  /* Approved design renders the Share tile icon violet (handoff asset is
-     green); the artwork is authoritative, so the tile keeps the violet icon. */
-  iconShare: '#7C3AED',
-  iconClose: '#D31D24',
-  filterBorder: '#E1E8F0',
-  filterText: '#39465B',
-  listBorder: '#E9EEF3',
-  rowBorder: '#E8EDF2',
-  metaInk: '#263449',
-  respGreenBg: '#E4F8EC',
-  respGreenText: '#087E45',
-  respBlueBg: '#E6F2FF',
-  respBlueText: '#17569A',
-  respPurpleBg: '#F1E8FF',
-  respPurpleText: '#6D28C7',
-  acceptStart: '#079B53',
-  acceptEnd: '#07864B',
-  acceptedBg: '#E2F6EB',
-  acceptedText: '#087E45',
-  profileBorder: '#DCE4EB',
-  profileBg: '#F8FAFC',
-  profileText: '#172238',
-  verifiedBg: '#00B95D',
-  star: '#F5A800',
-  onlineDot: '#00B85A',
-} as const;
-
 /* Filled star used by the approved design's rating row. */
-const FILLED_STAR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 1.7 3.1 6.4 7 1-5 5 1.2 7-6.3-3.3L5.7 21l1.2-7-5-5 7-1Z" fill="#F5A800"/></svg>`;
+const filledStarSvg = (C: ConsumerPalette) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 1.7 3.1 6.4 7 1-5 5 1.2 7-6.3-3.3L5.7 21l1.2-7-5-5 7-1Z" fill="${C.star}"/></svg>`;
 
 /* Verified badge — green scalloped seal with white check (assets/verified.svg). */
-const VERIFIED_BADGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 2 2.1 1.4 2.5-.2 1.1 2.3 2.3 1.1-.2 2.5L21 11l-1.2 2.1.2 2.5-2.3 1.1-1.1 2.3-2.5-.2L12 20l-2.1-1.2-2.5.2-1.1-2.3L4 15.6l.2-2.5L3 11l1.2-2.1L4 6.4l2.3-1.1 1.1-2.3 2.5.2Z" fill="#00B95D"/><path d="m8.5 11.5 2.2 2.2 4.8-4.8" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const verifiedBadgeSvg = (C: ConsumerPalette) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 2 2.1 1.4 2.5-.2 1.1 2.3 2.3 1.1-.2 2.5L21 11l-1.2 2.1.2 2.5-2.3 1.1-1.1 2.3-2.5-.2L12 20l-2.1-1.2-2.5.2-1.1-2.3L4 15.6l.2-2.5L3 11l1.2-2.1L4 6.4l2.3-1.1 1.1-2.3 2.5.2Z" fill="${C.verifiedBg}"/><path d="m8.5 11.5 2.2 2.2 4.8-4.8" fill="none" stroke="${C.onPrimary}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
 /* Top-bar overflow glyph — three ink dots (assets/more.svg). */
-const MORE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2" fill="${consumerColors.ink}"/><circle cx="12" cy="12" r="2" fill="${consumerColors.ink}"/><circle cx="12" cy="19" r="2" fill="${consumerColors.ink}"/></svg>`;
+const moreSvg = (C: ConsumerPalette) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2" fill="${C.ink}"/><circle cx="12" cy="12" r="2" fill="${C.ink}"/><circle cx="12" cy="19" r="2" fill="${C.ink}"/></svg>`;
 
 /**
  * Human membership duration from the provider join date, matching the
@@ -193,6 +160,8 @@ const WorkRequestDetailsScreen: React.FC = () => {
   const route = useRoute<any>();
   const { token, user } = useAuth();
   const { t } = useI18n();
+  const { consumer: C, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const timeAgo = buildTimeAgo(t);
   const { width: windowWidth } = useWindowDimensions();
@@ -220,10 +189,11 @@ const WorkRequestDetailsScreen: React.FC = () => {
   const requestId = route.params?.id || route.params?.request?.id;
   const cacheKey = requestId && user?.id ? offlineCacheKey('work-request', user.id, requestId) : null;
 
-  /* Light page header — dark status-bar icons, same as the other pages. */
+  /* Status-bar icons follow the theme: dark icons on the light page in light
+     mode, light icons on the dark page in dark mode. */
   useEffect(() => {
-    StatusBar.setBarStyle('dark-content', true);
-  }, []);
+    StatusBar.setBarStyle(isDark ? 'light-content' : 'dark-content', true);
+  }, [isDark]);
 
   /* Collapse the title again when a different request is opened. */
   useEffect(() => {
@@ -497,12 +467,12 @@ const WorkRequestDetailsScreen: React.FC = () => {
               {name}
             </Text>
             {isVerified && (
-              <SvgXml xml={VERIFIED_BADGE_SVG} width={Math.max(19 * s, 14)} height={Math.max(19 * s, 14)} style={{ flexShrink: 0 }} />
+              <SvgXml xml={verifiedBadgeSvg(C)} width={Math.max(19 * s, 14)} height={Math.max(19 * s, 14)} style={{ flexShrink: 0 }} />
             )}
           </View>
           {reviewCount > 0 && rating != null ? (
             <View style={[styles.rating, { gap: 6 * s, marginBottom: 6 * s }]}>
-              <SvgXml xml={FILLED_STAR_SVG} width={Math.max(18 * s, 13)} height={Math.max(18 * s, 13)} />
+              <SvgXml xml={filledStarSvg(C)} width={Math.max(18 * s, 13)} height={Math.max(18 * s, 13)} />
               <Text style={styles.ratingValue} numberOfLines={1}>
                 {rating.toFixed(1)}
               </Text>
@@ -596,13 +566,13 @@ const WorkRequestDetailsScreen: React.FC = () => {
               ]}
             >
               {isPending ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={C.onPrimary} />
               ) : (
                 <>
                   <SvgIcon
                     name="check"
                     size={Math.max(16 * s, 11)}
-                    color={isAccepted ? C.acceptedText : '#FFFFFF'}
+                    color={isAccepted ? C.acceptedText : C.onPrimary}
                   />
                   <Text
                     style={[styles.acceptText, isAccepted && { color: C.acceptedText }]}
@@ -647,7 +617,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
     if (loadingStage !== 'idle') {
       return (
         <View style={[styles.container, { paddingTop: topPadding }]}>
-          <ActivityIndicator size="large" color={C.green} />
+          <ActivityIndicator size="large" color={C.deepGreen} />
           <ErrorBanner error={requestError} />
         </View>
       );
@@ -662,9 +632,10 @@ const WorkRequestDetailsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Page background: linear-gradient(180deg,#F4F7FB 0%,#F8FBFD 100%) */}
+      {/* Page background: was linear-gradient(180deg,#F4F7FB 0%,#F8FBFD 100%) — the stops
+          are sub-perceptually different, so both map to the family's page token. */}
       <LinearGradient
-        colors={['#F4F7FB', '#F8FBFD']}
+        colors={[C.page, C.page]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -687,7 +658,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
-          <SvgIcon name="back" size={Math.max(25 * s, 20)} color={consumerColors.ink} />
+          <SvgIcon name="back" size={Math.max(25 * s, 20)} color={C.ink} />
         </TouchableOpacity>
         <Text style={styles.topbarTitle} numberOfLines={1}>
           {t('requestDetails.title')}
@@ -700,7 +671,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel={t('requestDetails.moreActions')}
           >
-            <SvgXml xml={MORE_SVG} width={Math.max(25 * s, 20)} height={Math.max(25 * s, 20)} />
+            <SvgXml xml={moreSvg(C)} width={Math.max(25 * s, 20)} height={Math.max(25 * s, 20)} />
           </TouchableOpacity>
         </View>
       </View>
@@ -711,7 +682,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         refreshControl={
           refreshing
-            ? <RefreshControl refreshing={true} onRefresh={handleRefresh} tintColor={C.green} />
+            ? <RefreshControl refreshing={true} onRefresh={handleRefresh} tintColor={C.deepGreen} />
             : undefined
         }
       >
@@ -723,6 +694,8 @@ const WorkRequestDetailsScreen: React.FC = () => {
               { marginTop: 18 * s, borderRadius: 28 * s, padding: 22 * s, gap: 22 * s },
             ]}
           >
+            {/* Decorative translucent mint wash behind the service art — kept as
+                rgba literals: an alpha-blended glow has no palette token. */}
             <LinearGradient
               colors={['rgba(218,250,237,0.04)', 'rgba(166,242,213,0.4)']}
               start={{ x: 0, y: 0 }}
@@ -750,14 +723,14 @@ const WorkRequestDetailsScreen: React.FC = () => {
                 <SvgIcon
                   name={serviceIconName}
                   size={190 * s * 0.42}
-                  color={request.serviceColor || C.green}
+                  color={request.serviceColor || C.deepGreen}
                 />
               )}
             </View>
             <View style={styles.requestContent}>
               <View style={[styles.status, isCompleted && styles.statusClosed]}>
-                <View style={[styles.statusDot, isCompleted && { backgroundColor: '#98A2AE' }]} />
-                <Text style={[styles.statusText, isCompleted && { color: '#5D687A' }]}>
+                <View style={[styles.statusDot, isCompleted && { backgroundColor: C.radioIdle }]} />
+                <Text style={[styles.statusText, isCompleted && { color: C.cardMeta }]}>
                   {isCompleted ? t('userRequests.statusCompleted') : t('requestDetails.statusActive')}
                 </Text>
               </View>
@@ -827,7 +800,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
               style={[styles.action, isCompleted && { opacity: 0.5 }]}
             >
               <View style={styles.actionIconTile}>
-                <SvgIcon name="sa-edit" size={20} color={consumerColors.primary} />
+                <SvgIcon name="sa-edit" size={20} color={C.primary} />
               </View>
               <Text style={styles.actionLabel}>
                 {t('requestDetails.editTitle').replace(' ', '\n')}
@@ -844,7 +817,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
               style={styles.action}
             >
               <View style={styles.actionIconTile}>
-                <SvgIcon name="share" size={20} color={consumerColors.primary} />
+                <SvgIcon name="share" size={20} color={C.primary} />
               </View>
               <Text style={styles.actionLabel}>
                 {t('requestDetails.shareRequest').replace(' ', '\n')}
@@ -862,7 +835,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
               style={[styles.action, isCompleted && { opacity: 0.5 }]}
             >
               <View style={styles.actionIconTile}>
-                <SvgIcon name="check" size={20} color={consumerColors.primary} />
+                <SvgIcon name="check" size={20} color={C.primary} />
               </View>
               <Text style={styles.actionLabel}>
                 {t('requestDetails.markCompleted').replace(' ', '\n')}
@@ -944,8 +917,10 @@ const WorkRequestDetailsScreen: React.FC = () => {
 
           {/* Boost banner — same container as WorkRequestCreatedScreen: mint
               gradient, approved rocket artwork, copy + Boost button stacked */}
+          {/* Mint gradient banner — mapped to the family's heroMint pair
+              (was #DDF8EF → #E7FAF4, sub-perceptual shift). */}
           <LinearGradient
-            colors={['#DDF8EF', '#E7FAF4']}
+            colors={[C.heroMintStart, C.heroMintMid]}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
             style={[styles.boostBanner, { borderRadius: 38 * s, marginTop: 30 * s, marginBottom: 20 * s }]}
@@ -962,7 +937,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
                 {t('createRequest.created.boostSubtitle')}
               </Text>
               <TouchableOpacity style={styles.boostCta} onPress={handleBoost} activeOpacity={0.7}>
-                <SvgIcon name="bolt" size={14} color={consumerColors.primary} style={{ marginRight: 6 }} />
+                <SvgIcon name="bolt" size={14} color={C.primary} style={{ marginRight: 6 }} />
                 <Text style={styles.boostCtaText} numberOfLines={1} ellipsizeMode="tail">
                   {t('createRequest.created.boostButton')}
                 </Text>
@@ -1026,7 +1001,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
                 key: 'complete',
                 label: t('requestDetails.markCompleted'),
                 icon: 'check' as const,
-                color: C.green,
+                color: C.deepGreen,
                 disabled: isCompleted,
                 onPress: () => setCloseVisible(true),
               },
@@ -1043,7 +1018,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
                 style={({ pressed }) => [
                   styles.menuItem,
                   item.disabled && { opacity: 0.35 },
-                  pressed && { backgroundColor: '#F1F5F9' },
+                  pressed && { backgroundColor: C.profileBg },
                 ]}
               >
                 <SvgIcon name={item.icon} size={18} color={item.color} />
@@ -1078,10 +1053,11 @@ const T = {
   profile: 13.5,
 } as const;
 
-const styles = StyleSheet.create({
+const makeStyles = (C: ConsumerPalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F7FB',
+    backgroundColor: C.page,
   },
   emptyText: {
     color: C.ink,
@@ -1104,7 +1080,7 @@ const styles = StyleSheet.create({
   topbarTitle: {
     flex: 1,
     minWidth: 0,
-    color: consumerColors.ink,
+    color: C.ink,
     fontSize: T.headerTitle,
     lineHeight: 27,
     letterSpacing: -0.5,
@@ -1114,7 +1090,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: consumerColors.mint,
+    backgroundColor: C.mint,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -1129,11 +1105,12 @@ const styles = StyleSheet.create({
   /* Header dropdown menu */
   menuBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(16,23,43,0.14)',
+    // Contract rule 9: modal scrims use the family scrim token (was rgba(16,23,43,0.14)).
+    backgroundColor: C.scrim,
   },
   menu: {
     position: 'absolute',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: C.listBorder,
@@ -1160,7 +1137,7 @@ const styles = StyleSheet.create({
   },
   /* Request card */
   requestCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
@@ -1197,7 +1174,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statusClosed: {
-    backgroundColor: '#EEF1F4',
+    backgroundColor: C.pointsPillBg,
   },
   statusDot: {
     width: 8,
@@ -1254,7 +1231,7 @@ const styles = StyleSheet.create({
   titleToggleText: {
     fontSize: 12.5,
     fontFamily: 'Inter-Bold',
-    color: C.green,
+    color: C.deepGreen,
   },
   /* Action tiles */
   /* Same look as the BoostRequestScreen benefit items (Top Placement /
@@ -1273,7 +1250,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 13,
-    backgroundColor: '#E4F8EF',
+    backgroundColor: C.locationBg,
     justifyContent: 'center',
     alignItems: 'center',
     flexShrink: 0,
@@ -1281,18 +1258,20 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: 13,
     fontFamily: 'Inter-Bold',
-    color: '#101827',
+    color: C.cardTitle,
     textAlign: 'center',
   },
   actionDivider: {
     width: 1.5,
     height: 40,
-    backgroundColor: '#DCE4EC',
+    backgroundColor: C.profileBorder,
     marginHorizontal: 6,
   },
   /* Providers section */
   providers: {
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    // Was rgba(255,255,255,0.5): a half-white wash has no dark counterpart;
+    // the opaque card token keeps the section readable in dark mode.
+    backgroundColor: C.white,
   },
   providersTitleRow: {
     flexDirection: 'row',
@@ -1314,7 +1293,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   filter: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     borderWidth: 1,
     borderColor: C.filterBorder,
     shadowColor: '#203A4D',
@@ -1324,8 +1303,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   filterActive: {
-    backgroundColor: C.green,
-    borderColor: C.green,
+    backgroundColor: C.deepGreen,
+    borderColor: C.deepGreen,
   },
   filterText: {
     fontSize: T.filter,
@@ -1333,10 +1312,10 @@ const styles = StyleSheet.create({
     color: C.filterText,
   },
   filterTextActive: {
-    color: '#FFFFFF',
+    color: C.onPrimary,
   },
   providerList: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     borderWidth: 1,
     borderColor: C.listBorder,
     shadowColor: '#203A4D',
@@ -1356,7 +1335,7 @@ const styles = StyleSheet.create({
   onlineDot: {
     position: 'absolute',
     backgroundColor: C.onlineDot,
-    borderColor: '#FFFFFF',
+    borderColor: C.white,
     zIndex: 2,
   },
   providerInfo: {
@@ -1454,7 +1433,7 @@ const styles = StyleSheet.create({
   acceptText: {
     fontSize: T.accept,
     fontFamily: 'Inter-Bold',
-    color: '#FFFFFF',
+    color: C.onPrimary,
     flexShrink: 1,
   },
   profileButton: {
@@ -1476,6 +1455,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
     borderWidth: 1,
+    // 8%-alpha brand-green hairline: kept literal — translucent tint has no token.
     borderColor: 'rgba(10,158,99,0.08)',
   },
   boostArt: {
@@ -1486,20 +1466,20 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     borderLeftWidth: 1.5,
-    borderLeftColor: '#B6DCCE',
+    borderLeftColor: C.heroMintEnd,
     paddingLeft: 12,
     paddingVertical: 12,
   },
   boostTitle: {
     fontSize: 15,
     fontFamily: 'Inter-Bold',
-    color: consumerColors.primaryDark,
+    color: C.primaryDark,
     marginBottom: 3,
   },
   boostBody: {
     fontSize: 12,
     fontFamily: 'Inter',
-    color: consumerColors.muted,
+    color: C.muted,
     lineHeight: 16,
   },
   boostCta: {
@@ -1507,9 +1487,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.72)',
+    // Was rgba(255,255,255,0.72): see providers note.
+    backgroundColor: C.white,
     borderWidth: 2,
-    borderColor: '#078F55',
+    borderColor: C.deepGreen,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1518,7 +1499,7 @@ const styles = StyleSheet.create({
   boostCtaText: {
     fontSize: 12.5,
     fontFamily: 'Inter-Bold',
-    color: consumerColors.primaryDark,
+    color: C.primaryDark,
   },
 });
 

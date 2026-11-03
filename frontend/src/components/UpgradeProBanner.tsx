@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,9 @@ import {
   StyleSheet,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, spacing, radius } from '../theme';
-import { profileColors } from '../theme/profile';
+import { spacing, radius } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette, ProfilePalette } from '../theme/palette';
 import { useI18n } from '../i18n';
 import ActionButton from './ActionButton';
 
@@ -52,6 +53,8 @@ const noop = () => {};
 
 const UpgradeProBanner: React.FC<Props> = ({ variant = 'card', expanded = false, onPress, onClose }) => {
   const { t } = useI18n();
+  const { base: C, profile: P } = useTheme();
+  const styles = useMemo(() => makeStyles(C, P), [C, P]);
 
   /* ------------------------------------------------------------------ */
   /* Slim ribbon (work requests screen) - compact or expanded             */
@@ -70,7 +73,7 @@ const UpgradeProBanner: React.FC<Props> = ({ variant = 'card', expanded = false,
 
         <View style={styles.compactTopRow}>
           <View style={styles.crownTile}>
-            <Ionicons name={"crown" as any} size={20} color={colors.white} />
+            <Ionicons name={"crown" as any} size={20} color={C.onPrimary} />
           </View>
 
           <View style={styles.compactTextCol}>
@@ -97,16 +100,16 @@ const UpgradeProBanner: React.FC<Props> = ({ variant = 'card', expanded = false,
                   accessibilityRole="button"
                   accessibilityLabel="Dismiss"
                 >
-                  <Ionicons name="close" size={13} color={colors.white} />
+                  <Ionicons name="close" size={13} color={C.onPrimary} />
                 </TouchableOpacity>
               )}
               <View style={styles.expandChevron}>
-                <Ionicons name="chevron-up" size={16} color={colors.white} />
+                <Ionicons name="chevron-up" size={16} color={C.onPrimary} />
               </View>
             </>
           ) : (
             <View style={styles.expandChevron}>
-              <Ionicons name="chevron-down" size={16} color={colors.white} />
+              <Ionicons name="chevron-down" size={16} color={C.onPrimary} />
             </View>
           )}
         </View>
@@ -116,15 +119,15 @@ const UpgradeProBanner: React.FC<Props> = ({ variant = 'card', expanded = false,
             <View style={styles.benefitsRow}>
               {FEATURE_KEYS.map((key) => (
                 <View key={key} style={styles.benefitChip}>
-                  <Ionicons name="checkmark" size={10} color={colors.white} />
+                  <Ionicons name="checkmark" size={10} color={C.onPrimary} />
                   <Text style={styles.benefitText}>{t(key)}</Text>
                 </View>
               ))}
             </View>
             <ActionButton
               buttonTitle={t('profile.viewPlans') || 'Upgrade Now'}
-              buttonTitleColor={colors.white}
-              backgroundColor={colors.white}
+              buttonTitleColor={C.onPrimary}
+              backgroundColor={C.white}
               onPress={onPress ?? noop}
               style={styles.expandedCta}
               showRightArrow
@@ -160,7 +163,7 @@ const UpgradeProBanner: React.FC<Props> = ({ variant = 'card', expanded = false,
         {/* Header: crown tile + title/subtitle + PRO chip */}
         <View style={styles.cardHeaderRow}>
           <View style={styles.crownTileCard}>
-            <Ionicons name={"crown" as any} size={24} color={colors.white} />
+            <Ionicons name={"crown" as any} size={24} color={C.onPrimary} />
           </View>
           <View style={styles.cardHeaderTextCol}>
             <View style={styles.titleRow}>
@@ -178,7 +181,7 @@ const UpgradeProBanner: React.FC<Props> = ({ variant = 'card', expanded = false,
           {FEATURE_KEYS.map((key) => (
             <View key={key} style={styles.featRow}>
               <View style={styles.featCheck}>
-                <Ionicons name="checkmark" size={12} color={colors.white} />
+                <Ionicons name="checkmark" size={12} color={C.onPrimary} />
               </View>
               <Text style={styles.featText}>{t(key)}</Text>
             </View>
@@ -193,8 +196,8 @@ const UpgradeProBanner: React.FC<Props> = ({ variant = 'card', expanded = false,
           </View>
           <ActionButton
             buttonTitle={t('profile.viewPlans')}
-            buttonTitleColor={colors.white}
-            backgroundColor={profileColors.purple}
+            buttonTitleColor={C.onPrimary}
+            backgroundColor={P.purple}
             onPress={onPress ?? noop}
             style={styles.cardCta}
             showRightArrow
@@ -206,13 +209,14 @@ const UpgradeProBanner: React.FC<Props> = ({ variant = 'card', expanded = false,
 };
 
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette, P: ProfilePalette) => StyleSheet.create({
   /* ---------- shared pieces ---------- */
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   proChip: {
+    // Translucent glass on the violet ribbon — the ribbon itself never flips.
     backgroundColor: 'rgba(255,255,255,0.25)',
     borderRadius: 999,
     paddingHorizontal: 6,
@@ -222,31 +226,32 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.45)',
   },
   proChipDark: {
-    backgroundColor: profileColors.purpleBadgeSoft,
+    backgroundColor: P.purpleBadgeSoft,
     borderRadius: 999,
     paddingHorizontal: 6,
     paddingVertical: 4,
     marginLeft: spacing.sm,
     borderWidth: 1,
-    borderColor: profileColors.purpleBorder,
+    borderColor: P.purpleBorder,
   },
   proChipText: {
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 1,
-    color: colors.white,
+    color: C.onPrimary,
   },
   proChipTextDark: {
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 1,
-    color: profileColors.purpleBadgeInk,
+    color: P.purpleBadgeInk,
   },
   glowLg: {
     position: 'absolute',
     width: 150,
     height: 150,
     borderRadius: 75,
+    // Decorative glow on the violet ribbon — the ribbon itself never flips.
     backgroundColor: 'rgba(255,255,255,0.14)',
     top: -60,
     right: -30,
@@ -266,7 +271,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     flexDirection: 'column',
     alignItems: 'stretch',
-    backgroundColor: colors.violetStrong,
+    backgroundColor: C.violetStrong,
     borderRadius: radius.lg,
     paddingVertical: spacing.mdPlus,
     paddingLeft: spacing.lg,
@@ -286,6 +291,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 13,
+    // Translucent glass on the violet ribbon — the ribbon itself never flips.
     backgroundColor: 'rgba(255,255,255,0.22)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.35)',
@@ -300,20 +306,20 @@ const styles = StyleSheet.create({
   compactTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.white,
+    color: C.onPrimary,
   },
   compactSubtitle: {
     fontSize: 12,
     lineHeight: 16,
-    color: 'rgba(255,255,255,0.88)',
+    color: C.onPrimary,
     marginTop: 2,
   },
   pricePill: {
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: 6,
-    shadowColor: colors.black,
+    shadowColor: C.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 3,
@@ -328,12 +334,13 @@ const styles = StyleSheet.create({
   pricePillText: {
     fontSize: 13,
     fontWeight: '800',
-    color: VIOLET_DEEP,
+    color: C.violet,
   },
   closeBtn: {
     width: 22,
     height: 22,
     borderRadius: 11,
+    // Translucent glass on the violet ribbon — the ribbon itself never flips.
     backgroundColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -365,6 +372,7 @@ const styles = StyleSheet.create({
   benefitChip: {
     flexDirection: 'row',
     alignItems: 'center',
+    // Translucent glass on the violet ribbon — the ribbon itself never flips.
     backgroundColor: 'rgba(255,255,255,0.18)',
     borderRadius: radius.md,
     paddingHorizontal: spacing.sm,
@@ -372,7 +380,7 @@ const styles = StyleSheet.create({
   },
   benefitText: {
     fontSize: 11,
-    color: colors.white,
+    color: C.onPrimary,
     marginLeft: 4,
   },
   expandedCta: {
@@ -389,12 +397,12 @@ const styles = StyleSheet.create({
   cardWrap: {},
   card: {
     overflow: 'hidden',
-    backgroundColor: profileColors.purpleSoft,
+    backgroundColor: P.purpleSoft,
     borderWidth: 1,
-    borderColor: profileColors.purpleBorder,
+    borderColor: P.purpleBorder,
     borderRadius: 18,
     padding: 14,
-    shadowColor: profileColors.purple,
+    shadowColor: P.purple,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -408,7 +416,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 13,
-    backgroundColor: profileColors.purple,
+    backgroundColor: P.purple,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -420,12 +428,12 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 15,
     fontWeight: '800',
-    color: profileColors.purpleInk,
+    color: P.purpleInk,
   },
   cardSubtitle: {
     fontSize: 12,
     lineHeight: 16,
-    color: profileColors.purpleMuted,
+    color: P.purpleMuted,
     marginTop: 3,
   },
   featureList: {
@@ -440,7 +448,7 @@ const styles = StyleSheet.create({
     width: 19,
     height: 19,
     borderRadius: 9.5,
-    backgroundColor: profileColors.check,
+    backgroundColor: P.check,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,
@@ -450,7 +458,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '600',
-    color: profileColors.ink,
+    color: P.ink,
   },
   cardFooter: {
     flexDirection: 'row',
@@ -458,7 +466,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: profileColors.purpleDivider,
+    borderTopColor: P.purpleDivider,
     paddingTop: 12,
     marginTop: 5,
   },
@@ -468,12 +476,12 @@ const styles = StyleSheet.create({
   cardPriceLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: profileColors.purplePrice,
+    color: P.purplePrice,
   },
   cardPrice: {
     fontSize: 18,
     fontWeight: '800',
-    color: profileColors.purplePrice,
+    color: P.purplePrice,
     marginTop: 2,
   },
   cardCta: {

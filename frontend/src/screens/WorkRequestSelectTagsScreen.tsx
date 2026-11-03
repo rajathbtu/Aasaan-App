@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -16,7 +16,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { createWorkRequest } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useGlobalLoader } from '../contexts/GlobalLoaderContext';
-import { consumerColors, consumerFonts } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import { consumerFonts } from '../theme';
+import type { BasePalette } from '../theme/palette';
 import { useI18n } from '../i18n';
 import { offlineCacheKey, readOfflineCache } from '../utils/offlineCache';
 import type { Location } from '../components/LocationSearch';
@@ -67,6 +69,8 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
   const { t, lang } = useI18n();
   const { token, user } = useAuth();
   const { showLoader, hideLoader } = useGlobalLoader();
+  const { base: C, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
 
   const serviceId = route.params?.serviceId;
@@ -270,7 +274,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
       <View style={styles.guardContainer}>
         <View style={styles.guardBody}>
           <View style={styles.guardIconWrap}>
-            <SvgIcon name="shield" size={28} color={consumerColors.primary} />
+            <SvgIcon name="shield" size={28} color={C.brand} />
           </View>
           <Text style={styles.guardText}>{guardMessage}</Text>
         </View>
@@ -282,7 +286,9 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { paddingTop: Math.max(insets.top, StatusBar.currentHeight ?? 0) }]}>
-      <LinearGradient colors={['#f8fcfa', '#f4faf7', '#f8fcfa']} style={styles.gradient} />
+      {/* Page wash: was linear-gradient(#f8fcfa, #f4faf7, #f8fcfa) — mapped to
+          the nearest base canvas/paper tokens (sub-perceptual in light mode). */}
+      <LinearGradient colors={[C.canvas, C.paper, C.canvas]} style={styles.gradient} />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -296,7 +302,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
               onPress={() => navigation.goBack()}
               activeOpacity={0.7}
               accessibilityLabel="Go back">
-              <SvgIcon name="back" size={20} color="#071a1b" />
+              <SvgIcon name="back" size={20} color={C.serviceName} />
             </TouchableOpacity>
             <Text style={styles.serviceName}>{serviceName}</Text>
             <Text style={styles.subtitle}>Create a work request</Text>
@@ -309,7 +315,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
           <View style={styles.cardContent}>
             <View style={styles.sectionHeading}>
               <View style={styles.roundIcon}>
-                <SvgIcon name="document" size={20} color={consumerColors.primary} />
+                <SvgIcon name="document" size={20} color={C.brand} />
               </View>
               <View style={styles.headingText}>
                 <Text style={styles.headingH2}>What needs to be done?</Text>
@@ -325,11 +331,12 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                 value={requestTitle}
                 onChangeText={handleTitleChange}
                 placeholder={t('createRequest.selectTags.requestTitlePlaceholder')}
-                placeholderTextColor="#71809d"
+                placeholderTextColor={C.placeholder}
+                keyboardAppearance={isDark ? 'dark' : 'light'}
                 maxLength={REQUEST_TITLE_MAX_LENGTH}
                 multiline
                 textAlignVertical="top"
-                selectionColor={consumerColors.primary}
+                selectionColor={C.brand}
                 underlineColorAndroid="transparent"
               />
               <TouchableOpacity
@@ -338,7 +345,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel={listening ? 'Stop voice input' : 'Dictate with voice'}>
-                <SvgIcon name="mic" size={18} color={listening ? '#e02424' : consumerColors.primary} />
+                <SvgIcon name="mic" size={18} color={listening ? C.danger : C.brand} />
               </TouchableOpacity>
             </View>
           </View>
@@ -349,7 +356,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
           <View style={styles.cardContent}>
             <View style={styles.sectionHeading}>
               <View style={styles.roundIcon}>
-                <SvgIcon name="tag" size={20} color={consumerColors.primary} />
+                <SvgIcon name="tag" size={20} color={C.brand} />
               </View>
               <View style={styles.headingText}>
                 <Text style={styles.headingH2}>Choose all relevant tags</Text>
@@ -371,7 +378,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                         accessibilityState={{ selected }}>
                         <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{tag}</Text>
                         <View style={[styles.tagBadge, selected && styles.tagBadgeSelected]}>
-                          <SvgIcon name={selected ? 'check' : 'plus'} size={11} color={selected ? '#fff' : '#98a3b4'} />
+                          <SvgIcon name={selected ? 'check' : 'plus'} size={11} color={selected ? C.onPrimary : C.greyMuted} />
                         </View>
                       </TouchableOpacity>
                     );
@@ -379,7 +386,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                 </View>
               ) : (
                 <View style={styles.noTagsRow}>
-                  <SvgIcon name="tag" size={20} color={consumerColors.muted} />
+                  <SvgIcon name="tag" size={20} color={C.grey} />
                   <Text style={styles.noTagsText}>{t('createRequest.selectTags.noTagsAvailable')}</Text>
                 </View>
               )}
@@ -392,7 +399,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
           <View style={styles.cardContent}>
             <View style={styles.callHeading}>
               <View style={styles.roundIcon}>
-                <SvgIcon name="phone" size={20} color={consumerColors.primary} />
+                <SvgIcon name="phone" size={20} color={C.brand} />
               </View>
               <View style={styles.headingText}>
                 <Text style={styles.headingH2}>Who can call me?</Text>
@@ -410,7 +417,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
             <View style={styles.privacy}>
-              <SvgIcon name="shield" size={16} color={consumerColors.primary} />
+              <SvgIcon name="shield" size={16} color={C.brand} />
               <Text style={styles.privacyText}>Only Aadhaar verified experts can contact you.</Text>
             </View>
           </View>
@@ -421,7 +428,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
           <View style={styles.cardContent}>
             <View style={styles.sectionHeading}>
               <View style={styles.roundIcon}>
-                <SvgIcon name="pin" size={20} color={consumerColors.primary} />
+                <SvgIcon name="pin" size={20} color={C.brand} />
               </View>
               <View style={styles.headingText}>
                 <Text style={styles.headingH2}>Location of Work</Text>
@@ -435,12 +442,12 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
               accessibilityRole="button"
               accessibilityLabel={t('common.change')}>
               <View style={styles.locationPin}>
-                <SvgIcon name="location" size={17} color={consumerColors.primary} />
+                <SvgIcon name="location" size={17} color={C.brand} />
               </View>
               <View style={styles.locationCopy}>
                 <Text style={styles.locationCopyBold} numberOfLines={2}>{locName}</Text>
               </View>
-              <SvgIcon name="chevron" size={16} color="#43516f" style={{ transform: [{ rotate: '90deg' }] }} />
+              <SvgIcon name="chevron" size={16} color={C.secureText} style={{ transform: [{ rotate: '90deg' }] }} />
             </TouchableOpacity>
           </View>
         </View>
@@ -455,11 +462,11 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
           disabled={requestInProgress}
           accessibilityLabel={t('createRequest.selectTags.confirmButton')}>
           <LinearGradient
-            colors={[consumerColors.primary, consumerColors.primaryDark]}
+            colors={[C.brand, C.brandDark]}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
             style={[styles.confirmButton, requestInProgress && styles.confirmButtonDisabled]}>
-            <SvgIcon name="send" size={18} color="#fff" />
+            <SvgIcon name="send" size={18} color={C.onPrimary} />
             <Text style={styles.confirmText}>{t('createRequest.selectTags.confirmButton')}</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -470,10 +477,11 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) =>
+  StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4faf7',
+    backgroundColor: C.paper,
   },
   gradient: {
     ...StyleSheet.absoluteFill,
@@ -500,13 +508,13 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#E6F8EF',
+    backgroundColor: C.backBg,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
   serviceName: {
-    color: '#080808',
+    color: C.serviceName,
     fontSize: 18,
     fontFamily: consumerFonts.bold,
     fontWeight: '800',
@@ -514,7 +522,7 @@ const styles = StyleSheet.create({
     lineHeight: 23,
   },
   subtitle: {
-    color: '#43516f',
+    color: C.secureText,
     fontSize: 14,
     fontFamily: consumerFonts.regular,
     lineHeight: 19,
@@ -527,10 +535,12 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    // Was rgba(255,255,255,0.92): the 8% translucency is sub-perceptual and
+    // has no token; the opaque card token keeps dark mode readable.
+    backgroundColor: C.white,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(230,240,235,0.8)',
+    borderColor: C.tabBorder,
     shadowColor: '#1C4D37',
     shadowOffset: { width: 0, height: 7 },
     shadowOpacity: 0.09,
@@ -552,7 +562,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#E4F8EE',
+    backgroundColor: C.iconTileBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -562,7 +572,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   headingH2: {
-    color: '#101a35',
+    color: C.dark,
     fontSize: 16,
     fontFamily: consumerFonts.bold,
     fontWeight: '800',
@@ -571,19 +581,19 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   headingP: {
-    color: '#52617f',
+    color: C.grey,
     fontSize: 14,
     fontFamily: consumerFonts.regular,
     lineHeight: 18,
   },
   headingPCall: {
-    color: '#52617f',
+    color: C.grey,
     fontSize: 13,
     fontFamily: consumerFonts.regular,
     lineHeight: 17,
   },
   counter: {
-    color: '#52617f',
+    color: C.grey,
     fontSize: 12.5,
     fontFamily: consumerFonts.regular,
     alignSelf: 'flex-start',
@@ -594,10 +604,10 @@ const styles = StyleSheet.create({
   },
   textarea: {
     borderWidth: 1.5,
-    borderColor: '#dce3ef',
+    borderColor: C.fieldBorder,
     borderRadius: 16,
-    backgroundColor: '#fff',
-    color: '#101a35',
+    backgroundColor: C.white,
+    color: C.dark,
     fontSize: 15,
     fontFamily: consumerFonts.regular,
     lineHeight: 21,
@@ -615,12 +625,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E4F8EE',
+    backgroundColor: C.iconTileBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   micButtonActive: {
-    backgroundColor: '#fdecec',
+    backgroundColor: C.dangerSoft,
   },
 
   tagRows: {
@@ -634,9 +644,9 @@ const styles = StyleSheet.create({
   tag: {
     height: 32,
     borderWidth: 1.5,
-    borderColor: '#dce3ef',
+    borderColor: C.fieldBorder,
     borderRadius: 16,
-    backgroundColor: '#fff',
+    backgroundColor: C.white,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -644,17 +654,17 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   tagSelected: {
-    backgroundColor: '#E4F8ED',
-    borderColor: '#8de2b9',
+    backgroundColor: C.greenSoft,
+    borderColor: C.primaryBorder,
   },
   tagText: {
-    color: '#101010',
+    color: C.serviceName,
     fontSize: 12.5,
     fontFamily: consumerFonts.regular,
     lineHeight: 15,
   },
   tagTextSelected: {
-    color: '#07864f',
+    color: C.brandDark,
     fontFamily: consumerFonts.bold,
   },
   tagBadge: {
@@ -662,13 +672,13 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 1.5,
-    borderColor: '#aab5c7',
+    borderColor: C.radioBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tagBadgeSelected: {
-    backgroundColor: consumerColors.primary,
-    borderColor: consumerColors.primary,
+    backgroundColor: C.brand,
+    borderColor: C.brand,
   },
   noTagsRow: {
     flexDirection: 'row',
@@ -677,7 +687,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   noTagsText: {
-    color: consumerColors.muted,
+    color: C.grey,
     fontSize: 14,
     marginLeft: 8,
   },
@@ -690,14 +700,14 @@ const styles = StyleSheet.create({
   privacy: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e7f8ef',
+    backgroundColor: C.greenSoft,
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 9,
     gap: 8,
   },
   privacyText: {
-    color: '#101010',
+    color: C.serviceName,
     fontSize: 12.5,
     fontFamily: consumerFonts.regular,
     flexShrink: 1,
@@ -706,7 +716,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#d6dce0',
+    backgroundColor: C.fieldBorder,
     justifyContent: 'center',
     flexShrink: 0,
   },
@@ -714,16 +724,16 @@ const styles = StyleSheet.create({
     width: 50,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#d6dce0',
+    backgroundColor: C.fieldBorder,
   },
   switchTrackActive: {
-    backgroundColor: '#08a967',
+    backgroundColor: C.brand2,
   },
   switchThumb: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#fff',
+    backgroundColor: C.white,
     marginLeft: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -739,9 +749,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#dce3ef',
+    borderColor: C.fieldBorder,
     borderRadius: 16,
-    backgroundColor: '#fff',
+    backgroundColor: C.white,
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 12,
@@ -750,7 +760,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#e5f8ef',
+    backgroundColor: C.iconTileBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -760,7 +770,7 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   locationCopyBold: {
-    color: '#090909',
+    color: C.serviceName,
     fontSize: 14.5,
     fontFamily: consumerFonts.bold,
     lineHeight: 19,
@@ -786,14 +796,14 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   confirmText: {
-    color: '#fff',
+    color: C.onPrimary,
     fontSize: 16,
     fontFamily: consumerFonts.bold,
   },
 
   guardContainer: {
     flex: 1,
-    backgroundColor: '#f8fcfa',
+    backgroundColor: C.canvas,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -807,7 +817,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: consumerColors.mint,
+    backgroundColor: C.backBg,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -815,7 +825,7 @@ const styles = StyleSheet.create({
   guardText: {
     fontSize: 16,
     lineHeight: 22,
-    color: consumerColors.muted,
+    color: C.grey,
     textAlign: 'center',
   },
 });

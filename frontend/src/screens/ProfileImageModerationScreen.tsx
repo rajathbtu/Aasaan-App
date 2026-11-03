@@ -1,12 +1,14 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { approveProfileImage, blockProfileImage, listProfileImagesForReview } from '../api';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 import { useI18n } from '../i18n';
-import { colors, radius, spacing } from '../theme';
+import { radius, spacing } from '../theme';
 import { getOptimizedProfileImageUrl } from '../utils/profileImage';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
@@ -24,6 +26,8 @@ const ProfileImageModerationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { token } = useAuth();
   const { t } = useI18n();
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [candidates, setCandidates] = useState<ProfileImageCandidate[]>([]);
   const [error, setError] = useState<unknown | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,7 +85,7 @@ const ProfileImageModerationScreen: React.FC = () => {
         showNotification={false}
         customRightComponent={(
           <TouchableOpacity onPress={() => { void loadCandidates(); }} accessibilityLabel={t('common.retry')}>
-            <Ionicons name="refresh" size={20} color={colors.dark} />
+            <Ionicons name="refresh" size={20} color={C.dark} />
           </TouchableOpacity>
         )}
       />
@@ -90,12 +94,12 @@ const ProfileImageModerationScreen: React.FC = () => {
         data={candidates}
         keyExtractor={(item) => item.id}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { void loadCandidates(); }} />}
-        ListEmptyComponent={!refreshing ? (
+        ListEmptyComponent={(!refreshing ? (
           <View style={styles.emptyState}>
-            <Ionicons name="checkmark-circle-outline" size={30} color={colors.grey} />
+            <Ionicons name="checkmark-circle-outline" size={30} color={C.grey} />
             <Text style={styles.emptyText}>{t('profilePhotoModeration.empty')}</Text>
           </View>
-        ) : null}
+        ) : null) ?? undefined}
         renderItem={({ item }) => (
           <View style={styles.candidate}>
             <Image
@@ -114,7 +118,7 @@ const ProfileImageModerationScreen: React.FC = () => {
                   disabled={processingUserId !== null}
                   accessibilityRole="button"
                 >
-                  <Ionicons name="checkmark" size={17} color={colors.white} />
+                  <Ionicons name="checkmark" size={17} color={C.onPrimary} />
                   <Text style={styles.approveText}>{t('profilePhotoModeration.approve')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -123,7 +127,7 @@ const ProfileImageModerationScreen: React.FC = () => {
                   disabled={processingUserId !== null}
                   accessibilityRole="button"
                 >
-                  <Ionicons name="close" size={17} color={colors.error} />
+                  <Ionicons name="close" size={17} color={C.error} />
                   <Text style={styles.blockText}>{t('profilePhotoModeration.block')}</Text>
                 </TouchableOpacity>
               </View>
@@ -138,8 +142,8 @@ const ProfileImageModerationScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.white },
+const makeStyles = (C: BasePalette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: C.white },
   listContent: { padding: spacing.md, flexGrow: 1 },
   candidate: {
     flexDirection: 'row',
@@ -147,14 +151,14 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.greyLight,
+    borderColor: C.greyLight,
     borderRadius: radius.sm,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
   },
-  preview: { width: 104, height: 104, borderRadius: radius.sm, backgroundColor: colors.greyLight },
+  preview: { width: 104, height: 104, borderRadius: radius.sm, backgroundColor: C.greyLight },
   details: { flex: 1, justifyContent: 'center', gap: spacing.xs },
-  name: { color: colors.dark, fontSize: 15, fontWeight: '600' },
-  date: { color: colors.grey, fontSize: 12 },
+  name: { color: C.dark, fontSize: 15, fontWeight: '600' },
+  date: { color: C.grey, fontSize: 12 },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   actionButton: {
     minHeight: 38,
@@ -165,12 +169,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius: radius.sm,
   },
-  approveButton: { backgroundColor: colors.primary },
-  blockButton: { borderWidth: 1, borderColor: colors.error },
-  approveText: { color: colors.white, fontSize: 12, fontWeight: '600' },
-  blockText: { color: colors.error, fontSize: 12, fontWeight: '600' },
+  approveButton: { backgroundColor: C.primary },
+  blockButton: { borderWidth: 1, borderColor: C.error },
+  approveText: { color: C.onPrimary, fontSize: 12, fontWeight: '600' },
+  blockText: { color: C.error, fontSize: 12, fontWeight: '600' },
   emptyState: { flex: 1, minHeight: 220, alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
-  emptyText: { color: colors.grey, fontSize: 14 },
+  emptyText: { color: C.grey, fontSize: 14 },
 });
 
 export default ProfileImageModerationScreen;

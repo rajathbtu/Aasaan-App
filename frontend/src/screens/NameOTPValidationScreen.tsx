@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -24,28 +24,8 @@ import OtpInput from '../components/OtpInput';
 import SvgIcon from '../assets/icons';
 import { IndiaFlag } from '../assets/images';
 import nameVerificationIllustration from '../../assets/name-verification-illustration.png';
-
-/**
- * Exact tokens from approved design
- * (green is reserved for actions, active focus, confirmation & security cues).
- */
-const NT = {
-  green: '#079653',
-  greenDark: '#078447',
-  greenBright: '#08B878',
-  mint: '#E8F8F0',
-  mintSoft: '#F2FBF6',
-  ink: '#17202B',
-  muted: '#657080',
-  line: '#D9DEE5',
-  field: '#F1F2F5',
-  placeholder: '#9AA2AD',
-  danger: '#C33B45',
-  secureText: '#46525F',
-  topbarLine: '#EDF0F2',
-  backCircle: '#EFF9F4',
-  divider: '#D6DBE1',
-};
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
 /**
  * Name & OTP verification — approved design.
@@ -62,6 +42,8 @@ const NameOTPValidationScreen: React.FC = () => {
   const { t, lang } = useI18n(language);
   const insets = useSafeAreaInsets();
   const { login } = useAuth();
+  const { base: C, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   const [name, setName] = useState('');
   const [otp, setOtp] = useState('');
@@ -135,7 +117,7 @@ const NameOTPValidationScreen: React.FC = () => {
       {/* Decorative mint wave hugging the bottom of the screen (approved reference) */}
       <View pointerEvents="none" style={styles.waveWrap}>
         <SvgXml
-          xml={'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 40" preserveAspectRatio="none"><path d="M0 40V26C70 10 150 4 225 10c75 6 125 14 165 6v24H0Z" fill="#EAF8F1"/></svg>'}
+          xml={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 40" preserveAspectRatio="none"><path d="M0 40V26C70 10 150 4 225 10c75 6 125 14 165 6v24H0Z" fill="${C.backBg}"/></svg>`}
           width="100%"
           height={40}
         />
@@ -151,7 +133,7 @@ const NameOTPValidationScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel="Go back">
-          <SvgIcon name="nv-back" size={23} color={NT.ink} />
+          <SvgIcon name="nv-back" size={23} color={C.dark} />
         </TouchableOpacity>
       </View>
 
@@ -179,7 +161,7 @@ const NameOTPValidationScreen: React.FC = () => {
         <View style={styles.fieldGroup}>
           <View style={styles.labelRow}>
             <View style={styles.iconTile}>
-              <SvgIcon name="nv-user" size={16} color={NT.green} />
+              <SvgIcon name="nv-user" size={16} color={C.brand} />
             </View>
             <Text style={[styles.label, { fontFamily: F.bold }]}>{t('nameReg.fullName')}</Text>
           </View>
@@ -190,8 +172,9 @@ const NameOTPValidationScreen: React.FC = () => {
               onChangeText={setName}
               onFocus={() => setNameFocused(true)}
               onBlur={() => setNameFocused(false)}
+              keyboardAppearance={isDark ? 'dark' : 'light'}
               placeholder={t('nameReg.fullNamePlaceholder')}
-              placeholderTextColor={NT.placeholder}
+              placeholderTextColor={C.placeholder}
               autoCapitalize="words"
               autoComplete="name"
               returnKeyType="next"
@@ -204,7 +187,7 @@ const NameOTPValidationScreen: React.FC = () => {
         <View style={styles.fieldGroup}>
           <View style={styles.labelRow}>
             <View style={styles.iconTile}>
-              <SvgIcon name="nv-phone" size={16} color={NT.green} />
+              <SvgIcon name="nv-phone" size={16} color={C.brand} />
             </View>
             <Text style={[styles.label, { fontFamily: F.bold }]}>{t('nameReg.mobileNumber')}</Text>
           </View>
@@ -221,7 +204,7 @@ const NameOTPValidationScreen: React.FC = () => {
               onPress={() => navigation.goBack()}
               accessibilityRole="button"
               accessibilityLabel={`${t('common.change')} ${t('nameReg.mobileNumber')}`}>
-              <SvgIcon name="sa-edit" size={14} color={NT.green} />
+              <SvgIcon name="sa-edit" size={14} color={C.brand} />
               <Text style={[styles.changeText, { fontFamily: F.bold }]}>{t('common.change')}</Text>
             </TouchableOpacity>
           </View>
@@ -231,7 +214,7 @@ const NameOTPValidationScreen: React.FC = () => {
         <View style={styles.fieldGroup}>
           <View style={styles.labelRow}>
             <View style={styles.iconTile}>
-              <SvgIcon name="nv-shield-check" size={16} color={NT.green} />
+              <SvgIcon name="nv-shield-check" size={16} color={C.brand} />
             </View>
             <Text style={[styles.label, { fontFamily: F.bold }]}>{t('nameReg.verificationCode')}</Text>
           </View>
@@ -263,17 +246,17 @@ const NameOTPValidationScreen: React.FC = () => {
           accessibilityLabel={t('nameReg.verifyAndContinue')}
           accessibilityState={{ disabled: !canContinue, busy: loading }}>
           <LinearGradient
-            colors={[NT.green, NT.greenBright]}
+            colors={[C.brand, C.brandBright]}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
             style={[styles.cta, !canContinue && styles.ctaDisabled]}>
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={C.onPrimary} />
             ) : (
               <>
-                <SvgIcon name="nv-shield-check" size={18} color="#FFFFFF" />
+                <SvgIcon name="nv-shield-check" size={18} color={C.onPrimary} />
                 <Text style={[styles.ctaText, { fontFamily: F.bold }]}>{t('nameReg.verifyAndContinue')}</Text>
-                <SvgIcon name="ss-arrow-right" size={16} color="#FFFFFF" />
+                <SvgIcon name="ss-arrow-right" size={16} color={C.onPrimary} />
               </>
             )}
           </LinearGradient>
@@ -281,7 +264,7 @@ const NameOTPValidationScreen: React.FC = () => {
 
         {/* Support contact line (opens the device email composer) */}
         <View style={styles.support}>
-          <SvgIcon name="nv-headset" size={13} color={NT.muted} />
+          <SvgIcon name="nv-headset" size={13} color={C.grey} />
           <Text style={[styles.supportText, { fontFamily: F.regular }]}>
             {t('common.helpLine')}{' '}
             <Text style={[styles.supportLink, { fontFamily: F.bold }]} onPress={openSupport}>
@@ -292,7 +275,7 @@ const NameOTPValidationScreen: React.FC = () => {
 
         {/* Secure-data reassurance strip */}
         <View style={styles.secure}>
-          <SvgIcon name="nv-shield-lock" size={16} color={NT.green} />
+          <SvgIcon name="nv-shield-lock" size={16} color={C.brand} />
           <Text style={[styles.secureText, { fontFamily: F.regular }]}>{t('nameReg.help')}</Text>
         </View>
       </ScrollView>
@@ -302,10 +285,10 @@ const NameOTPValidationScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     overflow: 'hidden',
   },
   /* Decorative mint wave hugging the bottom of the screen */
@@ -327,8 +310,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: NT.topbarLine,
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: C.topbarLine,
+    backgroundColor: C.white,
     zIndex: 2,
   },
   /* .back{width:46px;height:46px;border-radius:50%;background:#eff9f4} */
@@ -336,7 +319,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: NT.backCircle,
+    backgroundColor: C.backBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -367,18 +350,18 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     letterSpacing: -0.7,
     fontWeight: '800',
-    color: NT.ink,
+    color: C.dark,
     textAlign: 'center',
   },
   /* .hero h2 span{color:var(--green)} */
   titleAccent: {
-    color: NT.green,
+    color: C.brand,
   },
   /* .hero p{font-size:15px;line-height:1.45;color:var(--muted);max-width:330px} */
   subtitle: {
     fontSize: 13,
     lineHeight: 18,
-    color: NT.muted,
+    color: C.grey,
     textAlign: 'center',
     marginTop: 6,
     maxWidth: 300,
@@ -400,37 +383,37 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 9,
-    backgroundColor: NT.mint,
+    backgroundColor: C.backBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   label: {
     fontSize: 14.5,
     fontWeight: '700',
-    color: NT.ink,
+    color: C.dark,
   },
 
   /* .input{height:54px;border:1.5px solid var(--line);border-radius:14px;background:#fff;padding:0 16px;font-size:16px} */
   inputWrap: {
     height: 46,
     borderWidth: 1.5,
-    borderColor: NT.line,
+    borderColor: C.line,
     borderRadius: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     paddingHorizontal: 14,
     justifyContent: 'center',
   },
   /* .input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(7,150,83,.10)} */
   inputWrapFocused: {
-    borderColor: NT.green,
-    shadowColor: NT.green,
+    borderColor: C.brand,
+    shadowColor: C.brand,
     shadowOpacity: 0.1,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 0 },
   },
   input: {
     fontSize: 14,
-    color: NT.ink,
+    color: C.dark,
     paddingVertical: 0,
   },
 
@@ -438,7 +421,7 @@ const styles = StyleSheet.create({
   phoneRow: {
     height: 46,
     borderRadius: 12,
-    backgroundColor: NT.field,
+    backgroundColor: C.field,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -447,13 +430,13 @@ const styles = StyleSheet.create({
   countryCode: {
     fontSize: 14,
     fontWeight: '700',
-    color: NT.ink,
+    color: C.dark,
   },
   /* .divider{height:28px;width:1px;background:#d6dbe1;margin:0 3px} — tightened */
   phoneDivider: {
     width: 1,
     height: 22,
-    backgroundColor: NT.divider,
+    backgroundColor: C.divider,
     marginHorizontal: 3,
   },
   /* .phone-number{flex:1;letter-spacing:.3px} */
@@ -463,7 +446,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.3,
-    color: NT.ink,
+    color: C.dark,
   },
   /* .change{color:var(--green);font-size:15px;font-weight:750;padding:8px 0} */
   changeBtn: {
@@ -475,20 +458,20 @@ const styles = StyleSheet.create({
   changeText: {
     fontSize: 13,
     fontWeight: '700',
-    color: NT.green,
+    color: C.brand,
   },
 
   /* .hint{font-size:14px;line-height:1.4;color:var(--muted);margin:4px 0 18px} */
   hint: {
     fontSize: 12,
     lineHeight: 16,
-    color: NT.muted,
+    color: C.grey,
     marginTop: 2,
     marginBottom: 6,
   },
   apiError: {
     fontSize: 12,
-    color: NT.danger,
+    color: C.danger,
     marginTop: 2,
     marginHorizontal: 2,
   },
@@ -504,7 +487,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    shadowColor: NT.green,
+    shadowColor: C.brand,
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.18,
     shadowRadius: 12,
@@ -519,7 +502,7 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: C.onPrimary,
   },
 
   /* .support{text-align:center;font-size:13px;color:var(--muted);margin:16px 0 0} */
@@ -534,11 +517,11 @@ const styles = StyleSheet.create({
   supportText: {
     fontSize: 12,
     lineHeight: 17,
-    color: NT.muted,
+    color: C.grey,
     flexShrink: 1,
   },
   supportLink: {
-    color: NT.green,
+    color: C.brand,
     fontWeight: '700',
   },
 
@@ -547,7 +530,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     minHeight: 40,
     borderRadius: 20,
-    backgroundColor: NT.mintSoft,
+    backgroundColor: C.pillBg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -557,7 +540,7 @@ const styles = StyleSheet.create({
   },
   secureText: {
     fontSize: 12,
-    color: NT.secureText,
+    color: C.secureText,
   },
 });
 

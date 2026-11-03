@@ -1,7 +1,9 @@
-import React, { ReactNode } from 'react';
+import React, { useMemo, ReactNode } from 'react';
 import { StyleProp, StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '../theme';
+import { radius, spacing } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 
 type SharedProps = {
   title: string;
@@ -28,6 +30,8 @@ type CustomProps = SharedProps & {
 type ProfileFieldProps = TextfieldProps | CustomProps;
 
 const ProfileField: React.FC<ProfileFieldProps> = (props) => {
+  const { base: C, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const fieldContent = props.fieldType === 'textfield'
     ? props.editing && props.onChangeText
       ? (
@@ -37,7 +41,8 @@ const ProfileField: React.FC<ProfileFieldProps> = (props) => {
           autoFocus
           onChangeText={props.onChangeText}
           placeholder={props.placeholder}
-          placeholderTextColor={colors.greyMuted}
+          placeholderTextColor={C.greyMuted}
+          keyboardAppearance={isDark ? 'dark' : 'light'}
         />
       )
       : <Text style={styles.value}>{props.value}</Text>
@@ -51,7 +56,7 @@ const ProfileField: React.FC<ProfileFieldProps> = (props) => {
         <Ionicons
           name={props.fieldEditIcon === 'pencil' ? 'create-outline' : props.fieldEditIcon}
           size={18}
-          color={colors.primary}
+          color={C.primary}
         />
       )}
     </>
@@ -70,7 +75,7 @@ const ProfileField: React.FC<ProfileFieldProps> = (props) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   section: {
     paddingHorizontal: spacing.lg,
     marginTop: spacing.xl,
@@ -83,27 +88,27 @@ const styles = StyleSheet.create({
   },
   titleIcon: {
     marginRight: spacing.sm,
-    color: colors.greyMuted,
+    color: C.greyMuted,
     fontSize: 16,
   },
   title: {
     fontSize: 15,
     fontFamily: 'Google Sans Flex-SemiBold',
     // fontWeight: '600',
-    color: colors.dark,
+    color: C.dark,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.greyLight,
+    backgroundColor: C.greyLight,
     borderRadius: radius.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     gap: spacing.sm,
   },
   value: {
-    color: colors.dark,
+    color: C.dark,
     fontSize: 15,
     fontFamily: 'Inter',
     flex: 1,

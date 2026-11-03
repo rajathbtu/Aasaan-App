@@ -1,7 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, radius } from '../theme';
+import { spacing, radius } from '../theme';
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
 type BannerTheme = 'grey' | 'red' | 'green';
 
@@ -16,10 +18,11 @@ type InfoBannerProps = {
   onDismiss?: () => void;
 };
 
-const themeMap: Record<BannerTheme, { icon: keyof typeof Ionicons.glyphMap; color: string; textColor: string }> = {
-  grey: { icon: 'information-circle', color: colors.grey, textColor: colors.grey },
-  red: { icon: 'alert-circle', color: colors.error, textColor: colors.error },
-  green: { icon: 'checkmark-circle', color: colors.success, textColor: colors.success },
+/** Icons for the flat banner variants — colors come from the active palette. */
+const bannerIcons: Record<BannerTheme, keyof typeof Ionicons.glyphMap> = {
+  grey: 'information-circle',
+  red: 'alert-circle',
+  green: 'checkmark-circle',
 };
 
 /**
@@ -27,6 +30,9 @@ const themeMap: Record<BannerTheme, { icon: keyof typeof Ionicons.glyphMap; colo
  * Render it conditionally at the call site (e.g. `{visible && <InfoBanner ... />}`).
  */
 const InfoBanner: React.FC<InfoBannerProps> = ({ message, style, theme, autoDismissMs, onDismiss }) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+
   useEffect(() => {
     if (!autoDismissMs || !onDismiss) return;
 
@@ -36,7 +42,12 @@ const InfoBanner: React.FC<InfoBannerProps> = ({ message, style, theme, autoDism
 
   if (!message) return null;
 
-  const selectedTheme = theme ? themeMap[theme] : { icon: 'information-circle' as keyof typeof Ionicons.glyphMap, color: colors.primary, textColor: colors.primary };
+  const themeMap: Record<BannerTheme, { icon: keyof typeof Ionicons.glyphMap; color: string; textColor: string }> = {
+    grey: { icon: bannerIcons.grey, color: C.grey, textColor: C.grey },
+    red: { icon: bannerIcons.red, color: C.error, textColor: C.error },
+    green: { icon: bannerIcons.green, color: C.success, textColor: C.success },
+  };
+  const selectedTheme = theme ? themeMap[theme] : { icon: bannerIcons.grey, color: C.primary, textColor: C.primary };
   const isFlatTheme = Boolean(theme);
 
   return (
@@ -47,17 +58,17 @@ const InfoBanner: React.FC<InfoBannerProps> = ({ message, style, theme, autoDism
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primarySoft,
+    backgroundColor: C.primarySoft,
     borderWidth: 1,
-    borderColor: colors.primaryBorder,
+    borderColor: C.primaryBorder,
     borderRadius: radius.lg,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    shadowColor: colors.primary,
+    shadowColor: C.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
@@ -79,7 +90,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   infoBannerText: {
-    color: colors.primary,
+    color: C.primary,
     fontSize: 12,
     fontWeight: '700',
     marginLeft: 8,

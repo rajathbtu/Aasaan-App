@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -9,11 +9,14 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radius, spacing } from '../theme';
+import { radius, spacing } from '../theme';
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
-const darkenColor = (color: string, amount = 0.14) => {
+/** Darkens a #rrggbb string by `amount`; returns null when unparseable. */
+const darkenColor = (color: string, amount = 0.14): string | null => {
   const hex = (color || '').replace('#', '');
-  if (!/^[\da-f]{6}$/i.test(hex)) return colors.greyBorder;
+  if (!/^[\da-f]{6}$/i.test(hex)) return null;
 
   const channels = [0, 2, 4].map((offset) =>
     Math.round(parseInt(hex.slice(offset, offset + 2), 16) * (1 - amount))
@@ -46,9 +49,9 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   buttonIcon,
   buttonSubTitle,
   showRightArrow = false,
-  buttonTitleColor = colors.dark,
-  buttonSubtitleColor = colors.grey,
-  backgroundColor = colors.white,
+  buttonTitleColor,
+  buttonSubtitleColor,
+  backgroundColor,
   onPress,
   disabled = false,
   loading = false,
@@ -56,13 +59,21 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   trailing,
   style,
 }) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const isInactive = disabled || loading;
+
+  /* Themed defaults — explicitly passed colors keep working unchanged. */
+  const titleColor = buttonTitleColor ?? C.dark;
+  const subtitleColor = buttonSubtitleColor ?? C.grey;
+  const bg = backgroundColor ?? C.white;
+  const borderColor = darkenColor(bg) ?? C.greyBorder;
 
   return (
     <TouchableOpacity
       style={[
         styles.button,
-        { backgroundColor, borderColor: darkenColor(backgroundColor) },
+        { backgroundColor: bg, borderColor },
         fullWidth && styles.fullWidth,
         isInactive && styles.inactive,
         style,
@@ -73,23 +84,23 @@ const ActionButton: React.FC<ActionButtonProps> = ({
       accessibilityRole="button"
       accessibilityState={{ disabled: isInactive, busy: loading }}>
       {loading ? (
-        <ActivityIndicator color={buttonTitleColor} />
+        <ActivityIndicator color={titleColor} />
       ) : buttonIcon ? (
-        <Ionicons name={buttonIcon} size={18} color={buttonTitleColor} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"/>
+        <Ionicons name={buttonIcon} size={18} color={titleColor} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"/>
       ) : null}
       <View style={styles.textContainer}>
-        <Text numberOfLines={1} style={[styles.title, { color: buttonTitleColor }]}>{buttonTitle}</Text>
+        <Text numberOfLines={1} style={[styles.title, { color: titleColor }]}>{buttonTitle}</Text>
         {buttonSubTitle ? (
-          <Text numberOfLines={2} style={[styles.subtitle, { color: buttonSubtitleColor }]}>{buttonSubTitle}</Text>
+          <Text numberOfLines={2} style={[styles.subtitle, { color: subtitleColor }]}>{buttonSubTitle}</Text>
         ) : null}
       </View>
-      {showRightArrow ? (<Ionicons name="chevron-forward" size={16} color={buttonTitleColor} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"/>) : null}
+      {showRightArrow ? (<Ionicons name="chevron-forward" size={16} color={titleColor} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"/>) : null}
       {trailing}
     </TouchableOpacity>
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -101,7 +112,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignSelf: 'flex-start',
     minWidth: 0,
-    shadowColor: '#000',
+    shadowColor: C.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
     shadowRadius: 2,

@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StyleProp, StyleSheet, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { consumerColors, consumerTypography } from '../theme';
+import { consumerTypography } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import type { ConsumerPalette } from '../theme/palette';
 
 type ServicesSearchBarProps = {
   value: string;
@@ -20,6 +22,8 @@ const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
   style,
   inputRef,
 }) => {
+  const { consumer: C, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const hasRotatingPlaceholders = placeholders.length > 0;
 
@@ -39,37 +43,38 @@ const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
 
   return (
     <View style={[styles.wrapper, style]}>
-      <Ionicons name="search" size={24} color={consumerColors.muted} style={styles.searchIcon} />
+      <Ionicons name="search" size={24} color={C.muted} style={styles.searchIcon} />
       <TextInput
         ref={inputRef}
         style={styles.input}
         placeholder={currentPlaceholder}
-        placeholderTextColor="#929ba6"
+        placeholderTextColor={C.muted}
+        keyboardAppearance={isDark ? 'dark' : 'light'}
         value={value}
         onChangeText={onChangeText}
-        selectionColor={consumerColors.primary}
+        selectionColor={C.primary}
       />
       {value.trim() !== '' && (
         <TouchableOpacity style={styles.resetButton} hitSlop={10} onPress={() => onChangeText('')}>
-          <Ionicons name="close-circle" size={20} color={consumerColors.muted} />
+          <Ionicons name="close-circle" size={20} color={C.muted} />
         </TouchableOpacity>
       )}
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: ConsumerPalette) => StyleSheet.create({
   wrapper: {
     height: 58,
-    backgroundColor: consumerColors.white,
+    backgroundColor: C.white,
     borderWidth: 1,
-    borderColor: '#edf2ef',
+    borderColor: C.border,
     borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 17,
-    shadowColor: '#1a4331',
+    shadowColor: C.shadowTint,
     shadowOffset: { width: 0, height: 7 },
     shadowOpacity: 0.10,
     shadowRadius: 20,
@@ -81,7 +86,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     minWidth: 0,
-    color: consumerColors.ink,
+    color: C.ink,
     fontSize: consumerTypography.searchInput.fontSize,
     paddingVertical: 0,
   },

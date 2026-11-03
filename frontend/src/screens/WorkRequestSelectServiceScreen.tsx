@@ -11,15 +11,16 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing } from '../theme';
-import { consumerColors, consumerFonts } from '../theme';
+import { useAuth } from '../contexts/AuthContext';
+import { useNotificationCount } from '../contexts/NotificationCountContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { consumerFonts, spacing } from '../theme';
+import type { BasePalette } from '../theme/palette';
 import ErrorBanner from '../components/ErrorBanner';
 import type { Location } from '../components/LocationSearch';
 import { Service, useServiceCatalog } from '../components/ServiceSelection';
 import ServicesSearchBar from '../components/ServicesSearchBar';
 import { useI18n } from '../i18n';
-import { useAuth } from '../contexts/AuthContext';
-import { useNotificationCount } from '../contexts/NotificationCountContext';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { locationManager } from '../services/LocationManager';
 import { reverseGeocode } from '../services/googlePlacesApi';
@@ -66,12 +67,8 @@ const toSavedLocation = (loc: any): Location | null => {
 };
 
 /* Icon + card tokens copied from SPSelectServicesScreen so both flows
-   render service cards identically. */
-const SS = {
-  green: '#079B5C',
-  cardBorder: '#E3E8E5',
-  serviceName: '#101714',
-} as const;
+   render service cards identically (mapped to the shared base palette:
+   green→brand, cardBorder→cardBorder, serviceName→serviceName). */
 
 /* Real catalogue service ids → handoff SVG icons (SPSelectServicesScreen map). */
 const SERVICE_ICON_MAP: Record<string, string> = {
@@ -137,6 +134,8 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { t } = useI18n();
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { unreadCount } = useNotificationCount();
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(insets.top, StatusBar.currentHeight ?? 0);
@@ -312,12 +311,12 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
         accessibilityLabel={service.name}>
         <View style={styles.serviceIconWrap}>
           {svgIcon ? (
-            <SvgIcon name={svgIcon as any} size={34} color={SS.green} />
+            <SvgIcon name={svgIcon as any} size={34} color={C.brand} />
           ) : (
             <Ionicons
               name={(service.icon && (Ionicons as any).glyphMap[service.icon] ? service.icon : 'construct') as any}
               size={32}
-              color={SS.green}
+              color={C.brand}
             />
           )}
         </View>
@@ -337,9 +336,9 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel={`${headerLocationLabel}, change location`}>
-            <SvgIcon name="pin" size={18} color="#263638" />
+            <SvgIcon name="pin" size={18} color={C.radiusBtnText} />
             <Text style={styles.locationText}>{headerLocationLabel}</Text>
-            <SvgIcon name="chevron-down" size={14} color={consumerColors.primary} />
+            <SvgIcon name="chevron-down" size={14} color={C.brand} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.bellButton}
@@ -347,7 +346,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}>
-            <SvgIcon name="bell" size={24} color={colors.dark} />
+            <SvgIcon name="bell" size={24} color={C.dark} />
             {unreadCount > 0 && (
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationBadgeText}>
@@ -411,7 +410,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
                 activeOpacity={0.75}
                 accessibilityRole="button"
                 accessibilityState={{ selected: selectedChip === 'all' }}>
-                <SvgIcon name="grid" size={18} color={consumerColors.primary} />
+                <SvgIcon name="grid" size={18} color={C.brand} />
                 <Text style={[styles.chipLabel, selectedChip === 'all' && styles.chipLabelActive]}>
                   All
                 </Text>
@@ -426,7 +425,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
                     activeOpacity={0.75}
                     accessibilityRole="button"
                     accessibilityState={{ selected: active }}>
-                    <SvgIcon name={categoryIcon(category) as any} size={18} color={consumerColors.primary} />
+                    <SvgIcon name={categoryIcon(category) as any} size={18} color={C.brand} />
                     <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>
                       {category}
                     </Text>
@@ -440,7 +439,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
         {!hasData && (
           <View style={styles.loadingState}>
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator color={C.primary} />
             <Text style={styles.loadingText}>Loading services...</Text>
           </View>
         )}
@@ -503,16 +502,17 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) =>
+  StyleSheet.create({
   // -- Container --
   container: {
     flex: 1,
-    backgroundColor: consumerColors.page,
+    backgroundColor: C.canvas,
   },
 
   // -- Header --
   header: {
-    backgroundColor: consumerColors.page,
+    backgroundColor: C.canvas,
   },
   headerRow: {
     flexDirection: 'row',
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   locationText: {
-    color: '#263638',
+    color: C.radiusBtnText,
     fontSize: 15.5,
     fontFamily: consumerFonts.bold,
     flexShrink: 1,
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: consumerColors.mint,
+    backgroundColor: C.backBg,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -551,15 +551,15 @@ const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: consumerColors.primary,
+    backgroundColor: C.brand,
     borderWidth: 1,
-    borderColor: consumerColors.white,
+    borderColor: C.white,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
   },
   notificationBadgeText: {
-    color: consumerColors.white,
+    color: C.onPrimary,
     fontSize: 10,
     fontWeight: '700',
     fontFamily: consumerFonts.bold,
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   heroTitle: {
-    color: colors.dark,
+    color: C.dark,
     fontSize: 24,
     fontFamily: consumerFonts.bold,
     fontWeight: '800',
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   heroSubtitle: {
-    color: consumerColors.muted,
+    color: C.grey,
     fontSize: 14.5,
     fontFamily: consumerFonts.regular,
     lineHeight: 20,
@@ -624,8 +624,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     borderWidth: 1,
-    borderColor: consumerColors.border,
-    backgroundColor: consumerColors.white,
+    borderColor: C.headerBorder,
+    backgroundColor: C.white,
     borderRadius: 999,
     paddingVertical: 9,
     paddingHorizontal: 14,
@@ -636,16 +636,16 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   chipActive: {
-    backgroundColor: consumerColors.selectedMint,
-    borderColor: consumerColors.selectedMint,
+    backgroundColor: C.mintStrong,
+    borderColor: C.mintStrong,
   },
   chipLabel: {
-    color: consumerColors.ink,
+    color: C.dark,
     fontSize: 14,
     fontFamily: consumerFonts.regular,
   },
   chipLabelActive: {
-    color: '#087f50',
+    color: C.labelGreen,
     fontFamily: consumerFonts.bold,
   },
 
@@ -663,19 +663,19 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   sectionTitle: {
-    color: consumerColors.ink,
+    color: C.dark,
     fontSize: 19,
     fontFamily: consumerFonts.bold,
     letterSpacing: -0.4,
   },
   viewAll: {
-    backgroundColor: '#e1f8ed',
+    backgroundColor: C.greenSoft,
     borderRadius: 999,
     paddingVertical: 8,
     paddingHorizontal: 13,
   },
   viewAllText: {
-    color: '#087e50',
+    color: C.labelGreen,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -686,9 +686,9 @@ const styles = StyleSheet.create({
   // -- Service card — exact SPSelectServicesScreen three-column spec --
   serviceCard: {
     borderWidth: 1,
-    borderColor: SS.cardBorder,
+    borderColor: C.cardBorder,
     borderRadius: 19,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     alignItems: 'center',
     justifyContent: 'flex-start',
     gap: 6,
@@ -716,7 +716,7 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     lineHeight: 15.5,
     fontWeight: '500',
-    color: SS.serviceName,
+    color: C.serviceName,
     textAlign: 'center',
     alignSelf: 'stretch',
   },
@@ -736,10 +736,10 @@ const styles = StyleSheet.create({
     width: 4,
     height: 20,
     borderRadius: 4,
-    backgroundColor: '#10b879',
+    backgroundColor: C.brandBright,
   },
   groupTitle: {
-    color: consumerColors.ink,
+    color: C.dark,
     fontSize: 17,
     fontFamily: consumerFonts.bold,
   },
@@ -755,7 +755,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxl,
   },
   loadingText: {
-    color: colors.grey,
+    color: C.grey,
     marginTop: spacing.sm,
     fontSize: 14,
   },
@@ -764,7 +764,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   emptyText: {
-    color: consumerColors.muted,
+    color: C.grey,
     fontSize: 15,
     textAlign: 'center',
   },

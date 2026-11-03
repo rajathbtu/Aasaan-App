@@ -1,5 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
 type EdgeLoaderProps = {
   height?: number;
@@ -14,12 +16,19 @@ type EdgeLoaderProps = {
 const EdgeLoader: React.FC<EdgeLoaderProps> = ({
   height = 4,
   barWidth = 140,
-  trackColor = '#d9f5f5',
-  barColor = '#4dd0e1',
+  trackColor,
+  barColor,
   duration = 900,
   visible = true,
   style,
 }) => {
+  /* Themed defaults — explicit trackColor/barColor props keep working.
+     No cyan tokens exist, so the legacy cyan defaults map to the mint
+     (primaryLight track / primary bar) family. */
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  const track = trackColor ?? C.primaryLight;
+  const bar = barColor ?? C.primary;
   const translateX = useRef(new Animated.Value(-320)).current;
 
   useEffect(() => {
@@ -52,14 +61,14 @@ const EdgeLoader: React.FC<EdgeLoaderProps> = ({
   }
 
   return (
-    <View style={[styles.track, { height, backgroundColor: trackColor }, style]}>
+    <View style={[styles.track, { height, backgroundColor: track }, style]}>
       <Animated.View
         style={[
           styles.bar,
           {
             width: barWidth,
-            backgroundColor: barColor,
-            shadowColor: barColor,
+            backgroundColor: bar,
+            shadowColor: bar,
             transform: [{ translateX }],
           },
         ]}
@@ -68,7 +77,7 @@ const EdgeLoader: React.FC<EdgeLoaderProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   track: {
     width: '100%',
     overflow: 'hidden',

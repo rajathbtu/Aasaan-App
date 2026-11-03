@@ -1,7 +1,9 @@
-import React, { type ComponentProps } from 'react';
+import React, { useMemo, type ComponentProps } from 'react';
 import { Text, TouchableOpacity, View, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { consumerColors, consumerFonts } from '../theme';
+import { consumerFonts } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import type { ConsumerPalette } from '../theme/palette';
 import SvgIcon from '../assets/icons';
 
 export type SegmentedTab = {
@@ -25,58 +27,62 @@ type SegmentedTabsProps = {
  * white count badge tinted deep green; the idle tab shows its icon/label
  * in ink with a plain white circular count badge.
  */
-const SegmentedTabs: React.FC<SegmentedTabsProps> = ({ tabs, activeKey, onChange }) => (
-  <View style={styles.container}>
-    {tabs.map((tab) => {
-      const active = tab.key === activeKey;
-      const content = (
-        <>
-          {tab.icon ? (
-            <SvgIcon name={tab.icon} size={18} color={active ? consumerColors.white : '#172033'} />
-          ) : null}
-          <Text style={[styles.label, active && styles.labelActive]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
-            {tab.label}
-          </Text>
-          {tab.count !== undefined && (
-            <View style={styles.countBadge}>
-              <Text style={[styles.countText, active && styles.countTextActive]}>{tab.count}</Text>
-            </View>
-          )}
-        </>
-      );
-      return (
-        <TouchableOpacity
-          key={tab.key}
-          style={styles.button}
-          onPress={() => onChange(tab.key)}
-          activeOpacity={0.85}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: active }}
-        >
-          {active ? (
-            <LinearGradient
-              colors={[consumerColors.tabActiveStart, consumerColors.tabActiveEnd]}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={styles.buttonSurface as StyleProp<ViewStyle>}
-            >
-              {content}
-            </LinearGradient>
-          ) : (
-            <View style={[styles.buttonSurface, styles.buttonSurfaceIdle]}>
-              {content}
-            </View>
-          )}
-        </TouchableOpacity>
-      );
-    })}
-  </View>
-);
+const SegmentedTabs: React.FC<SegmentedTabsProps> = ({ tabs, activeKey, onChange }) => {
+  const { consumer: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  return (
+    <View style={styles.container}>
+      {tabs.map((tab) => {
+        const active = tab.key === activeKey;
+        const content = (
+          <>
+            {tab.icon ? (
+              <SvgIcon name={tab.icon} size={18} color={active ? C.onPrimary : C.ink} />
+            ) : null}
+            <Text style={[styles.label, active && styles.labelActive]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+              {tab.label}
+            </Text>
+            {tab.count !== undefined && (
+              <View style={styles.countBadge}>
+                <Text style={[styles.countText, active && styles.countTextActive]}>{tab.count}</Text>
+              </View>
+            )}
+          </>
+        );
+        return (
+          <TouchableOpacity
+            key={tab.key}
+            style={styles.button}
+            onPress={() => onChange(tab.key)}
+            activeOpacity={0.85}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+          >
+            {active ? (
+              <LinearGradient
+                colors={[C.tabActiveStart, C.tabActiveEnd]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={styles.buttonSurface as StyleProp<ViewStyle>}
+              >
+                {content}
+              </LinearGradient>
+            ) : (
+              <View style={[styles.buttonSurface, styles.buttonSurfaceIdle]}>
+                {content}
+              </View>
+            )}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+};
 
-const styles = StyleSheet.create({
+const makeStyles = (C: ConsumerPalette) => StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: consumerColors.tabTrack,
+    backgroundColor: C.tabTrack,
     borderRadius: 40,
     padding: 5,
     gap: 5,
@@ -100,29 +106,29 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13.5,
     fontFamily: consumerFonts.semibold,
-    color: '#172033',
+    color: C.ink,
     flexShrink: 1,
   },
   labelActive: {
     fontFamily: consumerFonts.bold,
-    color: consumerColors.white,
+    color: C.onPrimary,
   },
   countBadge: {
     minWidth: 30,
     height: 30,
     borderRadius: 15,
     paddingHorizontal: 6,
-    backgroundColor: consumerColors.white,
+    backgroundColor: C.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
   countText: {
     fontSize: 14,
     fontFamily: consumerFonts.bold,
-    color: '#172033',
+    color: C.ink,
   },
   countTextActive: {
-    color: consumerColors.tabActiveEnd,
+    color: C.tabActiveEnd,
   },
 });
 

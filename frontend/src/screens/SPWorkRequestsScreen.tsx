@@ -17,7 +17,9 @@ import {
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { acceptWorkRequest, listWorkRequests, undoAccept } from '../api';
 import { useAuth } from '../contexts/AuthContext';
-import { colors, spacing } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
+import { spacing } from '../theme';
 import { useI18n } from '../i18n';
 import { useToast } from '../contexts/ToastContext';
 import Header from '../components/Header';
@@ -33,11 +35,6 @@ import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/o
 import { buildTimeAgo, getDistanceKm } from '../utils/commonUtils';
 import Spinner from '../components/Spinner';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-/* Palette (styles.css :root) */
-const GREEN = '#078b42';
-const LINE = '#e7ebee';
-const DIVIDER = '#edf0f2';
 
 /** Tag chip → icon mapping. First tag renders as the blue "service" tag. */
 const TAG_CONFIG: Record<string, string> = {
@@ -225,6 +222,8 @@ const SPWorkRequestsScreen: React.FC = () => {
   const route = useRoute<any>();
   const { t, lang } = useI18n();
   const { showToast } = useToast();
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const timeAgo = buildTimeAgo(t);
   const [requests, setRequests] = useState<any[]>([]);
   const requestsRef = useRef(requests);
@@ -502,9 +501,9 @@ const SPWorkRequestsScreen: React.FC = () => {
             style={[styles.filterChip, active && styles.filterChipActive]}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}>
-            <SvgIcon name={icon} size={16} color={GREEN} />
+            <SvgIcon name={icon} size={16} color={C.brand} />
             <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>{t(labelKey)}</Text>
-            <SvgIcon name="chevron-down" size={12} color={colors.dark} />
+            <SvgIcon name="chevron-down" size={12} color={C.dark} />
           </TouchableOpacity>
         );
       })}
@@ -512,7 +511,7 @@ const SPWorkRequestsScreen: React.FC = () => {
         style={styles.filterMore}
         accessibilityRole="button"
         accessibilityLabel={t('spRequests.moreFilters')}>
-        <SvgIcon name="sliders" size={20} color={colors.dark} />
+        <SvgIcon name="sliders" size={20} color={C.dark} />
       </TouchableOpacity>
     </View>
   );
@@ -557,20 +556,20 @@ const SPWorkRequestsScreen: React.FC = () => {
               <View style={styles.metaRow}>
                 {distanceLabel && (
                   <View style={styles.metaItem}>
-                    <SvgIcon name="pin" size={14} color={colors.dark} />
+                    <SvgIcon name="pin" size={14} color={C.dark} />
                     <Text style={styles.metaText}>{distanceLabel}</Text>
                   </View>
                 )}
                 {distanceLabel && <View style={styles.metaBar} />}
                 <View style={styles.metaItem}>
-                  <SvgIcon name="clock" size={14} color={colors.dark} />
+                  <SvgIcon name="clock" size={14} color={C.dark} />
                   <Text style={styles.metaText}>{timeLabel}</Text>
                 </View>
               </View>
             </View>
             {accepted && (
               <View style={styles.interestedBadge}>
-                <SvgIcon name="check" size={11} color="#087b32" />
+                <SvgIcon name="check" size={11} color={C.brand} />
                 <Text style={styles.interestedBadgeText}>{t('spRequests.acceptedChip')}</Text>
               </View>
             )}
@@ -579,7 +578,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           {/* .location-bar — address + navigate */}
           <View style={styles.locationBar}>
             <View style={styles.locationBarPin}>
-              <SvgIcon name="pin" size={21} color={GREEN} />
+              <SvgIcon name="pin" size={21} color={C.brand} />
             </View>
             <Text style={styles.address} numberOfLines={1}>{translatedLocation}</Text>
             <TouchableOpacity
@@ -587,7 +586,7 @@ const SPWorkRequestsScreen: React.FC = () => {
               onPress={() => handleNavigate(item)}
               accessibilityRole="button"
               accessibilityLabel={t('spRequests.navigate')}>
-              <SvgIcon name="navigation" size={18} color={GREEN} />
+              <SvgIcon name="navigation" size={18} color={C.brand} />
             </TouchableOpacity>
           </View>
 
@@ -596,7 +595,7 @@ const SPWorkRequestsScreen: React.FC = () => {
             <View style={styles.tagsRow}>
               {tags.map((tag: string) => (
                 <View key={tag} style={styles.tag}>
-                  <SvgIcon name={(TAG_CONFIG[tag] || 'wrench') as any} size={15} color={GREEN} />
+                  <SvgIcon name={(TAG_CONFIG[tag] || 'wrench') as any} size={15} color={C.brand} />
                   <Text style={styles.tagText}>{tag}</Text>
                 </View>
               ))}
@@ -622,7 +621,7 @@ const SPWorkRequestsScreen: React.FC = () => {
               onPress={() => handleCall(item)}
               accessibilityRole="button"
               accessibilityLabel={t('spRequests.call')}>
-              <SvgIcon name="phone" size={16} color={canCallCustomer ? colors.dark : colors.greyMuted} />
+              <SvgIcon name="phone" size={16} color={canCallCustomer ? C.dark : C.greyMuted} />
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.action, styles.actionInterest]}
@@ -635,10 +634,10 @@ const SPWorkRequestsScreen: React.FC = () => {
               accessibilityRole="button"
               accessibilityLabel={t('spRequests.accept')}>
               {processing ? (
-                <ActivityIndicator size="small" color={colors.white} />
+                <ActivityIndicator size="small" color={C.onPrimary} />
               ) : (
                 <>
-                  <SvgIcon name="check" size={16} color={colors.white} />
+                  <SvgIcon name="check" size={16} color={C.onPrimary} />
                   <Text style={styles.actionTextInterest}>{t('spRequests.accept')}</Text>
                 </>
               )}
@@ -658,9 +657,9 @@ const SPWorkRequestsScreen: React.FC = () => {
         activeOpacity={0.7}
         accessibilityRole="button"
         accessibilityLabel={t('spRequests.changeLocation')}>
-        <SvgIcon name="pin" size={17} color={colors.dark} />
+        <SvgIcon name="pin" size={17} color={C.dark} />
         <Text style={styles.locationText} numberOfLines={1}>{userLocationName}</Text>
-        <SvgIcon name="chevron-down" size={13} color={colors.dark} />
+        <SvgIcon name="chevron-down" size={13} color={C.dark} />
       </TouchableOpacity>
       {/* .filters — sticky on scroll */}
       {tab !== 'closed' && (
@@ -676,7 +675,7 @@ const SPWorkRequestsScreen: React.FC = () => {
 
   if (loading && requests.length === 0 && !USE_TEMP_DUMMY_REQUESTS) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={{ flex: 1, backgroundColor: C.background }}>
         <Header title="aasaanly" showBackButton={false} showNotification={true} showProfileButton={true} titleStyle={styles.logo} />
         <View style={styles.container}><SkeletonLoader count={4} /></View>
       </View>
@@ -686,7 +685,7 @@ const SPWorkRequestsScreen: React.FC = () => {
   const listPaddingBottom = bottomNavHeight + safeBottom + (bannerExpanded ? 188 : 62);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: C.background }}>
       <Header
         title="aasaanly"
         showBackButton={false}
@@ -707,7 +706,7 @@ const SPWorkRequestsScreen: React.FC = () => {
               description={t(tab === 'closed' ? 'spRequests.emptyClosedHint' : tab === 'accepted' ? 'spRequests.emptyHintAccepted' : 'spRequests.emptyHint')} />
           )}
           refreshControl={(
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={GREEN} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.brand} />
           )}
           onScroll={onScroll}
           scrollEventThrottle={16}
@@ -745,7 +744,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           onPress={() => { setTab('all'); listRef.current?.scrollToOffset({ offset: 0, animated: true }); }}
           accessibilityRole="button"
           accessibilityLabel={t('spRequests.allTab')}>
-          <SvgIcon name="home" size={23} color={tab === 'all' ? GREEN : colors.dark} />
+          <SvgIcon name="home" size={23} color={tab === 'all' ? C.brand : C.dark} />
           <Text style={[styles.bottomTabLabel, tab === 'all' && styles.bottomTabLabelActive]}>{t('spRequests.allTab')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -754,7 +753,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel={t('spRequests.acceptedTab')}>
           <View style={styles.bottomTabIconWrap}>
-            <SvgIcon name="bookmark" size={23} color={tab === 'accepted' ? GREEN : colors.dark} />
+            <SvgIcon name="bookmark" size={23} color={tab === 'accepted' ? C.brand : C.dark} />
             {acceptedCount > 0 && (
               <View style={styles.bottomTabIconCount}>
                 <Text style={styles.bottomTabIconCountText}>{acceptedCount > 9 ? '9+' : acceptedCount}</Text>
@@ -772,7 +771,7 @@ const SPWorkRequestsScreen: React.FC = () => {
           }}
           accessibilityRole="button"
           accessibilityLabel={t('spRequests.closedTab')}>
-          <SvgIcon name="closed" size={23} color={tab === 'closed' ? GREEN : colors.dark} />
+          <SvgIcon name="closed" size={23} color={tab === 'closed' ? C.brand : C.dark} />
           <Text style={[styles.bottomTabLabel, tab === 'closed' && styles.bottomTabLabelActive]}>{t('spRequests.closedTab')}</Text>
         </TouchableOpacity>
       </View>
@@ -781,8 +780,8 @@ const SPWorkRequestsScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+const makeStyles = (C: BasePalette) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: C.background },
   /* Brand word in the splash wordmark style — Quicksand letterforms and the
      splash green come from Header's brandTitle treatment. */
   logo: { fontSize: 25, letterSpacing: -0.8 },
@@ -794,9 +793,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
   },
-  locationText: { fontSize: 13, fontWeight: 700, color: colors.dark, flexShrink: 1 },
+  locationText: { fontSize: 13, fontWeight: 700, color: C.dark, flexShrink: 1 },
 
   /* .filters{height:59px;padding:8px 13px;display:flex;gap:7px} */
   filterRow: {
@@ -806,7 +805,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     shadowColor: '#101820',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.05,
@@ -821,8 +820,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 7,
     borderWidth: 1,
-    borderColor: '#eef0f2',
-    backgroundColor: colors.white,
+    borderColor: C.headerBorder,
+    backgroundColor: C.white,
     borderRadius: 999,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
@@ -830,17 +829,17 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 1,
   },
-  filterChipActive: { borderColor: GREEN, backgroundColor: '#e8f9ee' },
-  filterChipText: { fontSize: 12, fontWeight: 700, color: colors.dark },
-  filterChipTextActive: { color: GREEN },
+  filterChipActive: { borderColor: C.brand, backgroundColor: C.backBg },
+  filterChipText: { fontSize: 12, fontWeight: 700, color: C.dark },
+  filterChipTextActive: { color: C.brand },
   /* .filter-more{width:40px;height:39px;border-radius:50%;margin-left:auto} */
   filterMore: {
     width: 40,
     height: 39,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#edf0f2',
-    backgroundColor: colors.white,
+    borderColor: C.headerBorder,
+    backgroundColor: C.white,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 'auto',
@@ -860,14 +859,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  pageTitle: { fontSize: 13, fontWeight: 800, color: '#68737d' },
-  pageTitleCount: { fontSize: 13, fontWeight: 500, color: '#87919a' },
+  pageTitle: { fontSize: 13, fontWeight: 800, color: C.grey },
+  pageTitleCount: { fontSize: 13, fontWeight: 500, color: C.searchPlaceholder },
 
   /* .card{background:#fff;border:1px solid #e7ebee;border-radius:20px;padding:13px 12px 11px;margin:0 0 12px;box-shadow:0 3px 12px #1b2a3810} */
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderWidth: 1,
-    borderColor: LINE,
+    borderColor: C.cardBorder,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingTop: 13,
@@ -879,8 +878,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
   },
-  cardAccepted: { borderColor: '#bbf7d0' },
-  cardHighlighted: { borderColor: '#f59e0b', borderWidth: 2 },
+  cardAccepted: { borderColor: C.currentLocBorder },
+  cardHighlighted: { borderColor: C.amber, borderWidth: 2 },
 
   /* Compact 9:16 scale — image/title/meta share one proportional scale */
   cardTop: {
@@ -892,7 +891,7 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 16,
-    backgroundColor: '#e3f7fc',
+    backgroundColor: C.infoLight,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 3,
@@ -903,21 +902,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 19,
     fontWeight: '800',
-    color: colors.dark,
+    color: C.dark,
     letterSpacing: -0.3,
     marginBottom: 5,
   },
-  category: { fontSize: 12, color: '#53606c', marginBottom: 6 },
+  category: { fontSize: 12, color: C.grey, marginBottom: 6 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  metaText: { fontSize: 11.5, color: '#303d48' },
-  metaBar: { height: 15, width: 1, backgroundColor: '#b8c0c8', marginHorizontal: 2 },
+  metaText: { fontSize: 11.5, color: C.dark },
+  metaBar: { height: 15, width: 1, backgroundColor: C.radioBorder, marginHorizontal: 2 },
 
   interestedBadge: {
     position: 'absolute',
     right: 0,
     top: 0,
-    backgroundColor: '#e5f9e9',
+    backgroundColor: C.backBg,
     borderRadius: 999,
     paddingHorizontal: 9,
     paddingVertical: 6,
@@ -931,13 +930,13 @@ const styles = StyleSheet.create({
     elevation: 2,
     zIndex: 2,
   },
-  interestedBadgeText: { fontSize: 10.5, fontWeight: '800', color: '#087b32' },
+  interestedBadgeText: { fontSize: 10.5, fontWeight: '800', color: C.brand },
 
   /* .location-bar — 48px row, 13.5px address */
   locationBar: {
     minHeight: 48,
     marginTop: 11,
-    backgroundColor: '#e8f9ed',
+    backgroundColor: C.backBg,
     borderRadius: 13,
     paddingTop: 2,
     paddingBottom: 2,
@@ -949,14 +948,14 @@ const styles = StyleSheet.create({
   },
   /* .location-bar .pin */
   locationBarPin: { width: 24, height: 26, alignItems: 'center', justifyContent: 'center' },
-  address: { fontSize: 13.5, lineHeight: 17, fontWeight: '800', color: colors.dark, flex: 1, minWidth: 0 },
+  address: { fontSize: 13.5, lineHeight: 17, fontWeight: '800', color: C.dark, flex: 1, minWidth: 0 },
   /* .navigate — 34px circle */
   /* .navigate{width:38px;height:38px;border-radius:50%;background:#e0f8e8} */
   navigateBtn: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#e0f8e8',
+    backgroundColor: C.greenSoft,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -968,9 +967,9 @@ const styles = StyleSheet.create({
     height: 34,
     paddingHorizontal: 10,
     borderRadius: 999,
-    backgroundColor: '#f0f8f5',
+    backgroundColor: C.selectedBg,
     borderWidth: 1,
-    borderColor: '#edf3f0',
+    borderColor: C.headerBorder,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -980,10 +979,10 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
-  tagText: { fontSize: 11.5, fontWeight: '600', color: colors.dark },
+  tagText: { fontSize: 11.5, fontWeight: '600', color: C.dark },
 
   /* .card-divider{height:1px;background:#edf0f2;margin:0 0 10px} */
-  cardDivider: { height: 1, backgroundColor: DIVIDER, marginBottom: 10 },
+  cardDivider: { height: 1, backgroundColor: C.headerBorder, marginBottom: 10 },
 
   /* .customer-actions{display:grid;grid-template-columns:minmax(0,1fr) 1px 0.76fr 1.34fr;gap:8px;align-items:center} */
   customerActions: {
@@ -997,16 +996,16 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: '#e5edf8',
+    backgroundColor: C.infoLight,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     flexShrink: 0,
   },
   customerInfo: { flex: 1, minWidth: 0 },
-  customerName: { fontSize: 13.5, fontWeight: '800', color: colors.dark, lineHeight: 16 },
-  customerRole: { fontSize: 11.5, color: '#354354', marginTop: 3 },
-  verticalDivider: { width: 1, height: 36, backgroundColor: '#e6eaee' },
+  customerName: { fontSize: 13.5, fontWeight: '800', color: C.dark, lineHeight: 16 },
+  customerRole: { fontSize: 11.5, color: C.dark, marginTop: 3 },
+  verticalDivider: { width: 1, height: 36, backgroundColor: C.greyLight },
   /* .action{height:43px;border-radius:12px;font-size:13px;font-weight:800;gap:6px} */
   action: {
     height: 42,
@@ -1022,29 +1021,29 @@ const styles = StyleSheet.create({
     width: 42,
     flexGrow: 0,
     flexShrink: 0,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderWidth: 1,
-    borderColor: '#e0e5e9',
+    borderColor: C.greyLight,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 5,
     elevation: 1,
   },
-  actionCallDisabled: { backgroundColor: '#f4f5f6' },
+  actionCallDisabled: { backgroundColor: C.field },
   /* .interest{background:linear-gradient(110deg,#079b42,#008b38);border:1px solid #078a3d;color:#fff;flex:1.34} */
   actionInterest: {
     flex: 1.8,
-    backgroundColor: GREEN,
+    backgroundColor: C.brand,
     borderWidth: 1,
-    borderColor: '#078a3d',
+    borderColor: C.secondary,
     shadowColor: '#008d3a',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.16,
     shadowRadius: 5,
     elevation: 2,
   },
-  actionTextInterest: { fontSize: 12.5, fontWeight: '800', color: colors.white },
+  actionTextInterest: { fontSize: 12.5, fontWeight: '800', color: C.onPrimary },
 
   /* .pro-banner positioning */
   floatingBanner: {
@@ -1060,7 +1059,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     shadowColor: '#101820',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.05,
@@ -1084,9 +1083,9 @@ const styles = StyleSheet.create({
     paddingTop: 7,
     paddingBottom: 10,
     paddingHorizontal: 12,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderTopWidth: 1,
-    borderTopColor: '#edf0f2',
+    borderTopColor: C.headerBorder,
     zIndex: 35,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1101,24 +1100,24 @@ const styles = StyleSheet.create({
     minWidth: 17,
     height: 17,
     borderRadius: 9,
-    backgroundColor: '#b9efc9',
+    backgroundColor: C.mintStrong,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    borderColor: C.white,
   },
   bottomTabIconCountText: {
     fontSize: 10,
     fontWeight: '800',
     lineHeight: 13,
     textAlign: 'center',
-    color: '#087b32',
+    color: C.brand,
   },
   /* .tab.active{color:#087b32;background:#e6faed;border-radius:16px} */
-  bottomTabActive: { backgroundColor: '#e6faed', borderRadius: 16 },
-  bottomTabLabel: { fontSize: 13, fontWeight: 700, color: colors.dark },
-  bottomTabLabelActive: { color: '#087b32' },
+  bottomTabActive: { backgroundColor: C.backBg, borderRadius: 16 },
+  bottomTabLabel: { fontSize: 13, fontWeight: 700, color: C.dark },
+  bottomTabLabelActive: { color: C.brand },
   bottomTabLabelWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });
 

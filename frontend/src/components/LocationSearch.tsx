@@ -4,7 +4,9 @@ import MapView, { PROVIDER_GOOGLE, type MapViewType, type Region } from './AppMa
 import { Ionicons } from '@expo/vector-icons';
 import locationMarkerIcon from '../../assets/location_marker.png';
 import SvgIcon from '../assets/icons';
-import { colors, spacing, radius, sizes } from '../theme';
+import { spacing, radius, sizes } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 import { locationManager, useLocation } from '../services/LocationManager';
 import * as ExpoLocation from 'expo-location';
 import EdgeLoader from './EdgeLoader';
@@ -78,6 +80,8 @@ const LocationSearch = React.forwardRef<{
   const { t } = useI18n();
   const { user } = useAuth();
   const { showToast } = useToast();
+  const { base: C, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(C, isDark), [C, isDark]);
   const savedLocationsCacheKey = user?.id ? offlineCacheKey('saved-locations', user.id) : null;
   const [savedLocations, setSavedLocations] = useState<Location[]>([]);
   const [savedLocationsLoaded, setSavedLocationsLoaded] = useState(false);
@@ -498,7 +502,7 @@ const LocationSearch = React.forwardRef<{
       <View style={styles.suggestionRow}>
         {iconName ? (
           <View style={styles.iconWrap}>
-            <Ionicons name={iconName as any} size={16} color={colors.primary} />
+            <Ionicons name={iconName as any} size={16} color={C.primary} />
           </View>
         ) : null}
         <Text style={styles.suggestion}>{item.description}</Text>
@@ -518,7 +522,7 @@ const LocationSearch = React.forwardRef<{
         <View style={[styles.mapContainer, mapHeight ? { height: mapHeight } : { flex: 1 }]}>            
           {!isMapReady && (
             <View style={styles.mapLoadingOverlay}>
-              <ActivityIndicator size="large" color={colors.primary} />
+              <ActivityIndicator size="large" color={C.primary} />
             </View>
           )}
           {mapRegion ? (
@@ -602,7 +606,7 @@ const LocationSearch = React.forwardRef<{
                     accessibilityRole="button"
                     accessibilityLabel="Recenter map"
                   >
-                    <SvgIcon name="sa-target" size={24} color={'#172027'} />
+                    <SvgIcon name="sa-target" size={24} color={C.dark} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.mapControlButton}
@@ -611,7 +615,7 @@ const LocationSearch = React.forwardRef<{
                     accessibilityRole="button"
                     accessibilityLabel="Toggle map layers"
                   >
-                    <SvgIcon name="sa-layers" size={24} color={'#172027'} />
+                    <SvgIcon name="sa-layers" size={24} color={C.dark} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -623,7 +627,8 @@ const LocationSearch = React.forwardRef<{
                   accessibilityLabel={t('locationSearch.placeholder')}>
                   <TextInput
                     placeholder={t('locationSearch.mapPlaceholder')}
-                    placeholderTextColor={colors.primary}
+                    placeholderTextColor={C.primary}
+                    keyboardAppearance={isDark ? 'dark' : 'light'}
                     editable={false}
                     pointerEvents="none"
                     style={styles.mapInput}
@@ -633,7 +638,7 @@ const LocationSearch = React.forwardRef<{
             </View>
           ) : (
             <View style={[styles.map, styles.mapPlaceholder]}>
-              <ActivityIndicator size="large" color={colors.primary} />
+              <ActivityIndicator size="large" color={C.primary} />
             </View>
           )}
           {!minimalMap && (
@@ -649,7 +654,7 @@ const LocationSearch = React.forwardRef<{
                 }}
                 accessibilityLabel="Center map on current location"
               >
-                <Ionicons name="locate" size={18} color={colors.white} />
+                <Ionicons name="locate" size={18} color={C.onPrimary} />
                 <Text style={styles.mapButtonText}>{t('locationSearch.pickCurrentLocation')}</Text>
               </TouchableOpacity>
               {recentLocations.length > 0 && (
@@ -666,7 +671,7 @@ const LocationSearch = React.forwardRef<{
                     activeOpacity={0.8}
                     accessibilityRole="button"
                     accessibilityLabel={`Select recent location ${item.description}`}>
-                    <Ionicons name="time-outline" size={14} color={colors.primary} />
+                    <Ionicons name="time-outline" size={14} color={C.primary} />
                     <Text style={styles.recentLocationTagText} numberOfLines={1}>
                       {item.description}
                     </Text>
@@ -693,9 +698,10 @@ const LocationSearch = React.forwardRef<{
               <TextInput
                 style={[styles.searchInput, { maxHeight: 60 }]} // Adjust maxHeight to fit 2 lines
                 placeholder={isLocating ? 'Fetching current location...' : t('locationSearch.placeholder')}
-                placeholderTextColor={colors.grey}
+                placeholderTextColor={C.grey}
                 value={query}
                 submitBehavior="blurAndSubmit"
+                keyboardAppearance={isDark ? 'dark' : 'light'}
                 returnKeyType="done"
                 multiline={true} // Enable multiline to allow wrapping
                 numberOfLines={2} // Limit to 2 lines
@@ -733,7 +739,7 @@ const LocationSearch = React.forwardRef<{
                   }}
                   style={styles.clearButton}
                 >
-                  <Ionicons name="close-circle" size={21} color={colors.grey} />
+                  <Ionicons name="close-circle" size={21} color={C.grey} />
                 </TouchableOpacity>
               )}
               {isLocating && (
@@ -758,17 +764,17 @@ const LocationSearch = React.forwardRef<{
   );
 });
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette, isDark: boolean) => StyleSheet.create({
   inputWrap: {
     position: 'relative',
   },
   searchInput: {
     borderWidth: 1,
-    borderColor: colors.greyLight,
+    borderColor: C.greyLight,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    color: colors.dark,
-    backgroundColor: colors.white,
+    color: C.dark,
+    backgroundColor: C.white,
     paddingRight: sizes.inputRightPadding,
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
@@ -786,9 +792,9 @@ const styles = StyleSheet.create({
   },
   suggestionsContainer: {
     borderWidth: 1,
-    borderColor: colors.greyLight,
+    borderColor: C.greyLight,
     overflow: 'hidden',
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
   },
   iconWrap: {
     width: 24,
@@ -798,7 +804,7 @@ const styles = StyleSheet.create({
   },
   suggestion: {
     flex: 1,
-    color: colors.dark,
+    color: C.dark,
     fontSize: 15,
     fontFamily: 'Inter',
     lineHeight: 20,
@@ -809,12 +815,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.greyLight,
+    borderBottomColor: C.greyLight,
     minHeight: 56,
   },
   mapContainer: {
     width: '100%',
-    backgroundColor: colors.greyLight,
+    backgroundColor: C.greyLight,
     borderRadius: radius.md,
     overflow: 'hidden',
   },
@@ -847,7 +853,8 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    /* Light keeps its white veil over the map; dark uses the themed scrim. */
+    backgroundColor: isDark ? C.scrim : 'rgba(255,255,255,0.85)',
     zIndex: 1,
   },
   mapControls: {
@@ -861,7 +868,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 15,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -878,13 +885,13 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   mapInput: {
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: C.primary,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    color: colors.primary,
+    color: C.primary,
     fontSize: 14,
     fontFamily: 'Inter',
     opacity: 0.95,
@@ -905,10 +912,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: C.primary,
     borderRadius: 999,
     borderWidth: 2,
-    borderColor: colors.white,
+    borderColor: C.white,
     paddingHorizontal: 24,
     paddingVertical: spacing.sm,
     marginBottom: spacing.md,
@@ -919,7 +926,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 },
   },
   mapButtonDisabled: {
-    backgroundColor: colors.grey,
+    backgroundColor: C.grey,
     opacity: 0.85,
   },
   recentLocationsScroll: {
@@ -938,21 +945,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderWidth: 1,
-    borderColor: colors.primaryBorder,
+    borderColor: C.primaryBorder,
     borderRadius: 12,
     paddingHorizontal: spacing.md,
     elevation: 2,
   },
   recentLocationTagText: {
     flexShrink: 1,
-    color: colors.grey,
+    color: C.grey,
     fontSize: 13,
     fontFamily: 'Inter-SemiBold',
   },
   mapButtonText: {
-    color: colors.white,
+    color: C.onPrimary,
     fontSize: 14,
     fontFamily: 'Google Sans Flex-SemiBold',
     marginLeft: spacing.xs,
@@ -968,7 +975,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: C.scrim,
     justifyContent: 'flex-start',
   },
   overlayContent: {
@@ -976,7 +983,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
     width: '100%',
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     paddingTop: spacing.lg,
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.xl,

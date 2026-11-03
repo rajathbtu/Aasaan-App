@@ -1,12 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-
-/** Pale background matching index-standalone.html mobile view. */
-const SPLASH_BG = '#FFFFFF';
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
 const LaunchScreen: React.FC = () => {
   const navigation = useNavigation<any>();
+  const { base: C } = useTheme();
 
   // Navigate immediately on mount — App.tsx already holds the splash
   // strictly visible for 1.5s from app start, so no extra delay needed here.
@@ -17,13 +17,16 @@ const LaunchScreen: React.FC = () => {
     return () => clearTimeout(timer);
   }, [navigation]);
 
+  const styles = useMemo(() => makeStyles(C), [C]);
+
   return <View style={styles.container} />;
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SPLASH_BG,
+    // Branded launch canvas: plain white in light, dark card surface in dark.
+    backgroundColor: C.white,
   },
 });
 

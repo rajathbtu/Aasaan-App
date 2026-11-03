@@ -6,8 +6,7 @@ import React, {
   useMemo,
   useRef,
   useState,
-} from 'react';
-import {
+} from 'react';import {
   AccessibilityInfo,
   Animated,
   Easing,
@@ -20,7 +19,9 @@ import {
 import AnimatedServiceIconLoader from '../components/AnimatedServiceIconLoader';
 import { BrandWord } from '../components/BrandWord';
 import { hexWithAlpha } from '../components/ServiceIcon';
-import { colors, spacing } from '../theme';
+import { spacing } from '../theme';
+import { basePalettes } from '../theme/palette';
+import { useTheme } from './ThemeContext';
 
 /**
  * Global blocking loader — one shared, always-centred overlay for the whole
@@ -57,6 +58,8 @@ const DEFAULT_MESSAGE = 'Please wait…';
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
 export const GlobalLoaderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { base } = useTheme();
+  const styles = useMemo(() => makeStyles(base), [base]);
   const [shown, setShown] = useState(false);
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
 
@@ -236,12 +239,12 @@ export const useGlobalLoader = (): GlobalLoaderContextValue => {
   return context;
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: typeof basePalettes.light) => StyleSheet.create({
   scrim: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: hexWithAlpha(colors.primarySoft, 0.86),
+    backgroundColor: hexWithAlpha(C.primarySoft, 0.86),
   },
   card: {
     alignItems: 'center',
@@ -251,10 +254,10 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.xl,
     borderRadius: 28,
-    backgroundColor: colors.white,
+    backgroundColor: C.imageBg,
     borderWidth: 1,
-    borderColor: colors.primaryBorder,
-    shadowColor: colors.primary,
+    borderColor: C.primaryBorder,
+    shadowColor: C.primary,
     shadowOpacity: 0.16,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 10 },
@@ -267,7 +270,7 @@ const styles = StyleSheet.create({
   },
   message: {
     marginTop: spacing.sm,
-    color: colors.grey,
+    color: C.grey,
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',

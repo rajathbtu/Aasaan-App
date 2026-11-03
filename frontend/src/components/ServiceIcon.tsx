@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, View, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 
 /** Fallbacks used when a service has no (or an invalid) icon/colour. */
 const FALLBACK_ICON = 'construct';
-const FALLBACK_COLOR = '#607D8B';
 
 const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
@@ -53,7 +54,9 @@ const ServiceIcon: React.FC<ServiceIconProps> = ({
   iconSize = 24,
   style,
 }) => {
-  const tint = color && HEX_COLOR_RE.test(color) ? color : FALLBACK_COLOR;
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  const tint = color && HEX_COLOR_RE.test(color) ? color : C.grey;
   return (
     <View
       style={[
@@ -79,7 +82,7 @@ const ServiceIcon: React.FC<ServiceIconProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   circle: {
     alignItems: 'center',
     justifyContent: 'center',

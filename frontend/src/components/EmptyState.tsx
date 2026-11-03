@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { consumerColors, consumerFonts, spacing } from '../theme';
+import { consumerFonts, spacing } from '../theme';
+import type { ConsumerPalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
 type EmptyStateProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -12,28 +14,33 @@ type EmptyStateProps = {
   onAction?: () => void;
 };
 
-const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description, actionLabel, onAction }) => (
-  <View style={styles.container}>
-    <View style={styles.iconWrap}>
-      <Ionicons name={icon} size={40} color={consumerColors.primary} />
-    </View>
-    <Text style={styles.title}>{title}</Text>
-    <Text style={styles.description}>{description}</Text>
-    {actionLabel && onAction ? (
-      <TouchableOpacity
-        style={styles.action}
-        onPress={onAction}
-        activeOpacity={0.8}
-        accessibilityRole="button"
-        accessibilityLabel={actionLabel}
-      >
-        <Text style={styles.actionText}>{actionLabel}</Text>
-      </TouchableOpacity>
-    ) : null}
-  </View>
-);
+const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description, actionLabel, onAction }) => {
+  const { consumer: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
 
-const styles = StyleSheet.create({
+  return (
+    <View style={styles.container}>
+      <View style={styles.iconWrap}>
+        <Ionicons name={icon} size={40} color={C.primary} />
+      </View>
+      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.description}>{description}</Text>
+      {actionLabel && onAction ? (
+        <TouchableOpacity
+          style={styles.action}
+          onPress={onAction}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={actionLabel}
+        >
+          <Text style={styles.actionText}>{actionLabel}</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+};
+
+const makeStyles = (C: ConsumerPalette) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -45,7 +52,7 @@ const styles = StyleSheet.create({
     width: 88,
     height: 88,
     borderRadius: 50,
-    backgroundColor: consumerColors.mint,
+    backgroundColor: C.mint,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
@@ -53,14 +60,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.ink,
+    color: C.ink,
     textAlign: 'center',
     marginBottom: spacing.sm,
   },
   description: {
     fontSize: 14,
     fontFamily: consumerFonts.regular,
-    color: consumerColors.muted,
+    color: C.muted,
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 300,
@@ -71,12 +78,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: consumerColors.primary,
+    backgroundColor: C.primary,
   },
   actionText: {
     fontSize: 14,
     fontFamily: consumerFonts.bold,
-    color: consumerColors.white,
+    color: C.onPrimary,
   },
 });
 

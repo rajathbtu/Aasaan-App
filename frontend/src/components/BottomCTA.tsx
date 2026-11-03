@@ -1,7 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, type StyleProp, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, radius } from '../theme';
+import { spacing, radius } from '../theme';
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface BottomCTAProps {
@@ -27,6 +29,8 @@ const BottomCTA: React.FC<BottomCTAProps> = ({
   containerStyle,
   buttonStyle,
 }) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const arrowAnimation = useRef(new Animated.Value(0)).current;
 
@@ -64,20 +68,20 @@ const BottomCTA: React.FC<BottomCTAProps> = ({
         onPress={onPress}
         style={[
           styles.button,
-          {backgroundColor: isDisabled ? colors.greyBorder : colors.primary,
+          {backgroundColor: isDisabled ? C.greyBorder : C.primary,
             opacity: isLoading ? 0.65 : 1,},
           buttonStyle,
         ]}
         activeOpacity={0.8}
       >
         {isLoading ? (
-          <ActivityIndicator color={colors.white} />
+          <ActivityIndicator color={C.onPrimary} />
         ) : (
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={styles.buttonText}>{buttonText}</Text>
             {showArrow && (
               <Animated.View style={{ transform: [{ translateX: arrowTranslate }] }}>
-                <Ionicons name="arrow-forward" size={16} color={colors.white} style={{ marginLeft: 8 }} />
+                <Ionicons name="arrow-forward" size={16} color={C.onPrimary} style={{ marginLeft: 8 }} />
               </Animated.View>
             )}
           </View>
@@ -87,12 +91,12 @@ const BottomCTA: React.FC<BottomCTAProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   container: {
     padding: spacing.lg,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderTopWidth: 1,
-    borderTopColor: colors.greyLight,
+    borderTopColor: C.greyLight,
     marginBottom: spacing.md,
   },
   sticky: {
@@ -105,7 +109,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     textAlign: 'center',
     fontSize: 12,
-    color: colors.grey,
+    color: C.grey,
   },
   button: {
     height: 48,
@@ -114,7 +118,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonText: {
-    color: colors.white,
+    color: C.onPrimary,
     fontSize: 16,
     fontFamily: 'Inter-Bold',
   },

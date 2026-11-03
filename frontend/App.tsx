@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
 import { View, Platform, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -18,7 +19,7 @@ import { markNotificationRead } from './src/api';
 
 import splashImage from './assets/splash/splash-content-exact.png';
 
-import { colors, consumerColors, consumerFonts, radius, spacing } from './src/theme';
+import { consumerFonts, radius, spacing } from './src/theme';
 import * as Notifications from 'expo-notifications';
 
 // Google Fonts via @expo-google-fonts
@@ -145,9 +146,15 @@ function NotificationHandler({ navigationReady }: { navigationReady: boolean }) 
   return null;
 }
 
+// Status bar follows the in-app appearance mode (Profile → Dark mode).
+function StatusBarBridge() {
+  const { isDark } = useTheme();
+  return <StatusBar style={isDark ? 'light' : 'dark'} />;
+}
+
 // Splash/launch screen wrapper.  We show a spinner while the auth context
 // finishes loading the current user from secure storage.
-function RootNavigator() {
+function RootNavigator({ navigationReady }: { navigationReady: boolean }) {
   const { user, loading } = useAuth();
   const wasAuthenticated = useRef(false);
 
@@ -246,6 +253,7 @@ function AuthStack() {
 // Main application tabs differ based on the user role
 function MainTabs() {
   const { user } = useAuth();
+  const { base, consumer } = useTheme();
   const insets = useSafeAreaInsets();
   if (!user) return null;
   const isProvider = user.role === 'serviceProvider';
@@ -261,14 +269,14 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: consumerColors.primary,
-        tabBarInactiveTintColor: consumerColors.muted,
+        tabBarActiveTintColor: consumer.primary,
+        tabBarInactiveTintColor: consumer.muted,
         tabBarStyle: {
-          backgroundColor: colors.white,
-          borderTopColor: colors.greyLight,
+          backgroundColor: base.white,
+          borderTopColor: base.greyLight,
           borderTopWidth: 1,
           elevation: 8,
-          shadowColor: colors.dark,
+          shadowColor: base.black,
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.08,
           shadowRadius: 8,
@@ -286,7 +294,7 @@ function MainTabs() {
                   picUrl={user?.picUrl}
                   profileName={user?.name || 'User'}
                   size={32}
-                  containerStyle={{ marginRight: 0, borderWidth: 1, borderColor: focused ? colors.primary : colors.grey }}/> 
+                  containerStyle={{ marginRight: 0, borderWidth: 1, borderColor: focused ? base.primary : base.grey }}/> 
               </View>
             );
           }
@@ -302,7 +310,7 @@ function MainTabs() {
             iconName = focused ? 'person-circle' : 'person-circle-outline';
           }
           return (
-            <View style={[tabIconContainerStyle, { backgroundColor: focused ? consumerColors.selectedMint : 'transparent' }]}>
+            <View style={[tabIconContainerStyle, { backgroundColor: focused ? consumer.selectedMint : 'transparent' }]}>
               <Ionicons name={iconName} size={size} color={color} />
             </View>
           );
@@ -358,6 +366,23 @@ type RootStackParamList = {
 export type AuthStackNavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 export type RootStackNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
+/** Navigation container that reacts to the in-app appearance mode. */
+function ThemedNavigation({ navigationReady, onReady }: { navigationReady: boolean; onReady: () => void }) {
+  const { navTheme } = useTheme();
+  return (
+    <NavigationContainer
+      ref={navigationRef}
+      theme={navTheme}
+      onReady={onReady}
+      linking={linking as any}
+      documentTitle={documentTitle as any}
+    >
+      <StatusBarBridge />
+      <RootNavigator navigationReady={navigationReady} />
+    </NavigationContainer>
+  );
+}
+
 export default function App() {
   const [navigationReady, setNavigationReady] = React.useState(false);
   const [fontsLoaded, fontError] = useFonts(customFonts);
@@ -393,19 +418,16 @@ export default function App() {
       <NotificationCountProvider>
         <NotificationHandler navigationReady={navigationReady} />
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-          <GlobalLoaderProvider>
+          <ThemeProvider>
+            <GlobalLoaderProvider>
             <ToastProvider>
-              <NavigationContainer
-                ref={navigationRef}
+              <ThemedNavigation
+                navigationReady={navigationReady}
                 onReady={() => setNavigationReady(true)}
-                linking={linking as any}
-                documentTitle={documentTitle as any}
-              >
-                <StatusBar style="dark" />
-                <RootNavigator />
-              </NavigationContainer>
+              />
             </ToastProvider>
-          </GlobalLoaderProvider>
+            </GlobalLoaderProvider>
+          </ThemeProvider>
         </SafeAreaProvider>
       </NotificationCountProvider>
     </AuthProvider>

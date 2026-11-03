@@ -1,12 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useLocation } from '../services/LocationManager';
-import { colors, spacing, radius } from '../theme';
+import { spacing, radius } from '../theme';
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
 const formatCoords = (value?: number | null) =>
   typeof value === 'number' ? value.toFixed(4) : '—';
 
 const DetectedLocationCard: React.FC = () => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const { gpsLocation, ipLocation, gpsStatus, getIPLocation } = useLocation();
 
   useEffect(() => {
@@ -28,18 +32,18 @@ const DetectedLocationCard: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   locationPanel: {
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.greyLight,
+    borderColor: C.greyLight,
   },
   locationHeading: {
     fontSize: 12,
-    color: colors.grey,
+    color: C.grey,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: spacing.xs,
@@ -47,7 +51,7 @@ const styles = StyleSheet.create({
   },
   locationValue: {
     fontSize: 13,
-    color: colors.dark,
+    color: C.dark,
     marginBottom: 2,
   },
 });

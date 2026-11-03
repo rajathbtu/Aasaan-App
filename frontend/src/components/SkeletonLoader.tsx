@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { colors } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 import AnimatedServiceIconLoader from './AnimatedServiceIconLoader';
 
 type Props = {
@@ -15,6 +16,8 @@ type Props = {
  * consistent everywhere they are used.
  */
 const SkeletonLoader: React.FC<Props> = ({ count = 3 }) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   return (
     <View style={styles.wrapper}>
       {/* Animated service-icon loader centered in the middle of the screen */}
@@ -23,7 +26,7 @@ const SkeletonLoader: React.FC<Props> = ({ count = 3 }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   wrapper: {
     position: 'absolute',
     top: 0,
@@ -32,7 +35,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: C.skeletonBlock,
     zIndex: 1,
   },
 });

@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { LayoutAnimation, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { borders, colors, spacing, surfaces } from '../theme';
+import { radius, spacing } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 import { getServices } from '../api';
 import ServiceIcon from './ServiceIcon';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
@@ -85,28 +87,32 @@ export const ServiceCategoryGrid: React.FC<ServiceCategoryGridProps> = ({
   servicesByCategory,
   selectedIds = [],
   onServicePress,
-}) => (
-  <>
-    {Object.keys(servicesByCategory).map(category => (
-      <View key={category} style={styles.categorySection}>
-        <View style={styles.categoryHeading}>
-          <View style={styles.categoryMarker} />
-          <Text style={styles.categoryTitle}>{category}</Text>
+}) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  return (
+    <>
+      {Object.keys(servicesByCategory).map(category => (
+        <View key={category} style={styles.categorySection}>
+          <View style={styles.categoryHeading}>
+            <View style={styles.categoryMarker} />
+            <Text style={styles.categoryTitle}>{category}</Text>
+          </View>
+          <View style={styles.gridRow}>
+            {servicesByCategory[category].map(service => (
+              <ServiceCard
+                key={service.id}
+                service={service}
+                selected={selectedIds.includes(service.id)}
+                onPress={() => onServicePress(service)}
+              />
+            ))}
+          </View>
         </View>
-        <View style={styles.gridRow}>
-          {servicesByCategory[category].map(service => (
-            <ServiceCard
-              key={service.id}
-              service={service}
-              selected={selectedIds.includes(service.id)}
-              onPress={() => onServicePress(service)}
-            />
-          ))}
-        </View>
-      </View>
-    ))}
-  </>
-);
+      ))}
+    </>
+  );
+};
 
 export type ServiceCardProps = {
   service: Service;
@@ -114,31 +120,45 @@ export type ServiceCardProps = {
   onPress: () => void;
 };
 
-export const ServiceCard: React.FC<ServiceCardProps> = ({ service, selected = false, onPress }) => (
-  <TouchableOpacity
-    style={[styles.serviceCard, selected && styles.serviceCardSelected]}
-    onPress={onPress}
-    activeOpacity={0.7}>
-    {selected && (
-      <View style={styles.checkBadge}>
-        <Ionicons name="checkmark" size={13} color={colors.white} />
-      </View>
-    )}
-    <ServiceIcon icon={service.icon} color={service.color} circleSize={72} iconSize={34} />
-    <Text style={[styles.serviceName, selected && styles.serviceNameSelected]} numberOfLines={2}>
-      {service.name}
-    </Text>
-  </TouchableOpacity>
-);
+export const ServiceCard: React.FC<ServiceCardProps> = ({ service, selected = false, onPress }) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  return (
+    <TouchableOpacity
+      style={[styles.serviceCard, selected && styles.serviceCardSelected]}
+      onPress={onPress}
+      activeOpacity={0.7}>
+      {selected && (
+        <View style={styles.checkBadge}>
+          <Ionicons name="checkmark" size={13} color={C.onPrimary} />
+        </View>
+      )}
+      <ServiceIcon icon={service.icon} color={service.color} circleSize={72} iconSize={34} />
+      <Text style={[styles.serviceName, selected && styles.serviceNameSelected]} numberOfLines={2}>
+        {service.name}
+      </Text>
+    </TouchableOpacity>
+  );
+};
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   categorySection: { marginBottom: spacing.xl },
   categoryHeading: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
-  categoryMarker: { width: 4, height: 18, borderRadius: 2, backgroundColor: colors.primary, marginRight: spacing.sm },
-  categoryTitle: { fontSize: 16, fontWeight: '700', color: colors.dark },
+  categoryMarker: { width: 4, height: 18, borderRadius: 2, backgroundColor: C.primary, marginRight: spacing.sm },
+  categoryTitle: { fontSize: 16, fontWeight: '700', color: C.dark },
   gridRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', columnGap: spacing.lg },
+  /* Explicit themed expansion of the old `...surfaces.tile` spread. */
   serviceCard: {
-    ...surfaces.tile,
+    backgroundColor: C.white,
+    borderRadius: radius.xl + 2,
+    borderWidth: 1,
+    borderColor: C.greyLight,
+    boxShadow: '0px 2px 6px rgba(17, 24, 39, 0.06)',
+    shadowColor: C.dark,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
     width: '30%',
     marginBottom: 10,
     paddingHorizontal: spacing.xs,
@@ -147,19 +167,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
-  serviceCardSelected: { ...borders.selected, backgroundColor: colors.primarySoft },
-  serviceName: { fontFamily: 'Google Sans Flex-SemiBold', fontSize: 12, lineHeight: 16, letterSpacing: 0.1, textAlign: 'center', color: colors.dark, minHeight: 36 },
-  serviceNameSelected: { color: colors.primary },
+  /* Explicit themed expansion of the old `...borders.selected` spread. */
+  serviceCardSelected: {
+    borderWidth: 2,
+    borderColor: C.primary,
+    backgroundColor: C.primarySoft,
+  },
+  serviceName: { fontFamily: 'Google Sans Flex-SemiBold', fontSize: 12, lineHeight: 16, letterSpacing: 0.1, textAlign: 'center', color: C.dark, minHeight: 36 },
+  serviceNameSelected: { color: C.primary },
   checkBadge: {
     position: 'absolute',
     top: -7,
     right: -7,
-    backgroundColor: colors.primary,
+    backgroundColor: C.primary,
     width: 22,
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: colors.white,
+    borderColor: C.white,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,

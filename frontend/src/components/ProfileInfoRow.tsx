@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { useMemo, ReactNode } from 'react';
 import {
   StyleProp,
   StyleSheet,
@@ -8,7 +8,9 @@ import {
   ViewStyle,
 } from 'react-native';
 import { ProfileIcon, ProfileIconName } from '../assets/profile-handoff';
-import { profileColors as C, profileFonts as F } from '../theme/profile';
+import { profileFonts as F } from '../theme/profile';
+import { useTheme } from '../contexts/ThemeContext';
+import type { ProfilePalette } from '../theme/palette';
 
 export type ProfileRowTrailing = 'chevron' | 'lock' | 'none';
 
@@ -55,11 +57,14 @@ const ProfileInfoRow: React.FC<ProfileInfoRowProps> = ({
   disabled = false,
   showDivider = false,
   style,
-  iconColor = C.primaryDark,
+  iconColor,
   iconTileStyle,
   accessibilityLabel,
   accessibilityHint,
 }) => {
+  const { profile: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  const resolvedIconColor = iconColor ?? C.primaryDark;
   const trailingContent = trailingNode ?? (
     trailing === 'chevron'
       ? <ProfileIcon name="chevron-right" size={18} color={C.trail} />
@@ -71,7 +76,7 @@ const ProfileInfoRow: React.FC<ProfileInfoRowProps> = ({
   const content = (
     <>
       <View style={[styles.iconTile, iconTileStyle]}>
-        <ProfileIcon name={icon} size={19} color={iconColor} />
+        <ProfileIcon name={icon} size={19} color={resolvedIconColor} />
       </View>
       <View style={styles.grow}>
         <Text style={styles.label} numberOfLines={2}>{label}</Text>
@@ -107,7 +112,7 @@ const ProfileInfoRow: React.FC<ProfileInfoRowProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: ProfilePalette) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',

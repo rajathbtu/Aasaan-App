@@ -110,7 +110,8 @@ export const RazorpayWebView: React.FC<RazorpayWebViewProps> = ({
       onRequestClose={handleClose}
     >
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        {/* stays light: hosts a light web page */}
+        <StatusBar barStyle="dark-content" />
         
         {/* Header */}
         <View style={styles.header}>
@@ -174,6 +175,7 @@ export const RazorpayWebView: React.FC<RazorpayWebViewProps> = ({
 };
 
 const styles = StyleSheet.create({
+  // stays light: hosts a light web page — white chrome + dark text on purpose.
   container: {
     flex: 1,
     backgroundColor: '#fff',

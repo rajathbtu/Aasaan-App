@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, Platform, StyleSheet, View, StyleProp, ViewStyle } from 'react-native';
+import { Animated, Easing, Platform, View, StyleProp, ViewStyle } from 'react-native';
 
 type SpinnerProps = {
   size?: 'small' | 'large' | number;
@@ -51,7 +51,11 @@ const Spinner: React.FC<SpinnerProps> = ({ size = 'small', color = '#1976D2', st
       }, style]}>
       {/* Light track: full circle outline at 20% opacity */}
       <View style={{
-          ...StyleSheet.absoluteFillObject,
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           borderRadius: radius,
           borderWidth: strokeWidth,
           borderColor: color,

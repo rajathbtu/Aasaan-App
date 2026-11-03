@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,25 +20,8 @@ import BlockingLoader from '../components/BlockingLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import SvgIcon from '../assets/icons';
-
-/* Exact colour tokens from approved design */
-const SA = {
-  green: '#079B5C',
-  green2: '#08AD73',
-  dark: '#172027',
-  muted: '#657183',
-  border: '#E4E9ED',
-  mint: '#E5F8EF',
-  mintButton: '#EFF9F3',
-  currentLocBorder: '#C9F1DF',
-  currentLocBg: '#EAF9F2',
-  currentLocText: '#078B54',
-  iconTileBg: '#E2F8EE',
-  radiusBtnBorder: '#DCE2E8',
-  radiusBtnText: '#26313A',
-  footerBorder: '#EDF0F2',
-  mapBg: '#F3F7F5',
-};
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
 const LocationSelectScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -46,6 +29,8 @@ const LocationSelectScreen: React.FC = () => {
   const { user, updateUser } = useAuth();
   const { t } = useI18n();
   const { showToast } = useToast();
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
 
   const mode: 'edit' | 'onboarding' | 'requestcreation' =
@@ -100,7 +85,7 @@ const LocationSelectScreen: React.FC = () => {
         <Header title={t('sp.selectLocation.pageTitle')} showBackButton={true} showNotification={false} />
         <View style={styles.guardBody}>
           <View style={styles.guardIconWrap}>
-            <SvgIcon name="sa-target" size={28} color={SA.green} />
+            <SvgIcon name="sa-target" size={28} color={C.brand} />
           </View>
           <Text style={styles.guardText}>{t('createRequest.addDetails.unknownService')}</Text>
         </View>
@@ -220,7 +205,7 @@ const LocationSelectScreen: React.FC = () => {
         {/* Search field directly below header */}
         <View style={styles.searchWrap}>
           <View style={styles.searchField}>
-            <SvgIcon name="sa-search" size={23} color={SA.muted} />
+            <SvgIcon name="sa-search" size={23} color={C.grey} />
             <TouchableOpacity
               style={styles.searchInputTouchable}
               onPress={() => locationSearchRef.current?.openSearchModal()}
@@ -256,7 +241,7 @@ const LocationSelectScreen: React.FC = () => {
           activeOpacity={0.8}
           accessibilityLabel={t('sp.selectLocation.pickCurrentLocation')}
         >
-          <SvgIcon name="sa-target" size={23} color={SA.currentLocText} />
+          <SvgIcon name="sa-target" size={23} color={C.currentLocText} />
           <Text style={styles.currentLocationText} numberOfLines={1} ellipsizeMode="tail">
             {t('sp.selectLocation.pickCurrentLocation')}
           </Text>
@@ -266,7 +251,7 @@ const LocationSelectScreen: React.FC = () => {
             map/search selection and updates itself as the map moves */}
         <View style={styles.locationCard}>
           <View style={styles.pinTile}>
-            <SvgIcon name="sa-pin" size={24} color={SA.green} />
+            <SvgIcon name="sa-pin" size={24} color={C.brand} />
           </View>
           <View style={styles.locationCopy}>
             <Text style={[styles.locationTitle, { minWidth: 0 }]}>
@@ -279,7 +264,7 @@ const LocationSelectScreen: React.FC = () => {
             </Text>
           </View>
           <TouchableOpacity style={styles.changeLocation} onPress={() => locationSearchRef.current?.openSearchModal()} activeOpacity={0.7}>
-            <SvgIcon name="sa-edit" size={18} color={SA.green} />
+            <SvgIcon name="sa-edit" size={18} color={C.brand} />
             <Text style={styles.changeText} numberOfLines={1} ellipsizeMode="tail">
               Change
             </Text>
@@ -290,7 +275,7 @@ const LocationSelectScreen: React.FC = () => {
         <View style={styles.radiusCard}>
           <View style={styles.radiusHeading}>
             <View style={styles.radiusIconWrap}>
-              <SvgIcon name="sa-radius" size={22} color={SA.green} />
+              <SvgIcon name="sa-radius" size={22} color={C.brand} />
             </View>
             <View style={styles.radiusCopy}>
               <Text style={[styles.radiusTitle, { minWidth: 0 }]} numberOfLines={1} ellipsizeMode="tail">
@@ -337,13 +322,13 @@ const LocationSelectScreen: React.FC = () => {
           disabled={saving || isLocationResolving}
         >
           {saving ? (
-            <ActivityIndicator color={'#FFFFFF'} />
+            <ActivityIndicator color={C.onPrimary} />
           ) : (
             <>
               <Text style={styles.confirmButtonText} numberOfLines={1} ellipsizeMode="tail">
                 {t('sp.selectLocation.saveButton')}
               </Text>
-              <SvgIcon name="sa-arrow-right" size={21} color={'#FFFFFF'} />
+              <SvgIcon name="sa-arrow-right" size={21} color={C.onPrimary} />
             </>
           )}
         </TouchableOpacity>
@@ -354,10 +339,10 @@ const LocationSelectScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -371,9 +356,9 @@ const styles = StyleSheet.create({
   searchField: {
     height: 48,
     borderWidth: 1,
-    borderColor: SA.border,
+    borderColor: C.greyLight,
     borderRadius: 25,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -391,7 +376,7 @@ const styles = StyleSheet.create({
   },
   searchInputText: {
     fontSize: 14,
-    color: SA.muted,
+    color: C.grey,
     fontFamily: 'Inter',
   },
   mapSection: {
@@ -400,16 +385,16 @@ const styles = StyleSheet.create({
     maxHeight: 340,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: SA.border,
-    backgroundColor: SA.mapBg,
+    borderColor: C.greyLight,
+    backgroundColor: C.mapBg,
     overflow: 'hidden',
   },
   currentLocationButton: {
     height: 48,
     borderWidth: 1,
-    borderColor: SA.currentLocBorder,
+    borderColor: C.currentLocBorder,
     borderRadius: 13,
-    backgroundColor: SA.currentLocBg,
+    backgroundColor: C.currentLocBg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -420,7 +405,7 @@ const styles = StyleSheet.create({
   currentLocationText: {
     fontSize: 15,
     fontWeight: '700',
-    color: SA.currentLocText,
+    color: C.currentLocText,
     fontFamily: 'Inter-SemiBold',
   },
   locationCard: {
@@ -429,9 +414,9 @@ const styles = StyleSheet.create({
     gap: 12,
     minHeight: 76,
     borderWidth: 1,
-    borderColor: SA.border,
+    borderColor: C.greyLight,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     padding: 12,
     shadowColor: '#13261F',
     shadowOffset: { width: 0, height: 2 },
@@ -443,7 +428,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 13,
-    backgroundColor: SA.iconTileBg,
+    backgroundColor: C.iconTileBg,
     alignItems: 'center',
     justifyContent: 'center',
     flexGrow: 0,
@@ -457,13 +442,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     lineHeight: 18,
-    color: SA.dark,
+    color: C.dark,
     marginBottom: 4,
     fontFamily: 'Inter-Bold',
   },
   locationAddress: {
     fontSize: 13,
-    color: SA.muted,
+    color: C.grey,
     lineHeight: 17,
     fontFamily: 'Inter',
   },
@@ -479,14 +464,14 @@ const styles = StyleSheet.create({
   changeText: {
     fontSize: 13,
     fontWeight: '700',
-    color: SA.green,
+    color: C.brand,
     fontFamily: 'Inter-SemiBold',
   },
   radiusCard: {
     borderWidth: 1,
-    borderColor: SA.border,
+    borderColor: C.greyLight,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     padding: 13,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -503,7 +488,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 13,
-    backgroundColor: SA.iconTileBg,
+    backgroundColor: C.iconTileBg,
     alignItems: 'center',
     justifyContent: 'center',
     flexGrow: 0,
@@ -516,12 +501,12 @@ const styles = StyleSheet.create({
   radiusTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: SA.dark,
+    color: C.dark,
     fontFamily: 'Inter-Bold',
   },
   radiusSubtitle: {
     fontSize: 13,
-    color: SA.muted,
+    color: C.grey,
     lineHeight: 17,
     marginTop: 2,
     fontFamily: 'Inter',
@@ -537,16 +522,16 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     borderWidth: 1,
-    borderColor: SA.radiusBtnBorder,
+    borderColor: C.radiusBtnBorder,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
   radiusCellActive: {
-    backgroundColor: SA.green,
-    borderColor: SA.green,
-    shadowColor: '#079B5C',
+    backgroundColor: C.brand,
+    borderColor: C.brand,
+    shadowColor: C.brand,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.18,
     shadowRadius: 5,
@@ -555,11 +540,11 @@ const styles = StyleSheet.create({
   radiusCellText: {
     fontSize: 13,
     fontWeight: '600',
-    color: SA.radiusBtnText,
+    color: C.radiusBtnText,
     fontFamily: 'Inter-SemiBold',
   },
   radiusCellTextActive: {
-    color: '#FFFFFF',
+    color: C.onPrimary,
   },
   footer: {
     flexGrow: 0,
@@ -567,15 +552,15 @@ const styles = StyleSheet.create({
     padding: 11,
     paddingHorizontal: 16,
     paddingBottom: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     borderTopWidth: 1,
-    borderTopColor: SA.footerBorder,
+    borderTopColor: C.footerBorder,
   },
   confirmButton: {
     width: '100%',
     height: 54,
     borderRadius: 13,
-    backgroundColor: SA.green2,
+    backgroundColor: C.brand2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -592,7 +577,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   confirmButtonText: {
-    color: '#FFFFFF',
+    color: C.onPrimary,
     fontSize: 17,
     fontWeight: '800',
     fontFamily: 'Inter-Bold',
@@ -610,7 +595,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: SA.mintButton,
+    backgroundColor: C.mintButton,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -618,7 +603,7 @@ const styles = StyleSheet.create({
   guardText: {
     fontSize: 15,
     lineHeight: 21,
-    color: SA.muted,
+    color: C.grey,
     textAlign: 'center',
   },
 });

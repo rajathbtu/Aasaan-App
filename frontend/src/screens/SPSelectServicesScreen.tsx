@@ -12,6 +12,8 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import { Service, useServiceCatalog } from '../components/ServiceSelection';
@@ -20,28 +22,6 @@ import ErrorBanner from '../components/ErrorBanner';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import BlockingLoader from '../components/BlockingLoader';
 import SvgIcon from '../assets/icons';
-
-/* Exact colour tokens from approved design */
-const SS = {
-  green: '#079B5C',
-  greenDark: '#087B49',
-  greenSoft: '#E7F9ED',
-  greenSelected: '#EFFBF3',
-  ink: '#111714',
-  muted: '#68716F',
-  line: '#E4E9E6',
-  cardBorder: '#E3E8E5',
-  tabBorder: '#E6EBE8',
-  tabText: '#161D19',
-  sectionAccent: '#0AAE70',
-  chipText: '#17231B',
-  selectionHeadingText: '#073F24',
-  serviceName: '#101714',
-  searchBorder: '#E1E6E3',
-  searchPlaceholder: '#8B929A',
-  footerBorder: '#E8ECE9',
-  headerBorder: '#F0F2F1',
-};
 
 /* Category icons — available for the three approved design categories. */
 const CATEGORY_ICONS: Record<string, string> = {
@@ -98,6 +78,8 @@ const SPSelectServicesScreen: React.FC = () => {
   const route = useRoute<any>();
   const { user, updateUser } = useAuth();
   const { t } = useI18n();
+  const { base: C, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
 
   const mode: 'edit' | 'onboarding' = (route.params?.mode as any) === 'edit' ? 'edit' : 'onboarding';
   const initialSelected: string[] = Array.isArray(route.params?.initialSelected) ? route.params?.initialSelected : [];
@@ -221,7 +203,7 @@ const SPSelectServicesScreen: React.FC = () => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+    <View style={{ flex: 1, backgroundColor: C.white }}>
       <Header
         title={t('sp.selectServices.heading')}
         subheader={t('sp.selectServices.subheading')}
@@ -233,18 +215,19 @@ const SPSelectServicesScreen: React.FC = () => {
       {/* Rounded search pill */}
       <View style={styles.searchWrap}>
         <View style={styles.searchBox}>
-          <SvgIcon name="ss-search" size={21} color={SS.muted} style={styles.searchIcon} />
+          <SvgIcon name="ss-search" size={21} color={C.grey} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder={t('sp.selectServices.searchPlaceholder')}
-            placeholderTextColor={SS.searchPlaceholder}
+            placeholderTextColor={C.searchPlaceholder}
             value={searchQuery}
             onChangeText={setSearchQuery}
             returnKeyType="search"
+            keyboardAppearance={isDark ? 'dark' : 'light'}
           />
           {searchQuery.trim() !== '' && (
             <TouchableOpacity style={styles.clearSearch} onPress={() => setSearchQuery('')} activeOpacity={0.7} accessibilityLabel="Clear search">
-              <SvgIcon name="ss-close" size={17} color={SS.muted} />
+              <SvgIcon name="ss-close" size={17} color={C.grey} />
             </TouchableOpacity>
           )}
         </View>
@@ -270,7 +253,7 @@ const SPSelectServicesScreen: React.FC = () => {
               accessibilityLabel={tab.label}
             >
               {tab.icon && (
-                <SvgIcon name={tab.icon as any} size={18} color={active ? '#FFFFFF' : SS.greenDark} />
+                <SvgIcon name={tab.icon as any} size={18} color={active ? C.onPrimary : C.brandDark} />
               )}
               <Text style={[styles.categoryTabText, active && styles.categoryTabTextActive]} numberOfLines={1}>
                 {tab.label}
@@ -317,7 +300,7 @@ const SPSelectServicesScreen: React.FC = () => {
                   >
                     <View style={styles.sectionAccent} />
                     {CATEGORY_ICONS[category] && (
-                      <SvgIcon name={CATEGORY_ICONS[category] as any} size={22} color={SS.green} />
+                      <SvgIcon name={CATEGORY_ICONS[category] as any} size={22} color={C.brand} />
                     )}
                     <Text style={[styles.sectionTitle, { minWidth: 0 }]} numberOfLines={1} ellipsizeMode="tail">
                       {category}
@@ -325,7 +308,7 @@ const SPSelectServicesScreen: React.FC = () => {
                     <SvgIcon
                       name={expanded ? 'chevron-up' : 'chevron-down'}
                       size={19}
-                      color={SS.muted}
+                      color={C.grey}
                     />
                   </TouchableOpacity>
                   {expanded && (
@@ -349,17 +332,17 @@ const SPSelectServicesScreen: React.FC = () => {
                           >
                             {selectedService && (
                               <View style={styles.selectionCheck}>
-                                <SvgIcon name="check" size={13} color={'#FFFFFF'} />
+                                <SvgIcon name="check" size={13} color={C.onPrimary} />
                               </View>
                             )}
                             <View style={[styles.serviceIcon, isFourColumn && styles.serviceIconFour]}>
                               {svgIcon ? (
-                                <SvgIcon name={svgIcon as any} size={isFourColumn ? 31 : 34} color={SS.green} />
+                                <SvgIcon name={svgIcon as any} size={isFourColumn ? 31 : 34} color={C.brand} />
                               ) : (
                                 <Ionicons
                                   name={(service.icon && (Ionicons as any).glyphMap[service.icon] ? service.icon : 'construct') as any}
                                   size={isFourColumn ? 30 : 33}
-                                  color={SS.green}
+                                  color={C.brand}
                                 />
                               )}
                             </View>
@@ -422,7 +405,7 @@ const SPSelectServicesScreen: React.FC = () => {
                   {svc.name}
                 </Text>
                 <TouchableOpacity onPress={() => toggleService(svc.id)} style={styles.chipRemoveWrap} activeOpacity={0.7} accessibilityLabel={`Remove ${svc.name}`}>
-                  <SvgIcon name="ss-close" size={12} color={SS.green} />
+                  <SvgIcon name="ss-close" size={12} color={C.brand} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -436,7 +419,7 @@ const SPSelectServicesScreen: React.FC = () => {
             <Text style={styles.confirmButtonText}>
               {t('common.confirm')}
             </Text>
-            <SvgIcon name="ss-arrow-right" size={19} color={'#FFFFFF'} />
+            <SvgIcon name="ss-arrow-right" size={19} color={C.onPrimary} />
           </TouchableOpacity>
         </View>
         <ErrorBanner error={saveError} onRetry={handleContinue} />
@@ -448,7 +431,7 @@ const SPSelectServicesScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     letterSpacing: -0.75,
@@ -458,15 +441,15 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: SS.headerBorder,
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: C.headerBorder,
+    backgroundColor: C.white,
   },
   searchBox: {
     height: 47,
     borderWidth: 1,
-    borderColor: SS.searchBorder,
+    borderColor: C.searchBorder,
     borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
@@ -486,7 +469,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     fontSize: 15,
-    color: SS.ink,
+    color: C.dark,
     backgroundColor: 'transparent',
     paddingVertical: 0,
     fontFamily: 'Inter',
@@ -511,9 +494,9 @@ const styles = StyleSheet.create({
     height: 37,
     paddingHorizontal: 13,
     borderWidth: 1,
-    borderColor: SS.tabBorder,
+    borderColor: C.tabBorder,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -527,24 +510,24 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   categoryTabActive: {
-    backgroundColor: SS.green,
-    borderColor: SS.green,
+    backgroundColor: C.brand,
+    borderColor: C.brand,
     minWidth: 56,
   },
   categoryTabText: {
     fontSize: 12,
     fontWeight: '600',
-    color: SS.tabText,
+    color: C.tabText,
     fontFamily: 'Inter-SemiBold',
   },
   categoryTabTextActive: {
-    color: '#FFFFFF',
+    color: C.onPrimary,
   },
   serviceSection: {
     paddingTop: 7,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#EDF0EE',
+    borderBottomColor: C.headerBorder,
   },
   sectionHeading: {
     width: '100%',
@@ -562,14 +545,14 @@ const styles = StyleSheet.create({
     width: 4,
     height: 21,
     borderRadius: 5,
-    backgroundColor: SS.sectionAccent,
+    backgroundColor: C.sectionAccent,
     flexGrow: 0,
     flexShrink: 0,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: SS.ink,
+    color: C.dark,
     letterSpacing: -0.35,
     flex: 1,
     minWidth: 0,
@@ -585,9 +568,9 @@ const styles = StyleSheet.create({
   },
   serviceCard: {
     borderWidth: 1,
-    borderColor: SS.cardBorder,
+    borderColor: C.cardBorder,
     borderRadius: 19,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     alignItems: 'center',
     justifyContent: 'flex-start',
     gap: 6,
@@ -613,9 +596,9 @@ const styles = StyleSheet.create({
   },
   serviceCardSelected: {
     borderWidth: 1.5,
-    borderColor: SS.green,
-    backgroundColor: SS.greenSelected,
-    shadowColor: SS.green,
+    borderColor: C.brand,
+    backgroundColor: C.greenSelected,
+    shadowColor: C.brand,
     shadowOpacity: 0.12,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
@@ -634,7 +617,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 15,
     fontWeight: '500',
-    color: SS.serviceName,
+    color: C.serviceName,
     textAlign: 'center',
     minWidth: 0,
   },
@@ -648,9 +631,9 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: SS.green,
+    backgroundColor: C.brand,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: C.white,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,
@@ -667,13 +650,13 @@ const styles = StyleSheet.create({
   },
   noResultsText: {
     fontSize: 14,
-    color: SS.muted,
+    color: C.grey,
     textAlign: 'center',
   },
   bottomPanel: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     borderTopWidth: 1,
-    borderTopColor: SS.footerBorder,
+    borderTopColor: C.footerBorder,
     paddingHorizontal: 14,
     paddingTop: 10,
     paddingBottom: 10,
@@ -693,7 +676,7 @@ const styles = StyleSheet.create({
   selectionCountText: {
     fontSize: 14,
     fontWeight: '800',
-    color: SS.selectionHeadingText,
+    color: C.selectionHeadingText,
     fontFamily: 'Inter-Bold',
   },
   selectionCountBold: {
@@ -702,7 +685,7 @@ const styles = StyleSheet.create({
   clearAllText: {
     fontSize: 12,
     fontWeight: '700',
-    color: SS.green,
+    color: C.brand,
     fontFamily: 'Inter-SemiBold',
     paddingVertical: 5,
     paddingHorizontal: 5,
@@ -730,7 +713,7 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     paddingRight: 7,
     borderRadius: 18,
-    backgroundColor: SS.greenSoft,
+    backgroundColor: C.greenSoft,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -738,14 +721,14 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 10,
     fontWeight: '600',
-    color: SS.chipText,
+    color: C.chipText,
     fontFamily: 'Inter-SemiBold',
   },
   chipRemoveWrap: {
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     alignItems: 'center',
     justifyContent: 'center',
     flexGrow: 0,
@@ -758,7 +741,7 @@ const styles = StyleSheet.create({
     minWidth: 105,
     paddingHorizontal: 12,
     borderRadius: 13,
-    backgroundColor: SS.green,
+    backgroundColor: C.brand,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -775,7 +758,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   confirmButtonText: {
-    color: '#FFFFFF',
+    color: C.onPrimary,
     fontSize: 15,
     fontWeight: '800',
     fontFamily: 'Inter-Bold',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,10 @@ import { createSubscriptionPaymentOptions, verifySubscriptionPayment } from '../
 import { RazorpayWebPaymentOptions, RazorpayWebResponse } from '../api/razorpayWeb';
 import RazorpayWebView from '../components/RazorpayWebView';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 import { useGlobalLoader } from '../contexts/GlobalLoaderContext';
-import { colors, spacing, radius, tints } from '../theme';
+import { spacing, radius } from '../theme';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import SafeBottomBanner from '../components/SafeBottomBanner';
@@ -27,11 +29,9 @@ const PLAN_PRICING: Record<'basic' | 'pro', { priceInr: number; points: number }
   pro: { priceInr: 200, points: 200 },
 };
 
-// Premium violet palette — matches the Go Professional promos used on the
+// Premium violet identity — matches the Go Professional promos used on the
 // profile & work requests screens so the whole upgrade journey feels cohesive.
-const VIOLET_DEEP = '#7c3aed';
-const VIOLET_INK = '#5b21b6';
-const VIOLET_BORDER = '#ddd6fe';
+// Deep violet → C.violet, soft violet border → C.tintPurpleSoft (nearest tokens).
 
 /**
  * Allows service providers to subscribe to a professional plan (basic or
@@ -44,6 +44,8 @@ const SubscriptionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { t } = useI18n();
   const { showLoader, hideLoader } = useGlobalLoader();
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [loading, setLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'basic' | 'pro' | null>(null);
   const [showPaymentWebView, setShowPaymentWebView] = useState(false);
@@ -236,7 +238,7 @@ const SubscriptionScreen: React.FC = () => {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.light }}>
+    <View style={{ flex: 1, backgroundColor: C.light }}>
       {/* If not a provider, render nothing to avoid flicker */}
       {user && user.role !== 'serviceProvider' ? null : (
         <>
@@ -248,7 +250,7 @@ const SubscriptionScreen: React.FC = () => {
               <View pointerEvents="none" style={styles.heroGlowLg} />
               <View pointerEvents="none" style={styles.heroGlowSm} />
               <View style={styles.heroTile}>
-                <Ionicons name="trophy" size={26} color={colors.white} />
+                <Ionicons name="trophy" size={26} color={C.onPrimary} />
               </View>
               <Text style={styles.heroTitle}>{t('subscription.heroTitle')}</Text>
               <Text style={styles.heroSubtitle}>{t('subscription.heroSubtitle')}</Text>
@@ -258,7 +260,7 @@ const SubscriptionScreen: React.FC = () => {
             <View style={styles.currentPlanCard}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={styles.currentPlanIcon}>
-                  <Ionicons name="person" size={17} color={colors.white} />
+                  <Ionicons name="person" size={17} color={C.onPrimary} />
                 </View>
                 <View style={{ flex: 1, marginLeft: spacing.md }}>
                   <Text style={styles.currentPlanLabel}>{t('subscription.currentPlan')}</Text>
@@ -271,7 +273,7 @@ const SubscriptionScreen: React.FC = () => {
                 </View>
               </View>
               <View style={styles.creditsRow}>
-                <Ionicons name="diamond-outline" size={13} color={VIOLET_DEEP} />
+                <Ionicons name="diamond-outline" size={13} color={C.violet} />
                 <Text style={styles.creditsText}>{t('subscription.creditBalance', { points: credits })}</Text>
               </View>
             </View>
@@ -280,7 +282,7 @@ const SubscriptionScreen: React.FC = () => {
             {currentPlan !== 'free' && (
               <InfoBanner
                 message={t('subscription.currentPlanInfo', { plan: t(`subscription.plan.${currentPlan}`) })}
-                style={{ marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: colors.primaryLight }}
+                style={{ marginHorizontal: spacing.lg, marginBottom: spacing.lg, backgroundColor: C.primaryLight }}
               />
             )}
 
@@ -303,11 +305,11 @@ const SubscriptionScreen: React.FC = () => {
                       <Text style={[styles.planBadgeText, isPro && styles.planRibbonText]}>{plan.badge}</Text>
                     </View>
 
-                    <Text style={[styles.planTitle, isPro && { color: VIOLET_INK }]}>{plan.title}</Text>
+                    <Text style={[styles.planTitle, isPro && { color: C.violet }]}>{plan.title}</Text>
 
                     {/* Price */}
                     <View style={styles.priceRow}>
-                      <Text style={[styles.priceAmount, { color: isPro ? VIOLET_INK : colors.primary }]}>₹{plan.price}</Text>
+                      <Text style={[styles.priceAmount, { color: isPro ? C.violet : C.primary }]}>₹{plan.price}</Text>
                       <Text style={styles.pricePeriod}>{t('subscription.month')}</Text>
                     </View>
 
@@ -320,7 +322,7 @@ const SubscriptionScreen: React.FC = () => {
                           <Ionicons
                             name={feat.included ? 'checkmark-circle' : 'close-circle'}
                             size={18}
-                            color={feat.included ? colors.success : colors.greyMuted}
+                            color={feat.included ? C.success : C.greyMuted}
                             style={{ marginRight: spacing.sm }}
                           />
                           <Text style={[styles.featureText, !feat.included && styles.featureTextExcluded]}>
@@ -334,8 +336,8 @@ const SubscriptionScreen: React.FC = () => {
                       <ActionButton
                         fullWidth
                         buttonTitle={t('subscription.selectPlan')}
-                        buttonTitleColor={colors.white}
-                        backgroundColor={isPro ? colors.violetStrong : colors.primary}
+                        buttonTitleColor={C.onPrimary}
+                        backgroundColor={isPro ? C.violetStrong : C.primary}
                         onPress={() => setSelectedPlan(plan.key)}
                         disabled={loading}
                         style={styles.selectButton}
@@ -347,7 +349,7 @@ const SubscriptionScreen: React.FC = () => {
                   {selected && (
                     <View style={styles.payPanel}>
                       <View style={styles.payPanelHeader}>
-                        <Ionicons name="wallet-outline" size={16} color={colors.dark} />
+                        <Ionicons name="wallet-outline" size={16} color={C.dark} />
                         <Text style={styles.payPanelTitle}>{t('subscription.paymentMethodTitle')}</Text>
                       </View>
 
@@ -355,8 +357,8 @@ const SubscriptionScreen: React.FC = () => {
                         fullWidth
                         buttonIcon="lock-closed"
                         buttonTitle={t('subscription.payMoney', { price: PLAN_PRICING[plan.key].priceInr })}
-                        buttonTitleColor={colors.white}
-                        backgroundColor={colors.violetStrong}
+                        buttonTitleColor={C.onPrimary}
+                        backgroundColor={C.violetStrong}
                         onPress={() => subscribe(plan.key, false)}
                         loading={loading}
                         style={styles.payPrimaryBtn}
@@ -368,8 +370,8 @@ const SubscriptionScreen: React.FC = () => {
                         buttonTitle={hasEnoughCredits
                           ? t('subscription.useCredits', { points: PLAN_PRICING[plan.key].points })
                           : t('subscription.needMore', { diff: PLAN_PRICING[plan.key].points - credits })}
-                        buttonTitleColor={hasEnoughCredits ? '#047857' : colors.greyMuted}
-                        backgroundColor={hasEnoughCredits ? colors.successLight : colors.surface}
+                        buttonTitleColor={hasEnoughCredits ? C.labelGreen : C.greyMuted}
+                        backgroundColor={hasEnoughCredits ? C.successLight : C.surface}
                         onPress={() => subscribe(plan.key, true)}
                         loading={loading}
                         disabled={loading || !hasEnoughCredits}
@@ -377,7 +379,7 @@ const SubscriptionScreen: React.FC = () => {
                       />
 
                       <View style={styles.creditNoteRow}>
-                        <Ionicons name="information-circle" size={12} color={colors.greyMuted} />
+                        <Ionicons name="information-circle" size={12} color={C.greyMuted} />
                         <Text style={styles.creditNoteText}>{t('subscription.creditBalance', { points: credits })}</Text>
                       </View>
                     </View>
@@ -388,7 +390,7 @@ const SubscriptionScreen: React.FC = () => {
 
             {/* Trust footer */}
             <View style={styles.trustRow}>
-              <Ionicons name="shield-checkmark" size={14} color={colors.success} style={{ marginRight: 6 }} />
+              <Ionicons name="shield-checkmark" size={14} color={C.success} style={{ marginRight: 6 }} />
               <Text style={styles.trustText}>{t('subscription.securePayments')}</Text>
             </View>
           </ScrollView>
@@ -410,9 +412,9 @@ const SubscriptionScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   hero: {
-    backgroundColor: colors.violetStrong,
+    backgroundColor: C.violetStrong,
     borderRadius: radius.xl,
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
@@ -422,7 +424,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     marginBottom: spacing.lg,
     overflow: 'hidden',
-    shadowColor: VIOLET_DEEP,
+    shadowColor: C.violet,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -460,7 +462,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: colors.white,
+    color: C.onPrimary,
     textAlign: 'center',
     marginBottom: 4,
   },
@@ -471,14 +473,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   currentPlanCard: {
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderWidth: 1,
-    borderColor: colors.greyLight,
+    borderColor: C.greyLight,
     borderRadius: radius.lg,
     padding: spacing.mdPlus,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.sm,
-    shadowColor: colors.black,
+    shadowColor: C.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 6,
@@ -488,13 +490,13 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: colors.violetStrong,
+    backgroundColor: C.violetStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
   currentPlanLabel: {
     fontSize: 11,
-    color: colors.grey,
+    color: C.grey,
     marginBottom: 2,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -502,13 +504,13 @@ const styles = StyleSheet.create({
   currentPlanName: {
     fontSize: 15,
     fontWeight: '700',
-    color: colors.dark,
+    color: C.dark,
   },
   creditsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: colors.greyLight,
+    borderTopColor: C.greyLight,
     marginTop: spacing.md,
     paddingTop: spacing.sm,
   },
@@ -516,30 +518,30 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     fontWeight: '600',
-    color: colors.grey,
+    color: C.grey,
     marginLeft: 6,
   },
   activeBadge: {
-    backgroundColor: colors.success,
+    backgroundColor: C.success,
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: radius.lg,
   },
   activeBadgeText: {
     fontSize: 11,
-    color: colors.white,
+    color: C.onPrimary,
     fontWeight: '700',
   },
   planCard: {
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: colors.greyLight,
+    borderColor: C.greyLight,
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     padding: spacing.lg,
     paddingTop: spacing.lg + 4,
-    shadowColor: colors.black,
+    shadowColor: C.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -548,21 +550,21 @@ const styles = StyleSheet.create({
   // Pro card carries the premium violet identity
   planCardPro: {
     borderWidth: 2,
-    borderColor: VIOLET_BORDER,
+    borderColor: C.tintPurpleSoft,
   },
   planCardSelectedBasic: {
     borderWidth: 2,
-    borderColor: colors.primary,
-    backgroundColor: colors.paper,
-    shadowColor: colors.primary,
+    borderColor: C.primary,
+    backgroundColor: C.paper,
+    shadowColor: C.primary,
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 2,
   },
   planCardSelectedPro: {
-    borderColor: VIOLET_DEEP,
-    backgroundColor: tints.purpleSoft,
-    shadowColor: VIOLET_DEEP,
+    borderColor: C.violet,
+    backgroundColor: C.tintPurpleSoft,
+    shadowColor: C.violet,
     shadowOpacity: 0.2,
     shadowRadius: 10,
     elevation: 3,
@@ -577,13 +579,13 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   planBadgeBasic: {
-    backgroundColor: colors.primaryLight,
+    backgroundColor: C.primaryLight,
     borderWidth: 1,
-    borderColor: colors.primaryBorder,
+    borderColor: C.primaryBorder,
   },
   planRibbon: {
-    backgroundColor: colors.accent,
-    shadowColor: colors.accent,
+    backgroundColor: C.accent,
+    shadowColor: C.accent,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.35,
     shadowRadius: 4,
@@ -593,15 +595,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
-    color: colors.primary,
+    color: C.primary,
   },
   planRibbonText: {
-    color: colors.white,
+    color: C.onPrimary,
   },
   planTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: colors.dark,
+    color: C.dark,
     marginBottom: 2,
   },
   priceRow: {
@@ -616,13 +618,13 @@ const styles = StyleSheet.create({
   pricePeriod: {
     fontSize: 13,
     fontWeight: '500',
-    color: colors.grey,
+    color: C.grey,
     marginLeft: 4,
   },
   planTagline: {
     fontSize: 12.5,
     lineHeight: 17,
-    color: colors.grey,
+    color: C.grey,
     marginBottom: spacing.md,
   },
   featureList: {
@@ -636,12 +638,12 @@ const styles = StyleSheet.create({
   featureText: {
     fontSize: 13.5,
     lineHeight: 18,
-    color: colors.dark,
+    color: C.dark,
     fontWeight: '500',
     flex: 1,
   },
   featureTextExcluded: {
-    color: colors.greyMuted,
+    color: C.greyMuted,
     fontWeight: '400',
   },
   selectButton: {
@@ -649,15 +651,15 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   payPanel: {
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderWidth: 1,
-    borderColor: VIOLET_BORDER,
+    borderColor: C.tintPurpleSoft,
     borderRadius: radius.lg,
     padding: spacing.lg,
     marginHorizontal: spacing.lg,
     marginTop: -spacing.sm,
     marginBottom: spacing.lg,
-    shadowColor: VIOLET_DEEP,
+    shadowColor: C.violet,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -671,7 +673,7 @@ const styles = StyleSheet.create({
   payPanelTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.dark,
+    color: C.dark,
     marginLeft: 6,
   },
   payPrimaryBtn: {
@@ -691,7 +693,7 @@ const styles = StyleSheet.create({
   },
   creditNoteText: {
     fontSize: 11.5,
-    color: colors.greyMuted,
+    color: C.greyMuted,
     marginLeft: 4,
   },
   trustRow: {
@@ -703,7 +705,7 @@ const styles = StyleSheet.create({
   },
   trustText: {
     fontSize: 12,
-    color: colors.grey,
+    color: C.grey,
     fontWeight: '500',
   },
 });

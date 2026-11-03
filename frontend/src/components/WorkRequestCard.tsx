@@ -1,15 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleProp, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 import { useI18n } from '../i18n';
-import { colors, spacing } from '../theme';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 import { buildTimeAgo } from '../utils/commonUtils';
 import SvgIcon from '../assets/icons';
 import { AirConditioner } from '../assets/images';
-
-const PRIMARY_GREEN = '#078b42';
-const CARD_BG = '#ffffff';
-const LOCATION_GREEN_BG = '#e8f8ee';
-const TAG_BG = '#f3f4f6';
 
 type WorkRequestCardProps = {
   request: any;
@@ -40,6 +36,8 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
   onBoostPress,
 }) => {
   const { t } = useI18n();
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const timeAgo = buildTimeAgo(t);
   const isClosed = request.status === 'closed' || request.status === 'completed';
   const accepted = request.acceptedByProvider;
@@ -74,30 +72,30 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
             <View style={styles.metaRow}>
               {distanceLabel && (
                 <View style={styles.metaItem}>
-                  <SvgIcon name="pin" size={13} color={PRIMARY_GREEN} />
+                  <SvgIcon name="pin" size={13} color={C.brand} />
                   <Text style={styles.metaText}>{distanceLabel}</Text>
                 </View>
               )}
               <View style={styles.metaBar} />
               <View style={styles.metaItem}>
-                <SvgIcon name="clock" size={13} color={colors.greyMuted} />
+                <SvgIcon name="clock" size={13} color={C.greyMuted} />
                 <Text style={styles.metaText}>{timeLabel}</Text>
               </View>
             </View>
           </View>
           {accepted && (
             <View style={styles.interestedBadge}>
-              <SvgIcon name="check" size={10} color={PRIMARY_GREEN} />
+              <SvgIcon name="check" size={10} color={C.brand} />
               <Text style={styles.interestedBadgeText}>{t('spRequests.acceptedChip')}</Text>
             </View>
           )}
         </View>
 
         <View style={styles.locationBar}>
-          <SvgIcon name="pin" size={15} color={PRIMARY_GREEN} style={{ marginRight: 4 }} />
+          <SvgIcon name="pin" size={15} color={C.brand} style={{ marginRight: 4 }} />
           <Text style={styles.locationText}>{locationName}</Text>
           <TouchableOpacity style={styles.navigateBtn} accessibilityLabel="Navigate">
-            <SvgIcon name="navigation" size={16} color={PRIMARY_GREEN} />
+            <SvgIcon name="navigation" size={16} color={C.brand} />
           </TouchableOpacity>
         </View>
 
@@ -107,7 +105,7 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
               const config = TAG_CONFIG[tag];
               return (
                 <View key={tag} style={styles.tagChip}>
-                  <SvgIcon name={config?.icon as any} size={12} color={PRIMARY_GREEN} style={{ marginRight: 5 }} />
+                  <SvgIcon name={config?.icon as any} size={12} color={C.brand} style={{ marginRight: 5 }} />
                   <Text style={styles.tagText}>{config ? config.label : tag}</Text>
                 </View>
               );
@@ -120,7 +118,7 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
         <View style={styles.customerActions}>
           <View style={styles.customer}>
             <View style={styles.customerAvatar}>
-              <SvgIcon name="user" size={24} color={colors.greyMuted} />
+              <SvgIcon name="user" size={24} color={C.greyMuted} />
             </View>
             <View style={styles.customerInfo}>
               <Text style={styles.customerNameText}>{customerName}</Text>
@@ -129,11 +127,11 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
           </View>
           <View style={styles.verticalDivider} />
           <TouchableOpacity style={[styles.actionButton, styles.callButton]} disabled={!canCallCustomer} activeOpacity={0.7}>
-            <SvgIcon name={canCallCustomer ? 'phone' : 'x'} size={16} color={canCallCustomer ? PRIMARY_GREEN : colors.greyMuted} />
-            <Text style={[styles.actionText, { color: canCallCustomer ? PRIMARY_GREEN : colors.greyMuted }]}>{t('spRequests.call')}</Text>
+            <SvgIcon name={canCallCustomer ? 'phone' : 'x'} size={16} color={canCallCustomer ? C.brand : C.greyMuted} />
+            <Text style={[styles.actionText, { color: canCallCustomer ? C.brand : C.greyMuted }]}>{t('spRequests.call')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionButton, styles.interestButton]} activeOpacity={0.9}>
-            <SvgIcon name="check" size={14} color={colors.white} style={{ marginRight: 6 }} />
+            <SvgIcon name="check" size={14} color={C.onPrimary} style={{ marginRight: 6 }} />
             <Text style={styles.interestText}>{accepted ? t('spRequests.acceptedChip') : t('spRequests.accept')}</Text>
           </TouchableOpacity>
         </View>
@@ -141,11 +139,11 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
     </TouchableOpacity>
   );
 };
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   card: {
-    backgroundColor: CARD_BG,
+    backgroundColor: C.white,
     borderWidth: 1,
-    borderColor: '#e7ebee',
+    borderColor: C.greyLight,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 11,
@@ -169,7 +167,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 17,
-    backgroundColor: '#e3f7fc',
+    backgroundColor: C.infoLight,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 4,
@@ -183,7 +181,7 @@ const styles = StyleSheet.create({
   requestTitle: {
     fontSize: 17,
     fontFamily: 'Inter-Bold',
-    color: colors.dark,
+    color: C.dark,
     lineHeight: 20,
     marginBottom: 6,
     letterSpacing: -0.35,
@@ -191,14 +189,14 @@ const styles = StyleSheet.create({
   category: {
     fontSize: 13,
     fontFamily: 'Inter',
-    color: '#53606c',
+    color: C.grey,
     marginBottom: 8,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    color: '#303d48',
+    color: C.dark,
     fontSize: 12,
   },
   metaItem: {
@@ -209,12 +207,12 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 12,
     fontFamily: 'Inter',
-    color: '#303d48',
+    color: C.dark,
   },
   metaBar: {
     width: 1,
     height: 17,
-    backgroundColor: '#b8c0c8',
+    backgroundColor: C.greyBorder,
     marginHorizontal: 2,
   },
   interestedBadge: {
@@ -222,7 +220,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     transform: [{ translateY: -1 }],
-    backgroundColor: '#e5f9e9',
+    backgroundColor: C.greenSoft,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 7,
@@ -234,13 +232,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: 'Inter-Bold',
     fontWeight: '800',
-    color: '#087b32',
+    color: C.labelGreen,
   },
   locationBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: LOCATION_GREEN_BG,
+    backgroundColor: C.backBg,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -250,7 +248,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Inter-Bold',
     fontWeight: '800',
-    color: colors.dark,
+    color: C.dark,
     flexShrink: 1,
   },
   navigateBtn: {
@@ -265,7 +263,7 @@ const styles = StyleSheet.create({
   tagChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: TAG_BG,
+    backgroundColor: C.light,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -273,11 +271,11 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     fontFamily: 'Inter',
-    color: colors.dark,
+    color: C.dark,
   },
   cardDivider: {
     height: 1,
-    backgroundColor: '#e0e5e9',
+    backgroundColor: C.greyLight,
     marginVertical: 8,
   },
   customerActions: {
@@ -294,7 +292,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#e7edf2',
+    backgroundColor: C.greyLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -305,18 +303,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: 'Inter-Bold',
     fontWeight: '700',
-    color: colors.dark,
+    color: C.dark,
   },
   customerRoleText: {
     fontSize: 11,
     fontFamily: 'Inter',
-    color: colors.grey,
+    color: C.grey,
     marginTop: 1,
   },
   verticalDivider: {
     width: 1,
     height: 20,
-    backgroundColor: '#b8c0c8',
+    backgroundColor: C.greyBorder,
   },
   actionButton: {
     flexDirection: 'row',
@@ -328,13 +326,13 @@ const styles = StyleSheet.create({
   },
   callButton: {
     borderWidth: 1,
-    borderColor: '#e0e5e9',
-    backgroundColor: '#ffffff',
+    borderColor: C.greyLight,
+    backgroundColor: C.white,
     boxShadow: '0 2px 5px #00000010',
   },
   interestButton: {
-    backgroundColor: PRIMARY_GREEN,
-    borderColor: '#078a3d',
+    backgroundColor: C.brand,
+    borderColor: C.brandDark,
   },
   actionText: {
     fontSize: 13,
@@ -346,7 +344,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Inter-Bold',
     fontWeight: '700',
-    color: '#ffffff',
+    color: C.onPrimary,
     marginLeft: 6,
   },
 });

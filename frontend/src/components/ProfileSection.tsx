@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { useMemo, ReactNode } from 'react';
 import {
   ActivityIndicator,
   StyleProp,
@@ -9,7 +9,9 @@ import {
   ViewStyle,
 } from 'react-native';
 import { ProfileIcon, ProfileIconName } from '../assets/profile-handoff';
-import { profileColors as C, profileFonts as F } from '../theme/profile';
+import { profileFonts as F } from '../theme/profile';
+import { useTheme } from '../contexts/ThemeContext';
+import type { ProfilePalette } from '../theme/palette';
 
 type ProfileSectionHeadingProps = {
   title: string;
@@ -26,29 +28,37 @@ export const ProfileSectionHeading: React.FC<ProfileSectionHeadingProps> = ({
   actionLabel,
   onAction,
   style,
-}) => (
-  <View style={[styles.headingRow, style]}>
-    {icon ? <ProfileIcon name={icon} size={19} color={C.ink} /> : null}
-    <Text style={styles.heading} numberOfLines={2}>{title}</Text>
-    {actionLabel && onAction ? (
-      <TouchableOpacity
-        onPress={onAction}
-        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        accessibilityRole="button"
-        accessibilityLabel={actionLabel}
-        style={styles.headingAction}
-      >
-        <Text style={styles.headingActionText}>{actionLabel}</Text>
-      </TouchableOpacity>
-    ) : null}
-  </View>
-);
+}) => {
+  const { profile: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  return (
+    <View style={[styles.headingRow, style]}>
+      {icon ? <ProfileIcon name={icon} size={19} color={C.ink} /> : null}
+      <Text style={styles.heading} numberOfLines={2}>{title}</Text>
+      {actionLabel && onAction ? (
+        <TouchableOpacity
+          onPress={onAction}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel={actionLabel}
+          style={styles.headingAction}
+        >
+          <Text style={styles.headingActionText}>{actionLabel}</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+};
 
 /** White, hairline-bordered card used to group profile rows. */
 export const ProfileCard: React.FC<{ children: ReactNode; style?: StyleProp<ViewStyle> }> = ({
   children,
   style,
-}) => <View style={[styles.card, style]}>{children}</View>;
+}) => {
+  const { profile: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  return <View style={[styles.card, style]}>{children}</View>;
+};
 
 type ProfileActionRowProps = {
   icon: ProfileIconName;
@@ -77,6 +87,8 @@ export const ProfileActionRow: React.FC<ProfileActionRowProps> = ({
   accessibilityLabel,
   style,
 }) => {
+  const { profile: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const isDanger = tone === 'danger' || tone === 'dangerFilled';
   const iconColor = isDanger ? C.danger : C.primaryDark;
   return (
@@ -110,19 +122,23 @@ type ProfileStatTileProps = {
 };
 
 /** Compact two-column tile used by the Service area section. */
-export const ProfileStatTile: React.FC<ProfileStatTileProps> = ({ icon, label, value, style }) => (
-  <View style={[styles.stat, style]}>
-    <View style={styles.statIconTile}>
-      <ProfileIcon name={icon} size={18} color={C.primaryDark} />
+export const ProfileStatTile: React.FC<ProfileStatTileProps> = ({ icon, label, value, style }) => {
+  const { profile: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+  return (
+    <View style={[styles.stat, style]}>
+      <View style={styles.statIconTile}>
+        <ProfileIcon name={icon} size={18} color={C.primaryDark} />
+      </View>
+      <View style={styles.statGrow}>
+        <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
+        <Text style={styles.statValue} numberOfLines={2}>{value}</Text>
+      </View>
     </View>
-    <View style={styles.statGrow}>
-      <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
-      <Text style={styles.statValue} numberOfLines={2}>{value}</Text>
-    </View>
-  </View>
-);
+  );
+};
 
-const styles = StyleSheet.create({
+const makeStyles = (C: ProfilePalette) => StyleSheet.create({
   headingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -171,8 +187,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   actionRowDanger: {
-    backgroundColor: '#FFFAFA',
-    borderColor: '#F5DDDD',
+    backgroundColor: C.dangerSoft,
+    borderColor: C.border,
   },
   actionText: {
     flex: 1,

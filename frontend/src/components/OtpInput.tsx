@@ -1,9 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, StyleSheet, Text, TextInput, TouchableOpacity, View, type TextInputInstance } from 'react-native';
 
 import { sendOtp } from '../api';
 import { useI18n } from '../i18n';
 import { useToast } from '../contexts/ToastContext';
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 
 /** Default code length. Aadhaar OTP is 6 digits, so callers can override. */
 const OTP_LENGTH = 4;
@@ -14,14 +16,6 @@ const CELL_HEIGHT = 50;
  *  scaled to the app's device convention like the sibling screens). */
 const CELL_WIDTH = 46;
 const CARET_BLINK_MS = 500;/** Cadence of the blinking caret drawn in the slot awaiting the next digit. */
-
-/** Exact tokens from approved design */
-const NV = {
-  green: '#079653',
-  ink: '#17202B',
-  muted: '#657080',
-  line: '#D9DEE5',
-};
 
 export type OtpInputProps = {
   /** Phone number the OTP was sent to — used when resending. */
@@ -63,11 +57,13 @@ const OtpInput: React.FC<OtpInputProps> = ({
 }) => {
   const { t } = useI18n(language);
   const { showToast } = useToast();
+  const { base: C, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [otp, setOtp] = useState('');
   const [focused, setFocused] = useState(false);
   const [seconds, setSeconds] = useState(RESEND_SECONDS);
   const [resending, setResending] = useState(false);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance | null>(null);
   const caretOpacity = useRef(new Animated.Value(1)).current;
 
   /** Store the code locally and hand it up to the screen. */
@@ -144,6 +140,7 @@ const OtpInput: React.FC<OtpInputProps> = ({
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             keyboardType="number-pad"
+            keyboardAppearance={isDark ? 'dark' : 'light'}
             maxLength={length}
             returnKeyType="done"
             textContentType="oneTimeCode"
@@ -184,7 +181,7 @@ const OtpInput: React.FC<OtpInputProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   otpField: {
     alignSelf: 'center',
     width: '100%',
@@ -209,7 +206,11 @@ const styles = StyleSheet.create({
    * keep rendering its glyphs over our drawn cells.
    */
   otpInputLayer: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     opacity: 0,
   },
   /** Kept measurable so the caret/selection maths still line up. */
@@ -226,7 +227,11 @@ const styles = StyleSheet.create({
      All cells keep the SAME border geometry (uniform 2px) so focus never
      changes their shape or size — only the colour and glow transition. */
   otpSlots: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -240,16 +245,16 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     borderWidth: 2,
-    borderColor: NV.line,
+    borderColor: C.line,
     borderRadius: 11,
   },
   /* .otp input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(7,150,83,.10)}
      Border width stays 2px; only tint + glow change. */
   otpSlotActive: {
-    borderColor: NV.green,
-    shadowColor: NV.green,
+    borderColor: C.brand,
+    shadowColor: C.brand,
     shadowOpacity: 0.1,
     shadowRadius: 3,
     shadowOffset: { width: 0, height: 0 },
@@ -257,7 +262,7 @@ const styles = StyleSheet.create({
   otpDigit: {
     fontSize: 20,
     fontWeight: '700',
-    color: NV.ink,
+    color: C.dark,
     textAlign: 'center',
     includeFontPadding: false,
   },
@@ -267,7 +272,7 @@ const styles = StyleSheet.create({
     height: 20,
     width: 2,
     borderRadius: 1,
-    backgroundColor: NV.ink,
+    backgroundColor: C.dark,
   },
   /* .resend{text-align:center;color:var(--muted);font-size:14px;line-height:1.5} */
   resendBlock: {
@@ -279,17 +284,17 @@ const styles = StyleSheet.create({
   },
   resendHint: {
     fontSize: 12,
-    color: NV.muted,
+    color: C.grey,
   },
   resendTimer: {
     fontWeight: '700',
-    color: NV.ink,
+    color: C.dark,
   },
   /* .resend button{color:var(--green);font-size:15px;font-weight:750;padding:2px 8px} */
   resendLink: {
     marginLeft: 4,
     fontSize: 13,
-    color: NV.green,
+    color: C.brand,
     fontWeight: '700',
   },
   /* .resend button:disabled{opacity:.45} */

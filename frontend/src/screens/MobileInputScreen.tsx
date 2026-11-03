@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -28,30 +28,10 @@ import BlockingLoader from '../components/BlockingLoader';
 import SvgIcon from '../assets/icons';
 import { IndiaFlag } from '../assets/images';
 import mobileOtpIllustration from '../../assets/mobile-otp-illustration.png';
-import { colors } from '../theme';
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 import { BrandText } from '../components/BrandWord';
 import { TRUECALLER_APP_KEY } from '../config';
-
-/* Exact tokens from approved design */
-const ME = {
-  brand: '#00A86B',
-  brandDark: '#008E55',
-  mint: '#E7F8EF',
-  mintSoft: '#F0FAF5',
-  ink: '#17231F',
-  muted: '#64748B',
-  line: '#DFE5E8',
-  canvas: '#FBFDFC',
-  fieldBorder: '#D9E0E3',
-  placeholder: '#9AA4B2',
-  danger: '#D04444',
-  termsText: '#6B7280',
-  topbarLine: '#EEF1EF',
-  socialBorder: '#CFE8DA',
-  socialIconBg: '#DCF6E8',
-  socialWave: '#D0F5E4',
-  pageWave: '#EAF7F0',
-};
 
 /**
  * Mobile number entry — approved design.
@@ -63,6 +43,8 @@ const MobileInputScreen: React.FC = () => {
   const { language } = (route.params as any) || {};
   const { t } = useI18n(language);
   const { login } = useAuth();
+  const { base: C, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
@@ -199,7 +181,7 @@ const MobileInputScreen: React.FC = () => {
       {/* Decorative bottom wave from the approved reference */}
       <View pointerEvents="none" style={styles.waveWrap}>
         <SvgXml
-          xml={'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 80" preserveAspectRatio="none"><path d="M0 46C52 22 112 16 196 38S332 66 390 34V80H0Z" fill="#EAF7F0"/></svg>'}
+          xml={`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 80" preserveAspectRatio="none"><path d="M0 46C52 22 112 16 196 38S332 66 390 34V80H0Z" fill="${C.pageWave}"/></svg>`}
           width="100%"
           height={64}
         />
@@ -214,7 +196,7 @@ const MobileInputScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel="Go back">
-          <SvgIcon name="sa-back" size={22} color={ME.ink} />
+          <SvgIcon name="sa-back" size={22} color={C.dark} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.language}
@@ -222,9 +204,9 @@ const MobileInputScreen: React.FC = () => {
           onPress={openLanguagePicker}
           accessibilityRole="button"
           accessibilityLabel={t('mobile.header')}>
-          <SvgIcon name="mf-globe" size={18} color={ME.ink} />
+          <SvgIcon name="mf-globe" size={18} color={C.dark} />
           <Text style={styles.languageText}>{getLanguageDisplay(language || 'en')}</Text>
-          <SvgIcon name="chevron-down" size={12} color={ME.muted} />
+          <SvgIcon name="chevron-down" size={12} color={C.grey} />
         </TouchableOpacity>
       </View>
 
@@ -252,7 +234,7 @@ const MobileInputScreen: React.FC = () => {
         {/* Field label */}
         <View style={styles.fieldLabel}>
           <View style={styles.fieldIconBox}>
-            <SvgIcon name="mf-phone" size={21} color={ME.brandDark} />
+            <SvgIcon name="mf-phone" size={21} color={C.brandDeep} />
           </View>
           <Text style={styles.fieldLabelText}>{t('mobile.label')}</Text>
         </View>
@@ -269,8 +251,9 @@ const MobileInputScreen: React.FC = () => {
             onChangeText={handleChangePhone}
             onFocus={() => setIsFocused(true)}
             onBlur={handleBlur}
+            keyboardAppearance={isDark ? 'dark' : 'light'}
             placeholder={t('mobile.placeholder')}
-            placeholderTextColor={ME.placeholder}
+            placeholderTextColor={C.placeholder}
             keyboardType="number-pad"
             inputMode="numeric"
             maxLength={10}
@@ -289,16 +272,16 @@ const MobileInputScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel={t('mobile.sendOtp')}>
           <LinearGradient
-            colors={['#00A96B', '#009B5E']}
+            colors={[C.brand2, C.secondary]}
             start={{ x: 0, y: 0.5 }}
             end={{ x: 1, y: 0.5 }}
             style={[styles.send, loading && styles.sendDisabled]}>
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={C.onPrimary} />
             ) : (
               <>
                 <Text style={styles.sendText}>{t('mobile.sendOtp')}</Text>
-                <SvgIcon name="ss-arrow-right" size={21} color="#FFFFFF" />
+                <SvgIcon name="ss-arrow-right" size={21} color={C.onPrimary} />
               </>
             )}
           </LinearGradient>
@@ -314,13 +297,13 @@ const MobileInputScreen: React.FC = () => {
 
         {/* Social proof */}
         <LinearGradient
-          colors={['#EFFAF4', '#E8F8F0']}
+          colors={[C.pillBg, C.backBg]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={styles.socialProof}>
           <View pointerEvents="none" style={styles.socialWave} />
           <View style={styles.socialIcon}>
-            <SvgIcon name="mf-users" size={26} color={ME.brandDark} />
+            <SvgIcon name="mf-users" size={26} color={C.brandDeep} />
           </View>
           <View style={styles.socialCopy}>
             <Text style={styles.socialTitle}>{t('mobile.joinTitle')}</Text>
@@ -352,23 +335,23 @@ const MobileInputScreen: React.FC = () => {
       )}
 
       <BlockingLoader visible={loading || truecallerInitializing} />
-      {/* In-app WebView Modal */}
+      {/* In-app WebView Modal — stays light: hosts a light web page. */}
       <Modal visible={webOpen} animationType="slide" onRequestClose={() => setWebOpen(false)}>
         <SafeAreaProvider>
-          <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.greyLight }}>
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e7eb' }}>
               <TouchableOpacity onPress={() => setWebOpen(false)} style={{ padding: 8 }}>
-                <Icon name="close" size={18} color={colors.dark} />
+                <Icon name="close" size={18} color={'#202B27'} />
               </TouchableOpacity>
-              <Text style={{ fontSize: 16, fontWeight: '600', marginLeft: 6, color: colors.dark }}>{webTitle}</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', marginLeft: 6, color: '#202B27' }}>{webTitle}</Text>
             </View>
             <WebView
-              style={{ flex: 1, backgroundColor: colors.white }}
+              style={{ flex: 1, backgroundColor: '#FFFFFF' }}
               source={{ uri: webUrl }}
               startInLoadingState={true}
               contentInsetAdjustmentBehavior="never"
               renderLoading={() => (
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}>
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' }}>
                   <ActivityIndicator size="large" />
                 </View>
               )}
@@ -380,10 +363,10 @@ const MobileInputScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     overflow: 'hidden',
   },
   /* Decorative mint wave hugging the bottom of the screen (approved reference) */
@@ -406,8 +389,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: ME.topbarLine,
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: C.topbarLine,
+    backgroundColor: C.white,
     zIndex: 2,
   },
   /* .back{width:54px;height:54px;border-radius:50%;background:#f0faf5} */
@@ -415,7 +398,7 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-    backgroundColor: ME.mintSoft,
+    backgroundColor: C.pillBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -424,7 +407,7 @@ const styles = StyleSheet.create({
     height: 44,
     paddingHorizontal: 10,
     borderRadius: 16,
-    backgroundColor: '#F0F8F3',
+    backgroundColor: C.pillBg,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
@@ -432,7 +415,7 @@ const styles = StyleSheet.create({
   languageText: {
     fontSize: 13.5,
     fontWeight: '700',
-    color: ME.ink,
+    color: C.dark,
   },
   /* main{padding:0 18px} */
   scrollContent: {
@@ -464,14 +447,14 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     letterSpacing: -0.8,
     fontWeight: '800',
-    color: ME.ink,
+    color: C.dark,
     textAlign: 'center',
   },
   /* .subtitle{font-size:15px;line-height:1.4;color:#64748b;margin-top:12px} */
   subtitle: {
     fontSize: 14,
     lineHeight: 19,
-    color: ME.muted,
+    color: C.grey,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -486,22 +469,22 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: ME.mint,
+    backgroundColor: C.backBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   fieldLabelText: {
     fontSize: 15.5,
     fontWeight: '700',
-    color: ME.ink,
+    color: C.dark,
   },
   /* .phone-field{height:66px;border:1.5px solid #d9e0e3;border-radius:18px;padding:0 12px} */
   phoneField: {
     height: 56,
     borderWidth: 1.5,
-    borderColor: ME.fieldBorder,
+    borderColor: C.fieldBorder,
     borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.white,
     paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -512,8 +495,8 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   phoneFieldFocused: {
-    borderColor: ME.brand,
-    shadowColor: ME.brand,
+    borderColor: C.brand2,
+    shadowColor: C.brand2,
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 2,
@@ -525,12 +508,12 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingRight: 9,
     borderRightWidth: 1,
-    borderRightColor: ME.line,
+    borderRightColor: C.line,
   },
   countryCode: {
     fontSize: 15.5,
     fontWeight: '700',
-    color: ME.ink,
+    color: C.dark,
   },
   /* input{flex:1;padding-left:12px;font-size:16px;letter-spacing:.2px} */
   input: {
@@ -540,13 +523,13 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
     fontSize: 15,
     letterSpacing: 0.2,
-    color: ME.ink,
+    color: C.dark,
     backgroundColor: 'transparent',
   },
   /* .helper{font-size:13px;color:#d04444;margin:8px 4px 0;min-height:17px} */
   helper: {
     fontSize: 12,
-    color: ME.danger,
+    color: C.danger,
     marginTop: 6,
     marginHorizontal: 4,
     minHeight: 16,
@@ -572,7 +555,7 @@ const styles = StyleSheet.create({
   sendText: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: C.onPrimary,
   },
   /* .terms{font-size:14px;line-height:1.55;color:#6b7280;margin:18px 8px 0;text-align:center} */
   terms: {
@@ -580,11 +563,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     fontSize: 12.5,
     lineHeight: 18,
-    color: ME.termsText,
+    color: C.termsText,
     textAlign: 'center',
   },
   link: {
-    color: ME.brandDark,
+    color: C.brandDeep,
     fontWeight: '700',
   },
   /* .social-proof{margin-top:28px;min-height:94px;padding:13px;border-radius:22px;gap:12px} */
@@ -606,14 +589,14 @@ const styles = StyleSheet.create({
     right: -45,
     bottom: -45,
     borderRadius: 35,
-    backgroundColor: ME.socialWave,
+    backgroundColor: C.socialWave,
   },
   /* .social-icon{width:58px;height:58px;border-radius:50%;background:#dcf6e8} */
   socialIcon: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: ME.socialIconBg,
+    backgroundColor: C.socialIconBg,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -623,19 +606,19 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     borderLeftWidth: 1,
-    borderLeftColor: ME.socialBorder,
+    borderLeftColor: C.socialBorder,
     paddingLeft: 14,
   },
   socialTitle: {
     fontSize: 14.5,
     lineHeight: 18,
     fontWeight: '700',
-    color: ME.ink,
+    color: C.dark,
   },
   socialSubtitle: {
     fontSize: 12,
     lineHeight: 16,
-    color: ME.muted,
+    color: C.grey,
     marginTop: 3,
   },
   hiddenTruecallerWebView: {

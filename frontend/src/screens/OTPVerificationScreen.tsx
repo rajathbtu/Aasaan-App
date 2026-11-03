@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,9 @@ import { WebView } from 'react-native-webview';
 import Header from '../components/Header';
 import ActionButton from '../components/ActionButton';
 import OtpInput from '../components/OtpInput';
-import { spacing, colors, radius } from '../theme';
+import { spacing, radius } from '../theme';
+import type { BasePalette } from '../theme/palette';
+import { useTheme } from '../contexts/ThemeContext';
 
 const OTPVerificationScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -29,6 +31,8 @@ const OTPVerificationScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { login, user } = useAuth();
   const { showLoader, hideLoader } = useGlobalLoader();
+  const { base: C, isDark } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const [webOpen, setWebOpen] = useState(false);
   const [webUrl, setWebUrl] = useState<string>('');
   const [webTitle, setWebTitle] = useState<string>('');
@@ -89,7 +93,7 @@ const OTPVerificationScreen: React.FC = () => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }} >
+    <View style={{ flex: 1, backgroundColor: C.white }} >
         {/* Header */}
         <Header title={t('otp.header')} showBackButton={true} showNotification={false}/>
         <View style={{ height: spacing.sm }} />
@@ -124,8 +128,8 @@ const OTPVerificationScreen: React.FC = () => {
             fullWidth
             buttonIcon="checkmark-circle-outline"
             buttonTitle={t('otp.verifyAndContinue')}
-            buttonTitleColor={colors.white}
-            backgroundColor={colors.primary}
+            buttonTitleColor={C.onPrimary}
+            backgroundColor={C.primary}
             onPress={handleVerify}
             loading={loading}
             style={styles.verifyBtn}
@@ -143,7 +147,7 @@ const OTPVerificationScreen: React.FC = () => {
           </Text>
         </View>
 
-        {/* In-app WebView Modal */}
+        {/* In-app WebView Modal — stays light: hosts a light web page. */}
         <Modal
           visible={webOpen}
           animationType="slide"
@@ -152,20 +156,20 @@ const OTPVerificationScreen: React.FC = () => {
           statusBarTranslucent={true}
         >
           <SafeAreaProvider>
-            <SafeAreaView style={{ flex: 1, backgroundColor: colors.white }} edges={['top', 'bottom']}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.greyLight }}>
+            <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top', 'bottom']}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e7eb' }}>
                 <TouchableOpacity onPress={() => setWebOpen(false)} style={{ padding: 8 }}>
-                  <Icon name="close" size={18} color={colors.dark} />
+                  <Icon name="close" size={18} color={'#202B27'} />
                 </TouchableOpacity>
-                <Text style={{ fontSize: 16, fontWeight: '600', marginLeft: 6, color: colors.dark }}>{webTitle}</Text>
+                <Text style={{ fontSize: 16, fontWeight: '600', marginLeft: 6, color: '#202B27' }}>{webTitle}</Text>
               </View>
               <WebView
-                style={{ flex: 1, backgroundColor: colors.white }}
+                style={{ flex: 1, backgroundColor: '#FFFFFF' }}
                 source={{ uri: webUrl }}
                 startInLoadingState={true}
                 contentInsetAdjustmentBehavior="never"
                 renderLoading={() => (
-                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.white }}>
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' }}>
                     <ActivityIndicator size="large" />
                   </View>
                 )}
@@ -177,10 +181,10 @@ const OTPVerificationScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   separator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.greyLight,
+    backgroundColor: C.greyLight,
   },
   content: {
     flex: 1,
@@ -194,13 +198,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.dark,
+    color: C.dark,
     marginBottom: spacing.xs + 2,
     textAlign: 'center',
   },
   subtle: {
     fontSize: 13,
-    color: colors.grey,
+    color: C.grey,
   },
   phoneRow: {
     marginTop: spacing.sm,
@@ -210,12 +214,12 @@ const styles = StyleSheet.create({
   phoneText: {
     fontSize: 15,
     fontWeight: '600',
-    color: colors.dark,
+    color: C.dark,
   },
   changeLink: {
     marginLeft: spacing.sm,
     fontSize: 13,
-    color: colors.primary,
+    color: C.primary,
     textDecorationLine: 'underline',
     fontWeight: '600',
   },
@@ -227,19 +231,19 @@ const styles = StyleSheet.create({
      textAlign: 'center',
     marginTop: spacing.md + 2,
      fontSize: 12,
-    color: colors.grey,
+    color: C.grey,
   },
   helpLink: {
-    color: colors.primary,
+    color: C.primary,
      fontWeight: '600',
   },
   terms: {
      textAlign: 'center',
      fontSize: 12,
-    color: colors.grey,
+    color: C.grey,
     marginTop: spacing.sm,
   },
-  link: { color: colors.primary, fontWeight: '600' },
+  link: { color: C.primary, fontWeight: '600' },
 });
 
 export default OTPVerificationScreen;

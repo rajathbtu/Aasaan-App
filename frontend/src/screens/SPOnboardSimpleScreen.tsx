@@ -2,10 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Text, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { useI18n } from '../i18n';
 import { completeOnboarding, sendOtp } from '../api';
 import Header from '../components/Header';
-import { colors, spacing } from '../theme';
+import { spacing } from '../theme';
 
 type DeepLinkParams = {
   data?: string;
@@ -30,6 +31,7 @@ const SPOnboardSimpleScreen: React.FC = () => {
   const route = useRoute<any>();
   const { user, token, login, logout, loading: authLoading } = useAuth();
   const { t } = useI18n();
+  const { base: C } = useTheme();
   const [loading, setLoading] = useState(true);
   const attemptedRef = useRef(false);
   const { data, token: routeToken } = getDeepLinkParams(route.params);
@@ -79,11 +81,11 @@ const SPOnboardSimpleScreen: React.FC = () => {
   }, [authLoading, login, logout, navigation, onboardingToken, t, token, user]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.light }}>
+    <View style={{ flex: 1, backgroundColor: C.light }}>
       <Header title="Setting up your profile" showBackButton={false} showNotification={false} />
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        {loading && <ActivityIndicator size="large" color={colors.primary} />}
-        <Text style={{ color: colors.grey, marginTop: spacing.sm }}>Please wait...</Text>
+        {loading && <ActivityIndicator size="large" color={C.primary} />}
+        <Text style={{ color: C.grey, marginTop: spacing.sm }}>Please wait...</Text>
       </View>
     </View>
   );

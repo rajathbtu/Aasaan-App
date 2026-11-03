@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import SvgIcon from '../assets/icons';
-
-const colors = { white: '#ffffff' };
+import { useTheme } from '../contexts/ThemeContext';
+import type { BasePalette } from '../theme/palette';
 
 type Props = {
   expanded: boolean;
@@ -21,6 +21,9 @@ const BENEFITS = [
 ] as const;
 
 const SPProBanner: React.FC<Props> = ({ expanded, onPress, onClose, onUpgrade }) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
+
   if (!expanded) {
     return (
       <LinearGradient
@@ -36,7 +39,7 @@ const SPProBanner: React.FC<Props> = ({ expanded, onPress, onClose, onUpgrade })
           accessibilityRole="button"
           accessibilityLabel="Upgrade to Professional">
           <View style={[styles.crownTile, styles.crownCompact]}>
-            <SvgIcon name="crown" size={26} color={colors.white} />
+            <SvgIcon name="crown" size={26} color={C.onPrimary} />
           </View>
           <View style={styles.headerTextCol}>
             <View style={styles.titleRow}>
@@ -47,7 +50,7 @@ const SPProBanner: React.FC<Props> = ({ expanded, onPress, onClose, onUpgrade })
             </View>
           </View>
           <View style={styles.expandChevron}>
-            <SvgIcon name="chevron-up" size={20} color="#7624c4" />
+            <SvgIcon name="chevron-up" size={20} color={C.violet} />
           </View>
         </TouchableOpacity>
       </LinearGradient>
@@ -63,7 +66,7 @@ const SPProBanner: React.FC<Props> = ({ expanded, onPress, onClose, onUpgrade })
       style={styles.expanded}>
       <View style={styles.headerRow}>
         <View style={styles.crownTile}>
-          <SvgIcon name="crown" size={27} color={colors.white} />
+          <SvgIcon name="crown" size={27} color={C.onPrimary} />
         </View>
         <View style={styles.headerTextCol}>
           <View style={styles.titleRow}>
@@ -80,7 +83,7 @@ const SPProBanner: React.FC<Props> = ({ expanded, onPress, onClose, onUpgrade })
             style={styles.closeBtn}
             accessibilityRole="button"
             accessibilityLabel="Close banner">
-            <SvgIcon name="x" size={17} color={colors.white} />
+            <SvgIcon name="x" size={17} color={C.onPrimary} />
           </TouchableOpacity>
         )}
       </View>
@@ -88,7 +91,7 @@ const SPProBanner: React.FC<Props> = ({ expanded, onPress, onClose, onUpgrade })
       <View style={styles.benefits}>
         {BENEFITS.map((b, i) => (
           <View key={b.label} style={[styles.benefit, i === BENEFITS.length - 1 && styles.benefitLast]}>
-            <SvgIcon name={b.icon} size={20} color="#6520b2" />
+            <SvgIcon name={b.icon} size={20} color={C.violet} />
             <Text style={styles.benefitLabel} numberOfLines={1}>{b.label}</Text>
           </View>
         ))}
@@ -107,7 +110,7 @@ const SPProBanner: React.FC<Props> = ({ expanded, onPress, onClose, onUpgrade })
   );
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   /* .pro-banner{position:fixed;bottom:85px;width:min(366px,calc(100% - 26px));border-radius:19px;
      background:linear-gradient(110deg,#a84cf1 0%,#8429dc 52%,#6e1cc4 100%);box-shadow:0 7px 19px #6823a84a} */
   expanded: {
@@ -151,6 +154,7 @@ const styles = StyleSheet.create({
     width: 43,
     height: 43,
     borderRadius: 21.5,
+    // Translucent glass on the brand gradient — the gradient itself never flips.
     backgroundColor: 'rgba(255,255,255,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -173,11 +177,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: 800,
-    color: colors.white,
+    color: C.onPrimary,
   },
   /* .pro-pill{font-size:10px;font-weight:850;background:#ffffffdf;color:#7021b7;border-radius:999px;padding:3px 7px;margin-left:4px} */
   proPill: {
-    backgroundColor: 'rgba(255,255,255,0.87)',
+    backgroundColor: C.white,
     borderRadius: 999,
     paddingHorizontal: 7,
     paddingVertical: 3,
@@ -187,20 +191,21 @@ const styles = StyleSheet.create({
   proPillText: {
     fontSize: 10,
     fontWeight: 800,
-    color: '#7021b7',
+    color: C.violet,
     lineHeight: 12,
   },
   /* .pro-subtitle{font-size:11px;margin-top:4px;color:#f8edff} */
   subtitle: {
     fontSize: 11,
     marginTop: 4,
-    color: '#f8edff',
+    color: C.onPrimary,
   },
   /* .pro-close{width:30px;height:30px;border-radius:50%;background:#7021b6aa} */
   closeBtn: {
     width: 30,
     height: 30,
     borderRadius: 15,
+    // Translucent glass on the brand gradient — the gradient itself never flips.
     backgroundColor: 'rgba(112,33,182,0.67)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -211,7 +216,7 @@ const styles = StyleSheet.create({
   benefits: {
     height: 61,
     marginTop: 9,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -227,7 +232,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4,
     borderRightWidth: 1,
-    borderRightColor: '#e6d9f2',
+    borderRightColor: C.greyLight,
   },
   benefitLast: {
     borderRightWidth: 0,
@@ -235,7 +240,7 @@ const styles = StyleSheet.create({
   benefitLabel: {
     fontSize: 10,
     fontWeight: 800,
-    color: '#6520b2',
+    color: C.violet,
   },
   /* .pro-cta{width:100%;height:30px;margin-top:6px;border-radius:11px;background:#fff;
      color:#7021b7;font-size:12px;font-weight:850;align-items:center;justify-content:center;gap:10px} */
@@ -243,7 +248,7 @@ const styles = StyleSheet.create({
     height: 30,
     marginTop: 6,
     borderRadius: 11,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -252,12 +257,12 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 12,
     fontWeight: 800,
-    color: '#7021b7',
+    color: C.violet,
   },
   ctaArrow: {
     fontSize: 13,
     fontWeight: 800,
-    color: '#7021b7',
+    color: C.violet,
     marginTop: -1,
   },
   /* .pro-expand{width:38px;height:38px;border-radius:50%;background:#fff;color:#7624c4} */
@@ -265,7 +270,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: colors.white,
+    backgroundColor: C.white,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
