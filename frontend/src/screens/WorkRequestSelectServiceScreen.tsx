@@ -259,9 +259,9 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   );
 
   const noResults = hasData && filteredServices.length === 0 && query.trim() !== '';
-  /* Header shows the live current city (GPS → reverse geocoded); falls back
-     to the confirmed saved location, then the generic placeholder. */
-  const headerLocationLabel = currentCityLabel || savedLocation?.description || 'Select your location';
+  /* Header shows the confirmed work location (e.g. "Civil Lines, Jhansi")
+     once set; before that, the live current city from GPS. */
+  const headerLocationLabel = savedLocation?.description || currentCityLabel || 'Select your location';
 
   const renderServiceCard = (service: Service, recent = false) => {
     const svgIcon = getServiceIcon(service);
