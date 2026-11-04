@@ -1,12 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import axios from 'axios';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { spacing } from '../theme';
 import type { BasePalette } from '../theme/palette';
 import { useTheme } from '../contexts/ThemeContext';
 import { useI18n } from '../i18n';
-import ActionButton from './ActionButton';
 
 type ErrorBannerProps = {
   error: unknown | null;
@@ -21,6 +20,12 @@ function getErrorDetails(error: unknown): string {
   return error instanceof Error ? error.message : typeof error === 'string' ? error : '';
 }
 
+/**
+ * Totally-transcribes nothing in-app — renders the error as a small,
+ * dismissible toast (per user request). It is *not* a full-screen popup:
+ * the user dismisses it with the × button and it never blocks the UI.
+ * The retry action is kept inside the toast as a tap target.
+ */
 const ErrorBanner: React.FC<ErrorBannerProps> = ({
   error,
   onRetry,
@@ -28,89 +33,82 @@ const ErrorBanner: React.FC<ErrorBannerProps> = ({
   const { base: C } = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
   const { t } = useI18n();
-  if (!error) return null;
+  const [dismissed, setDismissed] = useState(false);
+  if (!error || dismissed) return null;
 
   const errorType = axios.isAxiosError(error) && !error.response ? 'network' : 'api';
 
   const titleKey = `errorBanner.titles.${errorType}`;
   const messageKey = `errorBanner.messages.${errorType}`;
-  const retryLabel = t('errorBanner.retry');
   const errorDetails = __DEV__ ? getErrorDetails(error) : '';
 
+  const message = errorDetails
+    ? `${t(messageKey)}\nDev Mode Debug:\n${errorDetails}`
+    : t(messageKey);
+
+  const handleRetry = () => {
+    setDismissed(false);
+    onRetry?.();
+  };
+
   return (
-    <View style={styles.errorBanner} accessibilityRole="alert">
-      <View style={styles.errorIconContainer}>
-        <Ionicons name="cloud-offline-outline" size={20} color={C.error} />
-      </View>
-      <View style={styles.errorMessageContainer}>
-        <Text style={styles.errorTitle}>{t(titleKey)}</Text>
-        <Text style={styles.errorMessage}>
-          {t(messageKey)}{errorDetails ? `\nDev Mode Debug:\n${errorDetails}` : ''}
+    <View style={styles.toast} accessibilityRole="alert">
+      <TouchableOpacity onPress={handleRetry} style={styles.toastBody} disabled={!onRetry} activeOpacity={0.85}>
+        <Ionicons name={errorType === 'network' ? 'cloud-offline-outline' : 'alert-circle-outline'} size={18} color={C.error} />
+        <Text style={styles.toastMessage} numberOfLines={2}>
+          {t(titleKey)}: {message}
         </Text>
-      </View>
-      {onRetry && (
-        <ActionButton
-          buttonTitle={retryLabel}
-          buttonTitleColor={C.onPrimary}
-          backgroundColor={C.error}
-          onPress={onRetry}
-          style={styles.retryButton}
-        />
-      )}
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => setDismissed(true)}
+        style={styles.dismissButton}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss">
+        <Ionicons name="close" size={14} color={C.onPrimary} />
+      </TouchableOpacity>
     </View>
   );
 };
 
 const makeStyles = (C: BasePalette) => StyleSheet.create({
-  errorBanner: {
-    position: 'relative',
+  toast: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    bottom: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    marginHorizontal: 12,
-    marginBottom: 5,
-    backgroundColor: C.dangerSoft,
-    borderRadius: 14,
-    borderWidth: 1,
-    /* No pale-red border token exists in the base palette; dangerSoft is the
-       nearest token (approximation noted in the dark-mode report). */
-    borderColor: C.dangerSoft,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: C.toastBg,
+    borderRadius: 999,
     shadowColor: C.black,
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 5,
-    zIndex: 100,
+    elevation: 8,
+    zIndex: 1000,
   },
-  errorIconContainer: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  toastBody: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  toastMessage: {
+    flex: 1,
+    color: C.onPrimary,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  dismissButton: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: C.white,
-    marginRight: 10,
-  },
-  errorMessageContainer: {
-    flex: 1,
-  },
-  errorTitle: {
-    color: C.dark,
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  errorMessage: {
-    color: C.grey,
-    fontSize: 13,
-  },
-  retryButton: {
-    // ActionButton defaults to alignSelf:'flex-start'; this banner centres its
-    // children on the cross axis, so restore that for the compact retry pill.
-    alignSelf: 'center',
-    marginLeft: spacing.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    marginLeft: spacing.xs,
   },
 });
 

@@ -47,6 +47,7 @@ import SvgIcon from '../assets/icons';
 const RECENT_SERVICES_KEY = (userId: string) => `recent_services_${userId}`;
 const MAX_RECENT_SERVICES = 4;
 
+
 /**
  * Route params and saved-cache entries describe a place slightly differently
  * (description vs name, place_id vs placeId) — normalise both to the shape the
@@ -447,17 +448,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
         {/* Recently Used */}
         {hasData && query.trim() === '' && recentServices.length > 0 && (
           <View style={styles.section}>
-            <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>{t('createRequest.selectService.recentlyUsed')}</Text>
-              <TouchableOpacity
-                style={styles.viewAll}
-                onPress={() => { setSelectedChip('all'); setQuery(''); }}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel="View All">
-                <Text style={styles.viewAllText}>View All ›</Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.sectionTitle}>{t('createRequest.selectService.recentlyUsed')}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -668,22 +659,13 @@ const makeStyles = (C: BasePalette) =>
     fontFamily: consumerFonts.bold,
     letterSpacing: -0.4,
   },
-  viewAll: {
-    backgroundColor: C.greenSoft,
-    borderRadius: 999,
-    paddingVertical: 8,
-    paddingHorizontal: 13,
-  },
-  viewAllText: {
-    color: C.labelGreen,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  recentRow: {
-    gap: 8,
-  },
 
   // -- Service card — exact SPSelectServicesScreen three-column spec --
+  // Percentage widths, not fixed pixels. A horizontal ScrollView sizes its
+  // contentContainer by content, so `width: '31.6%'` is meaningless there —
+  // the container can be narrower than the screen and every card just
+  // appends past the edge (the "spill" you see). `calc()` makes the math
+  // explicit: (100% - 2×8px gap) / 3, so exactly 3 fit with right padding.
   serviceCard: {
     borderWidth: 1,
     borderColor: C.cardBorder,
@@ -704,7 +686,12 @@ const makeStyles = (C: BasePalette) =>
     elevation: 3,
   },
   recentCard: {
-    width: 110,
+    width: 'calc((100% - 16px) / 3)',
+    flexShrink: 0,
+  },
+  recentRow: {
+    gap: 8,
+    paddingRight: 4,
   },
   serviceIconWrap: {
     width: '100%',

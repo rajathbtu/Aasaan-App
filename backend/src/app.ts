@@ -9,6 +9,7 @@ import paymentRoutes from './routes/paymentRoutes';
 import sandboxAadhaarOfflineEkycRoutes from './kyc/sandbox/aadhaarOfflineEkyc/routes';
 import serviceRoutes from './routes/serviceRoutes';
 import googlePlacesRoutes from './routes/googlePlacesRoutes';
+import voiceSummaryRoutes from './routes/voiceSummaryRoutes';
 import whatsappRoutes from './communications/whatsapp/routes';
 import sarvamRoutes from './communications/voiceAI/routes/sarvamRoutes';
 import { errorHandler } from './middleware/errorHandler';
@@ -62,7 +63,7 @@ app.use('/whatsapp/webhook', (req, res, next) => {
   next();
 });
 
-app.use(express.json());
+app.use(express.json({ limit: '30mb' }));
 
 app.use((req, res, next) => {
   const time = new Date().toLocaleTimeString('en-GB');
@@ -100,7 +101,8 @@ app.use('/notifications', notificationRoutes);
 app.use('/payments', paymentRoutes);
 app.use('/aadhaar-kyc/sandbox/aadhaar-offline-ekyc', sandboxAadhaarOfflineEkycRoutes);
 app.use('/services', serviceRoutes);
-app.use('/google-places', googlePlacesRoutes); // Web-only proxy for Google Places Web Service endpoints (see googlePlacesProxyController). Native apps call Google directly.
+app.use('/google-places', googlePlacesRoutes);
+app.use('/voice', voiceSummaryRoutes); // Voice → 80-char summary via OpenRouter (auth required) // Web-only proxy for Google Places Web Service endpoints (see googlePlacesProxyController). Native apps call Google directly.
 app.use('/whatsapp', whatsappRoutes); // WhatsApp Cloud API (Meta): inbound webhooks only
 app.use('/webhooks/sarvam', sarvamRoutes);
 app.use('/api/sarvam', sarvamRoutes); // exposes POST /api/sarvam/calls
