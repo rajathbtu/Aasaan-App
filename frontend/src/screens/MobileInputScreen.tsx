@@ -352,7 +352,7 @@ const MobileInputScreen: React.FC = () => {
               contentInsetAdjustmentBehavior="never"
               renderLoading={() => (
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' }}>
-                  <ActivityIndicator size="large" />
+                  <ActivityIndicator size="large" color={C.primary} />
                 </View>
               )}
             />

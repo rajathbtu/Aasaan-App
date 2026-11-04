@@ -24,11 +24,9 @@ import ActionButton from './ActionButton';
  * that Professional is a step up from the standard free experience.
  */
 
-// Premium violet palette matching the approved design
-const VIOLET_DEEP = '#7c3aed';
-const BANNER_GRADIENT_START = '#a84cf1';
-const BANNER_GRADIENT_MID = '#8429dc';
-const BANNER_GRADIENT_END = '#6e1cc4';
+// Premium violet family lives in the palette now (C.violetDeep /
+// C.proGradientStart|Mid|End) — pinned across modes; only shadowColor
+// below still references C.violetDeep.
 
 type Props = {
   /** 'card' renders the detailed profile card, 'compact' the slim ribbon */
@@ -277,7 +275,7 @@ const makeStyles = (C: BasePalette, P: ProfilePalette) => StyleSheet.create({
     paddingLeft: spacing.lg,
     paddingRight: spacing.sm,
     marginBottom: spacing.md,
-    shadowColor: VIOLET_DEEP,
+    shadowColor: C.violetDeep,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

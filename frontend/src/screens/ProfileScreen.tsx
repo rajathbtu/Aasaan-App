@@ -855,9 +855,9 @@ const ProfileScreen: React.FC = () => {
             <Switch
               value={darkMode}
               onValueChange={(value) => setMode(value ? 'dark' : 'light')}
-              trackColor={{ false: isDark ? '#3A4A42' : '#D8DFDB', true: C.primary }}
+              trackColor={{ false: C.switchOff, true: C.primary }}
               thumbColor={C.onPrimary}
-              ios_backgroundColor={isDark ? '#3A4A42' : '#D8DFDB'}
+              ios_backgroundColor={C.switchOff}
               accessibilityRole="switch"
               accessibilityLabel={t('profile.darkMode')}
               accessibilityState={{ checked: darkMode }}

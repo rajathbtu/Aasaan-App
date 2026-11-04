@@ -277,7 +277,7 @@ const SPSelectServicesScreen: React.FC = () => {
       >
         {!hasData && (
           <View style={{ padding: 24, alignItems: 'center' }}>
-            <ActivityIndicator />
+            <ActivityIndicator color={C.primary} />
           </View>
         )}
 

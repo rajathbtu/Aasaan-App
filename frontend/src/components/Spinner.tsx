@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, Platform, View, StyleProp, ViewStyle } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 
 type SpinnerProps = {
   size?: 'small' | 'large' | number;
@@ -18,7 +19,13 @@ type SpinnerProps = {
 
 const PRESET_SIZES = { small: 20, large: 36 };
 
-const Spinner: React.FC<SpinnerProps> = ({ size = 'small', color = '#1976D2', style }) => {
+const Spinner: React.FC<SpinnerProps> = ({ size = 'small', color, style }) => {
+  const { base: C } = useTheme();
+  // Unspecified color follows the theme: the legacy Material blue default was
+  // invisible-ish on dark surfaces, so the default is now the brand primary
+  // (visible on both light cards and dark pages). Callers may still pass an
+  // explicit color (e.g. C.onPrimary on a green button) — unchanged.
+  const resolvedColor = color ?? C.primary;
   const dimension = typeof size === 'number' ? size : PRESET_SIZES[size];
   const strokeWidth = dimension * (4 / 32);
   const radius = dimension / 2;
@@ -58,7 +65,7 @@ const Spinner: React.FC<SpinnerProps> = ({ size = 'small', color = '#1976D2', st
           bottom: 0,
           borderRadius: radius,
           borderWidth: strokeWidth,
-          borderColor: color,
+          borderColor: resolvedColor,
           opacity: 0.2,
         }}/>
       {/* Dark arc: full-color circle clipped to one quadrant, leaving a
@@ -75,7 +82,7 @@ const Spinner: React.FC<SpinnerProps> = ({ size = 'small', color = '#1976D2', st
             height: dimension,
             borderRadius: radius,
             borderWidth: strokeWidth,
-            borderColor: color,
+            borderColor: resolvedColor,
           }}/>
       </View>
     </Animated.View>

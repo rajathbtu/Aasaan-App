@@ -1,7 +1,9 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radius, spacing } from '../theme';
+import { radius, spacing } from '../theme';
+import { useTheme } from './ThemeContext';
+import type { BasePalette } from '../theme/palette';
 
 type ToastContextValue = {
   showToast: (message: string, duration?: number) => void;
@@ -12,6 +14,8 @@ const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 const DEFAULT_DURATION = 2200;
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { base: C } = useTheme();
+  const styles = useMemo(() => makeStyles(C), [C]);
   const insets = useSafeAreaInsets();
   const [message, setMessage] = useState<string | null>(null);
   const opacity = useRef(new Animated.Value(0)).current;
@@ -63,7 +67,7 @@ export const useToast = (): ToastContextValue => {
   return context;
 };
 
-const styles = StyleSheet.create({
+const makeStyles = (C: BasePalette) => StyleSheet.create({
   container: {
     position: 'absolute',
     left: spacing.lg,
@@ -77,14 +81,18 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.lg,
-    backgroundColor: 'rgba(31, 41, 55, 0.94)',
-    shadowColor: colors.black,
+    // Mode-invariant by design: the toast is always a dark floating pill with
+    // light text, so it reads as an overlay in both light and dark mode.
+    // `toastBg` is pinned to the same charcoal in both palettes and
+    // `onPrimary` is pure white in both — no flip needed, no literal missed.
+    backgroundColor: C.toastBg,
+    shadowColor: C.black,
     shadowOpacity: 0.2,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
   },
   message: {
-    color: colors.white,
+    color: C.onPrimary,
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',

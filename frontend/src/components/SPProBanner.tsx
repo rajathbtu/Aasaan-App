@@ -27,7 +27,7 @@ const SPProBanner: React.FC<Props> = ({ expanded, onPress, onClose, onUpgrade })
   if (!expanded) {
     return (
       <LinearGradient
-        colors={['#a84cf1', '#8429dc', '#6e1cc4']}
+        colors={[C.proGradientStart, C.proGradientMid, C.proGradientEnd]}
         locations={[0, 0.52, 1]}
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
@@ -59,7 +59,7 @@ const SPProBanner: React.FC<Props> = ({ expanded, onPress, onClose, onUpgrade })
 
   return (
     <LinearGradient
-      colors={['#a84cf1', '#8429dc', '#6e1cc4']}
+      colors={[C.proGradientStart, C.proGradientMid, C.proGradientEnd]}
       locations={[0, 0.52, 1]}
       start={{ x: 0, y: 0.5 }}
       end={{ x: 1, y: 0.5 }}

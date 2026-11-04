@@ -125,7 +125,20 @@ const baseLight = {
   pageWave: '#EAF7F0',
   // — misc shared —
   skeletonBlock: '#E5E7EB',
-  // — soft pastel tints (from theme.ts `tints`) —
+  // — premium violet family (Pro banners / subscription hero) —
+  // The violet gradient/glow is a filled brand surface: it never flips with
+  // the mode, so both palettes pin the same hexes.
+  violetDeep: '#7c3aed',
+  violetDark: '#6e1cc4',
+  proGradientStart: '#a84cf1',
+  proGradientMid: '#8429dc',
+  proGradientEnd: '#6e1cc4',
+  // — Pro banners' inverted (white-on-violet) surfaces: pinned light in
+  // both modes so their text keeps contrast on the violet fill. —
+  proBenefitBg: '#ffffff',
+  proPillBg: '#ffffff',
+  // — map loading veil (binary light/dark value; the dark side mirrors `scrim`) —
+  mapLoadingVeil: 'rgba(255,255,255,0.85)',
   tintPurpleSoft: '#f5f3ff',
   tintBlueSoft: '#eff6ff',
   tintGreenSoft: '#ecfdf5',
@@ -134,6 +147,21 @@ const baseLight = {
   // — cross-mode helpers —
   /** Text/icons sitting on a primary/brand-colored fill. */
   onPrimary: '#FFFFFF',
+  /** onPrimary at ~88% alpha — secondary text on filled brand surfaces. */
+  onPrimarySoft: 'rgba(255,255,255,0.88)',
+  /** onPrimary at 90% alpha — active count text on filled tabs. */
+  onPrimary90: 'rgba(255,255,255,0.9)',
+  /** Translucent white glass on filled brand surfaces (chips/tiles). */
+  proGlass: 'rgba(255,255,255,0.22)',
+  /** Translucent white border on filled brand surfaces. */
+  proGlassBorder: 'rgba(255,255,255,0.35)',
+  /** Off-state track for the dark-mode Switch (light mode: #D8DFDB;
+   * dark mode: follows the greyBorder family — use greyBorder instead). */
+  switchOff: '#D8DFDB',
+  /** Floating toast background — pinned dark in BOTH modes (mode-invariant
+   * overlay: the toast is always a charcoal pill with white text, see
+   * ToastContext). Do not flip this with the mode. */
+  toastBg: '#1F2937',
   /** Modal / sheet backdrop. */
   scrim: 'rgba(17, 24, 39, 0.5)',
   /** Container behind photos/illustrations. */
@@ -224,12 +252,31 @@ const baseDark: Record<keyof typeof baseLight, string> = {
   socialWave: '#143525',
   pageWave: '#10241A',
   skeletonBlock: '#232E29',
+  // — premium violet family: filled brand surface, pinned in both modes —
+  violetDeep: '#7c3aed',
+  violetDark: '#6e1cc4',
+  proGradientStart: '#a84cf1',
+  proGradientMid: '#8429dc',
+  proGradientEnd: '#6e1cc4',
+  // — Pro banners' inverted (white-on-violet) surfaces: pinned light in
+  // both modes so their text keeps contrast on the violet fill. —
+  proBenefitBg: '#ffffff',
+  proPillBg: '#ffffff',
+  /** Dark side of the map loading veil — mirrors `scrim` below. */
+  mapLoadingVeil: 'rgba(0, 0, 0, 0.65)',
   tintPurpleSoft: '#241A3A',
   tintBlueSoft: '#12283A',
   tintGreenSoft: '#12281D',
   tintOrangeSoft: '#33200E',
   tintAmberSoft: '#332B12',
   onPrimary: '#FFFFFF',
+  onPrimarySoft: 'rgba(255,255,255,0.88)',
+  onPrimary90: 'rgba(255,255,255,0.9)',
+  proGlass: 'rgba(255,255,255,0.22)',
+  proGlassBorder: 'rgba(255,255,255,0.35)',
+  switchOff: '#3A4A42',
+  /** Pinned to the same charcoal as light mode — the toast is mode-invariant. */
+  toastBg: '#1F2937',
   scrim: 'rgba(0, 0, 0, 0.65)',
   imageBg: '#1C2723',
 };
@@ -505,6 +552,8 @@ const profileLight = {
   onPrimary: '#FFFFFF',
   /** Modal / sheet backdrop. */
   scrim: 'rgba(17, 24, 39, 0.5)',
+  /** Dark-mode Switch off-track (ProfileScreen). */
+  switchOff: '#D8DFDB',
 } as const;
 
 const profileDark: Record<keyof typeof profileLight, string> = {
@@ -549,6 +598,7 @@ const profileDark: Record<keyof typeof profileLight, string> = {
   skeletonBlock: '#232E29',
   onPrimary: '#FFFFFF',
   scrim: 'rgba(0, 0, 0, 0.65)',
+  switchOff: '#3A4A42',
 };
 
 export type ProfilePalette = Record<keyof typeof profileLight, string>;
