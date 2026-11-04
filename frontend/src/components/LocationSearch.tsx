@@ -139,10 +139,6 @@ const LocationSearch = React.forwardRef<{
     }
   };
 
-  const recenterMap = () => {
-    if (mapRegion) animateToRegion(mapRegion, 300);
-  };
-
   const toggleMapType = () => setMapType((current) => (current === 'standard' ? 'satellite' : 'standard'));
 
   useEffect(() => {
@@ -276,7 +272,8 @@ const LocationSearch = React.forwardRef<{
   };
 
   const detectLocation = async () => {
-    if (regionChangeTimeout.current) 
+    if (isLocating) return; // double-tap / re-entry guard — one fix at a time
+    if (regionChangeTimeout.current)
       clearTimeout(regionChangeTimeout.current);
     latestMapSelectionRequest.current += 1;
     pendingSelectionRef.current = 0;
@@ -284,28 +281,28 @@ const LocationSearch = React.forwardRef<{
     setLocationError(null);
     let detectedLocation = cachedLocation; // Use cached location if available
     if (!detectedLocation) {
-      try {
-        setIsLocating(true);
-        const gpsLocation = await locationManager.getGPSLocation(true);
-        if (!gpsLocation) {
-          setIsLocationResolving(false);
-          return;
-        }
+    try {
+      setIsLocating(true);
+      const gpsLocation = await locationManager.getGPSLocation(true);
+      if (!gpsLocation) {
+        setIsLocationResolving(false);
+        return;
+      }
 
-        const geocodedLocation = await reverseGeocodeLocation(gpsLocation.latitude, gpsLocation.longitude);
-        detectedLocation = { lat: gpsLocation.latitude, lng: gpsLocation.longitude, ...geocodedLocation };
-        setCachedLocation(detectedLocation); // Cache the detected location
-      } catch (error: any) {
-        const message = error?.message || String(error);
-        const isExpectedFailure = message.includes('unsatisfied device settings')
-          || message.includes('Location request failed')
-          || message.includes('LOCATION_SERVICES_DISABLED')
-          || message.includes('permissions');
-        if (!isExpectedFailure) {
-          setLocationError(error);
-        }
-      } finally {
-        setIsLocating(false);
+      const geocodedLocation = await reverseGeocodeLocation(gpsLocation.latitude, gpsLocation.longitude);
+      detectedLocation = { lat: gpsLocation.latitude, lng: gpsLocation.longitude, ...geocodedLocation };
+      setCachedLocation(detectedLocation); // Cache the detected location
+    } catch (error: any) {
+      const message = error?.message || String(error);
+      const isExpectedFailure = message.includes('unsatisfied device settings')
+        || message.includes('Location request failed')
+        || message.includes('LOCATION_SERVICES_DISABLED')
+        || message.includes('permissions');
+      if (!isExpectedFailure) {
+        setLocationError(error);
+      }
+    } finally {
+      setIsLocating(false);
       }
     }
 
@@ -336,9 +333,9 @@ const LocationSearch = React.forwardRef<{
   React.useImperativeHandle(ref, () => ({
     detectLocation: () => { void detectLocation(); },
     openSearchModal: () => setIsSearchOverlayVisible(true),
-    recenter: recenterMap,
+    recenter: () => {},
     toggleMapType,
-  }), [detectLocation, recenterMap, toggleMapType]);
+  }), [detectLocation, toggleMapType]);
 
   useEffect(() => {
     if (!enableMap || !savedLocationsLoaded || (initialLocation?.lat != null && initialLocation?.lng != null) || autoSelectedCurrentLocation.current)
@@ -599,15 +596,6 @@ const LocationSearch = React.forwardRef<{
               </View>
               {showMapControls && (
                 <View style={styles.mapControls} pointerEvents="box-none">
-                  <TouchableOpacity
-                    style={styles.mapControlButton}
-                    onPress={recenterMap}
-                    activeOpacity={0.8}
-                    accessibilityRole="button"
-                    accessibilityLabel="Recenter map"
-                  >
-                    <SvgIcon name="sa-target" size={24} color={C.dark} />
-                  </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.mapControlButton}
                     onPress={toggleMapType}
