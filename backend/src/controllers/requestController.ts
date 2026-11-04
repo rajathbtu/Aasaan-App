@@ -376,14 +376,9 @@ export async function list(req: Request, res: Response): Promise<void> {
           AND wr."service" = ANY(${services})
           AND wr."locationLat" BETWEEN ${minLat} AND ${maxLat}
           AND wr."locationLng" BETWEEN ${minLng} AND ${maxLng}
-          AND (
-            6371000 * acos(
-              cos(radians(${providerLoc.lat})) *
-              cos(radians(wr."locationLat")) *
-              cos(radians(wr."locationLng") - radians(${providerLoc.lng})) +
-              sin(radians(${providerLoc.lat})) *
-              sin(radians(wr."locationLat"))
-            )
+          AND ST_DistanceSphere(
+            ST_MakePoint(${providerLoc.lng}, ${providerLoc.lat}),
+            ST_MakePoint(wr."locationLng", wr."locationLat")
           ) <= ${radiusInMeters}
         ORDER BY wr."createdAt" DESC
         LIMIT 50;
