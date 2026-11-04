@@ -184,7 +184,7 @@ const LanguageSelectionScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}>
         {/* Intro: illustration + headline + supporting sentence */}
         <View style={styles.intro}>
-          <SvgXml xml={LANGUAGE_ART} width={220} height={158} style={styles.languageArt} />
+          <SvgXml xml={LANGUAGE_ART} width={190} height={136} style={styles.languageArt} />
           <Text style={[styles.headline, { fontFamily: F.bold, fontSize: titleSize, lineHeight: Math.round(titleSize * 1.12) }]}>
             {headlineBase}
             {headlineAccent ? <Text style={styles.headlineAccent}>{headlineAccent}</Text> : null}
@@ -327,7 +327,7 @@ const makeStyles = (C: BasePalette) => StyleSheet.create({
     alignItems: 'center',
     paddingTop: 3,
   },
-  /* .language-art{width:220px;height:158px;margin:0 auto 5px} */
+  /* .language-art{width:190px;height:136px;margin:0 auto 5px} */
   languageArt: {
     marginBottom: 5,
   },
@@ -358,9 +358,9 @@ const makeStyles = (C: BasePalette) => StyleSheet.create({
   cards: {
     gap: 11,
   },
-  /* .language-card{min-height:78px;gap:15px;padding:11px 15px;border:1.5px solid var(--border);border-radius:22px;box-shadow:0 3px 12px rgba(20,45,36,.045)} */
+  /* .language-card{min-height:72px;gap:13px;padding:10px 13px;border:1.5px solid var(--border);border-radius:20px;box-shadow:0 3px 12px rgba(20,45,36,.045)} */
   card: {
-    minHeight: 78,
+    minHeight: 72,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 15,
@@ -384,21 +384,21 @@ const makeStyles = (C: BasePalette) => StyleSheet.create({
     paddingVertical: 10.5,
     paddingHorizontal: 14.5,
   },
-  /* .language-mark{width:54px;height:54px;border-radius:17px;font-size:23px;font-weight:800} */
+  /* .language-mark{width:46px;height:46px;border-radius:15px;font-size:19px;font-weight:800} */
   mark: {
-    width: 54,
-    height: 54,
-    borderRadius: 17,
+    width: 46,
+    height: 46,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
   markText: {
-    fontSize: 23,
+    fontSize: 19,
     fontWeight: '800',
   },
-  /* .mark-en{font-size:20px} */
+  /* .mark-en{font-size:17px} */
   markTextEn: {
-    fontSize: 20,
+    fontSize: 17,
     fontFamily: 'Inter-Bold',
   },
   /* .language-copy{flex:1;flex-direction:column;gap:2px} */
@@ -407,17 +407,17 @@ const makeStyles = (C: BasePalette) => StyleSheet.create({
     minWidth: 0,
     gap: 2,
   },
-  /* .language-copy strong{font-size:17px;font-weight:700} */
+  /* .language-copy strong{font-size:15px;font-weight:700} */
   cardTitle: {
-    fontSize: 17,
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 19,
     fontWeight: '700',
     color: C.dark,
   },
-  /* .language-copy small{color:var(--muted);font-size:14px;font-weight:500} */
+  /* .language-copy small{color:var(--muted);font-size:13px;font-weight:500} */
   cardSubtitle: {
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 13,
+    lineHeight: 16,
     fontWeight: '500',
     color: C.grey,
   },
