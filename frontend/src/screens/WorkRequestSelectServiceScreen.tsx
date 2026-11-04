@@ -661,11 +661,6 @@ const makeStyles = (C: BasePalette) =>
   },
 
   // -- Service card — exact SPSelectServicesScreen three-column spec --
-  // Percentage widths, not fixed pixels. A horizontal ScrollView sizes its
-  // contentContainer by content, so `width: '31.6%'` is meaningless there —
-  // the container can be narrower than the screen and every card just
-  // appends past the edge (the "spill" you see). `calc()` makes the math
-  // explicit: (100% - 2×8px gap) / 3, so exactly 3 fit with right padding.
   serviceCard: {
     borderWidth: 1,
     borderColor: C.cardBorder,
@@ -686,12 +681,10 @@ const makeStyles = (C: BasePalette) =>
     elevation: 3,
   },
   recentCard: {
-    width: 'calc((100% - 16px) / 3)',
-    flexShrink: 0,
+    width: 110,
   },
   recentRow: {
     gap: 8,
-    paddingRight: 4,
   },
   serviceIconWrap: {
     width: '100%',
