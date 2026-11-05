@@ -29,6 +29,8 @@ android/app/build/
 android/.gradle/
 android/local.properties
 
+android/
+
 # Misc
 .DS_Store
 *.swp

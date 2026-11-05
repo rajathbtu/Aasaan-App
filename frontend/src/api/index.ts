@@ -19,6 +19,11 @@ if (Platform.OS === 'web') {
   api.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
 }
 
+/* @todo: 
+* The request and response interceptors below look redundant because
+* the token is also passed explicitly to every API helper function. We should
+* consolidate to one approach.  
+*/
 /** Request interceptor: attach the stored JWT to every outgoing request. */
 api.interceptors.request.use(async (config) => {
   try {

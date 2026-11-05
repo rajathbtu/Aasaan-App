@@ -662,7 +662,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   centerMarkerContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 2,
@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
 
   },
   mapLoadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.85)',

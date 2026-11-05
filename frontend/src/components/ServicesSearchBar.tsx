@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleProp, StyleSheet, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, TextInput, TouchableOpacity, View, ViewStyle, type TextInputInstance,} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, surfaces } from '../theme';
 
@@ -9,7 +9,7 @@ type ServicesSearchBarProps = {
   placeholder?: string;
   placeholders?: string[];
   style?: StyleProp<ViewStyle>;
-  inputRef?: React.Ref<TextInput>;
+  inputRef?: React.Ref<TextInputInstance>;
 };
 
 const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({

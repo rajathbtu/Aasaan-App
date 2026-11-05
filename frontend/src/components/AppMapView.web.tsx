@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     height: '100%',
   } as any,
   errorOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#e8ecef',
   },
 });

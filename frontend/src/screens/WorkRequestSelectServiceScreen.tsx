@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Image, TouchableOpacity, TextInput, type ScrollViewInstance, type TextInputInstance,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { colors, spacing, radius, shadows, textStyles } from '../theme';
@@ -22,8 +23,8 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   const userId = useAuth()?.user?.id;
   const { services, query, setQuery, filtered, servicesError, refreshInBackground } = useServiceCatalog(userId);
-  const serviceSelectionScrollViewRef  = useRef<ScrollView>(null);
-  const serviceSearchInputRef  = useRef<TextInput>(null);
+  const serviceSelectionScrollViewRef = useRef<ScrollViewInstance>(null);
+  const serviceSearchInputRef = useRef<TextInputInstance>(null);
   const { targetScrollY: searchBarScrollOffset,
     isPastBoundary: showHeaderSearch,
     onTargetLayout: onSearchBarLayout, onScroll,
@@ -90,7 +91,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   const focusSearch = () => {
     serviceSelectionScrollViewRef.current?.scrollTo({ y: searchBarScrollOffset ?? 0, animated: true });
-    requestAnimationFrame(() => serviceSearchInputRef .current?.focus());
+    requestAnimationFrame(() => serviceSearchInputRef.current?.focus());
   };
 
   const savedLocationName = savedLocation?.description;

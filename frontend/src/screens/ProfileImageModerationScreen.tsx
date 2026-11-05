@@ -95,7 +95,7 @@ const ProfileImageModerationScreen: React.FC = () => {
             <Ionicons name="checkmark-circle-outline" size={30} color={colors.grey} />
             <Text style={styles.emptyText}>{t('profilePhotoModeration.empty')}</Text>
           </View>
-        ) : null}
+        ) : undefined}
         renderItem={({ item }) => (
           <View style={styles.candidate}>
             <Image

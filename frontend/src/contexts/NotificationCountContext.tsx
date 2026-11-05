@@ -8,8 +8,8 @@ import { offlineCacheKey, readOfflineCache } from '../utils/offlineCache';
  * Exposes the number of unseen ("unread") notifications shown in the
  * header badge.  Deliberately kept low priority:
  *  - the initial value is computed from the local offline cache (no network)
- *  - network refreshes are debounced, delayed and further deferred until
- *    animations/interactions settle, so they never compete with screen loads
+ *  - network refreshes are debounced and delayed, then scheduled for JS-thread
+ *    idle time so they are less likely to compete with screen loads
  *  - failures are silent; the badge simply keeps its last known value
  */
 interface NotificationCountContextProps {
@@ -23,9 +23,9 @@ const NotificationCountContext = createContext<NotificationCountContextProps | u
 /** Extra idle delay before hitting the network (ms). */
 const REFRESH_DELAY_MS = 2000;
 
-/** Runs a callback during idle periods, with setTimeout fallback. */
-const runAfterInteractions = (callback: () => void) => {
-  if (typeof requestIdleCallback !== 'undefined') {
+/** Runs work when the JS thread is idle, with a timer fallback. */
+const runWhenIdle = (callback: () => void) => {
+  if (typeof requestIdleCallback === 'function') {
     requestIdleCallback(callback);
   } else {
     setTimeout(callback, 1);
@@ -45,7 +45,7 @@ export const NotificationCountProvider: React.FC<{ children: React.ReactNode }> 
     // Debounce: collapse bursts of triggers into a single request.
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      void runAfterInteractions(async () => {
+      runWhenIdle(async () => {
         try {
           const unread = await getNotifications(token, true);
           setUnreadCount(Array.isArray(unread) ? unread.length : 0);

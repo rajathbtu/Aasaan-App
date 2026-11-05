@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, StyleSheet, Text, TextInput, TouchableOpacity, View, type TextInputInstance } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { sendOtp } from '../api';
@@ -62,7 +62,7 @@ const OtpInput: React.FC<OtpInputProps> = ({
   const [seconds, setSeconds] = useState(RESEND_SECONDS);
   const [showAutoRead, setShowAutoRead] = useState(true);
   const [resending, setResending] = useState(false);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const caretOpacity = useRef(new Animated.Value(1)).current;
 
   /** Store the code locally and hand it up to the screen. */
@@ -128,14 +128,14 @@ const OtpInput: React.FC<OtpInputProps> = ({
   return (
     <View style={styles.otpField}>
       {/* One field, one TextInput — the slots below draw what it contains. */}
-
-      <TouchableOpacity
-        style={styles.otpBox}
-        onPress={() => inputRef.current?.focus()}
-        activeOpacity={1}
-      >
-        {/* Transparent input layer — let TextInput receive touches directly */}
-        <View style={styles.otpInputLayer} pointerEvents="auto">
+      <View style={styles.otpBox}>
+        {/*
+          The input is a keystroke catcher only, so this layer is fully
+          transparent. Hiding it with the layer's opacity (rather than a
+          transparent text colour) is what actually works reliably on Android,
+          where the native EditText keeps drawing its own glyphs.
+        */}
+        <View style={styles.otpInputLayer} pointerEvents="box-none">
           <TextInput
             ref={inputRef}
             style={styles.otpInput}
@@ -148,8 +148,8 @@ const OtpInput: React.FC<OtpInputProps> = ({
             returnKeyType="done"
             textContentType="oneTimeCode"
             autoComplete="sms-otp"
-            autoFocus
             selectionColor="transparent"
+            caretHidden
             accessibilityLabel={t('otp.title')}
           />
         </View>
@@ -171,7 +171,7 @@ const OtpInput: React.FC<OtpInputProps> = ({
             );
           })}
         </View>
-      </TouchableOpacity>
+      </View>
 
       {/* Auto-read indicator */}
       {showAutoRead && (
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
    * keep rendering its glyphs over our drawn slots.
    */
   otpInputLayer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     opacity: 0,
   },
   /** Kept measurable so the caret/selection maths still line up. */
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   },
   /** Row of `OTP_LENGTH` equal cells — this is the digit spacing. */
   otpSlots: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     alignItems: 'center',
   },

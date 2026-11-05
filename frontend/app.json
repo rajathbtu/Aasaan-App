@@ -44,6 +44,7 @@
     "scheme": "aasaan",
     "plugins": [
       "expo-dev-client",
+      "expo-splash-screen",
       [
         "expo-notifications",
         {
