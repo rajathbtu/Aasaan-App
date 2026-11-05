@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import LocationSearch from '../components/LocationSearch';
@@ -9,10 +9,10 @@ import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
 import { colors, spacing, radius } from '../theme';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import BlockingLoader from '../components/BlockingLoader';
 import BottomCTA from '../components/BottomCTA';
+import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 
 const LocationSelectScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -20,7 +20,6 @@ const LocationSelectScreen: React.FC = () => {
   const { user, updateUser } = useAuth();
   const { t } = useI18n();
   const { showToast } = useToast();
-  const insets = useSafeAreaInsets();
 
   // Modes: 'edit' for profile updates, 'onboarding' for SP onboarding, 'requestcreation' for work request creation
   const mode: 'edit' | 'onboarding' | 'requestcreation' =
@@ -29,6 +28,7 @@ const LocationSelectScreen: React.FC = () => {
         ? 'requestcreation' : 'onboarding';
 
   const isRequestCreationMode = mode === 'requestcreation';
+  const returnToServiceSelection = isRequestCreationMode && route.params?.returnToServiceSelection === true;
   const serviceId = route.params?.serviceId as string | undefined;
   const serviceName = route.params?.serviceName as string | undefined;
   const serviceTags = (route.params?.serviceTags as string[] | undefined) || [];
@@ -45,7 +45,11 @@ const LocationSelectScreen: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [isLocationResolving, setIsLocationResolving] = useState(false);
 
-  if (isRequestCreationMode && (!serviceId || !serviceName)) {
+  useEffect(() => {
+    if (isRequestCreationMode) setSelectedLocation(route.params?.selectedLocation ?? null);
+  }, [isRequestCreationMode, route.params?.selectedLocation]);
+
+  if (isRequestCreationMode && !returnToServiceSelection && (!serviceId || !serviceName)) {
     return (
       <View style={styles.screen}>
         <Header title={t('sp.selectLocation.pageTitle')} showNotification={false} showBackButton={true} />
@@ -70,7 +74,26 @@ const LocationSelectScreen: React.FC = () => {
     }
 
     if (isRequestCreationMode) {
-      navigation.navigate('WorkRequestSelectTags', {serviceId, serviceName, serviceTags, selectedLocation, });
+      const placeId = selectedLocation.place_id || selectedLocation.placeId;
+      if (user?.id && placeId) {
+        const cacheKey = offlineCacheKey('saved-locations', user.id);
+        const savedLocations = (await readOfflineCache<Array<{ place_id: string }>>(cacheKey)) || [];
+        await writeOfflineCache(cacheKey, [
+          { place_id: placeId, description: selectedLocation.name || selectedLocation.description, lat: selectedLocation.lat, lng: selectedLocation.lng },
+          ...savedLocations.filter((location) => location.place_id !== placeId),
+        ].slice(0, 3));
+      }
+      if (returnToServiceSelection) {
+        navigation.goBack();
+      } else if (route.params?.returnToTagsRouteKey) {
+        navigation.dispatch({
+          ...CommonActions.setParams({ selectedLocation }),
+          source: route.params.returnToTagsRouteKey,
+        });
+        navigation.goBack();
+      } else {
+        navigation.navigate('WorkRequestSelectTags', {serviceId, serviceName, serviceTags, selectedLocation, });
+      }
       return;
     }
 
@@ -114,8 +137,7 @@ const LocationSelectScreen: React.FC = () => {
   return (
     <View style={styles.screen}>
       <Header
-        title={isRequestCreationMode ? (serviceName || t('createRequest.addDetails.headerTitle')) : (t('sp.selectLocation.pageTitle'))}
-        subheader={isRequestCreationMode ? t('createRequest.addDetails.headerSubTitle') : undefined}
+        title={isRequestCreationMode ? (t('createRequest.addDetails.headerTitle')) : (t('sp.selectLocation.pageTitle'))}
         showBackButton={true}
         showNotification={false}
         extraLargeTitle={mode=== 'onboarding' }
@@ -146,12 +168,12 @@ const LocationSelectScreen: React.FC = () => {
               <Text style={styles.locationName} numberOfLines={2}>
                 {displayLocationName}
               </Text>
-              {isRequestCreationMode && (
-                <Text style={styles.privacyNote}>{t('createRequest.addDetails.locationNote')}</Text>
-              )}
             </View>
             <Ionicons name="checkmark-circle" size={20} color={colors.success} />
           </View>
+        )}
+        {isRequestCreationMode && (
+          <Text style={styles.privacyNote}>{t('createRequest.addDetails.locationNote')}</Text>
         )}
 
         {!isRequestCreationMode && (
@@ -160,20 +182,18 @@ const LocationSelectScreen: React.FC = () => {
             <TouchableOpacity
               style={styles.radiusSummaryRow}
               onPress={() => setIsRadiusExpanded((prev) => !prev)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="compass-outline" size={18} color={colors.primary} />
+              activeOpacity={0.7}>
+              <View style={styles.locIconCircle}>
+                <Ionicons name="resize" size={18} color={colors.primary} />
+              </View>
               <Text style={styles.radiusSummaryText} numberOfLines={2} ellipsizeMode="tail">
-                {`You'll see Work Requests within ${radius} kms ${!isRadiusExpanded? '': 'of ' + selectedLocation?.name || selectedLocation?.description || 'your selected location'}`}
+                {t('sp.selectLocation.radiusSummary', { radius })}
               </Text>
               <Ionicons name={isRadiusExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.grey} />
             </TouchableOpacity>
 
             {isRadiusExpanded && (
               <>
-                {/* <Text style={styles.radiusQuestion}>
-                  {t('sp.selectLocation.changeRadius')}
-                </Text> */}
                 <View style={styles.radiusGrid}>
                   {radiusOptions.map((value) => {
                     const active = radius === value;
@@ -182,8 +202,7 @@ const LocationSelectScreen: React.FC = () => {
                         key={value}
                         style={[styles.radiusCell, active ? styles.radiusCellActive : styles.radiusCellInactive]}
                         onPress={() => setRadius(value)}
-                        activeOpacity={0.8}
-                      >
+                        activeOpacity={0.8}>
                         <Text style={[styles.radiusCellText, active && styles.radiusCellTextActive]}>{value} km</Text>
                       </TouchableOpacity>
                     );
@@ -241,7 +260,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primaryBorder,
     borderRadius: radius.lg,
     padding: spacing.md,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   locIconCircle: {
     width: 36,
@@ -254,15 +273,15 @@ const styles = StyleSheet.create({
   },
   locationName: {
     fontSize: 14,
+    fontFamily: 'Inter-Bold',
     lineHeight: 19,
-    fontWeight: '700',
     color: colors.dark,
   },
   privacyNote: {
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 12,
     color: colors.grey,
-    marginTop: 2,
+    alignSelf: 'center',
+    marginBottom: spacing.sm,
   },
   guardBody: {
     flex: 1,
@@ -300,18 +319,11 @@ const styles = StyleSheet.create({
   radiusSummaryText: {
     flex: 1,
     flexShrink: 1,
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '500',
-    color: colors.dark,
-    marginHorizontal: spacing.sm,
-  },
-  radiusQuestion: {
     fontSize: 12,
-    fontWeight: '600',
-    color: colors.grey,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
+    fontFamily: 'Inter',
+    lineHeight: 18,
+    color: colors.dark,
+    marginRight: spacing.sm,
   },
   radiusGrid: {
     marginTop: spacing.sm,
@@ -342,12 +354,11 @@ const styles = StyleSheet.create({
   },
   radiusCellText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: 'Google Sans Flex-SemiBold',
     color: colors.dark,
   },
   radiusCellTextActive: {
     color: colors.white,
-    fontWeight: '700',
   },
   bottomCtaContainer: {
     padding: 0,

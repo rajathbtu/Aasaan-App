@@ -52,6 +52,7 @@ const RoleSelectScreen: React.FC = () => {
   const Card = ({
     role,
     title,
+    subtitle,
     desc,
     icon,
     tint,
@@ -59,6 +60,7 @@ const RoleSelectScreen: React.FC = () => {
   }: {
     role: 'endUser' | 'serviceProvider';
     title: string;
+    subtitle: string;
     desc: string;
     icon: keyof typeof Ionicons.glyphMap;
     tint: string;
@@ -69,20 +71,18 @@ const RoleSelectScreen: React.FC = () => {
       <TouchableOpacity
         onPress={() => setSelectedRole(role)}
         activeOpacity={0.9}
-        style={[
-          styles.card,
-          { borderColor: selected ? border : colors.greyLight },
-        ]}
-      >
+        style={[ styles.card, { borderColor: selected ? border : colors.greyLight,
+            backgroundColor: selected ? colors.primaryLight : colors.white}]}>
         <View style={[styles.iconWrap, { backgroundColor: `${tint}22` }]}>
           <Ionicons name={icon} size={22} color={tint} />
         </View>
         <View style={{ flex: 1 }}>
+          <Text style={styles.cardSubtitle}>{subtitle}</Text>
           <Text style={styles.cardTitle}>{title}</Text>
           <Text style={styles.cardDesc}>{desc}</Text>
         </View>
         <View style={[styles.checkbox, { borderColor: selected ? border : colors.greyLight, backgroundColor: selected ? border : colors.white }]}>
-          {selected && <Ionicons name="checkmark" size={16} color={colors.white} />}
+          {selected && <Ionicons name="checkmark-sharp" size={18} color={colors.white} />}
         </View>
       </TouchableOpacity>
     );
@@ -136,6 +136,7 @@ const RoleSelectScreen: React.FC = () => {
           <Card
             role="endUser"
             title={t('roleSelect.endUserTitle')}
+            subtitle={t('roleSelect.endUserSubtitle')}
             desc={t('roleSelect.endUserDesc')}
             icon="search-outline"
             tint={colors.primary}
@@ -144,6 +145,7 @@ const RoleSelectScreen: React.FC = () => {
           <Card
             role="serviceProvider"
             title={t('roleSelect.spTitle')}
+            subtitle={t('roleSelect.spSubtitle')}
             desc={t('roleSelect.spDesc')}
             icon="briefcase-outline"
             tint={colors.secondary}
@@ -154,7 +156,7 @@ const RoleSelectScreen: React.FC = () => {
         {/* Motivation element */}
         {( mode !== 'edit' && <View style={styles.motivationBox}  >
           <View style={[styles.iconWrap, { backgroundColor: colors.primaryLight }]}>
-            <Ionicons name="people-outline" size={16} color={colors.primary} />
+            <Ionicons name="people" size={20} color={colors.primary} />
           </View>
           <Text style={styles.motivationText}>{t('roleSelect.motivation', { count: '10,000+' })}</Text>
         </View>
@@ -179,13 +181,14 @@ const RoleSelectScreen: React.FC = () => {
 const styles = StyleSheet.create({
   title: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: 'Google Sans Flex-Bold',
     color: colors.dark,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
   subtitle: {
     fontSize: 14,
+    fontFamily: 'Google Sans Flex',
     color: colors.grey,
     textAlign: 'center',
   },
@@ -217,14 +220,22 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md,
   },
   cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontFamily: 'Google Sans Flex-Bold',
     color: colors.dark,
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    fontFamily: 'Google Sans Flex-Bold',
+    color: colors.primary,
     marginBottom: 2,
+    textTransform: 'uppercase',
   },
   cardDesc: {
-    fontSize: 13,
+    fontSize: 12,
+    fontFamily: 'Inter',
     color: colors.grey,
+    marginTop: 8,
   },
   motivationBox: {
     marginTop: spacing.lg,
@@ -239,7 +250,9 @@ const styles = StyleSheet.create({
   motivationText: {
     flex: 1,
     fontSize: 13,
+    fontFamily: 'Inter',
     color: colors.grey,
+    marginLeft: spacing.md
   },
   langPill: {
     flexDirection: 'row',

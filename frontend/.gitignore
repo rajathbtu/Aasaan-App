@@ -45,6 +45,8 @@ android/
 *.jks
 keystore.properties
 
+android/
+
 # Misc
 .DS_Store
 *.swp

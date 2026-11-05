@@ -1,0 +1,227 @@
+{
+  "cities": [
+    {
+      "name": "Noida",
+      "slug": "noida",
+      "state": "Uttar Pradesh",
+      "localities": [
+        {
+          "name": "Sector 18",
+          "slug": "sector-18"
+        },
+        {
+          "name": "Sector 62",
+          "slug": "sector-62"
+        }
+      ]
+    },
+    {
+      "name": "Greater Noida",
+      "slug": "greater-noida",
+      "state": "Uttar Pradesh",
+      "localities": [
+        {
+          "name": "Noida Extension",
+          "slug": "noida-extension"
+        }
+      ]
+    },
+    {
+      "name": "Delhi",
+      "slug": "delhi",
+      "state": "Delhi",
+      "localities": [
+        {
+          "name": "Connaught Place",
+          "slug": "connaught-place"
+        },
+        {
+          "name": "Dwarka",
+          "slug": "dwarka"
+        },
+        {
+          "name": "Lajpat Nagar",
+          "slug": "lajpat-nagar"
+        },
+        {
+          "name": "Saket",
+          "slug": "saket"
+        }
+      ]
+    },
+    {
+      "name": "Mumbai",
+      "slug": "mumbai",
+      "state": "Maharashtra",
+      "localities": [
+        {
+          "name": "Andheri",
+          "slug": "andheri"
+        },
+        {
+          "name": "Bandra",
+          "slug": "bandra"
+        },
+        {
+          "name": "Borivali",
+          "slug": "borivali"
+        },
+        {
+          "name": "Chembur",
+          "slug": "chembur"
+        },
+        {
+          "name": "Dadar",
+          "slug": "dadar"
+        },
+        {
+          "name": "Goregaon",
+          "slug": "goregaon"
+        },
+        {
+          "name": "Juhu",
+          "slug": "juhu"
+        },
+        {
+          "name": "Kandivali",
+          "slug": "kandivali"
+        },
+        {
+          "name": "Kurla",
+          "slug": "kurla"
+        },
+        {
+          "name": "Malad",
+          "slug": "malad"
+        },
+        {
+          "name": "Mulund",
+          "slug": "mulund"
+        },
+        {
+          "name": "Powai",
+          "slug": "powai"
+        },
+        {
+          "name": "Santacruz",
+          "slug": "santacruz"
+        }
+      ]
+    },
+    {
+      "name": "Bengaluru",
+      "slug": "bengaluru",
+      "state": "Karnataka",
+      "localities": []
+    },
+    {
+      "name": "Hyderabad",
+      "slug": "hyderabad",
+      "state": "Telangana",
+      "localities": []
+    },
+    {
+      "name": "Chennai",
+      "slug": "chennai",
+      "state": "Tamil Nadu",
+      "localities": []
+    },
+    {
+      "name": "Kolkata",
+      "slug": "kolkata",
+      "state": "West Bengal",
+      "localities": []
+    },
+    {
+      "name": "Pune",
+      "slug": "pune",
+      "state": "Maharashtra",
+      "localities": []
+    },
+    {
+      "name": "Ahmedabad",
+      "slug": "ahmedabad",
+      "state": "Gujarat",
+      "localities": []
+    },
+    {
+      "name": "Jaipur",
+      "slug": "jaipur",
+      "state": "Rajasthan",
+      "localities": []
+    },
+    {
+      "name": "Lucknow",
+      "slug": "lucknow",
+      "state": "Uttar Pradesh",
+      "localities": []
+    },
+    {
+      "name": "Surat",
+      "slug": "surat",
+      "state": "Gujarat",
+      "localities": []
+    },
+    {
+      "name": "Indore",
+      "slug": "indore",
+      "state": "Madhya Pradesh",
+      "localities": []
+    },
+    {
+      "name": "Bhopal",
+      "slug": "bhopal",
+      "state": "Madhya Pradesh",
+      "localities": []
+    },
+    {
+      "name": "Nagpur",
+      "slug": "nagpur",
+      "state": "Maharashtra",
+      "localities": []
+    },
+    {
+      "name": "Kochi",
+      "slug": "kochi",
+      "state": "Kerala",
+      "localities": []
+    },
+    {
+      "name": "Coimbatore",
+      "slug": "coimbatore",
+      "state": "Tamil Nadu",
+      "localities": []
+    },
+    {
+      "name": "Chandigarh",
+      "slug": "chandigarh",
+      "state": "Chandigarh",
+      "localities": []
+    },
+    {
+      "name": "Patna",
+      "slug": "patna",
+      "state": "Bihar",
+      "localities": []
+    },
+    {
+      "name": "Jhansi",
+      "slug": "jhansi",
+      "state": "Uttar Pradesh",
+      "localities": [
+        {
+          "name": "Manik Chowk",
+          "slug": "manik-chowk"
+        },
+        {
+          "name": "Elite Circle",
+          "slug": "elite-circle"
+        },
+        {
+          "name": "Civil Lines",
+          "slug": "civil-lines"
+        }
+      ]
+    }
+  ]
+}

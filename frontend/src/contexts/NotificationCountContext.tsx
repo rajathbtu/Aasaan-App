@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { AppState, InteractionManager } from 'react-native';
+import { AppState } from 'react-native';
 import { getNotifications } from '../api';
 import { useAuth } from './AuthContext';
 import { offlineCacheKey, readOfflineCache } from '../utils/offlineCache';
@@ -8,8 +8,8 @@ import { offlineCacheKey, readOfflineCache } from '../utils/offlineCache';
  * Exposes the number of unseen ("unread") notifications shown in the
  * header badge.  Deliberately kept low priority:
  *  - the initial value is computed from the local offline cache (no network)
- *  - network refreshes are debounced, delayed and further deferred until
- *    animations/interactions settle, so they never compete with screen loads
+ *  - network refreshes are debounced and delayed, then scheduled for JS-thread
+ *    idle time so they are less likely to compete with screen loads
  *  - failures are silent; the badge simply keeps its last known value
  */
 interface NotificationCountContextProps {
@@ -22,6 +22,15 @@ const NotificationCountContext = createContext<NotificationCountContextProps | u
 
 /** Extra idle delay before hitting the network (ms). */
 const REFRESH_DELAY_MS = 2000;
+
+/** Runs work when the JS thread is idle, with a timer fallback. */
+const runWhenIdle = (callback: () => void) => {
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(callback);
+  } else {
+    setTimeout(callback, 1);
+  }
+};
 
 const countCachedUnread = (list: unknown): number =>
   Array.isArray(list) ? list.filter((n: any) => n && !n.read).length : 0;
@@ -36,7 +45,7 @@ export const NotificationCountProvider: React.FC<{ children: React.ReactNode }> 
     // Debounce: collapse bursts of triggers into a single request.
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
-      void InteractionManager.runAfterInteractions(async () => {
+      runWhenIdle(async () => {
         try {
           const unread = await getNotifications(token, true);
           setUnreadCount(Array.isArray(unread) ? unread.length : 0);

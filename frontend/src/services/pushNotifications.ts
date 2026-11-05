@@ -24,7 +24,6 @@ export async function getPushToken(): Promise<{ token: string; platform: 'androi
     await Notifications.setNotificationChannelAsync('work-requests', {
       name: 'Work requests',
       importance: Notifications.AndroidImportance.HIGH,
-      sound: 'default',
     });
   }
   const permissions = await Notifications.getPermissionsAsync();

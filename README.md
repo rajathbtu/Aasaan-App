@@ -167,7 +167,9 @@ aasaan-app/
 |   `-- package.json
 |
 |-- htmls/                         # Static HTML design mockups (reference only)
+|-- seo-site/                      # Static SEO pages, generator, and location registry
 |-- .github/workflows/deploy.yml   # CI: web build, Pages deploy, APK/AAB, iOS
+|-- .github/workflows/seo-site.yml # SEO site build and validation
 |-- render.yaml                    # Render blueprint (API + Postgres)
 |-- RAZORPAY_INTEGRATION.md        # Razorpay integration notes
 |-- RAZORPAY_SETUP.md              # Razorpay account setup guide
@@ -698,4 +700,3 @@ record.
 ## License
 
 Private repository. All rights reserved.
-

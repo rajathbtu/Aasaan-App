@@ -71,8 +71,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({
       disabled={isInactive}
       activeOpacity={0.8}
       accessibilityRole="button"
-      accessibilityState={{ disabled: isInactive, busy: loading }}
-    >
+      accessibilityState={{ disabled: isInactive, busy: loading }}>
       {loading ? (
         <ActivityIndicator color={buttonTitleColor} />
       ) : buttonIcon ? (
@@ -120,8 +119,8 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   title: {
-    fontWeight: '600',
-    fontSize: 14,
+    fontFamily: 'Inter-Bold',
+    fontSize: 13,
   },
   subtitle: {
     fontSize: 11,
