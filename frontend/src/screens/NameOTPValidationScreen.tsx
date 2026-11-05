@@ -10,6 +10,7 @@ import {
   Image,
   Linking,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -177,7 +178,9 @@ const NameOTPValidationScreen: React.FC = () => {
               placeholderTextColor={C.placeholder}
               autoCapitalize="words"
               autoComplete="name"
-              returnKeyType="next"
+              autoFocus
+              returnKeyType="done"
+              blurOnSubmit={false}
               accessibilityLabel={t('nameReg.fullName')}
             />
           </View>
@@ -223,6 +226,7 @@ const NameOTPValidationScreen: React.FC = () => {
           <OtpInput
             phone={String(phone || '')}
             language={lang}
+            autoFocus={false}
             onOtpChange={(value) => {
               setOtp(value);
               if (apiError) setApiError('');
@@ -406,10 +410,19 @@ const makeStyles = (C: BasePalette) => StyleSheet.create({
   /* .input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(7,150,83,.10)} */
   inputWrapFocused: {
     borderColor: C.brand,
-    shadowColor: C.brand,
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 0 },
+    /* Android's shadow props (setOutlineAmbientShadowColor) applied to the
+       wrapper while the child is focused make the platform drop focus from the
+       TextInput, which then hands focus to the next input (the OTP). Keep the
+       glow on iOS, where the same style is safe. */
+    ...Platform.select({
+      ios: {
+        shadowColor: C.brand,
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 0 },
+      },
+      default: {},
+    }),
   },
   input: {
     fontSize: 14,

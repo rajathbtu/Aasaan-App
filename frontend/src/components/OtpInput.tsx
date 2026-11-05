@@ -28,6 +28,12 @@ export type OtpInputProps = {
   loading?: boolean;
   /** Defaults to 4; Aadhaar OTP has 6. */
   length?: number;
+  /**
+   * Focus the code field as soon as it mounts. Defaults to `true` for screens
+   * whose only job is OTP entry; screens with other fields (e.g. name + OTP)
+   * should pass `false` so their first field keeps focus.
+   */
+  autoFocus?: boolean;
 
   onResend?: () => Promise<void> | void;
 };
@@ -53,7 +59,7 @@ export type OtpInputProps = {
  */
 const OtpInput: React.FC<OtpInputProps> = ({
   phone, language, onOtpChange, loading = false,
-  length = OTP_LENGTH, onResend,
+  length = OTP_LENGTH, autoFocus = true, onResend,
 }) => {
   const { t } = useI18n(language);
   const { showToast } = useToast();
@@ -145,7 +151,7 @@ const OtpInput: React.FC<OtpInputProps> = ({
             returnKeyType="done"
             textContentType="oneTimeCode"
             autoComplete="sms-otp"
-            autoFocus
+            autoFocus={autoFocus}
             selectionColor="transparent"
             accessibilityLabel={t('otp.title')}
           />
