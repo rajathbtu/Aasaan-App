@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  type TextInputInstance,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -72,6 +73,7 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<SandboxAadhaarOfflineEkycOtpSession | null>(null);
   const [kyc, setKyc] = useState<SandboxAadhaarOfflineEkycResult | null>(null);
+  const otpInputRef = useRef<TextInputInstance | null>(null);
 
   const reset = useCallback(() => {
     setState('idle');
@@ -259,8 +261,13 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
                   </View>
                 </View>
 
-                {/* OTP entry stage — 6 digit cells, standard OTP input */}
-                <View style={styles.otpRow}>
+                {/* OTP entry stage — 6 digit cells; tapping them focuses the hidden input */}
+                <TouchableOpacity
+                  style={styles.otpRow}
+                  activeOpacity={1}
+                  onPress={() => otpInputRef.current?.focus()}
+                  accessibilityRole="button"
+                  accessibilityLabel="OTP input">
                   {Array.from({ length: OTP_LENGTH }).map((_, i) => (
                     <View key={i} style={styles.otpCell}>
                       {otp[i] ? (
@@ -268,10 +275,11 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
                       ) : null}
                     </View>
                   ))}
-                </View>
+                </TouchableOpacity>
 
                 {/* Hidden text input to capture keyboard typing */}
                 <TextInput
+                  ref={otpInputRef}
                   style={styles.hiddenOtpInput}
                   value={otp}
                   onChangeText={(text) => {
