@@ -166,7 +166,6 @@ aasaan-app/
 |   |           `-- utils/         # ffmpegHelper
 |   `-- package.json
 |
-|-- htmls/                         # Static HTML design mockups (reference only)
 |-- .github/workflows/deploy.yml   # CI: web build, Pages deploy, APK/AAB, iOS
 |-- render.yaml                    # Render blueprint (API + Postgres)
 |-- RAZORPAY_INTEGRATION.md        # Razorpay integration notes
