@@ -278,3 +278,6 @@ const SvgIcon: React.FC<SvgIconProps> = ({ name, size = 20, color, style }) => {
 };
 
 export default SvgIcon;
+
+// Profile-screen icons and avatar placeholder, unified into the icons module.
+export * from './ProfileIcons';

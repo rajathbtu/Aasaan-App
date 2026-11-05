@@ -40,7 +40,7 @@ import {
   ProfileAvatarPlaceholder,
   ProfileIcon,
   ProfileIconName,
-} from '../assets/profile-handoff';
+} from '../assets/icons';
 import { profileFonts as F } from '../theme/profile';
 import type { ProfilePalette } from '../theme/palette';
 import { useTheme } from '../contexts/ThemeContext';

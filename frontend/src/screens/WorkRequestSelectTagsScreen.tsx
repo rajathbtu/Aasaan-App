@@ -61,7 +61,7 @@ try {
   speechModule = null;
 }
 
-const heroIllustration = require('../assets/images/hero_illustration_reference.png');
+const heroIllustration = require('../assets/illustrations/hero_illustration_reference.png');
 
 const WorkRequestSelectTagsScreen: React.FC = () => {
   const navigation = useNavigation<any>();

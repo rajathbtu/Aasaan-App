@@ -7,7 +7,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
-import { ProfileIcon, ProfileIconName } from '../assets/profile-handoff';
+import { ProfileIcon, ProfileIconName } from '../assets/icons';
 import { profileFonts as F } from '../theme/profile';
 import { useTheme } from '../contexts/ThemeContext';
 import type { ProfilePalette } from '../theme/palette';

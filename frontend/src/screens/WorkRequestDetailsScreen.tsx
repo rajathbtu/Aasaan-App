@@ -926,7 +926,7 @@ const WorkRequestDetailsScreen: React.FC = () => {
             style={[styles.boostBanner, { borderRadius: 38 * s, marginTop: 30 * s, marginBottom: 20 * s }]}
           >
             <Image
-              source={require('../assets/images/boost_rocket_illustration.png')}
+              source={require('../assets/illustrations/boost_rocket_illustration.png')}
               style={[styles.boostArt, { width: 225 * s, height: 165 * s }]}
               contentFit="contain"
               cachePolicy="memory-disk"

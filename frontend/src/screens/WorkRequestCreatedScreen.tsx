@@ -110,7 +110,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
     return (
       <View style={styles.emptyContainer}>
         <Image
-          source={require('../assets/images/success_check_illustration.png')}
+          source={require('../assets/illustrations/success_check_illustration.png')}
           style={styles.emptyArt}
           contentFit="contain"
           cachePolicy="memory-disk"
@@ -176,7 +176,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
             <Text style={styles.heroSubtitle}>{t('createRequest.created.subtitle')}</Text>
           </View>
           <Image
-            source={require('../assets/images/success_check_illustration.png')}
+            source={require('../assets/illustrations/success_check_illustration.png')}
             style={[styles.heroArt, { width: 385 * s, height: 302 * s }]}
             contentFit="contain"
             cachePolicy="memory-disk"
@@ -301,7 +301,7 @@ const WorkRequestCreatedScreen: React.FC = () => {
           style={[styles.boostBanner, { borderRadius: 38 * s, marginTop: 30 * s }]}
         >
           <Image
-            source={require('../assets/images/boost_rocket_illustration.png')}
+            source={require('../assets/illustrations/boost_rocket_illustration.png')}
             style={[styles.boostRocket, { width: 225 * s, height: 165 * s }]}
             contentFit="contain"
             cachePolicy="memory-disk"
