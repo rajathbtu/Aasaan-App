@@ -2,21 +2,21 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  type ScrollViewInstance,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
-import { useNotificationCount } from '../contexts/NotificationCountContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { consumerFonts, spacing } from '../theme';
 import type { BasePalette } from '../theme/palette';
 import ErrorBanner from '../components/ErrorBanner';
+import Header from '../components/Header';
 import type { Location } from '../components/LocationSearch';
 import { Service, useServiceCatalog } from '../components/ServiceSelection';
 import ServicesSearchBar from '../components/ServicesSearchBar';
@@ -137,9 +137,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
   const { t } = useI18n();
   const { base: C } = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
-  const { unreadCount } = useNotificationCount();
   const insets = useSafeAreaInsets();
-  const topPadding = Math.max(insets.top, StatusBar.currentHeight ?? 0);
 
   const userId = useAuth()?.user?.id;
   const { services, query, setQuery, servicesError, refreshInBackground } = useServiceCatalog(userId);
@@ -262,19 +260,20 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     t('createRequest.selectService.searchPlaceholder2')
   ];
 
+  /* Category chips do NOT filter — tapping one scrolls to its group (the
+     same behaviour as other apps), so the list only narrows by search. */
   const filteredServices = useMemo(() => {
     if (!services) return [];
     const q = query.trim().toLowerCase();
+    if (!q) return services;
     return services.filter((s) => {
-      const catMatch = selectedChip === 'all' || s.category === selectedChip;
-      const qMatch =
-        !q ||
+      return (
         s.name.toLowerCase().includes(q) ||
         (Array.isArray(s.alias) && s.alias.some((alias) => alias.toLowerCase().includes(q))) ||
-        (Array.isArray(s.tags) && s.tags.some((tag) => tag.toLowerCase().includes(q)));
-      return catMatch && qMatch;
+        (Array.isArray(s.tags) && s.tags.some((tag) => tag.toLowerCase().includes(q)))
+      );
     });
-  }, [services, query, selectedChip]);
+  }, [services, query]);
 
   /* Grouped by the service's own category — the same grouping the
      service-provider flow uses. */
@@ -294,6 +293,24 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
     () => Array.from(new Set((services || []).map((s) => s.category).filter(Boolean))) as string[],
     [services]
   );
+
+  /* Chip → group scrolling: every group reports its content offset and the
+     chips just scroll the list to it. Nothing is removed from view. */
+  const listRef = useRef<ScrollViewInstance>(null);
+  const groupOffsetsRef = useRef<Record<string, number>>({});
+  const allServicesTopRef = useRef(0);
+
+  const scrollToGroup = (key: string) => {
+    setSelectedChip(key);
+    if (key === 'all') {
+      listRef.current?.scrollTo({ y: 0, animated: true });
+      return;
+    }
+    const groupY = groupOffsetsRef.current[key];
+    if (groupedServices[key]?.length && typeof groupY === 'number') {
+      listRef.current?.scrollTo({ y: allServicesTopRef.current + groupY, animated: true });
+    }
+  };
 
   const noResults = hasData && filteredServices.length === 0 && query.trim() !== '';
   /* Header shows the confirmed work location (e.g. "Civil Lines, Jhansi")
@@ -328,8 +345,17 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header: safe-area padded so it never sits under the status bar */}
-      <View style={[styles.header, { paddingTop: topPadding + 8 }]}>
+      {/* Sticky brand logo header — same style, position and nature as SPWorkRequestsScreen. */}
+      <Header
+        title="aasaanly"
+        showBackButton={false}
+        showNotification={true}
+        showProfileButton={true}
+        titleStyle={styles.logo}
+      />
+
+      {/* Location row + sticky search bar */}
+      <View style={styles.header}>
         <View style={styles.headerRow}>
           <TouchableOpacity
             style={styles.locationButton}
@@ -340,21 +366,6 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
             <SvgIcon name="pin" size={18} color={C.radiusBtnText} />
             <Text style={styles.locationText}>{headerLocationLabel}</Text>
             <SvgIcon name="chevron-down" size={14} color={C.brand} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.bellButton}
-            onPress={() => navigation.navigate('Notifications')}
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}>
-            <SvgIcon name="bell" size={24} color={C.dark} />
-            {unreadCount > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>
-                  {unreadCount > 20 ? '20+' : unreadCount}
-                </Text>
-              </View>
-            )}
           </TouchableOpacity>
         </View>
 
@@ -368,6 +379,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
       </View>
 
       <ScrollView
+        ref={listRef}
         style={{ flex: 1 }}
         contentContainerStyle={{ ...styles.scrollContent, paddingBottom: 100 + Math.max(0, insets.bottom) }}
         showsVerticalScrollIndicator={false}
@@ -407,7 +419,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
             >
               <TouchableOpacity
                 style={[styles.chip, selectedChip === 'all' && styles.chipActive]}
-                onPress={() => setSelectedChip('all')}
+                onPress={() => scrollToGroup('all')}
                 activeOpacity={0.75}
                 accessibilityRole="button"
                 accessibilityState={{ selected: selectedChip === 'all' }}>
@@ -422,7 +434,7 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
                   <TouchableOpacity
                     key={category}
                     style={[styles.chip, active && styles.chipActive]}
-                    onPress={() => setSelectedChip(category)}
+                    onPress={() => scrollToGroup(category)}
                     activeOpacity={0.75}
                     accessibilityRole="button"
                     accessibilityState={{ selected: active }}>
@@ -461,13 +473,20 @@ const WorkRequestSelectServiceScreen: React.FC = () => {
 
         {/* All Services — grouped by the catalog's own categories */}
         {hasData && (
-          <View style={styles.section}>
+          <View
+            style={styles.section}
+            onLayout={(e) => { allServicesTopRef.current = e.nativeEvent.layout.y; }}
+          >
             {query.trim() === '' && <Text style={styles.sectionTitle}>{t('createRequest.selectService.allServices')}</Text>}
             {groupKeys.map((key) => {
               const items = groupedServices[key];
               if (!items || items.length === 0) return null;
               return (
-                <View key={key} style={styles.groupSection}>
+                <View
+                  key={key}
+                  style={styles.groupSection}
+                  onLayout={(e) => { groupOffsetsRef.current[key] = e.nativeEvent.layout.y; }}
+                >
                   <View style={styles.groupRow}>
                     <View style={styles.groupMarker} />
                     <Text style={styles.groupTitle}>{key}</Text>
@@ -504,13 +523,14 @@ const makeStyles = (C: BasePalette) =>
   // -- Header --
   header: {
     backgroundColor: C.canvas,
+    paddingTop: spacing.xs,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingBottom: 8,
+    paddingBottom: spacing.xs,
     gap: 10,
   },
   locationButton: {
@@ -519,7 +539,7 @@ const makeStyles = (C: BasePalette) =>
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 6,
+    paddingVertical: spacing.xs,
   },
   locationText: {
     color: C.radiusBtnText,
@@ -527,33 +547,10 @@ const makeStyles = (C: BasePalette) =>
     fontFamily: consumerFonts.bold,
     flexShrink: 1,
   },
-  bellButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: C.backBg,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 5,
-    right: 5,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: C.brand,
-    borderWidth: 1,
-    borderColor: C.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-  },
-  notificationBadgeText: {
-    color: C.onPrimary,
-    fontSize: 10,
-    fontWeight: '700',
-    fontFamily: consumerFonts.bold,
+  /* Brand wordmark in the sticky logo header (same as SPWorkRequestsScreen). */
+  logo: {
+    fontSize: 25,
+    letterSpacing: -0.8,
   },
   stickySearchWrap: {
     paddingHorizontal: 22,
