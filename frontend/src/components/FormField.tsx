@@ -16,12 +16,10 @@ import { useTheme } from '../contexts/ThemeContext';
 /**
  * Label + icon + input row used by the onboarding screens.
  *
- * Deliberately separate from `ProfileField`: that component renders a
- * read-only value that becomes editable only after a tap, while onboarding
- * fields are *always* live inputs. Keeping them apart means this one can
- * render a plain `TextInput` as a direct child of the row (no nested
- * `TouchableOpacity`, which swallows taps and flickers the keyboard) while
- * reusing the exact same visual language as the profile screen.
+ * Onboarding fields are *always* live inputs, unlike the profile rows which
+ * render a read-only value that becomes editable only after a tap. The input
+ * here is a plain `TextInput` as a direct child of the row (no nested
+ * `TouchableOpacity`, which swallows taps and flickers the keyboard).
  */
 export type FormFieldProps = {
   icon: keyof typeof Ionicons.glyphMap; /** Icon shown to the left of the label. */

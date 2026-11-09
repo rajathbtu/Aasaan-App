@@ -36,11 +36,7 @@ import {
   ProfileSectionHeading,
   ProfileStatTile,
 } from '../components/ProfileSection';
-import {
-  ProfileAvatarPlaceholder,
-  ProfileIcon,
-  ProfileIconName,
-} from '../assets/icons';
+import { ProfileAvatarPlaceholder, ProfileIcon } from '../assets/icons';
 import { profileFonts as F } from '../theme/profile';
 import type { ProfilePalette } from '../theme/palette';
 import { useTheme } from '../contexts/ThemeContext';
@@ -49,48 +45,6 @@ import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/o
 type ProfileSelector = 'workSinceYear' | 'birthYear' | 'gender';
 type SavingField = ProfileSelector | 'name' | 'bio' | null;
 type Service = { id: string; name: string; category: string; tags?: string[] };
-
-/** Masks all but the last four digits, matching the approved reference. */
-const maskPhoneNumber = (raw?: string | null): string => {
-  const digits = String(raw || '').replace(/\D/g, '');
-  if (!digits) return '';
-  const last4 = digits.slice(-4);
-  const countryCode = digits.length > 10 ? `+${digits.slice(0, digits.length - 10)}` : '+91';
-  return `${countryCode} ••••• •${last4}`;
-};
-
-/** Acronyms that should stay upper-case when a service id is humanised. */
-const SERVICE_ID_ACRONYMS = new Set(['ac', 'tv', 'cctv', 'pc', 'ro', 'ups']);
-
-/**
- * Turns a raw service id into a readable fallback label (`acRepair` ->
- * `AC Repair`). Used only until the services catalogue resolves the real name.
- */
-const formatServiceName = (id: string): string => {
-  const words = String(id)
-    .replace(/[_-]+/g, ' ')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (words.length === 0) return id;
-  return words
-    .map(word => (
-      SERVICE_ID_ACRONYMS.has(word.toLowerCase())
-        ? word.toUpperCase()
-        : word.charAt(0).toUpperCase() + word.slice(1)
-    ))
-    .join(' ');
-};
-
-/** Picks the closest handoff icon for a service name. */
-const serviceIcon = (name: string): ProfileIconName => {
-  const value = name.toLowerCase();
-  if (/(air\s*condition|\bac\b|cooling|a\/c)/.test(value)) return 'ac';
-  if (/(chimney|hob|kitchen)/.test(value)) return 'chimney';
-  if (/(geyser|water\s*heater|heater)/.test(value)) return 'geyser';
-  return 'briefcase';
-};
 
 /**
  * Profile screen — rebuilt to the approved design reference
@@ -120,7 +74,6 @@ const ProfileScreen: React.FC = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isPhotoSourcePickerVisible, setIsPhotoSourcePickerVisible] = useState(false);
-  const [isMoreMenuVisible, setIsMoreMenuVisible] = useState(false);
 
   // Shared services list to map ids -> display names.
   useEffect(() => {
@@ -245,6 +198,30 @@ const ProfileScreen: React.FC = () => {
     || savingField === 'birthYear'
     || savingField === 'gender';
 
+  /**
+   * Shared save path for every editable profile field — the per-field
+   * replacement of the old batched `onSave`. Calls `updateUser` once and
+   * reports success so callers can close their editors. Returns true when
+   * the update was persisted.
+   */
+  const persistUpdates = useCallback(async (
+    updates: Record<string, unknown>,
+    field: SavingField,
+  ): Promise<boolean> => {
+    setSavingField(field);
+    try {
+      await updateUser(updates as any);
+      setProfileError(null);
+      showToast(t('common.updatedDesc'));
+      return true;
+    } catch (error) {
+      setProfileError(error);
+      return false;
+    } finally {
+      setSavingField(null);
+    }
+  }, [updateUser, showToast, t]);
+
   const handleSelectOption = async (value: string) => {
     const selector = activeSelector;
     if (!selector) return;
@@ -265,16 +242,7 @@ const ProfileScreen: React.FC = () => {
       updates.gender = next;
     }
 
-    setSavingField(selector);
-    try {
-      await updateUser(updates as any);
-      setProfileError(null);
-      showToast(t('common.updatedDesc'));
-    } catch (error) {
-      setProfileError(error);
-    } finally {
-      setSavingField(null);
-    }
+    await persistUpdates(updates, selector);
   };
 
   const handleSaveName = async () => {
@@ -286,16 +254,8 @@ const ProfileScreen: React.FC = () => {
       return;
     }
 
-    setSavingField('name');
-    try {
-      await updateUser({ name: trimmed });
+    if (await persistUpdates({ name: trimmed }, 'name')) {
       setEditingName(false);
-      setProfileError(null);
-      showToast(t('common.updatedDesc'));
-    } catch (error) {
-      setProfileError(error);
-    } finally {
-      setSavingField(null);
     }
   };
 
@@ -307,16 +267,8 @@ const ProfileScreen: React.FC = () => {
       return;
     }
 
-    setSavingField('bio');
-    try {
-      await updateUser({ bio: trimmed || null });
+    if (await persistUpdates({ bio: trimmed || null }, 'bio')) {
       setEditingBio(false);
-      setProfileError(null);
-      showToast(t('common.updatedDesc'));
-    } catch (error) {
-      setProfileError(error);
-    } finally {
-      setSavingField(null);
     }
   };
 
@@ -408,14 +360,8 @@ const ProfileScreen: React.FC = () => {
     navigation.navigate('SPSelectServices', {
       mode: 'edit',
       initialSelected: services,
-      onDone: async (selected: string[]) => {
-        try {
-          await updateUser({ services: selected });
-          setProfileError(null);
-          showToast(t('common.updatedDesc'));
-        } catch (error) {
-          setProfileError(error);
-        }
+      onDone: (selected: string[]) => {
+        void persistUpdates({ services: selected }, null);
       },
     });
   };
@@ -426,22 +372,6 @@ const ProfileScreen: React.FC = () => {
     showToast(ratingCount
       ? `${ratingAverage?.toFixed(1) ?? '0.0'} / 5 · ${t('profile.ratingCount', { count: ratingCount })}`
       : t('profile.noRatingsYet'));
-  };
-
-  const moreMenuOptions = [
-    ...(user?.isModerator
-      ? [{ label: t('profilePhotoModeration.openQueue'), value: 'moderation', icon: 'shield-checkmark-outline' as const }]
-      : []),
-    { label: t('profile.logout'), value: 'logout', icon: 'log-out-outline' as const },
-    { label: t('profile.deactivateAccount'), value: 'deactivate', icon: 'trash-outline' as const },
-    { label: t('common.cancel'), value: 'cancel', icon: 'close-outline' as const },
-  ];
-
-  const handleMoreSelect = (value: string) => {
-    setIsMoreMenuVisible(false);
-    if (value === 'logout') void handleLogout();
-    else if (value === 'deactivate') handleDeactivate();
-    else if (value === 'moderation') navigation.navigate('ProfileImageModeration');
   };
 
   if (!user) {
@@ -465,18 +395,6 @@ const ProfileScreen: React.FC = () => {
         title={t('profile.header')}
         showBackButton={true}
         showNotification={false}
-        customRightComponent={
-          <TouchableOpacity
-            style={styles.headerMore}
-            onPress={() => setIsMoreMenuVisible(true)}
-            activeOpacity={0.7}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityRole="button"
-            accessibilityLabel={t('profile.moreOptions')}
-          >
-            <ProfileIcon name="more-vertical" size={21} color={C.ink} />
-          </TouchableOpacity>
-        }
       />
 
       <ScrollView
@@ -651,7 +569,7 @@ const ProfileScreen: React.FC = () => {
             <ProfileInfoRow
               icon="phone"
               label={t('profile.mobileNumber')}
-              value={maskPhoneNumber(user.phoneNumber || user.phone)}
+              value={user.phoneNumber || user.phone || ''}
               trailing="lock"
               onPress={() => showToast(t('profile.phoneNotEditable'))}
               accessibilityHint={t('profile.phoneNotEditable')}
@@ -706,10 +624,10 @@ const ProfileScreen: React.FC = () => {
               </View>
               <View style={styles.chips}>
                 {services.length > 0 ? services.map(serviceId => {
-                  const name = serviceNameMap[serviceId] || formatServiceName(serviceId);
+                  const name = serviceNameMap[serviceId] || serviceId;
                   return (
                     <View key={serviceId} style={styles.chip}>
-                      <ProfileIcon name={serviceIcon(name)} size={16} color={C.chipGreen} />
+                      <ProfileIcon name="briefcase" size={16} color={C.chipGreen} />
                       <Text style={styles.chipText} numberOfLines={1}>{name}</Text>
                     </View>
                   );
@@ -920,16 +838,6 @@ const ProfileScreen: React.FC = () => {
         onClose={() => setIsPhotoSourcePickerVisible(false)}
       />
 
-      <SingleSelectRadioModal
-        visible={isMoreMenuVisible}
-        title={t('profile.moreOptions')}
-        options={moreMenuOptions}
-        selectedValue=""
-        showRadio={false}
-        onSelect={handleMoreSelect}
-        onClose={() => setIsMoreMenuVisible(false)}
-      />
-
       <ErrorBanner error={profileError} onRetry={refreshUser} />
       {!isBottomTabsDisplayed && <SafeBottomBanner />}
       <BlockingLoader visible={isBlocking} />
@@ -953,11 +861,6 @@ const makeStyles = (C: ProfilePalette) => StyleSheet.create({
   grow: {
     flex: 1,
     minWidth: 0,
-  },
-
-  headerMore: {
-    marginLeft: 'auto',
-    padding: 4,
   },
 
   /* ---------- hero ---------- */
