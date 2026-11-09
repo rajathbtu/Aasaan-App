@@ -222,38 +222,6 @@ export async function list(req: Request, res: Response): Promise<void> {
         responseCounts.map((entry: any) => [entry.workRequestId, entry._count._all || 0])
       );
     }
-    // Provider preview avatars for the My Requests interest strip: up to 3
-    // most-recent interested providers with an approved profile picture.
-    let previewMap = new Map<string, string[]>();
-    if (requestIds.length && pAny.acceptedProvider?.findMany && pAny.user?.findMany) {
-      try {
-        const acceptedRows = await pAny.acceptedProvider.findMany({
-          where: { workRequestId: { in: requestIds } },
-          select: { workRequestId: true, providerId: true, acceptedAt: true },
-          orderBy: { acceptedAt: 'desc' },
-        });
-        const providerIds = Array.from(new Set((acceptedRows as any[]).map((row: any) => row.providerId)));
-        const providerUsers = providerIds.length
-          ? await pAny.user.findMany({
-              where: { id: { in: providerIds } },
-              select: { id: true, picUrl: true, picModeration: true },
-            })
-          : [];
-        const providerUserMap = new Map<string, any>(
-          providerUsers.map((u: any) => [u.id as string, u] as [string, any])
-        );
-        for (const row of acceptedRows as any[]) {
-          const profile = providerUserMap.get(row.providerId);
-          if (!profile || profile.picModeration !== 'approved' || !profile.picUrl) continue;
-          const previews = previewMap.get(row.workRequestId) || [];
-          if (previews.length >= 3) continue;
-          previews.push(profile.picUrl);
-          previewMap.set(row.workRequestId, previews);
-        }
-      } catch (error) {
-        console.error('Failed to build interested-provider previews', error);
-      }
-    }
     // Enrich requests with location and service metadata for client display.
     try {
       const serviceIds = Array.from(new Set((requests as any[]).map((request: any) => request.service).filter(Boolean)));
@@ -266,7 +234,6 @@ export async function list(req: Request, res: Response): Promise<void> {
           serviceIcon: service?.icon || null,
           serviceColor: service?.color || null,
           responseCount: responseCountsMap.get(request.id) || 0,
-          interestedProviderPreviews: previewMap.get(request.id) || [],
         };
       });
       res.json({

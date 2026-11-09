@@ -5,15 +5,13 @@ import {
   TouchableOpacity,
   FlatList,
   StyleSheet,
-  StatusBar,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ErrorBanner from '../components/ErrorBanner';
+import Header from '../components/Header';
 import SegmentedTabs from '../components/SegmentedTabs';
 import EmptyState from '../components/EmptyState';
-import ProfileAvatar from '../components/ProfileAvatar';
 import { listWorkRequests } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -30,6 +28,8 @@ type RequestTab = 'active' | 'completed';
 type RequestsByTab = Record<RequestTab, any[]>;
 
 const CARD_RADIUS = 23;
+/* Tags shown per card before folding the rest into a +N label. */
+const TAG_PREVIEW_COUNT = 3;
 
 /**
  * Per-category card variant from the approved My_Requests_Handoff:
@@ -85,7 +85,6 @@ const WorkRequestsScreen: React.FC = () => {
   const { t } = useI18n();
   const { consumer: C } = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
-  const insets = useSafeAreaInsets();
   const [requestsByTab, setRequestsByTab] = useState<RequestsByTab>({
     active: [],
     completed: [],
@@ -146,10 +145,6 @@ const WorkRequestsScreen: React.FC = () => {
     navigation.navigate('WorkRequestDetails', { id: item.id, request: item });
   };
 
-  const handleNotificationsPress = () => {
-    navigation.navigate('Notifications');
-  };
-
   const handleCreatePress = () => {
     navigation.navigate('Create');
   };
@@ -199,8 +194,14 @@ const WorkRequestsScreen: React.FC = () => {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: Math.max(insets.top, StatusBar.currentHeight ?? 0) }]}>
-      {renderHeader()}
+    <View style={styles.container}>
+      {/* Shared app header with subtitle — the header pattern used across the app. */}
+      <Header
+        title={t('userRequests.title')}
+        subheader={t('userRequests.subtitle')}
+        showBackButton={true}
+        showNotification={false}
+      />
 
       {/* Request List — the segmented tabs stick to the top while scrolling */}
       <FlatList
@@ -233,27 +234,6 @@ const WorkRequestsScreen: React.FC = () => {
         onRetry={() => fetchRequests(true)} />
     </View>
   );
-
-  function renderHeader() {
-    return (
-      <View style={styles.customHeader}>
-        <View style={styles.headerCopy}>
-          <Text style={styles.headerTitle}>{t('userRequests.title')}</Text>
-          <Text style={styles.headerSubtitle}>{t('userRequests.subtitle')}</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.notificationButton}
-          onPress={handleNotificationsPress}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel={t('userRequests.title')}
-        >
-          <SvgIcon name="bell" size={21} color={C.ink} />
-          <View style={styles.notificationDot} />
-        </TouchableOpacity>
-      </View>
-    );
-  }
 };
 
 type ConsumerRequestCardProps = {
@@ -287,36 +267,13 @@ const ConsumerRequestCard: React.FC<ConsumerRequestCardProps> = ({ request, onPr
   const interestLabel = responseCount === 1
     ? t('userRequests.interestedProviderTitle')
     : t('userRequests.interestedProvidersTitle', { count: responseCount });
-  const providerPreviews: string[] = Array.isArray(request.interestedProviderPreviews)
-    ? request.interestedProviderPreviews.filter(Boolean).slice(0, 3)
-    : [];
-
-  const renderProviderAvatars = () => {
-    if (providerPreviews.length) {
-      return providerPreviews.map((picUrl, index) => (
-        <ProfileAvatar
-          key={`${picUrl}-${index}`}
-          picUrl={picUrl}
-          profileName="Provider"
-          size={30}
-          containerStyle={[styles.stackAvatar, index > 0 && styles.stackAvatarOverlap]}
-        />
-      ));
-    }
-    return (
-      <View style={[styles.stackAvatar, styles.stackAvatarFallback]}>
-        <SvgIcon name="user" size={15} color={C.cardMeta} />
-      </View>
-    );
-  };
-
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.95} onPress={onPress}>
       <View style={styles.cardContent}>
         {/* Top row: service artwork, title, category, meta column, status badge */}
         <View style={styles.cardTop}>
           <View style={[styles.serviceArtWrap, { backgroundColor: variant.artBg }]}>
-            <SvgIcon name={serviceIconName} size={40} color={C.primary} />
+            <SvgIcon name={serviceIconName} size={28} color={C.primary} />
           </View>
           <View style={styles.titleWrap}>
             <Text style={styles.requestTitle} numberOfLines={2} ellipsizeMode="tail">
@@ -338,13 +295,25 @@ const ConsumerRequestCard: React.FC<ConsumerRequestCardProps> = ({ request, onPr
               </View>
             </View>
           </View>
+          {/* Status dot only — the Active/Completed label was removed. */}
           <View style={[styles.statusBadge, isClosed && styles.statusBadgeClosed]}>
             <View style={[styles.statusDot, isClosed && styles.statusDotClosed]} />
-            <Text style={[styles.statusText, isClosed && styles.statusTextClosed]}>
-              {isClosed ? t('userRequests.statusCompleted') : t('userRequests.statusActive')}
-            </Text>
           </View>
         </View>
+
+        {/* Tags selected on the request (folded into +N after three). */}
+        {request.tags?.length > 0 && (
+          <View style={styles.tagsRow}>
+            {request.tags.slice(0, TAG_PREVIEW_COUNT).map((tag: string) => (
+              <View key={tag} style={styles.tagChip}>
+                <Text style={styles.tagChipText} numberOfLines={1}>{tag}</Text>
+              </View>
+            ))}
+            {request.tags.length > TAG_PREVIEW_COUNT && (
+              <Text style={styles.tagChipMore}>+{request.tags.length - TAG_PREVIEW_COUNT}</Text>
+            )}
+          </View>
+        )}
 
         {/* Provider-interest strip: avatar previews + count + chevron */}
         <TouchableOpacity
@@ -359,7 +328,11 @@ const ConsumerRequestCard: React.FC<ConsumerRequestCardProps> = ({ request, onPr
             end={{ x: 1, y: 0.5 }}
             style={styles.interestRow}
           >
-            <View style={styles.avatarStack}>{renderProviderAvatars()}</View>
+            {/* Single avatar slot — shows the interested provider's profile
+                picture whenever the API supplies one. */}
+            <View style={[styles.stackAvatar, styles.stackAvatarFallback]}>
+              <SvgIcon name="user" size={15} color={C.cardMeta} />
+            </View>
             <Text style={styles.interestText} numberOfLines={1} ellipsizeMode="tail">
               {interestLabel}
             </Text>
@@ -381,58 +354,6 @@ const makeStyles = (C: ConsumerPalette) =>
     // Extra bottom room so the last card clears the floating Create CTA.
     paddingBottom: spacing.xl + 76,
     paddingHorizontal: spacing.lg,
-  },
-  /* Custom header (unchanged) */
-  customHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
-    backgroundColor: C.page,
-  },
-  headerCopy: {
-    flex: 1,
-    minWidth: 0,
-  },
-  headerTitle: {
-    fontSize: 27,
-    fontFamily: consumerFonts.bold,
-    color: C.ink,
-    letterSpacing: -1,
-    lineHeight: 33,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    fontFamily: consumerFonts.regular,
-    color: C.muted,
-    marginTop: 4,
-    lineHeight: 20,
-  },
-  notificationButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: C.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#243E52',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  notificationDot: {
-    position: 'absolute',
-    top: 9,
-    right: 10,
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-    backgroundColor: C.iconClose,
-    borderWidth: 1.5,
-    borderColor: C.white,
   },
   /* Sticky segmented tabs — track spans the full list width */
   tabsWrap: {
@@ -465,9 +386,9 @@ const makeStyles = (C: ConsumerPalette) =>
     gap: 12,
   },
   serviceArtWrap: {
-    width: 82,
-    height: 94,
-    borderRadius: 18,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -476,7 +397,7 @@ const makeStyles = (C: ConsumerPalette) =>
     flex: 1,
     minWidth: 0,
     justifyContent: 'center',
-    paddingRight: 64,
+    paddingRight: 28,
   },
   requestTitle: {
     fontSize: 18,
@@ -511,13 +432,9 @@ const makeStyles = (C: ConsumerPalette) =>
     position: 'absolute',
     top: 0,
     right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: C.statusBg,
-    paddingHorizontal: 9,
-    paddingVertical: 7,
+    padding: 7,
     borderRadius: 999,
+    backgroundColor: 'transparent',
   },
   statusBadgeClosed: {
     backgroundColor: C.pointsPillBg,
@@ -531,12 +448,33 @@ const makeStyles = (C: ConsumerPalette) =>
   statusDotClosed: {
     backgroundColor: C.radioIdle,
   },
-  statusText: {
-    fontSize: 11,
-    fontFamily: consumerFonts.bold,
-    color: C.statusText,
+  /* Request tags: soft chips under the card's top row. */
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
   },
-  statusTextClosed: {
+  tagChip: {
+    maxWidth: '100%',
+    backgroundColor: C.page,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.border,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  tagChipText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: consumerFonts.regular,
+    color: C.cardMeta,
+  },
+  tagChipMore: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontFamily: consumerFonts.bold,
     color: C.cardMeta,
   },
   /* Provider-interest strip */
@@ -550,17 +488,10 @@ const makeStyles = (C: ConsumerPalette) =>
     paddingRight: 10,
     gap: 8,
   },
-  avatarStack: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   stackAvatar: {
     marginRight: 0,
     borderWidth: 1.5,
     borderColor: C.white,
-  },
-  stackAvatarOverlap: {
-    marginLeft: -9,
   },
   stackAvatarFallback: {
     width: 30,
