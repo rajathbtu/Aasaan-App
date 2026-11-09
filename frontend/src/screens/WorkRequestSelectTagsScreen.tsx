@@ -40,6 +40,8 @@ import SvgIcon from '../assets/icons';
  */
 
 const REQUEST_TITLE_MAX_LENGTH = 80;
+/* The tag board slides sideways and shows up to 4 rows of chips. */
+const TAGS_ROW_COUNT = 4;
 
 /* Speech locale per app language (BCP-47 tags). */
 const SPEECH_LOCALES: Record<string, string> = {
@@ -267,7 +269,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
       setRequestInProgress(false);
       hideLoader();
     }
-  }, [token, serviceId, confirmedLocation, selectedTags, requestTitle, navigation, showLoader, hideLoader, t]);
+  }, [token, serviceId, confirmedLocation, selectedTags, requestTitle, phoneConsent, navigation, showLoader, hideLoader, t]);
 
   if (guardMessage) {
     return (
@@ -283,6 +285,9 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
   }
 
   const locName = confirmedLocation?.name || confirmedLocation?.description || t('createRequest.addDetails.noLocation');
+
+  /* 4 rows of tags: each row carries an even share of the tags. */
+  const tagsPerRow = Math.max(1, Math.ceil(serviceTags.length / TAGS_ROW_COUNT));
 
   return (
     <View style={[styles.container, { paddingTop: Math.max(insets.top, StatusBar.currentHeight ?? 0) }]}>
@@ -318,7 +323,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                 <SvgIcon name="document" size={20} color={C.brand} />
               </View>
               <View style={styles.headingText}>
-                <Text style={styles.headingH2}>What needs to be done?</Text>
+                <Text style={styles.headingH2}>{t('createRequest.selectTags.requestTitleLabel')}</Text>
                 <Text style={styles.headingP}>Tell us about the issue or service you need.</Text>
               </View>
               {showTitleCount && (
@@ -359,38 +364,45 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                 <SvgIcon name="tag" size={20} color={C.brand} />
               </View>
               <View style={styles.headingText}>
-                <Text style={styles.headingH2}>Choose all relevant tags</Text>
+                <Text style={styles.headingH2}>{t('createRequest.selectTags.tagsTitle')}</Text>
                 <Text style={styles.headingP}>Select one or more (optional).</Text>
               </View>
             </View>
-            <View style={styles.tagRows}>
-              {serviceTags.length > 0 ? (
-                <View style={styles.tagRow}>
-                  {serviceTags.map(tag => {
-                    const selected = selectedTags.includes(tag);
-                    return (
-                      <TouchableOpacity
-                        key={tag}
-                        style={[styles.tag, selected && styles.tagSelected]}
-                        onPress={() => toggleTag(tag)}
-                        activeOpacity={0.75}
-                        accessibilityRole="button"
-                        accessibilityState={{ selected }}>
-                        <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{tag}</Text>
-                        <View style={[styles.tagBadge, selected && styles.tagBadgeSelected]}>
-                          <SvgIcon name={selected ? 'check' : 'plus'} size={11} color={selected ? C.onPrimary : C.greyMuted} />
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              ) : (
-                <View style={styles.noTagsRow}>
-                  <SvgIcon name="tag" size={20} color={C.grey} />
-                  <Text style={styles.noTagsText}>{t('createRequest.selectTags.noTagsAvailable')}</Text>
-                </View>
-              )}
-            </View>
+            {serviceTags.length > 0 ? (
+              /* Horizontal tag board: 4 rows of chips sliding sideways. */
+              <ScrollView
+                horizontal
+                nestedScrollEnabled
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.tagGrid}>
+                {Array.from({ length: Math.ceil(serviceTags.length / tagsPerRow) }, (_, rowIndex) => (
+                  <View key={rowIndex} style={styles.tagRow}>
+                    {serviceTags.slice(rowIndex * tagsPerRow, (rowIndex + 1) * tagsPerRow).map(tag => {
+                      const selected = selectedTags.includes(tag);
+                      return (
+                        <TouchableOpacity
+                          key={tag}
+                          style={[styles.tag, selected && styles.tagSelected]}
+                          onPress={() => toggleTag(tag)}
+                          activeOpacity={0.75}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected }}>
+                          <Text style={[styles.tagText, selected && styles.tagTextSelected]}>{tag}</Text>
+                          <View style={[styles.tagBadge, selected && styles.tagBadgeSelected]}>
+                            <SvgIcon name={selected ? 'check' : 'plus'} size={11} color={selected ? C.onPrimary : C.greyMuted} />
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.noTagsRow}>
+                <SvgIcon name="tag" size={20} color={C.grey} />
+                <Text style={styles.noTagsText}>{t('createRequest.selectTags.noTagsAvailable')}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -402,7 +414,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                 <SvgIcon name="phone" size={20} color={C.brand} />
               </View>
               <View style={styles.headingText}>
-                <Text style={styles.headingH2}>Who can call me?</Text>
+                <Text style={styles.headingH2}>{t('createRequest.addDetails.consentTitle')}</Text>
                 <Text style={styles.headingPCall}>{t('createRequest.selectTags.phoneConsent')}</Text>
               </View>
               <TouchableOpacity
@@ -431,7 +443,7 @@ const WorkRequestSelectTagsScreen: React.FC = () => {
                 <SvgIcon name="pin" size={20} color={C.brand} />
               </View>
               <View style={styles.headingText}>
-                <Text style={styles.headingH2}>Location of Work</Text>
+                <Text style={styles.headingH2}>{t('createRequest.addDetails.locationTitle')}</Text>
                 <Text style={styles.headingP}>Where do you need the service?</Text>
               </View>
             </View>
@@ -633,12 +645,15 @@ const makeStyles = (C: BasePalette) =>
     backgroundColor: C.dangerSoft,
   },
 
-  tagRows: {
+  /* Horizontal tag board: rows of chips sliding sideways. */
+  tagGrid: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     gap: 10,
   },
   tagRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 8,
   },
   tag: {
