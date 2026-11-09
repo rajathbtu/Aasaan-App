@@ -5,50 +5,22 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  useWindowDimensions,
 } from 'react-native';
 import { useNavigation, useRoute, usePreventRemove } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SvgXml } from 'react-native-svg';
 
-import { languages, getLanguageDisplay } from '../data/languages';
+import { languages } from '../data/languages';
 import { useAuth } from '../contexts/AuthContext';
 import { translations, SupportedLocale } from '../i18n/translations';
 import BlockingLoader from '../components/BlockingLoader';
+import Header from '../components/Header';
 import SvgIcon from '../assets/icons';
 import { useToast } from '../contexts/ToastContext';
 import { prepareTargetLanguage } from '../services/translation';
 import type { BasePalette } from '../theme/palette';
 import { useTheme } from '../contexts/ThemeContext';
-
-/**
- * Translation illustration — hand-authored editable SVG (no vector
- * original exists in the repository). The drop-shadow filter is removed
- * because react-native-svg cannot render SVG filters; everything else is
- * used exactly as supplied.
- */
-const LANGUAGE_ART = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 210">
-  <defs>
-    <linearGradient id="lsMint" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#e8fbf2"/><stop offset="1" stop-color="#c9f2df"/>
-    </linearGradient>
-    <linearGradient id="lsGreen" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#16c784"/><stop offset="1" stop-color="#008b50"/>
-    </linearGradient>
-  </defs>
-  <path d="M38 102C42 59 80 38 118 43c24-35 68-40 101-14 26 21 42 26 63 39 39 25 43 75 5 101-26 18-57 16-84 12-46 15-91 8-122-7-36-17-49-38-43-72Z" fill="url(#lsMint)"/>
-  <path d="M52 42l-17-12M65 30l-4-20M39 61l-20 2" fill="none" stroke="#0aa86d" stroke-width="5" stroke-linecap="round"/>
-  <rect x="83" y="48" width="91" height="91" rx="20" fill="url(#lsGreen)" transform="rotate(5 128 93)"/>
-  <text x="128" y="111" fill="white" font-size="57" font-weight="800" text-anchor="middle">A</text>
-  <rect x="158" y="111" width="105" height="78" rx="18" fill="#fff" stroke="#00a76b" stroke-width="5" transform="rotate(4 210 150)"/>
-  <path d="M239 174l17 23 3-28" fill="#fff" stroke="#00a76b" stroke-width="5" stroke-linejoin="round"/>
-  <text x="211" y="165" fill="#078d56" font-size="48" font-weight="800" text-anchor="middle">अ</text>
-  <path d="M194 58c28 0 45 16 51 40" fill="none" stroke="#078d56" stroke-width="9" stroke-linecap="round"/>
-  <path d="M237 89l12 13 10-15" fill="none" stroke="#078d56" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M126 164c-23-1-37-13-43-32" fill="none" stroke="#078d56" stroke-width="9" stroke-linecap="round"/>
-  <path d="M84 144l-2-14-13 8" fill="none" stroke="#078d56" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>`;
 
 /* Soft two-layer mint wave along the bottom edge (approved reference).
    Fill colours come from the active palette so the wave tracks dark mode. */
@@ -69,7 +41,6 @@ const LanguageSelectionScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
   const { setLanguage, user } = useAuth();
   const { showToast } = useToast();
   const { base: C } = useTheme();
@@ -107,16 +78,6 @@ const LanguageSelectionScreen: React.FC = () => {
       ? { regular: 'Inter' as const, bold: 'Inter-Bold' as const }
       : { regular: undefined, bold: undefined };
 
-  /* h1 follows the handoff CSS clamp(27px, 7.3vw, 34px). */
-  const titleSize = Math.min(Math.max(27, width * 0.073), 34);
-
-  /* Headline with the trailing word emphasised in brand green (English,
-     exactly like the approved reference; other locales stay intact). */
-  const headline = t.language.title;
-  const spaceIdx = activeLocale === 'en' ? headline.lastIndexOf(' ') : -1;
-  const headlineBase = spaceIdx > 0 ? headline.slice(0, spaceIdx + 1) : headline;
-  const headlineAccent = spaceIdx > 0 ? headline.slice(spaceIdx + 1) : '';
-
   const handleLanguageSelect = (langCode: string) => {
     setSelectedLanguage(langCode);
   };
@@ -152,43 +113,20 @@ const LanguageSelectionScreen: React.FC = () => {
         <SvgXml xml={bottomWaveXml(C)} width="100%" height={48} />
       </View>
 
-      <View style={{ paddingTop: insets.top }} />
-
-      {/* Top bar: circular back control at left; current-language pill at right */}
-      <View style={styles.topbar}>
-        {mode === 'edit' ? (
-          <TouchableOpacity
-            style={styles.backButton}
-            activeOpacity={0.7}
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back">
-            <SvgIcon name="sa-back" size={26} color={C.brandDeep} />
-          </TouchableOpacity>
-        ) : (
-          // Onboarding keeps the app's existing no-exit behaviour: no back control.
-          <View style={styles.backPlaceholder} />
-        )}
-        <View style={styles.currentPill} accessibilityLabel={`Current language ${getLanguageDisplay(activeLocale)}`}>
-          <SvgIcon name="ls-globe" size={20} color={C.brandDeep} />
-          <Text style={[styles.pillText, { fontFamily: F.bold }]}>
-            {getLanguageDisplay(activeLocale)}
-          </Text>
-          <SvgIcon name="chevron-down" size={12} color={C.dark} />
-        </View>
-      </View>
+      {/* Shared app header, same as the Profile screen. Back control only in
+          edit mode; onboarding keeps its existing no-exit behaviour. */}
+      <Header
+        title={t.language.title}
+        showBackButton={mode === 'edit'}
+        showNotification={false}
+      />
 
       <ScrollView
         contentContainerStyle={[styles.listContent, { paddingBottom: 120 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        {/* Intro: illustration + headline + supporting sentence */}
+        {/* Intro: supporting sentence */}
         <View style={styles.intro}>
-          <SvgXml xml={LANGUAGE_ART} width={190} height={136} style={styles.languageArt} />
-          <Text style={[styles.headline, { fontFamily: F.bold, fontSize: titleSize, lineHeight: Math.round(titleSize * 1.12) }]}>
-            {headlineBase}
-            {headlineAccent ? <Text style={styles.headlineAccent}>{headlineAccent}</Text> : null}
-          </Text>
           <Text style={[styles.helper, { fontFamily: F.regular }]}>{t.language.description}</Text>
         </View>
 
@@ -277,45 +215,6 @@ const makeStyles = (C: BasePalette) => StyleSheet.create({
     zIndex: 0,
   },
 
-  /* .topbar{height:58px;justify-content:space-between} */
-  topbar: {
-    height: 58,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    zIndex: 2,
-  },
-  /* .icon-button{width:58px;height:58px;border-radius:50%;background:#e8f8ef} */
-  backButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: C.backBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backPlaceholder: {
-    width: 58,
-    height: 58,
-  },
-  /* .current-language{height:52px;padding:0 18px;border-radius:28px;background:#e9f8f0;gap:10px;font-size:15px;font-weight:700} */
-  currentPill: {
-    height: 52,
-    paddingHorizontal: 18,
-    borderRadius: 26,
-    backgroundColor: C.pillBg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    maxWidth: '60%',
-  },
-  pillText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: C.dark,
-  },
-
   listContent: {
     paddingHorizontal: 20,
     backgroundColor: 'transparent',
@@ -326,21 +225,6 @@ const makeStyles = (C: BasePalette) => StyleSheet.create({
   intro: {
     alignItems: 'center',
     paddingTop: 3,
-  },
-  /* .language-art{width:190px;height:136px;margin:0 auto 5px} */
-  languageArt: {
-    marginBottom: 5,
-  },
-  /* h1{font-weight:800;letter-spacing:-1.35px;line-height:1.12} — size via clamp */
-  headline: {
-    color: C.dark,
-    fontWeight: '800',
-    letterSpacing: -1.2,
-    textAlign: 'center',
-  },
-  /* h1 span{color:var(--brand-deep)} */
-  headlineAccent: {
-    color: C.brandDeep,
   },
   /* .intro p{margin:12px auto 27px;font-size:15px;line-height:1.45;font-weight:500;max-width:340px} */
   helper: {
