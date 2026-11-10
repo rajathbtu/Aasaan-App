@@ -22,6 +22,7 @@ import { resolveServiceIconName } from '../utils/serviceIcon';
 import SvgIcon from '../assets/icons';
 import ActionButton from '../components/ActionButton';
 import { BrandWord } from '../components/BrandWord';
+import RequestTags from '../components/RequestTags';
 
 /**
  * Confirmation screen displayed after a work request has been created.
@@ -39,12 +40,13 @@ import { BrandWord } from '../components/BrandWord';
  * values as WorkRequestsScreen / WorkRequestDetailsScreen /
  * BoostRequestScreen) so text size stays consistent across the app.
  *
- * Structure per the approved design: brand wordmark header with circular
- * close, success hero with the celebratory check artwork, request summary
- * card with Live pill, read-only Request Location panel, share /
- * view-my-requests action row, ONE horizontal three-step "What happens
- * next?" section with numbered mint backplates and chevron arrows, and
- * the mint boost banner with the approved rocket artwork.
+ * Structure: brand wordmark header with circular close, success hero with
+ * the celebratory check artwork, request summary card using the same layout
+ * and UI as the WorkRequestDetailsScreen request card (circular service
+ * art, title, category, tag chips, time and location rows, decorative mint
+ * wash), share / view-my-requests action row, ONE horizontal three-step
+ * "What happens next?" section with numbered mint backplates and chevron
+ * arrows, and the mint boost banner with the approved rocket artwork.
  */
 const WorkRequestCreatedScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -57,6 +59,10 @@ const WorkRequestCreatedScreen: React.FC = () => {
   /* Handoff canvas scale — identical to fitCanvas() in the prototype's app.js.
      Applied to layout metrics only; typography uses the standard app scale. */
   const s = windowWidth / 1024;
+  /* The request card reuses the WorkRequestDetailsScreen layout 1:1, which is
+     drawn on a 941px handoff canvas — the card is scaled with the same 941px
+     factor so it renders identically to the details screen. */
+  const cardS = windowWidth / 941;
   const timeAgo = buildTimeAgo(t);
   const { request, locationName: locationNameParam, serviceName: serviceNameParam } = (route.params as any) || {};
   const displayRequest = request && {
@@ -65,7 +71,6 @@ const WorkRequestCreatedScreen: React.FC = () => {
     locationName: locationNameParam ?? request.locationName,
   };
 
-  const isLive = request?.status === 'active' || request?.status === 'live';
   /* The API returns serviceIcon as a Material icon NAME (e.g. "construct"),
      not an image URL — only render it as an image when it is a real URL;
      otherwise fall back to the resolved category SVG icon (same treatment
@@ -76,10 +81,12 @@ const WorkRequestCreatedScreen: React.FC = () => {
       : null;
   const serviceIconName = resolveServiceIconName(displayRequest?.serviceName);
   const createdLabel = t('createRequest.created.createdBadge');
-  const relativeCreated = timeAgo(request?.createdAt);
-  const createdTimeLabel = relativeCreated
-    ? `Requested ${relativeCreated}`
-    : 'Requested just now';
+  /* Card content mirrors WorkRequestDetailsScreen: title, category, tags,
+     relative time and location rows. */
+  const cardTitle = displayRequest?.title || displayRequest?.serviceName;
+  const cardLocationName =
+    displayRequest?.locationName || displayRequest?.location?.name || t('userRequests.locationFallback');
+  const cardTimeLabel = timeAgo(request?.createdAt) || t('common.relative.justNow');
 
   usePreventRemove(true, () => {
     navigation.navigate('Main', { screen: 'Create' });
@@ -165,11 +172,15 @@ const WorkRequestCreatedScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Success hero: copy left, approved celebratory check artwork right */}
+        {/* Success hero: one compact block — copy left (two-line title +
+            subtitle), celebratory check artwork right, vertically centered.
+            The artwork is canvas-scaled small enough that the 25px title
+            keeps one line per line on every common phone width. */}
         <View style={styles.heroContainer}>
           <View style={styles.heroCopy}>
             <Text style={styles.heroTitle}>
-              {t('createRequest.created.titleBefore')}{' '}
+              {t('createRequest.created.titleBefore')}
+              {'\n'}
               <Text style={styles.heroTitleCreated}>{createdLabel}</Text>
               <Text>{' 🎉'}</Text>
             </Text>
@@ -177,67 +188,88 @@ const WorkRequestCreatedScreen: React.FC = () => {
           </View>
           <Image
             source={require('../assets/illustrations/success_check_illustration.png')}
-            style={[styles.heroArt, { width: 385 * s, height: 302 * s }]}
+            style={[styles.heroArt, { width: 270 * s, height: 212 * s }]}
             contentFit="contain"
             cachePolicy="memory-disk"
           />
         </View>
 
-        {/* Request summary card */}
-        <View style={[styles.requestCard, { borderRadius: 38 * s, marginTop: 26 * s, padding: 26 * s }]}>
-          <View style={styles.serviceRow}>
-            <View style={[styles.serviceImage, { width: 200 * s, height: 158 * s, borderRadius: 29 * s }]}>
-              {serviceIconUrl ? (
-                <Image
-                  source={{ uri: serviceIconUrl }}
-                  style={styles.serviceArtImage}
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
-                />
-              ) : (
-                <SvgIcon name={serviceIconName} size={42} color={C.primary} />
-              )}
-            </View>
-            <View style={[styles.verticalRule, { height: 126 * s, marginHorizontal: 31 * s }]} />
-            <View style={styles.serviceCopy}>
-              <Text style={styles.requestTitle} numberOfLines={2} ellipsizeMode="tail">
-                {displayRequest.serviceName}
-              </Text>
-              <Text style={styles.requestCategory}>Service Request</Text>
-              <View style={styles.metaRow}>
-                <SvgIcon name="clock" size={14} color={C.muted} style={{ marginRight: 6 }} />
-                <Text style={styles.metaText}>{createdTimeLabel}</Text>
-              </View>
-            </View>
-            {isLive && (
-              <View style={styles.livePill}>
-                <View style={styles.liveDot} />
-                <Text style={styles.liveText}>Live</Text>
-              </View>
+        {/* Request summary card — same layout and UI as the
+            WorkRequestDetailsScreen request card: circular service art,
+            title, category, tag chips, time and location rows, and the
+            decorative mint wash. Drawn with the details screen's 941px
+            canvas scale (cardS) so it is pixel-identical. */}
+        <View
+          style={[
+            styles.requestCard,
+            { marginTop: 26 * s, borderRadius: 28 * cardS, padding: 22 * cardS, gap: 22 * cardS },
+          ]}
+        >
+          {/* Decorative translucent mint wash behind the service art — kept as
+              rgba literals: an alpha-blended glow has no palette token. */}
+          <LinearGradient
+            colors={['rgba(218,250,237,0.04)', 'rgba(166,242,213,0.4)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              position: 'absolute',
+              right: -120 * cardS,
+              top: 100 * cardS,
+              width: 380 * cardS,
+              height: 160 * cardS,
+              borderRadius: 190 * cardS,
+              transform: [{ rotate: '-24deg' }],
+            }}
+            pointerEvents="none"
+          />
+          <View style={[styles.serviceImage, { width: 190 * cardS, height: 190 * cardS, borderRadius: 95 * cardS }]}>
+            {serviceIconUrl ? (
+              <Image
+                source={{ uri: serviceIconUrl }}
+                style={styles.serviceImageArt}
+                contentFit="cover"
+                cachePolicy="memory-disk"
+              />
+            ) : (
+              <SvgIcon
+                name={serviceIconName}
+                size={190 * cardS * 0.42}
+                color={displayRequest?.serviceColor || C.deepGreen}
+              />
             )}
           </View>
-        </View>
-
-        {/* Request location panel — read-only, label + saved address */}
-        {/* Mint gradient panel — mapped to the family's mint→mintDeep pair
-            (was #E6F8F0 → #DDF8EC, sub-perceptual shift). */}
-        <LinearGradient
-          colors={[C.mint, C.mintDeep]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={[styles.locationRow, { borderRadius: 29 * s, minHeight: 98 * s, marginTop: 26 * s, paddingHorizontal: 31 * s, gap: 30 * s }]}
-        >
-          <View style={[styles.locationIcon, { width: 72 * s, height: 72 * s, borderRadius: 36 * s }]}>
-            <SvgIcon name="location" size={Math.max(36 * s, 18)} color={C.primary} />
-          </View>
-          <View style={styles.locationCopy}>
-            <Text style={styles.locationLabel}>{t('createRequest.created.locationLabel')}</Text>
-            <Text style={styles.locationAddress} numberOfLines={1} ellipsizeMode="tail">
-              {displayRequest.locationName || t('userRequests.locationFallback')}
+          <View style={styles.requestContent}>
+            {/* Title is always fully expanded — no Show more/less. */}
+            <Text style={[styles.requestTitle, { marginTop: 4 * cardS }]}>
+              {cardTitle}
             </Text>
+            <Text style={styles.requestCategory} numberOfLines={2}>
+              {displayRequest.serviceName}
+            </Text>
+            {displayRequest.tags && displayRequest.tags.length > 0 && (
+              /* Tags selected on the request (folded into +N after three). */
+              <RequestTags
+                tags={displayRequest.tags}
+                rowStyle={styles.tagsRow}
+                chipStyle={styles.tagChip}
+                chipTextStyle={styles.tagChipText}
+                moreTextStyle={styles.tagChipMore}
+              />
+            )}
+            <View style={[styles.time, { gap: 8 * cardS, marginBottom: 13 * cardS }]}>
+              <SvgIcon name="clock" size={Math.max(19 * cardS, 13)} color={C.muted} />
+              <Text style={styles.timeText} numberOfLines={1}>
+                {cardTimeLabel}
+              </Text>
+            </View>
+            <View style={[styles.location, { gap: 8 * cardS }]}>
+              <SvgIcon name="location" size={Math.max(19 * cardS, 13)} color={C.muted} />
+              <Text style={styles.timeText} numberOfLines={1} ellipsizeMode="tail">
+                {cardLocationName}
+              </Text>
+            </View>
           </View>
-          <SvgIcon name="chevron" size={15} color={C.cardMeta} style={{ transform: [{ rotate: '90deg' }] }} />
-        </LinearGradient>
+        </View>
 
         {/* Action row: Share Request + View My Requests */}
         <View style={[styles.actionRow, { marginTop: 24 * s, gap: 29 * s }]}>
@@ -256,7 +288,6 @@ const WorkRequestCreatedScreen: React.FC = () => {
               <Text style={styles.viewRequestsTitle} numberOfLines={1}>
                 {t('createRequest.created.viewMyRequests')}
               </Text>
-              <SvgIcon name="chevron" size={14} color={C.onPrimary} style={{ transform: [{ rotate: '90deg' }] }} />
             </LinearGradient>
           </TouchableOpacity>
         </View>
@@ -382,7 +413,8 @@ const makeStyles = (C: ConsumerPalette) =>
     borderWidth: 1,
     borderColor: C.border,
   },
-  /* Hero */
+  /* Hero — one compact block: copy left, artwork right, vertically
+     centered so title, subtitle and image align as a single group. */
   heroContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -400,7 +432,7 @@ const makeStyles = (C: ConsumerPalette) =>
     color: C.ink,
     lineHeight: 31,
     letterSpacing: -0.9,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   heroTitleCreated: {
     color: C.primary,
@@ -414,118 +446,82 @@ const makeStyles = (C: ConsumerPalette) =>
   heroArt: {
     flexShrink: 0,
   },
-  /* Request summary card */
+  /* Request summary card — identical to the WorkRequestDetailsScreen
+     request card (layout values applied inline with the 941px cardS scale;
+     typography uses the same cross-screen type scale). */
   requestCard: {
-    // Was rgba(255,255,255,0.94): the 6% translucency is sub-perceptual and
-    // has no token; the opaque card token keeps dark mode readable.
     backgroundColor: C.white,
-    borderWidth: 1,
-    borderColor: C.border,
-    marginHorizontal: spacing.lg,
-    shadowColor: '#1F4255',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 5,
-  },
-  serviceRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    overflow: 'hidden',
+    marginHorizontal: spacing.lg,
+    shadowColor: '#1A364D',
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.1,
+    shadowRadius: 22,
+    elevation: 5,
   },
   serviceImage: {
-    backgroundColor: C.mint,
+    backgroundColor: C.mintDeep,
+    overflow: 'hidden',
+    alignSelf: 'flex-start',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
     flexShrink: 0,
   },
-  serviceArtImage: {
+  serviceImageArt: {
     width: '100%',
     height: '100%',
   },
-  verticalRule: {
-    width: 1.5,
-    backgroundColor: C.profileBorder,
-    flexShrink: 0,
-  },
-  serviceCopy: {
+  requestContent: {
     flex: 1,
     minWidth: 0,
+    alignItems: 'flex-start',
   },
   requestTitle: {
     fontSize: 19,
+    lineHeight: 23,
+    letterSpacing: -0.3,
     fontFamily: consumerFonts.bold,
     color: C.ink,
-    lineHeight: 23,
     marginBottom: 4,
   },
   requestCategory: {
     fontSize: 14,
+    lineHeight: 18,
     fontFamily: consumerFonts.regular,
     color: C.muted,
-    marginBottom: 8,
+    marginBottom: 7,
   },
-  metaRow: {
+  /* Request tags: soft chips, same look as the details screen card. */
+  tagsRow: {
+    marginTop: 2,
+  },
+  tagChip: {
+    backgroundColor: C.page,
+    borderColor: C.border,
+  },
+  tagChipText: {
+    fontFamily: consumerFonts.regular,
+    color: C.muted,
+  },
+  tagChipMore: {
+    fontFamily: consumerFonts.bold,
+    color: C.muted,
+  },
+  time: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  metaText: {
+  timeText: {
     fontSize: 13,
     fontFamily: consumerFonts.regular,
     color: C.muted,
+    flexShrink: 1,
   },
-  livePill: {
-    backgroundColor: C.statusBg,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    borderRadius: 999,
+  location: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 'auto',
-    alignSelf: 'flex-start',
-  },
-  liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: C.statusDot,
-    marginRight: 6,
-  },
-  liveText: {
-    fontSize: 12.5,
-    fontFamily: consumerFonts.bold,
-    color: C.statusText,
-  },
-  /* Location panel */
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: spacing.lg,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  locationIcon: {
-    backgroundColor: C.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  locationCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  locationLabel: {
-    fontSize: 12.5,
-    fontFamily: consumerFonts.regular,
-    color: C.muted,
-    lineHeight: 15,
-  },
-  locationAddress: {
-    fontSize: 15,
-    fontFamily: consumerFonts.bold,
-    color: C.ink,
-    lineHeight: 19,
   },
   /* Action row */
   actionRow: {
@@ -573,7 +569,6 @@ const makeStyles = (C: ConsumerPalette) =>
     fontSize: 14.5,
     fontFamily: consumerFonts.bold,
     color: C.onPrimary,
-    marginRight: 6,
     flexShrink: 1,
   },
   /* What's Next card — horizontal three-step grid */
@@ -602,7 +597,7 @@ const makeStyles = (C: ConsumerPalette) =>
   stepColumn: {
     flex: 1,
     minWidth: 0,
-    paddingLeft: 8,
+    alignItems: 'center',
   },
   stepArrowSlot: {
     alignItems: 'center',
@@ -634,12 +629,14 @@ const makeStyles = (C: ConsumerPalette) =>
     color: C.ink,
     lineHeight: 17,
     marginBottom: 3,
+    textAlign: 'center',
   },
   stepDesc: {
     fontSize: 12,
     fontFamily: consumerFonts.regular,
     color: C.muted,
     lineHeight: 15.5,
+    textAlign: 'center',
   },
   /* Boost banner */
   boostBanner: {
