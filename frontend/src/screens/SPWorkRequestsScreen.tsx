@@ -527,9 +527,10 @@ const SPWorkRequestsScreen: React.FC = () => {
 
   const pageTopSection = (
     <View>
-      {/* .filters — sticky on scroll */}
+      {/* .filters — sticky on scroll; negative margin cancels the FlatList's
+          horizontal padding so the filter bar runs edge-to-edge */}
       {tab !== 'closed' && (
-        <View onLayout={onFilterRowLayout}>{filterChips()}</View>
+        <View style={{ marginHorizontal: -12 }} onLayout={onFilterRowLayout}>{filterChips()}</View>
       )}
       {/* .page-title */}
       <View style={styles.pageTitleRow}>
@@ -603,8 +604,9 @@ const SPWorkRequestsScreen: React.FC = () => {
         </Animated.View>
       )}
 
-      {/* .bottom-nav — All / Interested / Closed */}
-      <View style={[styles.bottomNavBarWrap, { marginBottom: safeBottom }]}>
+      {/* .bottom-nav — All / Interested / Closed (flush with the screen bottom;
+          SafeBottomBanner paints the safe-area strip below it) */}
+      <View style={styles.bottomNavBarWrap}>
         <TouchableOpacity
           style={[styles.bottomTab, tab === 'all' && styles.bottomTabActive]}
           onPress={() => { setTab('all'); listRef.current?.scrollToOffset({ offset: 0, animated: true }); }}
@@ -946,7 +948,7 @@ const makeStyles = (C: BasePalette) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bottomTab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  bottomTab: { flex: 1, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center', gap: 4 },
   bottomTabIconWrap: { position: 'relative' },
   /* .tab-count bubble pinned to the tab icon like the approved reference */
   bottomTabIconCount: {
