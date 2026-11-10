@@ -8,7 +8,6 @@ import {
   Animated,
   RefreshControl,
   Modal,
-  ActivityIndicator,
   ScrollView,
   useWindowDimensions,
 } from 'react-native';
