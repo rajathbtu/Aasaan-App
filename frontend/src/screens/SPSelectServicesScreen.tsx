@@ -94,6 +94,7 @@ const SPSelectServicesScreen: React.FC = () => {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
   const servicesScrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
+  const groupOffsetsRef = useRef<Record<string, number>>({});
   const { services, setQuery, filtered } = useServiceCatalog(user?.id, true);
 
   useEffect(() => {
@@ -171,16 +172,12 @@ const SPSelectServicesScreen: React.FC = () => {
     return selected.map(id => map[id]).filter(Boolean) as Service[];
   }, [selected, services]);
 
-  const servicesByCategory = useMemo(() => {
-    const map: Record<string, Service[]> = {};
-    const f = filtered as Record<string, Service[]>;
-    Object.keys(f).forEach(category => {
-      if (activeCategory === 'all' || activeCategory === category) {
-        map[category] = f[category];
-      }
-    });
-    return map;
-  }, [filtered, activeCategory]);
+  /* Category chips scroll to their group instead of filtering — every
+     category stays in view (same behaviour as WorkRequestSelectServiceScreen). */
+  const servicesByCategory = useMemo(
+    () => (filtered as Record<string, Service[]>),
+    [filtered]
+  );
 
   const selectionBannerMessage = showLimitHint
     ? t('sp.selectServices.limitTitle')
@@ -197,9 +194,19 @@ const SPSelectServicesScreen: React.FC = () => {
 
   const isServiceSelected = (id: string) => selected.includes(id);
 
+  /* Chips scroll to the category's section (expanding it) and highlight the
+     active tab — nothing is filtered out of the list. */
   const handleCategoryPress = (key: string) => {
     setActiveCategory(key);
-    servicesScrollRef.current?.scrollTo({ y: 0, animated: true });
+    if (key === 'all') {
+      servicesScrollRef.current?.scrollTo({ y: 0, animated: true });
+      return;
+    }
+    setExpandedSections(prev => ({ ...prev, [key]: true }));
+    const groupY = groupOffsetsRef.current[key];
+    if (servicesByCategory[key]?.length && typeof groupY === 'number') {
+      servicesScrollRef.current?.scrollTo({ y: groupY, animated: true });
+    }
   };
 
   return (
@@ -289,7 +296,11 @@ const SPSelectServicesScreen: React.FC = () => {
               const expanded = isSectionExpanded(category);
               const isFourColumn = categoryServices.length === 4;
               return (
-                <View key={category} style={styles.serviceSection}>
+                <View
+                  key={category}
+                  style={styles.serviceSection}
+                  onLayout={(e) => { groupOffsetsRef.current[category] = e.nativeEvent.layout.y; }}
+                >
                   <TouchableOpacity
                     style={[styles.sectionHeading, !expanded && styles.sectionHeadingCollapsed]}
                     onPress={() => toggleSection(category)}
