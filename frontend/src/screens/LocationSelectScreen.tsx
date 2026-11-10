@@ -1,13 +1,5 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ScrollView,
-  ActivityIndicator,
-} from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { CommonActions, useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
@@ -15,14 +7,23 @@ import LocationSearch from '../components/LocationSearch';
 import { useI18n } from '../i18n';
 import Header from '../components/Header';
 import ErrorBanner from '../components/ErrorBanner';
+import { spacing, radius } from '../theme';
+import { Ionicons } from '@expo/vector-icons';
 import SafeBottomBanner from '../components/SafeBottomBanner';
 import BlockingLoader from '../components/BlockingLoader';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import BottomCTA from '../components/BottomCTA';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
-import SvgIcon from '../assets/icons';
 import type { BasePalette } from '../theme/palette';
 import { useTheme } from '../contexts/ThemeContext';
 
+/**
+ * Location selection — the pre-revamp UI (full-height search + map with the
+ * shared LocationSearch, bottom summary panel, collapsible service-radius
+ * card), kept dark-mode aware by styling through the base palette tokens.
+ * The confirm flow keeps the revamp's functional fixes: map-picked spots are
+ * de-duplicated in the saved-locations cache and the confirmed location is
+ * handed back to the opener with a canonical name/description shape.
+ */
 const LocationSelectScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -31,8 +32,8 @@ const LocationSelectScreen: React.FC = () => {
   const { showToast } = useToast();
   const { base: C } = useTheme();
   const styles = useMemo(() => makeStyles(C), [C]);
-  const insets = useSafeAreaInsets();
 
+  // Modes: 'edit' for profile updates, 'onboarding' for SP onboarding, 'requestcreation' for work request creation
   const mode: 'edit' | 'onboarding' | 'requestcreation' =
     (route.params?.mode as 'edit' | 'onboarding' | 'requestcreation') === 'edit'
       ? 'edit' : (route.params?.mode as 'edit' | 'onboarding' | 'requestcreation') === 'requestcreation'
@@ -51,16 +52,15 @@ const LocationSelectScreen: React.FC = () => {
 
   const [selectedLocation, setSelectedLocation] = useState<any>(initialLoc);
   const [radius, setRadius] = useState<number>(initialRadius);
+  const [isRadiusExpanded, setIsRadiusExpanded] = useState(false);
   const [saveError, setSaveError] = useState<unknown | null>(null);
   const [saving, setSaving] = useState(false);
   const [isLocationResolving, setIsLocationResolving] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const locationSearchRef = useRef<{ detectLocation: () => void; openSearchModal: () => void } | null>(null);
 
+  /* The map reports the picked point twice: first the bare coordinates (so
+     the card can react instantly), then the resolved address. Clearing the
+     search box reports null — that must never discard a confirmed spot. */
   const handleSelectLocation = (loc: any) => {
-    /* The map reports the picked point twice: first the bare coordinates (so
-       the card can react instantly), then the resolved address. Clearing the
-       search box reports null — that must never discard a confirmed spot. */
     if (!loc) return;
     const lat = typeof loc.lat === 'number' && Number.isFinite(loc.lat) ? loc.lat : undefined;
     const lng = typeof loc.lng === 'number' && Number.isFinite(loc.lng) ? loc.lng : undefined;
@@ -72,7 +72,6 @@ const LocationSelectScreen: React.FC = () => {
       lat,
       lng,
     });
-    if (description) setSearchQuery(description);
   };
 
   useEffect(() => {
@@ -82,10 +81,10 @@ const LocationSelectScreen: React.FC = () => {
   if (isRequestCreationMode && !returnToServiceSelection && (!serviceId || !serviceName)) {
     return (
       <View style={styles.screen}>
-        <Header title={t('sp.selectLocation.pageTitle')} showBackButton={true} showNotification={false} />
+        <Header title={t('sp.selectLocation.pageTitle')} showNotification={false} showBackButton={true} />
         <View style={styles.guardBody}>
           <View style={styles.guardIconWrap}>
-            <SvgIcon name="sa-target" size={28} color={C.brand} />
+            <Ionicons name="alert-circle-outline" size={28} color={C.brand} />
           </View>
           <Text style={styles.guardText}>{t('createRequest.addDetails.unknownService')}</Text>
         </View>
@@ -97,9 +96,9 @@ const LocationSelectScreen: React.FC = () => {
     if (saving || isLocationResolving) return;
     if (!selectedLocation || !selectedLocation.lat || !selectedLocation.lng) {
       if (isRequestCreationMode)
-        Alert.alert(t('createRequest.addDetails.locationRequiredTitle'), t('createRequest.addDetails.locationRequiredDesc'));
+          Alert.alert(t('createRequest.addDetails.locationRequiredTitle'), t('createRequest.addDetails.locationRequiredDesc'));
       else
-        Alert.alert(t('common.error'), t('sp.selectLocation.selectLocation'));
+          Alert.alert(t('common.error'), t('sp.selectLocation.selectLocation'));
       return;
     }
 
@@ -178,6 +177,7 @@ const LocationSelectScreen: React.FC = () => {
       } else {
         navigation.navigate(user?.role === 'serviceProvider' ? 'SPAvailable' : 'Main');
       }
+
     } catch (err: any) {
       setSaveError(err);
     } finally {
@@ -188,152 +188,96 @@ const LocationSelectScreen: React.FC = () => {
   const radiusOptions = [5, 10, 15, 20];
 
   const displayLocationName = selectedLocation?.name || selectedLocation?.description || '';
+  const hasSelection = !!displayLocationName;
+
 
   return (
     <View style={styles.screen}>
       <Header
-        title={t('sp.selectLocation.pageTitle')}
+        title={isRequestCreationMode ? (t('createRequest.addDetails.headerTitle')) : (t('sp.selectLocation.pageTitle'))}
         showBackButton={true}
         showNotification={false}
+        extraLargeTitle={mode=== 'onboarding' }
       />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Search field directly below header */}
-        <View style={styles.searchWrap}>
-          <View style={styles.searchField}>
-            <SvgIcon name="sa-search" size={23} color={C.grey} />
+      <View style={styles.flex}>
+        <LocationSearch
+          onResolvingChange={setIsLocationResolving}
+          onSelect={handleSelectLocation}
+          enableMap={true}
+          isServiceArea={!isRequestCreationMode}
+          serviceAreaRadiusKm={radius}
+          initialValue={displayLocationName || ''}
+          initialLocation={selectedLocation}
+        />
+      </View>
+
+      {/* Bottom panel: selection summary, service radius and CTA */}
+      <View style={[styles.bottomPanel, ]}>
+        {hasSelection && (
+          <View style={[styles.locationCard, styles.cardShadow]}>
+            <View style={styles.locIconCircle}>
+              <Ionicons name="location" size={16} color={C.brand} />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.locationName} numberOfLines={2}>
+                {displayLocationName}
+              </Text>
+            </View>
+            <Ionicons name="checkmark-circle" size={20} color={C.success} />
+          </View>
+        )}
+        {isRequestCreationMode && (
+          <Text style={styles.privacyNote}>{t('createRequest.addDetails.locationNote')}</Text>
+        )}
+
+        {!isRequestCreationMode && (
+          <View style={[styles.radiusCard, styles.cardShadow]}>
+            {/* Collapsible summary row */}
             <TouchableOpacity
-              style={styles.searchInputTouchable}
-              onPress={() => locationSearchRef.current?.openSearchModal()}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.searchInputText, { minWidth: 0 }]} numberOfLines={1} ellipsizeMode="tail">
-                {searchQuery ? searchQuery : t('sp.selectLocation.searchPlaceholder')}
+              style={styles.radiusSummaryRow}
+              onPress={() => setIsRadiusExpanded((prev) => !prev)}
+              activeOpacity={0.7}>
+              <View style={styles.locIconCircle}>
+                <Ionicons name="resize" size={18} color={C.brand} />
+              </View>
+              <Text style={styles.radiusSummaryText} numberOfLines={2} ellipsizeMode="tail">
+                {t('sp.selectLocation.radiusSummary', { radius })}
               </Text>
+              <Ionicons name={isRadiusExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={C.grey} />
             </TouchableOpacity>
-          </View>
-        </View>
 
-        {/* Map section via existing LocationSearch (minimal map only) */}
-        <View style={styles.mapSection}>
-          <LocationSearch
-            ref={locationSearchRef as any}
-            onResolvingChange={setIsLocationResolving}
-            onSelect={handleSelectLocation}
-            enableMap={true}
-            isServiceArea={!isRequestCreationMode}
-            serviceAreaRadiusKm={radius}
-            initialValue={displayLocationName || ''}
-            initialLocation={selectedLocation}
-            minimalMap={true}
-            showMapControls={true}
-          />
-        </View>
-
-        {/* Pick My Current Location button */}
-        <TouchableOpacity
-          style={styles.currentLocationButton}
-          onPress={() => locationSearchRef.current?.detectLocation()}
-          activeOpacity={0.8}
-          accessibilityLabel={t('sp.selectLocation.pickCurrentLocation')}
-        >
-          <SvgIcon name="sa-target" size={23} color={C.currentLocText} />
-          <Text style={styles.currentLocationText} numberOfLines={1} ellipsizeMode="tail">
-            {t('sp.selectLocation.pickCurrentLocation')}
-          </Text>
-        </TouchableOpacity>
-
-        {/* Selected Location card — always visible; the address follows the
-            map/search selection and updates itself as the map moves */}
-        <View style={styles.locationCard}>
-          <View style={styles.pinTile}>
-            <SvgIcon name="sa-pin" size={24} color={C.brand} />
+            {isRadiusExpanded && (
+              <View style={styles.radiusGrid}>
+                {radiusOptions.map((value) => {
+                  const active = radius === value;
+                  return (
+                    <TouchableOpacity
+                      key={value}
+                      style={[styles.radiusCell, active ? styles.radiusCellActive : styles.radiusCellInactive]}
+                      onPress={() => setRadius(value)}
+                      activeOpacity={0.8}>
+                      <Text style={[styles.radiusCellText, active && styles.radiusCellTextActive]}>{value} km</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
           </View>
-          <View style={styles.locationCopy}>
-            <Text style={[styles.locationTitle, { minWidth: 0 }]}>
-              {t('sp.selectLocation.selectedLocationTitle')}
-            </Text>
-            <Text style={[styles.locationAddress, { minWidth: 0 }]} numberOfLines={2} ellipsizeMode="tail">
-              {isLocationResolving
-                ? 'Locating…'
-                : displayLocationName || 'Move the map or search to set the location'}
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.changeLocation} onPress={() => locationSearchRef.current?.openSearchModal()} activeOpacity={0.7}>
-            <SvgIcon name="sa-edit" size={18} color={C.brand} />
-            <Text style={styles.changeText} numberOfLines={1} ellipsizeMode="tail">
-              Change
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Service Radius card */}
-        <View style={styles.radiusCard}>
-          <View style={styles.radiusHeading}>
-            <View style={styles.radiusIconWrap}>
-              <SvgIcon name="sa-radius" size={22} color={C.brand} />
-            </View>
-            <View style={styles.radiusCopy}>
-              <Text style={[styles.radiusTitle, { minWidth: 0 }]} numberOfLines={1} ellipsizeMode="tail">
-                {t('sp.selectLocation.radiusTitle')}
-              </Text>
-              <Text style={[styles.radiusSubtitle, { minWidth: 0 }]} numberOfLines={1} ellipsizeMode="tail">
-                {t('sp.selectLocation.radiusHelper')}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.radiusOptions}>
-            {radiusOptions.map((value) => {
-              const active = radius === value;
-              return (
-                <TouchableOpacity
-                  key={value}
-                  style={[styles.radiusCell, active && styles.radiusCellActive]}
-                  onPress={() => setRadius(value)}
-                  activeOpacity={0.8}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  accessibilityLabel={`${value} kilometres`}
-                >
-                  <Text style={[styles.radiusCellText, active && styles.radiusCellTextActive]} numberOfLines={1}>
-                    {value} km
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+        )}
 
         <ErrorBanner error={saveError} onRetry={handleSave} />
 
-        <View style={styles.spacer} />
-      </ScrollView>
-
-      {/* Fixed bottom CTA */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.confirmButton, (saving || isLocationResolving) && styles.confirmButtonDisabled]}
+        <BottomCTA
+          containerStyle={styles.bottomCtaContainer}
+          buttonStyle={styles.ctaShadow}
+          buttonText={isRequestCreationMode ? t('createRequest.addDetails.confirmLocationButton') : t('sp.selectLocation.saveButton')}
           onPress={handleSave}
-          activeOpacity={0.8}
-          disabled={saving || isLocationResolving}
-        >
-          {saving ? (
-            <ActivityIndicator color={C.onPrimary} />
-          ) : (
-            <>
-              <Text style={styles.confirmButtonText} numberOfLines={1} ellipsizeMode="tail">
-                {t('sp.selectLocation.saveButton')}
-              </Text>
-              <SvgIcon name="sa-arrow-right" size={21} color={C.onPrimary} />
-            </>
-          )}
-        </TouchableOpacity>
+          isLoading={isLocationResolving}
+          showArrow={!isLocationResolving}
+        />
       </View>
-      <SafeBottomBanner />
+      <SafeBottomBanner/>
       <BlockingLoader visible={saving} />
     </View>
   );
@@ -342,269 +286,146 @@ const LocationSelectScreen: React.FC = () => {
 const makeStyles = (C: BasePalette) => StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: C.white,
+    backgroundColor: C.canvas,
   },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 14,
-    gap: 13,
+  flex: {
+    flex: 1,
   },
-  searchWrap: {
-    width: '100%',
-  },
-  searchField: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: C.greyLight,
-    borderRadius: 25,
-    backgroundColor: C.white,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 7,
+  cardShadow: {
+    shadowColor: C.black,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  searchInputTouchable: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: 'center',
-  },
-  searchInputText: {
-    fontSize: 14,
-    color: C.grey,
-    fontFamily: 'Inter',
-  },
-  mapSection: {
-    width: '100%',
-    minHeight: 245,
-    maxHeight: 340,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: C.greyLight,
-    backgroundColor: C.mapBg,
-    overflow: 'hidden',
-  },
-  currentLocationButton: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: C.currentLocBorder,
-    borderRadius: 13,
-    backgroundColor: C.currentLocBg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    flexGrow: 0,
-    flexShrink: 0,
-  },
-  currentLocationText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: C.currentLocText,
-    fontFamily: 'Inter-SemiBold',
+  bottomPanel: {
+    backgroundColor: C.white,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: C.greyLight,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
   locationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    minHeight: 76,
+    backgroundColor: C.paper,
     borderWidth: 1,
-    borderColor: C.greyLight,
-    borderRadius: 16,
-    backgroundColor: C.white,
-    padding: 12,
-    shadowColor: '#13261F',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 7,
-    elevation: 2,
+    borderColor: C.primaryBorder,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
   },
-  pinTile: {
-    width: 44,
-    height: 44,
-    borderRadius: 13,
-    backgroundColor: C.iconTileBg,
+  locIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
-    flexGrow: 0,
-    flexShrink: 0,
+    marginRight: spacing.md,
   },
-  locationCopy: {
-    minWidth: 0,
-    flex: 1,
-  },
-  locationTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    lineHeight: 18,
+  locationName: {
+    fontSize: 14,
+    fontFamily: 'Inter-Bold',
+    lineHeight: 19,
     color: C.dark,
-    marginBottom: 4,
-    fontFamily: 'Inter-Bold',
   },
-  locationAddress: {
-    fontSize: 13,
+  privacyNote: {
+    fontSize: 12,
     color: C.grey,
-    lineHeight: 17,
-    fontFamily: 'Inter',
-  },
-  changeLocation: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 7,
-    paddingHorizontal: 2,
-    flexGrow: 0,
-    flexShrink: 0,
-  },
-  changeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: C.brand,
-    fontFamily: 'Inter-SemiBold',
-  },
-  radiusCard: {
-    borderWidth: 1,
-    borderColor: C.greyLight,
-    borderRadius: 16,
-    backgroundColor: C.white,
-    padding: 13,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 7,
-    elevation: 2,
-  },
-  radiusHeading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  radiusIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 13,
-    backgroundColor: C.iconTileBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexGrow: 0,
-    flexShrink: 0,
-  },
-  radiusCopy: {
-    minWidth: 0,
-    flex: 1,
-  },
-  radiusTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: C.dark,
-    fontFamily: 'Inter-Bold',
-  },
-  radiusSubtitle: {
-    fontSize: 13,
-    color: C.grey,
-    lineHeight: 17,
-    marginTop: 2,
-    fontFamily: 'Inter',
-  },
-  radiusOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 13,
-  },
-  radiusCell: {
-    height: 39,
-    flex: 1,
-    minWidth: 0,
-    borderWidth: 1,
-    borderColor: C.radiusBtnBorder,
-    borderRadius: 10,
-    backgroundColor: C.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radiusCellActive: {
-    backgroundColor: C.brand,
-    borderColor: C.brand,
-    shadowColor: C.brand,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 5,
-    elevation: 2,
-  },
-  radiusCellText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: C.radiusBtnText,
-    fontFamily: 'Inter-SemiBold',
-  },
-  radiusCellTextActive: {
-    color: C.onPrimary,
-  },
-  footer: {
-    flexGrow: 0,
-    flexShrink: 0,
-    padding: 11,
-    paddingHorizontal: 16,
-    paddingBottom: 24,
-    backgroundColor: C.white,
-    borderTopWidth: 1,
-    borderTopColor: C.footerBorder,
-  },
-  confirmButton: {
-    width: '100%',
-    height: 54,
-    borderRadius: 13,
-    backgroundColor: C.brand2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    shadowColor: '#008B53',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  confirmButtonDisabled: {
-    opacity: 0.45,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  confirmButtonText: {
-    color: C.onPrimary,
-    fontSize: 17,
-    fontWeight: '800',
-    fontFamily: 'Inter-Bold',
-  },
-  spacer: {
-    height: 80,
+    alignSelf: 'center',
+    marginBottom: spacing.sm,
   },
   guardBody: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
+    padding: spacing.xxl,
   },
   guardIconWrap: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: C.mintButton,
+    backgroundColor: C.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   guardText: {
     fontSize: 15,
     lineHeight: 21,
     color: C.grey,
     textAlign: 'center',
+  },
+  radiusCard: {
+    backgroundColor: C.white,
+    borderWidth: 1,
+    borderColor: C.greyLight,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  radiusSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  radiusSummaryText: {
+    flex: 1,
+    flexShrink: 1,
+    fontSize: 12,
+    fontFamily: 'Inter',
+    lineHeight: 18,
+    color: C.dark,
+    marginRight: spacing.sm,
+  },
+  radiusGrid: {
+    marginTop: spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  radiusCell: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radiusCellInactive: {
+    backgroundColor: C.white,
+    borderColor: C.greyBorder,
+  },
+  radiusCellActive: {
+    backgroundColor: C.brand,
+    borderColor: C.brand,
+    shadowColor: C.brand,
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  radiusCellText: {
+    fontSize: 12,
+    fontFamily: 'Google Sans Flex-SemiBold',
+    color: C.dark,
+  },
+  radiusCellTextActive: {
+    color: C.onPrimary,
+  },
+  bottomCtaContainer: {
+    padding: 0,
+    paddingBottom: 0,
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
+    marginBottom: spacing.sm,
+  },
+  ctaShadow: {
+    shadowColor: C.black,
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
 });
 
