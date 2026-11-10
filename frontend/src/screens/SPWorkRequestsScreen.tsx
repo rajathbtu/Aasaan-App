@@ -29,11 +29,10 @@ import SafeBottomBanner from '../components/SafeBottomBanner';
 import SPProBanner from '../components/SPProBanner';
 import EmptyState from '../components/EmptyState';
 import SkeletonLoader from '../components/SkeletonLoader';
-import { AirConditioner, CustomerAvatar } from '../assets/images';
+import { AirConditioner } from '../assets/images';
 import SvgIcon from '../assets/icons';
 import { offlineCacheKey, readOfflineCache, writeOfflineCache } from '../utils/offlineCache';
 import { buildTimeAgo, getDistanceKm } from '../utils/commonUtils';
-import Spinner from '../components/Spinner';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /** Tag chip → icon mapping. First tag renders as the blue "service" tag. */
@@ -80,116 +79,6 @@ function validateProviderProfile(user: any): { ok: boolean; next: 'services' | '
   if (!hasLocation) return { ok: false, next: 'location' };
   return { ok: true, next: null };
 }
-
-/* ==========================================================================
- * TEMP: DUMMY WORK REQUESTS FOR UI TESTING ONLY — REMOVE BEFORE SHIPPING.
- * Covers multiple scenarios: interested (badge), new (no badge), call-enabled,
- * call-disabled (no consent), long addresses, tag variety, and time/distance.
- * Flip USE_TEMP_DUMMY_REQUESTS to false to render the real API list again.
- * ========================================================================== */
-const USE_TEMP_DUMMY_REQUESTS = false;
-const hoursAgo = (h: number) => new Date(Date.now() - h * 3600 * 1000).toISOString();
-const TEMP_DUMMY_REQUESTS: any[] = [
-  {
-    id: 'temp-1',
-    title: 'Window AC making too much noise',
-    serviceName: 'AC Service & Repair',
-    createdAt: hoursAgo(24 * 10),
-    locationName: 'Manik Chowk, Jhansi',
-    locationLat: 25.4670, locationLng: 78.6412,
-    distanceKm: 0.8,
-    tags: ['AC Servicing', 'Repair', 'Noise Issue'],
-    endUserName: 'wooo',
-    endUserPicUrl: null,
-    phoneConsent: true, endUserPhone: '+91 98765 43210',
-    acceptedByProvider: true,
-  },
-  {
-    id: 'temp-2',
-    title: 'Window AC is not working properly',
-    serviceName: 'AC Service & Repair',
-    createdAt: hoursAgo(24 * 11),
-    locationName: 'Nai Basti, Panchkuiyan, Sangam Vihar, Jhansi',
-    locationLat: 25.4483, locationLng: 78.5685,
-    distanceKm: 1.0,
-    tags: ['AC Servicing', 'Repair', 'Cooling Issue'],
-    endUserName: 'wooo',
-    endUserPicUrl: null,
-    phoneConsent: true, endUserPhone: '+91 98765 43210',
-    acceptedByProvider: true,
-  },
-  {
-    id: 'temp-3',
-    title: 'Window AC making too much noise',
-    serviceName: 'AC Service & Repair',
-    createdAt: hoursAgo(24 * 10),
-    locationName: 'Manik Chowk, Jhansi',
-    locationLat: 25.4670, locationLng: 78.6412,
-    distanceKm: 0.8,
-    tags: ['AC Servicing', 'Repair', 'Noise Issue'],
-    endUserName: 'wooo',
-    endUserPicUrl: null,
-    phoneConsent: true, endUserPhone: '+91 98765 43210',
-    acceptedByProvider: true,
-  },
-  {
-    id: 'temp-4',
-    title: 'Geyser not heating water at all',
-    serviceName: 'Plumbing',
-    createdAt: hoursAgo(2),
-    locationName: 'Civil Lines, Jhansi',
-    locationLat: 25.4600, locationLng: 78.6300,
-    distanceKm: 1.6,
-    tags: ['Plumbing', 'Repair', 'Installation'],
-    endUserName: 'Ravi Kumar',
-    endUserPicUrl: null,
-    phoneConsent: false, endUserPhone: null,
-    acceptedByProvider: false,
-  },
-  {
-    id: 'temp-5',
-    title: 'Ceiling fan making humming noise',
-    serviceName: 'Electrical',
-    createdAt: hoursAgo(1),
-    locationName: 'Sipri Bazar, Jhansi',
-    locationLat: 25.4620, locationLng: 78.6400,
-    distanceKm: 2.4,
-    tags: ['Electrical', 'Installation'],
-    endUserName: 'Anita Sharma',
-    endUserPicUrl: null,
-    phoneConsent: true, endUserPhone: '+91 91234 56789',
-    acceptedByProvider: false,
-  },
-  {
-    id: 'temp-6',
-    title: 'Refrigerator cooling issue needs repair',
-    serviceName: 'Appliance Repair',
-    createdAt: hoursAgo(24 * 5),
-    locationName: 'Sadar Bazaar, Jhansi',
-    locationLat: 25.4490, locationLng: 78.5750,
-    distanceKm: 4.2,
-    tags: ['Cooling Issue', 'Repair'],
-    endUserName: 'Suresh Verma',
-    endUserPicUrl: null,
-    phoneConsent: false, endUserPhone: null,
-    acceptedByProvider: false,
-  },
-  {
-    id: 'temp-7',
-    title: 'Washing machine leaking water',
-    serviceName: 'Plumbing',
-    createdAt: hoursAgo(24 * 6),
-    locationName: 'Nagra, Jhansi',
-    locationLat: 25.4720, locationLng: 78.6600,
-    distanceKm: 2.9,
-    tags: ['Repair', 'Plumbing'],
-    endUserName: 'Pooja Singh',
-    endUserPicUrl: null,
-    phoneConsent: true, endUserPhone: '+91 99887 76655',
-    acceptedByProvider: false,
-  },
-];
-/* ========================= END TEMP DUMMY DATA ========================= */
 
 const SwipeableRequestCard: React.FC<{
   enabled: boolean;
@@ -400,10 +289,6 @@ const SPWorkRequestsScreen: React.FC = () => {
     const next = requestsRef.current.map(r => r.id === id ? { ...r, acceptedByProvider: accepted } : r);
     requestsRef.current = next;
     setRequests(next);
-    if (USE_TEMP_DUMMY_REQUESTS) {
-      /* TEMP: keep the dummy list in sync so tap feedback is visible */
-      setRequests(prev => prev.map(r => r.id === id ? { ...r, acceptedByProvider: accepted } : r));
-    }
   };
 
   const handleAccept = async (item: any) => {
@@ -470,20 +355,10 @@ const SPWorkRequestsScreen: React.FC = () => {
     setRefreshing(false);
   };
 
-  const displayedRequests = tab === 'closed'
-    ? closedRequests
-    : USE_TEMP_DUMMY_REQUESTS
-      ? (tab === 'accepted' ? TEMP_DUMMY_REQUESTS.filter(isAcceptedByUser) : TEMP_DUMMY_REQUESTS)
-      : filteredRequests;
+  const displayedRequests = tab === 'closed' ? closedRequests : filteredRequests;
 
-  const availableCount = tab === 'closed'
-    ? closedRequests.length
-    : USE_TEMP_DUMMY_REQUESTS ? TEMP_DUMMY_REQUESTS.length : requests.length;
+  const availableCount = tab === 'closed' ? closedRequests.length : requests.length;
   const acceptedCount = displayedRequests.filter(isAcceptedByUser).length;
-
-  const userLocationName = user?.serviceProviderInfo?.location?.name
-    || user?.serviceProviderInfo?.location?.address
-    || t('spRequests.locationFallback');
 
   const filterOptions = [
     { value: 'within3', labelKey: 'spRequests.filterWithin3', icon: 'pin' },
@@ -607,12 +482,14 @@ const SPWorkRequestsScreen: React.FC = () => {
           {/* .customer-actions — customer | divider | call | interest */}
           <View style={styles.customerActions}>
             <View style={styles.customer}>
-              <View style={styles.avatar}>
-                <CustomerAvatar size={42} />
-              </View>
+              <ProfileAvatar
+                picUrl={item.endUserPicUrl || undefined}
+                profileName={item.endUserName || t('requestDetails.endUser')}
+                size={42}
+                containerStyle={styles.avatar}
+              />
               <View style={styles.customerInfo}>
                 <Text style={styles.customerName} numberOfLines={1}>{item.endUserName || t('requestDetails.endUser')}</Text>
-                <Text style={styles.customerRole} numberOfLines={1}>{t('requestDetails.customerLabel') || 'Customer'}</Text>
               </View>
             </View>
             <View style={styles.verticalDivider} />
@@ -650,17 +527,6 @@ const SPWorkRequestsScreen: React.FC = () => {
 
   const pageTopSection = (
     <View>
-      {/* .location row — entire row opens location selection */}
-      <TouchableOpacity
-        style={styles.locationRow}
-        onPress={() => navigation.navigate('LocationSelect')}
-        activeOpacity={0.7}
-        accessibilityRole="button"
-        accessibilityLabel={t('spRequests.changeLocation')}>
-        <SvgIcon name="pin" size={17} color={C.dark} />
-        <Text style={styles.locationText} numberOfLines={1}>{userLocationName}</Text>
-        <SvgIcon name="chevron-down" size={13} color={C.dark} />
-      </TouchableOpacity>
       {/* .filters — sticky on scroll */}
       {tab !== 'closed' && (
         <View onLayout={onFilterRowLayout}>{filterChips()}</View>
@@ -673,7 +539,7 @@ const SPWorkRequestsScreen: React.FC = () => {
     </View>
   );
 
-  if (loading && requests.length === 0 && !USE_TEMP_DUMMY_REQUESTS) {
+  if (loading && requests.length === 0) {
     return (
       <View style={{ flex: 1, backgroundColor: C.background }}>
         <Header title="aasaanly" showBackButton={false} showNotification={true} showProfileButton={true} titleStyle={styles.logo} />
@@ -785,17 +651,6 @@ const makeStyles = (C: BasePalette) => StyleSheet.create({
   /* Brand word in the splash wordmark style — Quicksand letterforms and the
      splash green come from Header's brandTitle treatment. */
   logo: { fontSize: 25, letterSpacing: -0.8 },
-
-  /* .location{height:43px;padding:0 19px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700} */
-  locationRow: {
-    height: 36,
-    paddingHorizontal: 19,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: C.white,
-  },
-  locationText: { fontSize: 13, fontWeight: 700, color: C.dark, flexShrink: 1 },
 
   /* .filters{height:59px;padding:8px 13px;display:flex;gap:7px} */
   filterRow: {
@@ -1001,10 +856,11 @@ const makeStyles = (C: BasePalette) => StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
     flexShrink: 0,
+    /* ProfileAvatar adds its own row margin — this row spaces with `gap`. */
+    marginRight: 0,
   },
   customerInfo: { flex: 1, minWidth: 0 },
   customerName: { fontSize: 13.5, fontWeight: '800', color: C.dark, lineHeight: 16 },
-  customerRole: { fontSize: 11.5, color: C.dark, marginTop: 3 },
   verticalDivider: { width: 1, height: 36, backgroundColor: C.greyLight },
   /* .action{height:43px;border-radius:12px;font-size:13px;font-weight:800;gap:6px} */
   action: {
@@ -1118,7 +974,6 @@ const makeStyles = (C: BasePalette) => StyleSheet.create({
   bottomTabActive: { backgroundColor: C.backBg, borderRadius: 16 },
   bottomTabLabel: { fontSize: 13, fontWeight: 700, color: C.dark },
   bottomTabLabelActive: { color: C.brand },
-  bottomTabLabelWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });
 
 export default SPWorkRequestsScreen;
