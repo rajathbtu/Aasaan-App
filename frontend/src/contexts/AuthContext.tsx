@@ -81,8 +81,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     (async () => {
       try {
-        const storedToken = await authStorage.getItem('aasaan_token');
-        const storedUser = await authStorage.getItem('aasaan_user');
+        const storedToken = await authStorage.getItem('aasaanly_token');
+        const storedUser = await authStorage.getItem('aasaanly_user');
         if (storedToken && storedUser) {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
@@ -108,8 +108,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     authVersion.current += 1;
     setToken(tok);
     setUser(usr);
-    await authStorage.setItem('aasaan_token', tok);
-    await authStorage.setItem('aasaan_user', JSON.stringify(usr));
+    await authStorage.setItem('aasaanly_token', tok);
+    await authStorage.setItem('aasaanly_user', JSON.stringify(usr));
 
     // Redirect to role selection page if role is null
     if (!usr.role && navigation) {
@@ -129,8 +129,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setToken(null);
     setUser(null);
-    await authStorage.deleteItem('aasaan_token');
-    await authStorage.deleteItem('aasaan_user');
+    await authStorage.deleteItem('aasaanly_token');
+    await authStorage.deleteItem('aasaanly_user');
   };
 
   const refreshUser = async () => {
@@ -142,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updated = await getProfile(requestToken);
       if (requestVersion !== authVersion.current) return;
       setUser(updated);
-      await authStorage.setItem('aasaan_user', JSON.stringify(updated));
+      await authStorage.setItem('aasaanly_user', JSON.stringify(updated));
     } catch (err) {
       throw err;
     }
@@ -154,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let updated: any;
       updated = await updateProfile(token, updates as any);
       setUser(updated);
-      await authStorage.setItem('aasaan_user', JSON.stringify(updated));
+      await authStorage.setItem('aasaanly_user', JSON.stringify(updated));
     } catch (err) {
       throw err;
     }
@@ -165,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // optimistic local update
     const next = { ...user, language: lang } as User;
     setUser(next);
-    await authStorage.setItem('aasaan_user', JSON.stringify(next));
+    await authStorage.setItem('aasaanly_user', JSON.stringify(next));
     // persist to backend when token is present
     if (token) {
       try {

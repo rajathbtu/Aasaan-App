@@ -328,7 +328,7 @@
         'Name: ' + name + '\n' +
         'Email: ' + (data.get('email') || '') + '\n' +
         'Company: ' + (data.get('company') || '—') + '\n\n' +
-        'Sent from aasaanapp.in'
+        'Sent from aasaanly.com'
       );
 
       if (ok) ok.hidden = false;
@@ -336,8 +336,8 @@
       required.forEach(function (i) { setError(i, ''); });
 
       window.setTimeout(function () {
-        if (window.confirm('Thanks, ' + name + '! Open your email app to send this to hello@aasaanapp.in?')) {
-          window.location.href = 'mailto:hello@aasaanapp.in?subject=' + subject + '&body=' + body;
+        if (window.confirm('Thanks, ' + name + '! Open your email app to send this to hello@aasaanly.com?')) {
+          window.location.href = 'mailto:hello@aasaanly.com?subject=' + subject + '&body=' + body;
         }
       }, 300);
     });

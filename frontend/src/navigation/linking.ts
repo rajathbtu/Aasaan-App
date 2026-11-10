@@ -10,11 +10,11 @@ import { Platform } from 'react-native';
  * On web this makes the browser URL update on every screen change and lets
  * users land directly on a specific page by opening a URL (also usable for
  * refresh/back/forward).  On native devices the custom URL scheme declared in
- * app.json ("aasaan") is used, e.g. aasaan://select-services?phone=...&otp=...
+ * app.json ("aasaanly") is used, e.g. aasaanly://select-services?phone=...&otp=...
  */
 
-// URL scheme from app.json ("scheme": "aasaan") used by native deep links.
-const NATIVE_SCHEME_PREFIX = 'aasaan://';
+// URL scheme from app.json ("scheme": "aasaanly") used by native deep links.
+const NATIVE_SCHEME_PREFIX = 'aasaanly://';
 
 // On web the app is served from the current origin (localhost in dev, the
 // production domain in deployment), so it must be accepted as a prefix too.

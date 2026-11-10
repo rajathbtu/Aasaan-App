@@ -1,4 +1,4 @@
-# Dark Mode Conversion Contract (Aasaan frontend)
+# Dark Mode Conversion Contract (Aasaanly frontend)
 
 Read this fully before touching any file. `ProfileScreen.tsx` is the completed
 reference implementation — copy its patterns exactly.

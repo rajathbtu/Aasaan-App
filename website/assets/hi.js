@@ -152,7 +152,7 @@ Object.assign(window.AASAAN_HI, {
   'svc.more': 'और',
   'svc.showingAll': 'सभी 21 सेवाएँ दिख रही हैं',
   'svc.showing': '21 में से {n} सेवाएँ दिख रही हैं',
-  'svc.empty': 'इस खोज से कोई सेवा नहीं मिली। दूसरा शब्द आज़माइए, या <a class="tlink" href="mailto:hello@aasaanapp.in">हमसे कहिए</a> कि इसे जोड़ दें।'
+  'svc.empty': 'इस खोज से कोई सेवा नहीं मिली। दूसरा शब्द आज़माइए, या <a class="tlink" href="mailto:hello@aasaanly.com">हमसे कहिए</a> कि इसे जोड़ दें।'
 });
 
 /* ---------- svcNames ---------- */

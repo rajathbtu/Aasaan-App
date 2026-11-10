@@ -22,7 +22,7 @@ if (Platform.OS === 'web') {
 /** Request interceptor: attach the stored JWT to every outgoing request. */
 api.interceptors.request.use(async (config) => {
   try {
-    const token = await SecureStore.getItemAsync('aasaan_token');
+    const token = await SecureStore.getItemAsync('aasaanly_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -39,7 +39,7 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     if (error.response?.status === 401) {
       try {
-        await SecureStore.deleteItemAsync('aasaan_token');
+        await SecureStore.deleteItemAsync('aasaanly_token');
       } catch {
         // Ignore cleanup errors.
       }

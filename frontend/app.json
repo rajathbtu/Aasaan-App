@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Aasaan",
-    "slug": "aasaan-app",
+    "name": "Aasaanly",
+    "slug": "aasaanly-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -18,13 +18,13 @@
       "**/*"
     ],
     "ios": {
-      "bundleIdentifier": "com.aasaan.app",
+      "bundleIdentifier": "com.aasaanly",
       "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Aasaan uses your location to show nearby services.",
-        "NSCameraUsageDescription": "Aasaan uses the camera to capture a profile photo.",
-        "NSPhotoLibraryUsageDescription": "Aasaan uses your photo gallery to let you select a profile photo.",
+        "NSLocationWhenInUseUsageDescription": "Aasaanly uses your location to show nearby services.",
+        "NSCameraUsageDescription": "Aasaanly uses the camera to capture a profile photo.",
+        "NSPhotoLibraryUsageDescription": "Aasaanly uses your photo gallery to let you select a profile photo.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "config": {
@@ -32,7 +32,7 @@
       }
     },
     "android": {
-      "package": "com.aasaan.app",
+      "package": "com.aasaanly",
       "googleServicesFile": "./google-services.json",
       "versionCode": 3,
       "permissions": [
@@ -50,7 +50,7 @@
     "web": {
       "favicon": "./assets/icon.png"
     },
-    "scheme": "aasaan",
+    "scheme": "aasaanly",
     "plugins": [
       "expo-dev-client",
       [
@@ -65,15 +65,15 @@
       [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Allow Aasaan to use the microphone so you can dictate your request.",
-          "speechRecognitionPermission": "Allow Aasaan to use speech recognition so you can dictate your request."
+          "microphonePermission": "Allow Aasaanly to use the microphone so you can dictate your request.",
+          "speechRecognitionPermission": "Allow Aasaanly to use speech recognition so you can dictate your request."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Aasaan to select a profile photo.",
-          "cameraPermission": "Allow Aasaan to take a profile photo.",
+          "photosPermission": "Allow Aasaanly to select a profile photo.",
+          "cameraPermission": "Allow Aasaanly to take a profile photo.",
           "microphonePermission": false
         }
       ]

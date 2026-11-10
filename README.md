@@ -545,7 +545,7 @@ Workflow: `.github/workflows/deploy.yml` — runs on **every push and PR**.
 | Job | When it runs | Output |
 |---|---|---|
 | `web-build` | Any branch except `main` / `latest-main` | `web-dist` artifact (validates only) |
-| `web-deploy` | `main` / `latest-main` only | Publishes to GitHub Pages (`m.aasaanapp.in`) |
+| `web-deploy` | `main` / `latest-main` only | Publishes to GitHub Pages (`m.aasaanly.com`) |
 | `android` | Always | `android-debug-apk`, `android-apk`, `android-aab` |
 | `ios-simulator` | Always | `ios-simulator-app` (unsigned `.app`) |
 
@@ -577,7 +577,7 @@ npx expo prebuild --platform ios                                 # then open ios
 |---|---|---|
 | **Backend API** | Render (free tier, Singapore) | `render.yaml` |
 | **Database** | Render PostgreSQL 14 (free) | `render.yaml` |
-| **Web app** | GitHub Pages | `m.aasaanapp.in` via the `web-deploy` job |
+| **Web app** | GitHub Pages | `m.aasaanly.com` via the `web-deploy` job |
 | **Mobile** | Play Store / App Store | EAS profiles in `eas.json` |
 
 Render applies migrations automatically on boot:

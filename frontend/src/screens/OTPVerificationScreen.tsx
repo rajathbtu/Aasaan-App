@@ -77,7 +77,7 @@ const OTPVerificationScreen: React.FC = () => {
   };
 
   const openWeb = (type: 'terms' | 'privacy') => {
-    const url = type === 'terms' ? 'https://www.aasaanapp.in/terms.html' : 'https://www.aasaanapp.in/privacy.html';
+    const url = type === 'terms' ? 'https://www.aasaanly.com/terms.html' : 'https://www.aasaanly.com/privacy.html';
     const title = type === 'terms' ? t('mobile.tos') : t('mobile.privacy');
     setWebUrl(url);
     setWebTitle(title);
@@ -137,7 +137,7 @@ const OTPVerificationScreen: React.FC = () => {
 
           {/* Help text */}
           <Text style={styles.helpText}>
-            {t('common.helpLine')} <Text style={styles.helpLink}>help@aasaan.com</Text>
+            {t('common.helpLine')} <Text style={styles.helpLink}>help@aasaanly.com</Text>
           </Text>
 
           {/* Terms and Privacy (open in in-app WebView) */}

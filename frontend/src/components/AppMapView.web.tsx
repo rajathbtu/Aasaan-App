@@ -72,7 +72,7 @@ const loadGoogleMaps = (): Promise<GoogleMapsApi> => {
   };
 
   mapsApiPromise = new Promise((resolve, reject) => {
-    const existingScript = document.querySelector<HTMLScriptElement>('script[data-aasaan-google-maps]');
+    const existingScript = document.querySelector<HTMLScriptElement>('script[data-aasaanly-google-maps]');
     if (existingScript) {
       existingScript.addEventListener('load', () => {
         try {
@@ -89,7 +89,7 @@ const loadGoogleMaps = (): Promise<GoogleMapsApi> => {
     script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_PLACES_API_KEY}`;
     script.async = true;
     script.defer = true;
-    script.dataset.aasaanGoogleMaps = 'true';
+    script.dataset.aasaanlyGoogleMaps = 'true';
     script.onload = () => {
       try {
         resolve(getLoadedGoogle());

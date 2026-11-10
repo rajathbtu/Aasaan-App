@@ -51,7 +51,7 @@ jobs:
           path: frontend/dist
           retention-days: 7
 
-  # Publishes to GitHub Pages (m.aasaanapp.in). Release branches ONLY --
+  # Publishes to GitHub Pages (m.aasaanly.com). Release branches ONLY --
   # this overwrites the live site, so it must never run from a feature
   # branch. The CNAME is written here rather than in web-build.
   web-deploy:
@@ -85,7 +85,7 @@ jobs:
           npx expo export --platform web --non-interactive
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
-          echo "m.aasaanapp.in" > dist/CNAME
+          echo "m.aasaanly.com" > dist/CNAME
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

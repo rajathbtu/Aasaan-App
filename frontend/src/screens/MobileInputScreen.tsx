@@ -64,7 +64,7 @@ const MobileInputScreen: React.FC = () => {
     <html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head>
     <body>
       <script>
-        window.location.href = ${JSON.stringify(`truecallersdk://truesdk/web_verify?type=btmsheet&requestNonce=${requestId}&partnerKey=${TRUECALLER_APP_KEY}&partnerName=Aasaan&lang=en&privacyUrl=https%3A%2F%2Fwww.aasaanapp.in%2Fprivacy.html&termsUrl=https%3A%2F%2Fwww.aasaanapp.in%2Fterms.html&loginPrefix=continue&loginSuffix=login&ctaPrefix=continuewith&ctaColor=%232563eb&ctaTextColor=%23ffffff&btnShape=round&skipOption=useanothermethod&ttl=30000`)};
+        window.location.href = ${JSON.stringify(`truecallersdk://truesdk/web_verify?type=btmsheet&requestNonce=${requestId}&partnerKey=${TRUECALLER_APP_KEY}&partnerName=Aasaanly&lang=en&privacyUrl=https%3A%2F%2Fwww.aasaanly.com%2Fprivacy.html&termsUrl=https%3A%2F%2Fwww.aasaanly.com%2Fterms.html&loginPrefix=continue&loginSuffix=login&ctaPrefix=continuewith&ctaColor=%232563eb&ctaTextColor=%23ffffff&btnShape=round&skipOption=useanothermethod&ttl=30000`)};
       </script>
     </body></html>`;
 
@@ -121,8 +121,8 @@ const MobileInputScreen: React.FC = () => {
   const openWeb = (type: 'terms' | 'privacy') => {
     const url =
       type === 'terms'
-        ? 'https://www.aasaanapp.in/terms.html'
-        : 'https://www.aasaanapp.in/privacy.html';
+        ? 'https://www.aasaanly.com/terms.html'
+        : 'https://www.aasaanly.com/privacy.html';
     const title = type === 'terms' ? t('mobile.tos') : t('mobile.privacy');
     setWebUrl(url);
     setWebTitle(title);

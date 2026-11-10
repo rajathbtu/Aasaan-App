@@ -21,7 +21,7 @@ import {
 /** App appearance mode — controlled by the Profile → Dark mode switch. */
 export type ThemeMode = 'light' | 'dark';
 
-const STORAGE_KEY = 'aasaan_theme_mode';
+const STORAGE_KEY = 'aasaanly_theme_mode';
 
 type ThemeContextValue = {
   /** Current appearance mode. Defaults to light until persisted value loads. */

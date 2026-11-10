@@ -28,17 +28,17 @@ export const BrandWord: React.FC<BrandWordProps> = ({ children = BRAND_WORD, sty
 type BrandTextProps = TextProps & { children: string | undefined };
 
 /**
- * Renders a sentence and styles every brand-word occurrence ("aasaanly",
- * "Aasaanly" or legacy "Aasaan") with the splash wordmark treatment.
- * Use it anywhere a text string contains the brand word.
+ * Renders a sentence and styles every "aasaanly" occurrence with the
+ * splash wordmark treatment. Use it anywhere a text string contains the
+ * brand word.
  */
 export const BrandText: React.FC<BrandTextProps> = ({ children, ...rest }) => {
-  const parts = String(children ?? '').split(/(aasaanly|Aasaanly|Aasaan)/g);
+  const parts = String(children ?? '').split(/(aasaanly)/g);
   return (
     <Text {...rest}>
       {parts.map((part, i) =>
-        /^(aasaanly|Aasaanly|Aasaan)$/i.test(part) ? (
-          <BrandWord key={i}>{BRAND_WORD}</BrandWord>
+        part === BRAND_WORD ? (
+          <BrandWord key={i} />
         ) : (
           <React.Fragment key={i}>{part}</React.Fragment>
         ),

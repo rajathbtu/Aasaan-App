@@ -1,5 +1,5 @@
 /**
- * Definition of all available services offered on the Aasaan platform.  Each
+ * Definition of all available services offered on the Aasaanly platform.  Each
  * service belongs to a category and optionally defines a list of suggested
  * tags.  The tags help end users describe their issue more precisely when
  * creating a work request.  Service providers can select up to three
