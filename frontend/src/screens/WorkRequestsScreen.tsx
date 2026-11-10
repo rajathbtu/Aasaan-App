@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import ErrorBanner from '../components/ErrorBanner';
 import Header from '../components/Header';
+import RequestTags from '../components/RequestTags';
 import SegmentedTabs from '../components/SegmentedTabs';
 import EmptyState from '../components/EmptyState';
 import { listWorkRequests } from '../api';
@@ -28,8 +29,6 @@ type RequestTab = 'active' | 'completed';
 type RequestsByTab = Record<RequestTab, any[]>;
 
 const CARD_RADIUS = 23;
-/* Tags shown per card before folding the rest into a +N label. */
-const TAG_PREVIEW_COUNT = 3;
 
 /**
  * Per-category card variant from the approved My_Requests_Handoff:
@@ -302,18 +301,13 @@ const ConsumerRequestCard: React.FC<ConsumerRequestCardProps> = ({ request, onPr
         </View>
 
         {/* Tags selected on the request (folded into +N after three). */}
-        {request.tags?.length > 0 && (
-          <View style={styles.tagsRow}>
-            {request.tags.slice(0, TAG_PREVIEW_COUNT).map((tag: string) => (
-              <View key={tag} style={styles.tagChip}>
-                <Text style={styles.tagChipText} numberOfLines={1}>{tag}</Text>
-              </View>
-            ))}
-            {request.tags.length > TAG_PREVIEW_COUNT && (
-              <Text style={styles.tagChipMore}>+{request.tags.length - TAG_PREVIEW_COUNT}</Text>
-            )}
-          </View>
-        )}
+        <RequestTags
+          tags={request.tags}
+          rowStyle={styles.tagsRow}
+          chipStyle={styles.tagChip}
+          chipTextStyle={styles.tagChipText}
+          moreTextStyle={styles.tagChipMore}
+        />
 
         {/* Provider-interest strip: avatar previews + count + chevron */}
         <TouchableOpacity
@@ -448,32 +442,19 @@ const makeStyles = (C: ConsumerPalette) =>
   statusDotClosed: {
     backgroundColor: C.radioIdle,
   },
-  /* Request tags: soft chips under the card's top row. */
+  /* Request tags: soft chips under the card's top row (shared RequestTags). */
   tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 6,
     marginTop: 10,
   },
   tagChip: {
-    maxWidth: '100%',
     backgroundColor: C.page,
-    borderWidth: StyleSheet.hairlineWidth,
     borderColor: C.border,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
   },
   tagChipText: {
-    fontSize: 11,
-    lineHeight: 14,
     fontFamily: consumerFonts.regular,
     color: C.cardMeta,
   },
   tagChipMore: {
-    fontSize: 11,
-    lineHeight: 14,
     fontFamily: consumerFonts.bold,
     color: C.cardMeta,
   },
