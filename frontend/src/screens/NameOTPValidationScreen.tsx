@@ -226,7 +226,6 @@ const NameOTPValidationScreen: React.FC = () => {
           <OtpInput
             phone={String(phone || '')}
             language={lang}
-            autoFocus={false}
             onOtpChange={(value) => {
               setOtp(value);
               if (apiError) setApiError('');

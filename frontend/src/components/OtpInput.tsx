@@ -1,21 +1,23 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, TextInput, TouchableOpacity, View, type TextInputInstance } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { sendOtp } from '../api';
 import { useI18n } from '../i18n';
 import { useToast } from '../contexts/ToastContext';
-import { useTheme } from '../contexts/ThemeContext';
-import type { BasePalette } from '../theme/palette';
+import { colors, radius, spacing } from '../theme';
 
 /** Default code length. Aadhaar OTP is 6 digits, so callers can override. */
 const OTP_LENGTH = 4;
 /** Seconds the resend link stays disabled after an OTP is sent. */
 const RESEND_SECONDS = 30;
-const CELL_HEIGHT = 50;
-/** Max width of one digit cell (.otp input,
- *  scaled to the app's device convention like the sibling screens). */
-const CELL_WIDTH = 46;
+/** How long the "auto-reading SMS" hint stays visible. */
+const AUTO_READ_HINT_MS = 2500;
+const FIELD_HEIGHT = 52;
+const FIELD_WIDTH = 232;
 const CARET_BLINK_MS = 500;/** Cadence of the blinking caret drawn in the slot awaiting the next digit. */
+const BULLET = '\u2022';/** Placeholder glyph for every slot that has not been typed into yet. */
+
 
 export type OtpInputProps = {
   /** Phone number the OTP was sent to — used when resending. */
@@ -29,27 +31,25 @@ export type OtpInputProps = {
   /** Defaults to 4; Aadhaar OTP has 6. */
   length?: number;
   /**
-   * Focus the code field as soon as it mounts. Defaults to `true` for screens
-   * whose only job is OTP entry; screens with other fields (e.g. name + OTP)
-   * should pass `false` so their first field keeps focus.
+   * Hides the built-in resend row. Screens whose flow re-issues the code in
+   * its own step (e.g. the Aadhaar sandbox flow restarts on expiry) embed
+   * just the field.
    */
-  autoFocus?: boolean;
-
+  hideResend?: boolean;
+  
   onResend?: () => Promise<void> | void;
 };
 
 /**
- * Shared OTP entry used by the sign-in, name+OTP registration & Aadhaar
- * verification screens, restyled to the approved four-cell design.
+ * Shared OTP entry used by the Aadhaar verification, name+OTP registration &
+ * Aadhaar verification screens.
  *
- * A single `TextInput` collects the code (so auto-advance, backspace
- * navigation and 4-digit paste support come for free, and SMS autofill
- * still works), but the digits you see are drawn by an overlay of `length`
- * separate bordered cells laid over it.
+ * A single `TextInput` collects the code, but the digits you see are drawn by
+ * an overlay of `length` slots laid over it.
  *
- * The input's own text is transparent (`opacity: 0` wrapper) and it is the
- * overlay that renders each digit, so a typed digit lands in exactly one
- * cell and the remaining cells stay empty like the approved reference.
+ * The input's own text is transparent (`color: 'transparent'`) and it is the
+ * overlay that renders each digit or its bullet placeholder, so a typed digit
+ * replaces exactly one bullet and the remaining bullets stay put.
  *
  * It owns the code state, resend countdown and the resend request itself so
  * the screens stay visually and behaviourally identical. The verify CTA
@@ -59,17 +59,16 @@ export type OtpInputProps = {
  */
 const OtpInput: React.FC<OtpInputProps> = ({
   phone, language, onOtpChange, loading = false,
-  length = OTP_LENGTH, autoFocus = true, onResend,
+  length = OTP_LENGTH, onResend, hideResend = false,
 }) => {
   const { t } = useI18n(language);
   const { showToast } = useToast();
-  const { base: C, isDark } = useTheme();
-  const styles = useMemo(() => makeStyles(C), [C]);
   const [otp, setOtp] = useState('');
   const [focused, setFocused] = useState(false);
   const [seconds, setSeconds] = useState(RESEND_SECONDS);
+  const [showAutoRead, setShowAutoRead] = useState(true);
   const [resending, setResending] = useState(false);
-  const inputRef = useRef<TextInputInstance | null>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const caretOpacity = useRef(new Animated.Value(1)).current;
 
   /** Store the code locally and hand it up to the screen. */
@@ -77,6 +76,11 @@ const OtpInput: React.FC<OtpInputProps> = ({
     setOtp(next);
     onOtpChange(next);
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowAutoRead(false), AUTO_READ_HINT_MS);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (seconds <= 0) return;
@@ -128,16 +132,18 @@ const OtpInput: React.FC<OtpInputProps> = ({
   const resendDisabled = seconds > 0 || loading || resending;
 
   return (
-    <View style={styles.otpField}>
-      {/* One field, one TextInput — the cells below draw what it contains. */}
-
-      <TouchableOpacity
-        style={[styles.otpBox, length > 4 && styles.otpBoxLong]}
-        onPress={() => inputRef.current?.focus()}
-        activeOpacity={1}
-      >
-        {/* Transparent input layer — let TextInput receive touches directly */}
-        <View style={styles.otpInputLayer} pointerEvents="auto">
+    /* The board widens for longer codes so every slot keeps a comfortable
+       reading size at any provided length. */
+    <View style={[styles.otpField, { maxWidth: 260 + Math.max(0, length - 4) * 24 }]}>
+      {/* One field, one TextInput — the slots below draw what it contains. */}
+      <View style={[styles.otpBox, { maxWidth: FIELD_WIDTH + Math.max(0, length - 4) * 22 }]}>
+        {/*
+          The input is a keystroke catcher only, so this layer is fully
+          transparent. Hiding it with the layer's opacity (rather than a
+          transparent text colour) is what actually works reliably on Android,
+          where the native EditText keeps drawing its own glyphs.
+        */}
+        <View style={styles.otpInputLayer} pointerEvents="box-none">
           <TextInput
             ref={inputRef}
             style={styles.otpInput}
@@ -146,77 +152,86 @@ const OtpInput: React.FC<OtpInputProps> = ({
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             keyboardType="number-pad"
-            keyboardAppearance={isDark ? 'dark' : 'light'}
             maxLength={length}
             returnKeyType="done"
             textContentType="oneTimeCode"
             autoComplete="sms-otp"
-            autoFocus={autoFocus}
             selectionColor="transparent"
+            caretHidden
             accessibilityLabel={t('otp.title')}
           />
         </View>
 
-        {/* Separate bordered cells: a digit once typed, empty until then. */}
-        <View style={[styles.otpSlots, length > 4 && styles.otpSlotsLong]} pointerEvents="none">
+        {/* Spaced slots: a digit once typed, a bullet until then. */}
+        <View style={styles.otpSlots} pointerEvents="none">
           {Array.from({ length }, (_, i) => {
             const digit = otp[i];
             const isActive = focused && i === otp.length;
             return (
-              <View key={i} style={[styles.otpSlot, isActive && styles.otpSlotActive]}>
-                {digit ? <Text style={styles.otpDigit}>{digit}</Text> : null}
+              <View key={i} style={styles.otpSlot}>
+                {digit ? (
+                  <Text style={styles.otpDigit}>{digit}</Text>
+                ) : (
+                  <Text style={styles.otpBullet}>{BULLET}</Text>
+                )}
                 {isActive && <Animated.View style={[styles.otpCaret, { opacity: caretOpacity }]} />}
               </View>
             );
           })}
         </View>
-      </TouchableOpacity>
+      </View>
+
+      {/* Auto-read indicator */}
+      {showAutoRead && (
+        <View style={styles.autoReadRow}>
+          <Ionicons name="phone-portrait-outline" size={14} color={colors.primary} style={styles.autoReadIcon} />
+          <Text style={styles.autoReadText}>{t('otp.autoRead')}</Text>
+        </View>
+      )}
 
       {/* Resend */}
-      <View style={styles.resendBlock}>
-        <Text style={styles.resendHint}>
-          {t('otp.didntReceive')}{' '}{timerText ? <Text style={styles.resendTimer}>{timerText}</Text> : null}
-        </Text>
-        <TouchableOpacity onPress={handleResend} disabled={resendDisabled}>
-          <Text style={[styles.resendLink, resendDisabled && styles.resendLinkDisabled]}>
-            {t('common.resendOtp')}
+      {!hideResend && (
+        <View style={styles.resendBlock}>
+          <Text style={styles.resendHint}>
+            {t('otp.didntReceive')}{' '}{timerText ? <Text style={styles.resendTimer}>{timerText}</Text> : null}
           </Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity onPress={handleResend} disabled={resendDisabled}>
+            <Text style={[styles.resendLink, resendDisabled && styles.resendLinkDisabled]}>
+              {t('common.resendOtp')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
 
-const makeStyles = (C: BasePalette) => StyleSheet.create({
+const styles = StyleSheet.create({
   otpField: {
     alignSelf: 'center',
     width: '100%',
-    paddingVertical: 6,
+    maxWidth: 260,
+    paddingVertical: spacing.lg,
     paddingHorizontal: 0,
   },
-  /* .otp{display:flex;justify-content:center;gap:12px;margin:0 auto 14px} */
   otpBox: {
     alignSelf: 'center',
     width: '100%',
-    maxWidth: 4 * CELL_WIDTH + 3 * 10,
-    height: CELL_HEIGHT,
+    maxWidth: FIELD_WIDTH,
+    height: FIELD_HEIGHT,
     justifyContent: 'center',
-  },
-  /* Wider row for 6-digit codes (Aadhaar) so cells keep shrinking evenly. */
-  otpBoxLong: {
-    maxWidth: 6 * CELL_WIDTH + 5 * 8,
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: colors.greyBorder,
+    borderRadius: radius.md,
   },
   /**
    * Fades the whole native input out. Doing it on a wrapper `View` instead of
    * `color: 'transparent'` on the input itself, because Android's EditText can
-   * keep rendering its glyphs over our drawn cells.
+   * keep rendering its glyphs over our drawn slots.
    */
   otpInputLayer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFill,
     opacity: 0,
   },
   /** Kept measurable so the caret/selection maths still line up. */
@@ -228,84 +243,77 @@ const makeStyles = (C: BasePalette) => StyleSheet.create({
     fontWeight: '700',
     paddingVertical: 0,
   },
-  /* .otp input{width:54px;height:58px;border:1.5px solid var(--line);border-radius:13px;...} */
-  /* .otp input{border:1.5px solid var(--line);border-radius:13px}
-     All cells keep the SAME border geometry (uniform 2px) so focus never
-     changes their shape or size — only the colour and glow transition. */
+  /** Row of `OTP_LENGTH` equal cells — this is the digit spacing. */
   otpSlots: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFill,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-  },
-  otpSlotsLong: {
-    gap: 8,
   },
   otpSlot: {
     flex: 1,
-    maxWidth: CELL_WIDTH,
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: C.white,
-    borderWidth: 2,
-    borderColor: C.line,
-    borderRadius: 11,
-  },
-  /* .otp input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(7,150,83,.10)}
-     Border width stays 2px; only tint + glow change. */
-  otpSlotActive: {
-    borderColor: C.brand,
-    shadowColor: C.brand,
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 0 },
   },
   otpDigit: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.dark,
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  otpBullet: {
     fontSize: 20,
     fontWeight: '700',
-    color: C.dark,
+    color: colors.greyMuted,
     textAlign: 'center',
     includeFontPadding: false,
   },
   /** Blinking marker for the slot the next digit will land in. */
   otpCaret: {
     position: 'absolute',
-    height: 20,
+    height: 24,
     width: 2,
     borderRadius: 1,
-    backgroundColor: C.dark,
+    backgroundColor: colors.dark,
   },
-  /* .resend{text-align:center;color:var(--muted);font-size:14px;line-height:1.5} */
+  autoReadRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  autoReadIcon: {
+    marginRight: 6,
+  },
+  autoReadText: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '500',
+  },
   resendBlock: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     flexWrap: 'wrap',
-    marginTop: 4,
+    marginTop: spacing.md,
   },
   resendHint: {
-    fontSize: 12,
-    color: C.grey,
+    fontSize: 13,
+    color: colors.grey,
   },
   resendTimer: {
-    fontWeight: '700',
-    color: C.dark,
+    fontWeight: '600',
+    color: colors.dark,
   },
-  /* .resend button{color:var(--green);font-size:15px;font-weight:750;padding:2px 8px} */
   resendLink: {
-    marginLeft: 4,
-    fontSize: 13,
-    color: C.brand,
-    fontWeight: '700',
+    marginLeft: spacing.xs,
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '600',
   },
-  /* .resend button:disabled{opacity:.45} */
   resendLinkDisabled: {
-    opacity: 0.45,
+    opacity: 0.5,
   },
 });
 

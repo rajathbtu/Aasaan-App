@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
-  type TextInputInstance,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,7 +21,6 @@ import {
   IdentityCard,
   SendIcon,
 } from '../../../assets/images';
-import OtpInput from '../../../components/OtpInput';
 import {
   SandboxAadhaarOfflineEkycResult,
   SandboxAadhaarOfflineEkycOtpSession,
@@ -30,6 +28,7 @@ import {
   readSandboxAadhaarOfflineEkycError,
   verifySandboxAadhaarOfflineEkycOtp,
 } from '../../../api/kyc/sandbox/aadhaarOfflineEkyc';
+import OtpInput from '../../../components/OtpInput';
 
 /** Stages the screen moves through during a verification attempt. */
 type KycState = 'idle' | 'sending' | 'awaiting_otp' | 'verifying' | 'success' | 'failed';
@@ -73,7 +72,6 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<SandboxAadhaarOfflineEkycOtpSession | null>(null);
   const [kyc, setKyc] = useState<SandboxAadhaarOfflineEkycResult | null>(null);
-  const otpInputRef = useRef<TextInputInstance | null>(null);
 
   const reset = useCallback(() => {
     setState('idle');
@@ -261,37 +259,12 @@ const SandboxAadhaarOfflineEkycScreen: React.FC = () => {
                   </View>
                 </View>
 
-                {/* OTP entry stage — 6 digit cells; tapping them focuses the hidden input */}
-                <TouchableOpacity
-                  style={styles.otpRow}
-                  activeOpacity={1}
-                  onPress={() => otpInputRef.current?.focus()}
-                  accessibilityRole="button"
-                  accessibilityLabel="OTP input">
-                  {Array.from({ length: OTP_LENGTH }).map((_, i) => (
-                    <View key={i} style={styles.otpCell}>
-                      {otp[i] ? (
-                        <Text style={styles.otpDigit}>{otp[i]}</Text>
-                      ) : null}
-                    </View>
-                  ))}
-                </TouchableOpacity>
-
-                {/* Hidden text input to capture keyboard typing */}
-                <TextInput
-                  ref={otpInputRef}
-                  style={styles.hiddenOtpInput}
-                  value={otp}
-                  onChangeText={(text) => {
-                    const digits = text.replace(/\D/g, '').slice(0, OTP_LENGTH);
-                    setOtp(digits);
-                  }}
-                  keyboardType="number-pad"
-                  keyboardAppearance={isDark ? 'dark' : 'light'}
-                  maxLength={OTP_LENGTH}
-                  autoFocus
-                  returnKeyType="done"
-                  accessibilityLabel="OTP"
+                {/* Shared OTP field — 6 slots for the Aadhaar code */}
+                <OtpInput
+                  phone=""
+                  length={OTP_LENGTH}
+                  onOtpChange={setOtp}
+                  hideResend
                 />
 
                 <Text style={styles.hint}>Enter the 6-digit code sent to your registered mobile.</Text>
@@ -550,34 +523,6 @@ const makeStyles = (C: ConsumerPalette) => StyleSheet.create({
     borderColor: C.inputBorder,
     borderRadius: 12,
     backgroundColor: C.white,
-  },
-  otpRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 10,
-    marginBottom: 6,
-  },
-  otpCell: {
-    width: 44,
-    height: 52,
-    borderWidth: 1.5,
-    borderColor: C.inputBorder,
-    borderRadius: 12,
-    backgroundColor: C.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  otpDigit: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: C.ink,
-  },
-  hiddenOtpInput: {
-    position: 'absolute',
-    opacity: 0,
-    width: 0,
-    height: 0,
   },
   input: {
     flex: 1,
