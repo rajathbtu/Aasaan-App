@@ -65,11 +65,12 @@ const ServicesSearchBar: React.FC<ServicesSearchBarProps> = ({
 
 const makeStyles = (C: ConsumerPalette) => StyleSheet.create({
   wrapper: {
-    height: 58,
+    // Standard app search-bar height (matches the SP flow's 47px search box).
+    height: 47,
     backgroundColor: C.white,
     borderWidth: 1,
     borderColor: C.border,
-    borderRadius: 20,
+    borderRadius: 24,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,

@@ -49,7 +49,7 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({ picUrl, profileName, size
     </View>
   ) : (
     <View style={[styles.imageWrapper, avatarSize, { backgroundColor: initialColor.background }, containerStyle]}>
-      <Text style={[styles.initial, { color: initialColor.text }]}>{initial}</Text>
+      <Text style={[styles.initial, { color: initialColor.text, fontSize: Math.max(12, Math.round(size * 0.42)) }]}>{initial}</Text>
     </View>
   );
 };

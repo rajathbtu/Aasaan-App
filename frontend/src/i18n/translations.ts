@@ -301,8 +301,8 @@ export const translations = {
       noResponsesTitle: 'No Response yet',
       noResponsesSubtitle: 'Boost Request to reach more Experts',
       boost: 'Boost',
-      interestedProviderTitle: '1 Interested Provider',
-      interestedProvidersTitle: '{count} Interested Providers',
+      interestedProviderTitle: '1 Expert Nearby Interested',
+      interestedProvidersTitle: '{count} Experts Nearby Interested',
       createNewRequest: 'Create New Request',
     },
     requestDetails: {
