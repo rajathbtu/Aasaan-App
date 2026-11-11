@@ -11,6 +11,7 @@ const {
   renderServiceLocality,
   renderServiceDescription,
   renderFaqSection,
+  resolveFaqItems,
 } = require('./lib/page-templates');
 const { escapeHtml } = require('./lib/utils');
 
@@ -142,7 +143,22 @@ function build({
   fs.rmSync(output, { recursive: true, force: true });
   fs.mkdirSync(path.join(output, 'assets'), { recursive: true });
   fs.copyFileSync(path.join(__dirname, 'seo-site.css'), path.join(output, 'assets', 'seo-site.css'));
-
+  fs.mkdirSync(path.join(output, 'assets', 'fonts'), { recursive: true });
+  fs.copyFileSync(
+    path.join(__dirname, 'assets', 'fonts', 'inter-latin-variable.woff2'),
+    path.join(output, 'assets', 'fonts', 'inter-latin-variable.woff2'),
+  );
+  fs.copyFileSync(
+    path.join(__dirname, 'assets', 'fonts', 'OFL.txt'),
+    path.join(output, 'assets', 'fonts', 'OFL.txt'),
+  );
+  fs.mkdirSync(path.join(output, 'assets', 'brand'), { recursive: true });
+  for (const icon of ['icon-32.png', 'icon-180.png', 'icon-512.png']) {
+    fs.copyFileSync(
+      path.join(__dirname, 'assets', 'brand', icon),
+      path.join(output, 'assets', 'brand', icon),
+    );
+  }
   const publishedUrls = new Set();
   function writePage(route, html, faqItems = content.faqs.items) {
     const filePath = route === '/'
@@ -154,13 +170,20 @@ function build({
     if (indexableRoutes.has(route)) publishedUrls.add(`${canonicalBase}${route}`);
   }
 
-  const shared = { appUrl, canonicalBase, indexableRoutes, faqItems: content.faqs.items };
-  writePage('/', renderHome({ ...shared, services }));
-  writePage('/services/', renderServiceDirectory({ ...shared, services, cities }));
+  function getFaqItems({ service, city, locality, serviceContent } = {}) {
+    return resolveFaqItems(
+      [...(serviceContent?.faqs || []), ...content.faqs.items],
+      { service, city, locality },
+    );
+  }
+
+  const shared = { appUrl, canonicalBase, indexableRoutes, faqItems: getFaqItems(), };
+  writePage('/', renderHome({ ...shared, services }), shared.faqItems);
+  writePage('/services/', renderServiceDirectory({ ...shared, services, cities }), shared.faqItems);
 
   for (const service of services) {
     const serviceContent = content.services[service.slug];
-    const serviceFaqItems = [...(serviceContent?.faqs || []), ...content.faqs.items];
+    const serviceFaqItems = getFaqItems({ service, serviceContent });
     writePage(`/services/${service.slug}/`, renderServiceDescription({
       ...shared,
       service,
@@ -172,23 +195,26 @@ function build({
 
   for (const city of cities) {
     const cityContent = content.locations[city.slug];
+    const cityFaqItems = getFaqItems({ city });
     writePage(`/services/${city.slug}/`, renderCityDirectory({
-      ...shared, city, editorial: cityContent, services,
-    }));
+      ...shared, city, editorial: cityContent, services, faqItems: cityFaqItems,
+    }), cityFaqItems);
 
     for (const locality of city.localities) {
+      const localityFaqItems = getFaqItems({ city, locality });
       writePage(`/services/${city.slug}/${locality.slug}/`, renderLocalityDirectory({
         ...shared,
         city,
         locality,
         editorial: cityContent?.localities?.[locality.slug],
         services,
-      }));
+        faqItems: localityFaqItems,
+      }), localityFaqItems);
     }
 
     for (const service of services) {
       const serviceContent = content.services[service.slug];
-      const serviceFaqItems = [...(serviceContent?.faqs || []), ...content.faqs.items];
+      const serviceFaqItems = getFaqItems({ service, city, serviceContent });
       writePage(`/services/${service.slug}/${city.slug}/`, renderServiceCity({
         ...shared,
         service,
@@ -199,6 +225,12 @@ function build({
         faqItems: serviceFaqItems,
       }), serviceFaqItems);
       for (const locality of city.localities) {
+        const serviceLocalityFaqItems = getFaqItems({
+          service,
+          city,
+          locality,
+          serviceContent,
+        });
         writePage(`/services/${service.slug}/${city.slug}/${locality.slug}/`, renderServiceLocality({
           ...shared,
           service,
@@ -208,8 +240,8 @@ function build({
           locationContent: cityContent,
           localityContent: cityContent?.localities?.[locality.slug],
           services,
-          faqItems: serviceFaqItems,
-        }), serviceFaqItems);
+          faqItems: serviceLocalityFaqItems,
+        }), serviceLocalityFaqItems);
       }
     }
   }

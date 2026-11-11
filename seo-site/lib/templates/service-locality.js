@@ -38,8 +38,8 @@ function renderServiceLocality({
     ? escapeHtml(description)
     : `Describe the ${escapeHtml(service.name.toLowerCase())} work you need and confirm your location near ${escapeHtml(locality.name)} in ${escapeHtml(city.name)}.`;
   const availability = chooseVariant(route, 'service-locality.availability', [
-    `Provider availability and responses can vary in ${escapeHtml(locality.name)}. A request does not guarantee a match.`,
-    `Provider availability and responses may differ in ${escapeHtml(locality.name)}. Submitting a request does not guarantee a match.`,
+    `Availability of service experts and response on your request may vary in ${escapeHtml(locality.name)}.`,
+    `Expert availability varies from area to area and may differ in ${escapeHtml(locality.name)}.`,
   ]);
   const cityLink = internalLink(
     `/services/${service.slug}/${city.slug}/`,
@@ -72,12 +72,12 @@ function renderServiceLocality({
     body: `
       <section class="hero">
         <p class="eyebrow">
-          ${escapeHtml(service.name)} services · ${escapeHtml(locality.name)}, ${escapeHtml(city.name)}
+          ${escapeHtml(service.name)} near ${escapeHtml(locality.name)}, ${escapeHtml(city.name)}
         </p>
         <h1>Find ${escapeHtml(service.name)} near ${escapeHtml(locality.name)}, ${city.name}</h1>
         <p class="hero-lead">${heroLead}</p>
         <p class="notice">${availability}</p>
-        <p><a class="button" href="${escapeHtml(appUrl)}">Find ${escapeHtml(service.name.toLowerCase())} help</a></p>
+        <p><a class="button" href="${escapeHtml(appUrl)}">Find ${escapeHtml(service.name)} help</a></p>
         ${serviceTrustSignals(appUrl)}
         <p>${cityLink}</p>
       </section>

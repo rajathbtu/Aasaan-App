@@ -117,8 +117,9 @@ function readContent(filePath, services, cities, routes) {
     throw new Error('Approved shared FAQs require at least one question and answer.');
   }
   if (content.faqs.items.some((item) => !item || typeof item.question !== 'string'
-    || !item.question.trim() || typeof item.answer !== 'string' || !item.answer.trim())) {
-    throw new Error('Each FAQ must have a non-empty question and answer.');
+    || !item.question.trim() || typeof item.answer !== 'string' || !item.answer.trim()
+    || (item.priority !== undefined && (!Number.isInteger(item.priority) || item.priority < 0 || item.priority > 2)))) {
+    throw new Error('Each FAQ must have a non-empty question and answer, and priority must be an integer from 0 to 2 when provided.');
   }
 
   const routeSet = new Set(routes);
@@ -203,8 +204,9 @@ function validateEditorialEntry(entry, label, requiredFields, allApprovedDescrip
     && (!Array.isArray(entry.faqs)
       || entry.faqs.some((item) => !item
         || typeof item.question !== 'string' || !item.question.trim()
-        || typeof item.answer !== 'string' || !item.answer.trim()))) {
-    throw new Error(`${label} FAQs must have non-empty question and answer strings.`);
+        || typeof item.answer !== 'string' || !item.answer.trim()
+        || (item.priority !== undefined && (!Number.isInteger(item.priority) || item.priority < 0 || item.priority > 2))))) {
+    throw new Error(`${label} FAQs must have non-empty question and answer strings and valid priority values from 0 to 2 when provided.`);
   }
 
   const description = entry.description;

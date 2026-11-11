@@ -4,7 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 const { build, writeSitemap } = require('./generate-site');
-const { chooseVariant } = require('./lib/page-templates');
+const { chooseVariant, resolveFaqItems } = require('./lib/page-templates');
 
 const repoRoot = path.resolve(__dirname, '..');
 const catalogPath = path.join(repoRoot, 'backend', 'src', 'utils', 'Aasaan_Services_Master.csv');
@@ -106,6 +106,28 @@ test('template wording variants are deterministic and selected by route', () => 
   assert.throws(() => chooseVariant(noidaRoute, 'availability', []), /must contain non-empty strings/);
 });
 
+test('rejects unsupported FAQ placeholders', () => {
+  assert.throws(
+    () => resolveFaqItems([{ question: 'What is {{unknown}}?', answer: 'An answer.' }]),
+    /Unsupported FAQ placeholder: \{\{unknown\}\}/,
+  );
+});
+
+test('sorts FAQ items by priority with 0 before 1 and 2 after', () => {
+  const items = [
+    { question: 'General last', answer: 'Answer 4', priority: 2 },
+    { question: 'Service middle', answer: 'Answer 3', priority: 1 },
+    { question: 'General top', answer: 'Answer 1', priority: 0 },
+    { question: 'Service top alt', answer: 'Answer 2', priority: 0 },
+  ];
+
+  const resolved = resolveFaqItems(items);
+  assert.deepEqual(
+    resolved.map(({ question }) => question),
+    ['General top', 'Service top alt', 'Service middle', 'General last'],
+  );
+});
+
 function createFixture(t, fixtureContent = content) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'aasaanly-seo-test-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
@@ -124,6 +146,21 @@ function createFixture(t, fixtureContent = content) {
   });
   return { output, result };
 }
+
+test('service location pages omit the generic local request details section', (t) => {
+  const { output } = createFixture(t);
+  const pages = [
+    'services/plumber/noida/index.html',
+    'services/plumber/noida/sector-18/index.html',
+  ];
+
+  for (const relativePath of pages) {
+    const html = fs.readFileSync(path.join(output, relativePath), 'utf8');
+    assert.doesNotMatch(html, /area-context|Local request details for/);
+    assert.doesNotMatch(html, /Confirm your exact location (?:near Sector 18, Noida|in Noida) on Aasaanly app/);
+    assert.doesNotMatch(html, /Availability of service experts and response on your request may vary by location\./);
+  }
+});
 
 test('generates all route types and only indexes approved routes', (t) => {
   const { output, result } = createFixture(t);
@@ -181,6 +218,8 @@ test('service and location pages render useful request guidance and contextual n
   assert.match(cityLead, /Noida/);
   assert.match(localityLead, /plumbing .*requests/i);
   assert.match(localityLead, /Sector 18, Noida/);
+  assert.match(cityPage, /<h2 id="how-it-works-heading">How to request plumber in Noida with Aasaanly<\/h2>/);
+  assert.match(localityPage, /<h2 id="how-it-works-heading">How to request plumber near Sector 18, Noida with Aasaanly<\/h2>/);
   assert.ok(content.services.plumber.locationDescriptionVariants
     .some((variant) => cityLead === variant.replaceAll('{{location}}', 'Noida')));
   assert.ok(content.services.plumber.locationDescriptionVariants
@@ -215,11 +254,34 @@ test('service and location pages render useful request guidance and contextual n
   assert.match(localityPage, /Explore other services near Sector 18/);
 });
 
+test('page eyebrow text describes its service and location context', (t) => {
+  const { output } = createFixture(t);
+  const readPage = (relativePath) => fs.readFileSync(path.join(output, relativePath), 'utf8');
+  const homePage = readPage('index.html');
+  const servicePage = readPage('services/plumber/index.html');
+  const cityPage = readPage('services/noida/index.html');
+  const localityDirectoryPage = readPage('services/noida/sector-18/index.html');
+  const serviceCityPage = readPage('services/plumber/noida/index.html');
+  const serviceLocalityPage = readPage('services/plumber/noida/sector-18/index.html');
+
+  assert.match(homePage, /<p class="eyebrow">Home services and local help<\/p>/);
+  assert.match(servicePage, /<p class="eyebrow">Explore .* services<\/p>/);
+  assert.match(cityPage, /<p class="eyebrow">Home services in Noida, Uttar Pradesh<\/p>/);
+  assert.match(localityDirectoryPage, /<p class="eyebrow">Home services near Sector 18, Noida<\/p>/);
+  assert.match(serviceCityPage, /class="eyebrow">\s*Plumber in Noida, Uttar Pradesh\s*<\/p>/);
+  assert.match(serviceCityPage, /Common plumber tasks in Noida|Plumber tasks in Noida/);
+  assert.match(serviceCityPage, /The plumber request process in Noida/);
+  assert.match(serviceCityPage, /What affects plumber costs in Noida/);
+  assert.match(serviceCityPage, /Start a plumber request in Noida/);
+  assert.match(serviceLocalityPage, /class="eyebrow">\s*Plumber near Sector 18, Noida\s*<\/p>/);
+  assert.match(serviceLocalityPage, /Common plumber tasks near Sector 18|Plumber tasks near Sector 18/);
+});
+
 test('service location pages render reviewed tasks and service FAQs', (t) => {
   const serviceContent = {
     ...content.services.plumber,
     faqs: [{
-      question: 'What should I tell the plumber?',
+      question: 'What should I tell the {{service}} in {{location}}?',
       answer: 'Describe the affected fixture and the issue you noticed.',
     }],
   };
@@ -239,16 +301,21 @@ test('service location pages render reviewed tasks and service FAQs', (t) => {
   assert.doesNotMatch(html, /Name the fixture and describe the repair needed/);
   assert.doesNotMatch(html, /Safety reminder|damaged equipment/);
   assert.match(html, /There is no single price for every job/);
-  assert.match(html, /What should I tell the plumber\?/);
+  assert.match(html, /What should I tell the Plumber in Noida\?/);
 
   const servicePages = [
     'services/plumber/index.html',
     'services/plumber/noida/index.html',
     'services/plumber/noida/sector-18/index.html',
   ];
-  for (const relativePath of servicePages) {
+  for (const [index, relativePath] of servicePages.entries()) {
     const page = fs.readFileSync(path.join(output, relativePath), 'utf8');
-    const serviceFaqIndex = page.indexOf('<dt>What should I tell the plumber?</dt>');
+    const expectedQuestion = [
+      'What should I tell the Plumber in your area?',
+      'What should I tell the Plumber in Noida?',
+      'What should I tell the Plumber in Sector 18, Noida?',
+    ][index];
+    const serviceFaqIndex = page.indexOf(`<dt>${expectedQuestion}</dt>`);
     const commonFaqIndex = page.indexOf('<dt>How does the service request work?</dt>');
     assert.ok(serviceFaqIndex >= 0 && serviceFaqIndex < commonFaqIndex, relativePath);
 
@@ -256,9 +323,45 @@ test('service location pages render reviewed tasks and service FAQs', (t) => {
     const faqSchema = schema['@graph'].find((entry) => entry['@type'] === 'FAQPage');
     assert.deepEqual(
       faqSchema.mainEntity.slice(0, 2).map((item) => item.name),
-      ['What should I tell the plumber?', 'How does the service request work?'],
+      [expectedQuestion, 'How does the service request work?'],
       relativePath,
     );
+  }
+});
+
+test('resolves shared FAQ placeholders for each page context in HTML and structured data', (t) => {
+  const faqContent = {
+    ...content,
+    faqs: {
+      ...content.faqs,
+      items: [{
+        question: 'How do I request {{service}} help in {{location}}?',
+        answer: 'Describe the work for {{service}} and enter {{location}} as the service location.',
+      }],
+    },
+  };
+  const { output } = createFixture(t, faqContent);
+  const cases = [
+    ['index.html', 'service', 'your area'],
+    ['services/plumber/index.html', 'Plumber', 'your area'],
+    ['services/noida/index.html', 'service', 'Noida'],
+    ['services/noida/sector-18/index.html', 'service', 'Sector 18, Noida'],
+    ['services/plumber/noida/index.html', 'Plumber', 'Noida'],
+    ['services/plumber/noida/sector-18/index.html', 'Plumber', 'Sector 18, Noida'],
+  ];
+
+  for (const [relativePath, service, location] of cases) {
+    const html = fs.readFileSync(path.join(output, relativePath), 'utf8');
+    const question = `How do I request ${service} help in ${location}?`;
+    const answer = `Describe the work for ${service} and enter ${location} as the service location.`;
+    assert.ok(html.includes(`<dt>${question}</dt>`), relativePath);
+    assert.ok(html.includes(`<dd>${answer}</dd>`), relativePath);
+
+    const schema = JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
+    const faqSchema = schema['@graph'].find((entry) => entry['@type'] === 'FAQPage');
+    assert.equal(faqSchema.mainEntity[0].name, question, relativePath);
+    assert.equal(faqSchema.mainEntity[0].acceptedAnswer.text, answer, relativePath);
+    assert.doesNotMatch(html, /\{\{(?:service|location)\}\}/, relativePath);
   }
 });
 
@@ -351,7 +454,28 @@ test('all generated pages have unique titles, canonicals, and one primary headin
   const css = fs.readFileSync(path.join(output, 'assets', 'seo-site.css'), 'utf8');
   assert.match(css, /@media \(max-width: 38rem\)/);
   assert.match(css, /\.hero\s*\{[^}]*max-width:\s*70rem;/s);
-  assert.match(fs.readFileSync(path.join(output, 'services', 'index.html'), 'utf8'), /name="viewport"/);
+  assert.match(css, /@font-face\s*\{[^}]*font-display:\s*swap;/s);
+  assert.equal(
+    fs.readFileSync(path.join(output, 'assets', 'fonts', 'inter-latin-variable.woff2')).subarray(0, 4).toString(),
+    'wOF2',
+  );
+  assert.ok(fs.existsSync(path.join(output, 'assets', 'fonts', 'OFL.txt')));
+  const serviceDirectory = fs.readFileSync(path.join(output, 'services', 'index.html'), 'utf8');
+  assert.match(serviceDirectory, /name="viewport"/);
+  assert.match(serviceDirectory, /name="theme-color" content="#10c16b"/);
+  assert.match(serviceDirectory, /rel="icon" type="image\/png" sizes="32x32" href="\/assets\/brand\/icon-32\.png"/);
+  assert.match(serviceDirectory, /rel="icon" type="image\/png" sizes="512x512" href="\/assets\/brand\/icon-512\.png"/);
+  assert.match(serviceDirectory, /rel="apple-touch-icon" sizes="180x180" href="\/assets\/brand\/icon-180\.png"/);
+  assert.doesNotMatch(serviceDirectory, /rel="manifest"/);
+  assert.match(serviceDirectory, /<img src="\/assets\/brand\/icon-180\.png" alt="" width="36" height="36"/);
+  for (const icon of ['icon-32.png', 'icon-180.png', 'icon-512.png']) {
+    assert.ok(fs.existsSync(path.join(output, 'assets', 'brand', icon)), `missing ${icon}`);
+  }
+  assert.ok(!fs.existsSync(path.join(output, 'site.webmanifest')));
+  assert.match(
+    serviceDirectory,
+    /rel="preload" href="\/assets\/fonts\/inter-latin-variable\.woff2" as="font" type="font\/woff2" crossorigin/,
+  );
 });
 
 test('excludes draft routes from sitemap and indexable links while still generating them', (t) => {

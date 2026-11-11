@@ -1,4 +1,4 @@
-const { chooseVariant, renderFaqSection } = require('./templates/shared');
+const { chooseVariant, renderFaqSection, resolveFaqItems } = require('./templates/shared');
 const { renderCityDirectory } = require('./templates/city-directory');
 const { renderHome } = require('./templates/home');
 const { renderLocalityDirectory } = require('./templates/locality-directory');
@@ -12,6 +12,7 @@ module.exports = {
   chooseVariant,
   renderCityDirectory,
   renderFaqSection,
+  resolveFaqItems,
   renderHome,
   renderLocalityDirectory,
   renderNotFound,

@@ -57,20 +57,17 @@ function renderServiceDescription({ service, editorial, cities, indexableRoutes,
     faqItems,
     body: `
       <section class="hero">
-        <p class="eyebrow">${escapeHtml(service.category)}</p>
+        <p class="eyebrow">Explore ${escapeHtml(service.category)} services</p>
         <h1>${escapeHtml(service.name)} services</h1>
         <p>${chooseVariant(route, 'service.intro', [
           'Review the tasks this service can cover and prepare details before submitting a request.',
           'Explore the work this service covers and gather useful details before making a request.',
         ])}</p>
-        <p class="notice">
-          Provider availability and responses vary by location. A request does not guarantee a match.
-        </p>
       </section>
       ${serviceSections(service, editorial, appUrl)}
       ${cities.length ? `
         <section>
-          <h2>${escapeHtml(service.name)} by city</h2>
+          <h2>Find ${escapeHtml(service.name)} in different cities</h2>
           ${linkCards(
             cities,
             (city) => `/services/${service.slug}/${city.slug}/`,

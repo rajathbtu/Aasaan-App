@@ -38,20 +38,29 @@
     "reviewStatus": "approved",
     "items": [
       {
-        "question": "How does Aasaanly connect me with a service expert?",
-        "answer": "Create a request, mentioning your exact requirement. Aasaanly notifies the most relevant experts so that they can contact you or you can contact them directly. Discuss your needs and expectations & hire the best match."
+        "question": "What is Aasaanly?",
+        "answer": "Aasaanly is a local service discovery and hiring platform that helps people request trusted service experts for home and household jobs in their area. You can describe the work, compare nearby experts, and connect directly to the right expert.",
+        "priority": 0
       },
       {
-        "question": "How do I create a service request?",
-        "answer": "Choose a service, briefly mention your exact requirement, and select the location where you need the service and post your request."
+        "question": "How does Aasaanly help with {{service}} requests in {{location}}?",
+        "answer": "Create a request for {{service}}, describe your exact requirement, and enter {{location}} as the service location. Aasaanly notifies the relevant experts around you. Discuss your requirements directly and hire the best match.",
+        "priority": 0
       },
       {
-        "question": "How much will the service cost?",
-        "answer": "There is no single price for every request. The cost can depend on the work details and any parts or materials needed. Confirm the price with the provider before agreeing to the work; this page is not a fixed-price quote."
+        "question": "How do I create a request on Aasaanly?",
+        "answer": "Choose a service and work location, mention your requirement and post request.",
+        "priority": 0
       },
       {
-        "question": "How soon will the service expert arrive?",
-        "answer": "Arrival time depends on provider availability, your location, and the work requested. A request does not guarantee a response or arrival time. If a provider responds, confirm the expected timing with them before scheduling."
+        "question": "How does the {{service}} charge me for the work?",
+        "answer": "The {{service}} will discuss the cost with you based on the work required. You can agree on the price directly with the {{service}} before the work begins.",
+        "priority": 2
+      },
+      {
+        "question": "How soon will the {{service}} arrive?",
+        "answer": "Arrival time depends on expert's availability, your location, and the work requested. A request does not guarantee a response or arrival time. Once an expert responds, confirm the expected timing with them before scheduling.",
+        "priority": 2
       }
     ]
   },
@@ -60,7 +69,7 @@
       "reviewStatus": "approved",
       "description": "Electrician requests may involve lighting, switches, sockets, fans, wiring, or other household electrical work. Describe the affected item and what you have observed so the request is easier to understand.",
       "locationDescriptionVariants": [
-        "Need help with a faulty switch, ceiling fan, electrical wiring or power issue? Describe the electrical work you need and share your location on Aasaanly. Your request can be shared with nearby electricians who serve {{location}} and may respond to take up the job.",
+        "Need help with a faulty switch, ceiling fan, electrical wiring or power issue? Describe the electrical work you need and share your location on Aasaanly. Your request is shared with electricians serving near {{location}} and they will respond to take up the job.",
         "In {{location}}, electrician requests may involve lighting, switches, sockets, fans, wiring, or other household electrical work. Describe the affected item and what you have observed so the request is easier to understand.",
         "Electrical service requests in {{location}} can cover lighting, switches, sockets, fans, wiring, and other household work. Include the affected item and what you noticed when describing the request."
       ],
@@ -74,15 +83,18 @@
       "faqs": [
         {
           "question": "What electrical work can I describe in my request?",
-          "answer": "The electrician guidance on this page lists supported task categories. Choose the closest match in the app and describe the affected fixture or connection. A request does not guarantee a provider response."
+          "answer": "The electrician guidance on this page lists supported task categories. Choose the closest match in the app and describe the affected fixture or connection. A request does not guarantee a provider response.",
+          "priority": 1
         },
         {
           "question": "What details should I include about an electrical issue?",
-          "answer": "Name the affected item, describe what you observed, and say when the issue began. Do not touch exposed wires; include any immediate safety concern in your request."
+          "answer": "Name the affected item, describe what you observed, and say when the issue began. Do not touch exposed wires; include any immediate safety concern in your request.",
+          "priority": 1
         },
         {
           "question": "What should I do if an electrical issue appears dangerous?",
-          "answer": "Stay away from exposed wires or damaged electrical equipment, keep others away from an immediate hazard, and contact local emergency services if there is immediate danger."
+          "answer": "Stay away from exposed wires or damaged electrical equipment, keep others away from an immediate hazard, and contact local emergency services if there is immediate danger.",
+          "priority": 1
         }
       ]
     },

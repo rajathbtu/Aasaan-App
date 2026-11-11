@@ -23,6 +23,8 @@ npm run build
 `npm test` builds into `dist/` and runs the checks. `npm run build` only builds.
 The generator uses Node.js built-ins and requires no site-specific dependencies.
 Build artifacts in `dist/` are ignored by Git.
+Inter is served as a locally hosted, Latin-subset variable WOFF2 font; its
+SIL Open Font License is included alongside the generated font asset.
 
 To preview the generated site locally:
 
@@ -90,14 +92,20 @@ The included examples cover how requests work, pricing, and arrival timing.
 They avoid promising a fixed price, provider response, or arrival time; verify
 their wording against current product behavior before live deployment.
 
+FAQ questions and answers can use `{{service}}`, `{{location}}`, `{{city}}`,
+and `{{locality}}`. These are filled from the page being generated; `location`
+is the locality and city together when available. On pages without a service or
+location context, the defaults are `service` and `your area`. Unknown
+placeholders cause the build to fail.
+
 ```json
 {
   "faqs": {
     "reviewStatus": "draft",
     "items": [
       {
-        "question": "How does Aasaanly work?",
-        "answer": "Explain the verified request flow here."
+        "question": "How do I request {{service}} help in {{location}}?",
+        "answer": "Choose {{service}}, describe the work, and enter {{location}} as the service location."
       }
     ]
   }

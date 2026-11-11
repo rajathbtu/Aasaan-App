@@ -57,7 +57,7 @@ function renderServiceCity({
     body: `
       <section class="hero">
         <p class="eyebrow">
-          ${escapeHtml(service.name)} services · ${escapeHtml(city.name)}, ${escapeHtml(city.state)}
+          ${escapeHtml(service.name)} in ${escapeHtml(city.name)}, ${escapeHtml(city.state)}
         </p>
         <h1>Find ${escapeHtml(service.name)} in ${escapeHtml(city.name)}</h1>
         <p class="hero-lead">${heroLead}</p>

@@ -22,6 +22,43 @@ function serviceLocationDescription(route, variants, location) {
     .replaceAll('{{location}}', location);
 }
 
+function normalizeFaqPriority(priority) {
+  const numericPriority = Number(priority);
+  if (!Number.isInteger(numericPriority) || numericPriority < 0 || numericPriority > 2) {
+    return 1;
+  }
+  return numericPriority;
+}
+
+function resolveFaqItems(items, context = {}) {
+  const city = context.city?.name || 'your area';
+  const locality = context.locality?.name || city;
+  const values = {
+    service: context.service?.name || 'service',
+    city,
+    locality,
+    location: context.locality && context.city
+      ? `${context.locality.name}, ${context.city.name}`
+      : city,
+  };
+  return items
+    .map((item) => {
+      const resolve = (text) => text.replace(/\{\{([^{}]+)\}\}/g, (placeholder, key) => {
+        if (!Object.prototype.hasOwnProperty.call(values, key)) {
+          throw new Error(`Unsupported FAQ placeholder: ${placeholder}`);
+        }
+        return values[key];
+      });
+      return {
+        ...item,
+        priority: normalizeFaqPriority(item.priority),
+        question: resolve(item.question),
+        answer: resolve(item.answer),
+      };
+    })
+    .sort((left, right) => normalizeFaqPriority(left.priority) - normalizeFaqPriority(right.priority));
+}
+
 function internalLink(route, label, indexableRoutes, className = '') {
   const text = escapeHtml(label);
   const classAttribute = className ? ` class="${className}"` : '';
@@ -42,6 +79,9 @@ function pageShell({ title, description, route, canonicalBase, appUrl, body, cru
       <li>${link}</li>
     `;
   }).join('');
+  const brand = indexableRoutes.has('/')
+    ? '<a class="brand" href="/" aria-label="Aasaanly home"><img src="/assets/brand/icon-180.png" alt="" width="36" height="36" decoding="async">Aasaanly</a>'
+    : '<span class="brand"><img src="/assets/brand/icon-180.png" alt="" width="36" height="36" decoding="async">Aasaanly</span>';
   const graphEntries = [
     { '@type': 'WebPage', name: title, description, url: canonical },
     {
@@ -82,18 +122,23 @@ function pageShell({ title, description, route, canonicalBase, appUrl, body, cru
     <title>${escapeHtml(title)}</title>
     <meta name="description" content="${escapeHtml(description)}">
     <meta name="robots" content="${indexable ? 'index,follow' : 'noindex,follow'}">
+    <meta name="theme-color" content="#10c16b">
     <link rel="canonical" href="${escapeHtml(canonical)}">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/icon-32.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/assets/brand/icon-512.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/icon-180.png">
     <meta property="og:type" content="website">
     <meta property="og:title" content="${escapeHtml(title)}">
     <meta property="og:description" content="${escapeHtml(description)}">
     <meta property="og:url" content="${escapeHtml(canonical)}">
+    <link rel="preload" href="/assets/fonts/inter-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/assets/seo-site.css">
     <script type="application/ld+json">${structuredData}</script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <header>
-      ${internalLink('/', 'Aasaanly', indexableRoutes, 'brand')}
+      ${brand}
       <nav aria-label="Main navigation">
         ${internalLink('/services/', 'Services', indexableRoutes)}
         <a href="${escapeHtml(appUrl)}">Open the app</a>
@@ -107,7 +152,7 @@ function pageShell({ title, description, route, canonicalBase, appUrl, body, cru
     </main>
     <footer>
       <div class="wrap">
-        Provider availability and responses vary by location. A request does not guarantee a provider match.
+        Availability of service experts and responses may vary by location.
       </div>
     </footer>
   </body>
@@ -185,11 +230,11 @@ function serviceTrustSignals(appUrl) {
       <li>ID-verified experts</li>
       <li>Rated by customers like you</li>
       <li>Discuss price and negotiate directly</li>
-      <li>Pay providers directly with no commission on service jobs</li>
-      <li>Free to request a service; optional paid boosts and provider plans may cost extra</li>
+      <li>Directly pay to service experts without any commission</li>
+      <li>Free to request a service</li>
     </ul>
     <p class="app-download">
-      <a class="button button-secondary" href="${escapeHtml(appUrl)}">Download app</a>
+      <a class="button button-secondary" href="${escapeHtml(appUrl)}">Download Aasaanly App</a>
     </p>
   `;
 }
@@ -215,10 +260,8 @@ function serviceLandingSections({
       </div>
     </li>
   `).join('');
-  const areaName = locality ? locality.name : city.name;
-  const areaContent = locality
-    ? `Confirm your exact location near ${locality.name}, ${city.name} in Aasaanly when submitting a ${service.name.toLowerCase()} request.`
-    : `Confirm your exact location in ${city.name} in Aasaanly when submitting a ${service.name.toLowerCase()} request.`;
+  const requestArea = locality ? `near ${locality.name}`: `in ${city.name}`;
+  const processHeading = `How to request ${service.name} ${requestArea} with Aasaanly?`;
   const areaLinks = locality
     ? linkCards(
       services.filter((item) => item.slug !== service.slug),
@@ -246,21 +289,21 @@ function serviceLandingSections({
     `
     : '';
   const tasksEyebrow = chooseVariant(route, 'tasks.eyebrow', [
-    'Start with the work',
-    'Choose the work you need',
+    `Common ${service.name.toLowerCase()} tasks`,
+    `Frequently requested ${service.name} tasks`,
   ]);
   const tasksIntro = chooseVariant(route, 'tasks.intro', [
     'Review the supported task types and choose the one that best describes your request.',
     'Choose the task type that most closely matches the work you need.',
   ]);
   const processIntro = chooseVariant(route, 'process.intro', [
-    'Choose the work, describe the issue, and share your location. If a provider responds, confirm the scope before proceeding.',
-    'Tell us what needs attention and where. If a provider responds, agree on the work details before proceeding.',
+    'Choose the work, describe the issue, and share work location. Once a service expert responds, discuss the details & negotiate directly.',
+    'Tell us what needs attention and where. Once a service expert responds, agree on the work details before proceeding.',
   ]);
   return `
     <section class="landing-section" id="service-tasks" aria-labelledby="service-tasks-heading">
       <div class="section-heading">
-        <p class="eyebrow">${tasksEyebrow}</p>
+        <p class="eyebrow">${escapeHtml(tasksEyebrow)}</p>
         <h2 id="service-tasks-heading">What do you need help with?</h2>
         <p>${tasksIntro}</p>
       </div>
@@ -271,8 +314,8 @@ function serviceLandingSections({
 
     <section class="landing-section process-section" id="how-it-works" aria-labelledby="how-it-works-heading">
       <div class="section-heading">
-        <p class="eyebrow">A clear next step</p>
-        <h2 id="how-it-works-heading">How a service request works</h2>
+        <p class="eyebrow">How it works?</p>
+        <h2 id="how-it-works-heading">${escapeHtml(processHeading)}</h2>
         <p>${processIntro}</p>
       </div>
       <ol class="process-steps">
@@ -286,24 +329,23 @@ function serviceLandingSections({
         </li>
         <li>
           <strong>Share your location</strong>
-          <span>Confirm ${escapeHtml(areaName)} or the precise service address in Aasaanly.</span>
+          <span>Confirm ${escapeHtml(requestArea)} or the precise service address in Aasaanly.</span>
         </li>
         <li>
           <strong>Confirm before work</strong>
-          <span>If a provider responds, agree on scope, price, and timing before proceeding.</span>
+          <span>Once an expert responds, agree on scope, price, and timing before proceeding.</span>
         </li>
       </ol>
     </section>
 
     <section class="landing-section cost-guidance" aria-labelledby="cost-heading">
       <div>
-        <p class="eyebrow">Before you agree</p>
+        <p class="eyebrow">Pricing charged by ${escapeHtml(service.name)} ${escapeHtml(requestArea)}</p>
         <h2 id="cost-heading">
-          Understanding ${escapeHtml(service.name.toLowerCase())} costs in ${escapeHtml(areaName)}
+          Understanding ${escapeHtml(service.name.toLowerCase())} charges ${escapeHtml(requestArea)}
         </h2>
         <p>
-          There is no single price for every job. The cost may depend on the work, labour, and any
-          parts or materials needed. Ask for the full price before agreeing to the work.
+          Mention your exact requirements while creating a request. Directly discuss the work details and negotiate the price with the service expert before proceeding. Charges may vary based on the work scope, location, and other factors.
         </p>
       </div>
       <div class="cost-check">
@@ -316,26 +358,13 @@ function serviceLandingSections({
       </div>
     </section>
 
-    <section class="landing-section area-context" aria-labelledby="area-context-heading">
-      <p class="eyebrow">Local request details</p>
-      <h2 id="area-context-heading">
-        ${escapeHtml(service.name)} near ${escapeHtml(areaName)}
-      </h2>
-      <p>${escapeHtml(areaContent)}</p>
-      <p class="notice">
-        Provider coverage, responses, and availability can vary by location.
-        Submitting a request does not guarantee a match.
-      </p>
-    </section>
-
     ${areaLinksSection}
 
     <section class="landing-cta" id="request" aria-labelledby="request-heading">
       <div>
-        <p class="eyebrow">Ready when you are</p>
+        <p class="eyebrow">Create a request ${escapeHtml(requestArea)}</p>
         <h2 id="request-heading">
-          Request ${escapeHtml(service.name.toLowerCase())} help
-          ${locality ? `near ${escapeHtml(locality.name)}` : `in ${escapeHtml(city.name)}`}
+          Request ${escapeHtml(service.name)} ${escapeHtml(requestArea)}
         </h2>
         <p>Share the work details and confirm your service location to get started.</p>
       </div>
@@ -353,6 +382,7 @@ module.exports = {
   metaDescription,
   pageShell,
   renderFaqSection,
+  resolveFaqItems,
   serviceTrustSignals,
   serviceLocationDescription,
   serviceLandingSections,

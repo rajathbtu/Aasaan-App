@@ -13,15 +13,12 @@ function renderHome({ services, appUrl, canonicalBase, indexableRoutes, faqItems
     faqItems,
     body: `
       <section class="hero">
-        <p class="eyebrow">Local service requests</p>
+        <p class="eyebrow">Home services and local help</p>
         <h1>Find help for everyday services with Aasaanly</h1>
         <p>${chooseVariant('/', 'home.intro', [
           'Explore services, choose the help you need, then continue to Aasaanly to submit a request.',
           'Browse services, select the help you need, and continue to Aasaanly to submit a request.',
         ])}</p>
-        <p class="notice">
-          Provider availability varies by location. A request does not guarantee a provider match.
-        </p>
         ${callToAction(appUrl)}
       </section>
       <section>
