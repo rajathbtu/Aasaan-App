@@ -1,0 +1,242 @@
+{
+  "approvedRoutesForIndexing": [
+    "/",
+    "/services/",
+    "/services/electrician/",
+    "/services/plumber/",
+    "/services/interior-designer/",
+    "/services/noida/",
+    "/services/noida/sector-18/",
+    "/services/noida/sector-62/",
+    "/services/greater-noida/",
+    "/services/greater-noida/noida-extension/",
+    "/services/electrician/noida/",
+    "/services/electrician/noida/sector-18/",
+    "/services/electrician/noida/sector-62/",
+    "/services/electrician/greater-noida/",
+    "/services/electrician/greater-noida/noida-extension/",
+    "/services/plumber/noida/",
+    "/services/plumber/noida/sector-18/",
+    "/services/plumber/noida/sector-62/",
+    "/services/plumber/greater-noida/",
+    "/services/plumber/greater-noida/noida-extension/",
+    "/services/interior-designer/noida/",
+    "/services/interior-designer/noida/sector-18/",
+    "/services/interior-designer/noida/sector-62/",
+    "/services/interior-designer/greater-noida/",
+    "/services/interior-designer/greater-noida/noida-extension/",
+    "/services/jhansi/",
+    "/services/jhansi/manik-chowk/",
+    "/services/jhansi/elite-circle/",
+    "/services/jhansi/civil-lines/",
+    "/services/electrician/jhansi/",
+    "/services/electrician/jhansi/manik-chowk/",
+    "/services/electrician/jhansi/elite-circle/",
+    "/services/electrician/jhansi/civil-lines/"
+  ],
+  "faqs": {
+    "reviewStatus": "approved",
+    "items": [
+      {
+        "question": "What is Aasaanly?",
+        "answer": "Aasaanly is a local service discovery and hiring platform that helps people request trusted service experts for home and household jobs in their area. You can describe the work, compare nearby experts, and connect directly to the right expert.",
+        "priority": 0
+      },
+      {
+        "question": "How does Aasaanly help with {{service}} requests in {{location}}?",
+        "answer": "Create a request for {{service}}, describe your exact requirement, and enter {{location}} as the service location. Aasaanly notifies the relevant experts around you. Discuss your requirements directly and hire the best match.",
+        "priority": 0
+      },
+      {
+        "question": "How do I create a request on Aasaanly?",
+        "answer": "Choose a service and work location, mention your requirement and post request.",
+        "priority": 0
+      },
+      {
+        "question": "How does the {{service}} charge me for the work?",
+        "answer": "The {{service}} will discuss the cost with you based on the work required. You can agree on the price directly with the {{service}} before the work begins.",
+        "priority": 2
+      },
+      {
+        "question": "How soon will the {{service}} arrive?",
+        "answer": "Arrival time depends on expert's availability, your location, and the work requested. A request does not guarantee a response or arrival time. Once an expert responds, confirm the expected timing with them before scheduling.",
+        "priority": 2
+      }
+    ]
+  },
+  "services": {
+    "electrician": {
+      "reviewStatus": "approved",
+      "description": "Electrician requests may involve lighting, switches, sockets, fans, wiring, or other household electrical work. Describe the affected item and what you have observed so the request is easier to understand.",
+      "locationDescriptionVariants": [
+        "Need help with a faulty switch, ceiling fan, electrical wiring or power issue? Describe the electrical work you need and share your location on Aasaanly. Your request is shared with electricians serving near {{location}} and they will respond to take up the job.",
+        "In {{location}}, electrician requests may involve lighting, switches, sockets, fans, wiring, or other household electrical work. Describe the affected item and what you have observed so the request is easier to understand.",
+        "Electrical service requests in {{location}} can cover lighting, switches, sockets, fans, wiring, and other household work. Include the affected item and what you noticed when describing the request."
+      ],
+      "tasks": [
+        "Light or fan installation and repair",
+        "Switch, socket, or switchboard repair",
+        "Wiring and electrical connection work",
+        "MCB & Power Issues",
+        "Other electrical work"
+      ],
+      "faqs": [
+        {
+          "question": "What electrical work can I describe in my request?",
+          "answer": "The electrician guidance on this page lists supported task categories. Choose the closest match in the app and describe the affected fixture or connection. A request does not guarantee a provider response.",
+          "priority": 1
+        },
+        {
+          "question": "What details should I include about an electrical issue?",
+          "answer": "Name the affected item, describe what you observed, and say when the issue began. Do not touch exposed wires; include any immediate safety concern in your request.",
+          "priority": 1
+        },
+        {
+          "question": "What should I do if an electrical issue appears dangerous?",
+          "answer": "Stay away from exposed wires or damaged electrical equipment, keep others away from an immediate hazard, and contact local emergency services if there is immediate danger.",
+          "priority": 1
+        }
+      ]
+    },
+    "plumber": {
+      "reviewStatus": "approved",
+      "description": "Plumber requests can cover leaking taps, blocked drains, pipe leaks, fixture installation, and other household plumbing work. Describe the affected fixture and what you have observed so the provider can understand the request.",
+      "locationDescriptionVariants": [
+        "In {{location}}, plumbing requests can cover leaking taps, blocked drains, pipe leaks, fixture installation, and related household work. Describe the affected fixture and what you observed.",
+        "Plumbing work in {{location}} may involve a leaking pipe, a blocked drain, or a repair to a household fixture. Include the affected area and the issue you noticed.",
+        "Need help with a plumbing issue in {{location}}? Note which fixture or pipe is affected and describe the repair or installation you need."
+      ],
+      "tasks": [
+        "Tap repair and installation",
+        "Drain blockage and cleaning",
+        "Pipe leakage and replacement",
+        "Bathroom and kitchen fittings",
+        "Toilet and flush repair"
+      ]
+    },
+    "interior-designer": {
+      "reviewStatus": "approved",
+      "description": "Interior designer requests can cover room layouts, furniture planning, lighting, storage, colour consultation, and home or office interiors. Share the space, design goals, and any budget or timing details you already know.",
+      "locationDescriptionVariants": [
+        "Interior design requests in {{location}} may include room layouts, furniture planning, lighting, storage, colour consultation, or a home or office project. Describe the space and your goals.",
+        "Planning an interior project in {{location}}? Share which rooms or spaces are involved, the changes you have in mind, and any budget or timing details you know.",
+        "For an interior design request in {{location}}, describe the space, the look or function you want to achieve, and the design tasks you need help with."
+      ],
+      "tasks": [
+        "Full-home interior planning",
+        "Room and furniture layout",
+        "Kitchen and wardrobe design",
+        "Lighting and false-ceiling design",
+        "Office and shop interiors",
+        "Colour and space planning"
+      ]
+    }
+  },
+  "locations": {
+    "noida": {
+      "reviewStatus": "approved",
+      "localities": {
+        "sector-18": {
+          "reviewStatus": "approved"
+        },
+        "sector-62": {
+          "reviewStatus": "approved"
+        }
+      }
+    },
+    "greater-noida": {
+      "reviewStatus": "approved",
+      "localities": {
+        "noida-extension": {
+          "reviewStatus": "approved"
+        }
+      }
+    },
+    "delhi": {
+      "reviewStatus": "approved",
+      "localities": {}
+    },
+    "mumbai": {
+      "reviewStatus": "approved",
+      "localities": {}
+    },
+    "bengaluru": {
+      "reviewStatus": "approved",
+      "localities": {}
+    },
+    "hyderabad": {
+      "reviewStatus": "approved",
+      "localities": {}
+    },
+    "chennai": {
+      "reviewStatus": "approved",
+      "localities": {}
+    },
+    "kolkata": {
+      "reviewStatus": "approved",
+      "localities": {}
+    },
+    "pune": {
+      "reviewStatus": "approved",
+      "localities": {}
+    },
+    "ahmedabad": {
+      "reviewStatus": "approved",
+      "localities": {}
+    },
+    "jaipur": {
+      "reviewStatus": "approved",
+      "localities": {}
+    },
+    "lucknow": {
+      "reviewStatus": "approved",
+      "localities": {}
+    },
+    "surat": {
+      "reviewStatus": "approved",
+      "localities": {}
+    },
+    "indore": {
+      "reviewStatus": "approved",
+      "localities": {}
+    },
+    "bhopal": {
+      "reviewStatus": "approved",
+      "localities": {}
+    },
+    "nagpur": {
+      "reviewStatus": "draft",
+      "localities": {}
+    },
+    "kochi": {
+      "reviewStatus": "draft",
+      "localities": {}
+    },
+    "coimbatore": {
+      "reviewStatus": "draft",
+      "localities": {}
+    },
+    "chandigarh": {
+      "reviewStatus": "draft",
+      "localities": {}
+    },
+    "patna": {
+      "reviewStatus": "draft",
+      "localities": {}
+    },
+    "jhansi": {
+      "reviewStatus": "approved",
+      "localities": {
+        "manik-chowk": {
+          "reviewStatus": "approved"
+        },
+        "elite-circle": {
+          "reviewStatus": "approved"
+        },
+        "civil-lines": {
+          "reviewStatus": "approved"
+        }
+      }
+    }
+  }
+}

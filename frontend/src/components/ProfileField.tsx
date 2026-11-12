@@ -87,8 +87,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    fontFamily: 'Google Sans Flex-SemiBold',
+    // fontWeight: '600',
     color: colors.dark,
   },
   row: {
@@ -103,7 +104,8 @@ const styles = StyleSheet.create({
   },
   value: {
     color: colors.dark,
-    fontSize: 16,
+    fontSize: 15,
+    fontFamily: 'Inter',
     flex: 1,
     marginRight: spacing.sm,
   },

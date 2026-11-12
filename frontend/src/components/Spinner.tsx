@@ -51,7 +51,7 @@ const Spinner: React.FC<SpinnerProps> = ({ size = 'small', color = '#1976D2', st
       }, style]}>
       {/* Light track: full circle outline at 20% opacity */}
       <View style={{
-          ...StyleSheet.absoluteFillObject,
+          ...StyleSheet.absoluteFill,
           borderRadius: radius,
           borderWidth: strokeWidth,
           borderColor: color,

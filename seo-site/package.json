@@ -1,0 +1,9 @@
+{
+  "name": "aasaanly-seo-site",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node generate-site.js",
+    "test": "npm run build && node --test"
+  }
+}

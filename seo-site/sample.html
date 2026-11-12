@@ -1,0 +1,396 @@
+from pathlib import Path
+
+html = r'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Electrician in Jhansi | Request Electrical Services | Aasaanly</title>
+  <meta name="description" content="Need an electrician in Jhansi? Describe your electrical repair or installation needs and submit a request through Aasaanly. Provider responses depend on availability." />
+  <meta name="robots" content="index,follow" />
+  <link rel="canonical" href="https://www.example.com/electrician/jhansi/" />
+  <meta name="theme-color" content="#087f5b" />
+  <style>
+    :root {
+      --green: #087f5b;
+      --green-dark: #066747;
+      --green-soft: #eaf7f1;
+      --ink: #17211d;
+      --muted: #62716a;
+      --line: #e1e9e5;
+      --surface: #ffffff;
+      --page: #f6f9f7;
+      --amber-bg: #fff7e6;
+      --amber: #8a5b08;
+      --radius: 18px;
+      --shadow: 0 8px 30px rgba(21, 53, 39, .06);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--page);
+      line-height: 1.6;
+    }
+    a { color: var(--green-dark); text-underline-offset: 3px; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { font: inherit; }
+    .container { width: min(1120px, calc(100% - 36px)); margin: 0 auto; }
+    .topbar {
+      background: #fff; border-bottom: 1px solid var(--line);
+      position: sticky; top: 0; z-index: 20;
+    }
+    .nav { display:flex; align-items:center; justify-content:space-between; min-height:72px; gap:20px; }
+    .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--ink); font-size:1.3rem; font-weight:800; letter-spacing:-.04em; }
+    .brand-mark { width:36px; height:36px; border-radius:12px; background:var(--green); color:#fff; display:grid; place-items:center; font-weight:900; }
+    .nav-links { display:flex; align-items:center; gap:24px; font-size:.92rem; }
+    .nav-links a { color:var(--muted); text-decoration:none; }
+    .nav-links a:hover { color:var(--green); }
+    .btn {
+      display:inline-flex; justify-content:center; align-items:center; gap:9px;
+      border:0; border-radius:12px; padding:13px 19px; font-weight:750;
+      text-decoration:none; cursor:pointer; transition:transform .15s, background .15s;
+    }
+    .btn:hover { transform:translateY(-1px); }
+    .btn-primary { color:#fff; background:var(--green); }
+    .btn-primary:hover { background:var(--green-dark); }
+    .btn-secondary { color:var(--green-dark); background:var(--green-soft); }
+    .btn-block { width:100%; }
+    .eyebrow { color:var(--green); font-size:.78rem; letter-spacing:.12em; font-weight:800; text-transform:uppercase; }
+    .hero { padding:56px 0 36px; }
+    .hero-grid { display:grid; grid-template-columns:1.15fr .85fr; gap:36px; align-items:center; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { font-size:clamp(2.15rem, 5vw, 3.7rem); line-height:1.08; letter-spacing:-.055em; margin:12px 0 18px; }
+    h2 { font-size:clamp(1.55rem, 3vw, 2.15rem); line-height:1.2; letter-spacing:-.035em; margin-bottom:10px; }
+    h3 { line-height:1.3; margin-bottom:7px; }
+    .lead { color:#4e6057; font-size:1.12rem; max-width:650px; }
+    .fine { font-size:.82rem; color:var(--muted); margin:12px 0 0; }
+    .hero-panel { background:linear-gradient(145deg,#e5f5ed,#f6fbf8); border:1px solid #d3eade; border-radius:26px; padding:25px; min-height:280px; position:relative; overflow:hidden; }
+    .hero-art { min-height:220px; display:grid; place-items:center; position:relative; }
+    .hero-art .circle { width:176px; height:176px; border-radius:50%; background:#c4ead7; display:grid; place-items:center; font-size:5rem; }
+    .floating-note { position:absolute; background:#fff; padding:12px 14px; border-radius:14px; box-shadow:var(--shadow); font-size:.86rem; font-weight:700; }
+    .note-one { top:20px; left:0; } .note-two { right:0; bottom:22px; }
+    .trust-line { display:flex; flex-wrap:wrap; gap:14px; margin-top:22px; color:var(--muted); font-size:.88rem; }
+    .trust-line span::before { content:"✓"; color:var(--green); font-weight:900; margin-right:7px; }
+    .section { padding:38px 0; }
+    .section-head { max-width:760px; margin-bottom:22px; }
+    .section-head p { color:var(--muted); margin-bottom:0; }
+    .card-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+    .service-card { border:1px solid var(--line); background:#fff; border-radius:var(--radius); padding:20px; min-height:154px; display:flex; flex-direction:column; gap:8px; text-align:left; color:var(--ink); cursor:pointer; }
+    .service-card:hover,.service-card:focus-visible { border-color:#82c9a7; box-shadow:var(--shadow); outline:none; }
+    .service-icon { width:44px; height:44px; border-radius:13px; display:grid; place-items:center; color:var(--green); background:var(--green-soft); font-size:1.4rem; }
+    .service-card strong { font-size:1rem; }
+    .service-card small { color:var(--muted); font-size:.88rem; }
+    .section-white { background:#fff; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .steps { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; counter-reset:step; }
+    .step { padding:21px; background:#fff; border:1px solid var(--line); border-radius:var(--radius); }
+    .step::before { counter-increment:step; content:counter(step); width:34px; height:34px; display:grid; place-items:center; border-radius:11px; background:var(--green-soft); color:var(--green); font-weight:850; margin-bottom:14px; }
+    .step p { color:var(--muted); font-size:.94rem; margin-bottom:0; }
+    .service-detail-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:18px; }
+    .detail-card { display:grid; grid-template-columns:110px 1fr; gap:17px; align-items:start; padding:18px; background:#fff; border:1px solid var(--line); border-radius:var(--radius); }
+    .detail-art { min-height:110px; border-radius:13px; background:linear-gradient(145deg,#dff3e8,#f2faf5); display:grid; place-items:center; font-size:2.7rem; }
+    .detail-card p { color:var(--muted); font-size:.94rem; margin-bottom:0; }
+    .locality-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .locality { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:13px 15px; border:1px solid var(--line); background:#fff; border-radius:12px; text-decoration:none; color:var(--ink); }
+    .locality span:last-child { color:var(--green); }
+    .notice { background:var(--amber-bg); border:1px solid #f2dfb5; color:#59451d; border-radius:16px; padding:18px 20px; }
+    .notice strong { color:var(--amber); }
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:26px; align-items:start; }
+    .check-list { padding-left:20px; }
+    .check-list li { margin:8px 0; }
+    .faq-list { display:grid; gap:10px; }
+    details { background:#fff; border:1px solid var(--line); border-radius:13px; padding:0 17px; }
+    summary { cursor:pointer; list-style:none; font-weight:750; padding:17px 28px 17px 0; position:relative; }
+    summary::-webkit-details-marker { display:none; }
+    summary::after { content:"+"; position:absolute; right:0; top:13px; color:var(--green); font-size:1.4rem; }
+    details[open] summary::after { content:"−"; }
+    details p { color:var(--muted); margin:0 0 17px; }
+    .cta-band { background:var(--green); color:#fff; border-radius:24px; padding:32px; display:flex; justify-content:space-between; align-items:center; gap:24px; }
+    .cta-band h2 { margin-bottom:8px; }
+    .cta-band p { margin-bottom:0; color:#d7f1e5; }
+    .cta-band .btn { background:#fff; color:var(--green-dark); white-space:nowrap; }
+    .breadcrumbs { color:var(--muted); font-size:.86rem; padding:18px 0 0; }
+    .breadcrumbs a { color:var(--muted); }
+    footer { padding:30px 0 42px; color:var(--muted); font-size:.88rem; }
+    .footer-links { display:flex; flex-wrap:wrap; gap:18px; margin-bottom:15px; }
+    .footer-links a { color:var(--muted); }
+    .sample-label { display:inline-block; color:#72530b; background:#fff2c8; border-radius:6px; padding:3px 7px; font-size:.72rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    @media (max-width:800px) {
+      .hero-grid,.two-col { grid-template-columns:1fr; }
+      .hero { padding-top:36px; }
+      .hero-panel { min-height:230px; }
+      .card-grid { grid-template-columns:repeat(2,1fr); }
+      .steps { grid-template-columns:repeat(2,1fr); }
+      .service-detail-grid { grid-template-columns:1fr; }
+      .locality-grid { grid-template-columns:repeat(2,1fr); }
+      .nav-links a:not(.btn) { display:none; }
+      .cta-band { align-items:flex-start; flex-direction:column; }
+    }
+    @media (max-width:480px) {
+      .container { width:min(100% - 24px,1120px); }
+      .nav { min-height:62px; }
+      .nav .btn { padding:10px 12px; font-size:.86rem; }
+      .card-grid,.steps,.locality-grid { grid-template-columns:1fr 1fr; }
+      .service-card { padding:14px; min-height:145px; }
+      .detail-card { grid-template-columns:78px 1fr; padding:13px; gap:12px; }
+      .detail-art { min-height:85px; font-size:2.1rem; }
+      .hero-panel { padding:16px; }
+      .floating-note { font-size:.75rem; padding:9px 10px; }
+      .note-one { left:-4px; } .note-two { right:-4px; }
+      .cta-band { padding:24px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container nav">
+      <a class="brand" href="/" aria-label="Aasaanly home">
+        <span class="brand-mark">A</span><span>aasaanly</span>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation">
+        <a href="#services">Services</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#faqs">FAQs</a>
+        <a class="btn btn-primary" href="#request">Request a service <span aria-hidden="true">↗</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container breadcrumbs" aria-label="Breadcrumb">
+      <a href="/">Home</a> › <a href="/services/">Services</a> › <a href="/services/electrician/">Electrician</a> › <span aria-current="page">Jhansi</span>
+    </div>
+
+    <section class="hero">
+      <div class="container hero-grid">
+        <div>
+          <div class="eyebrow">Electrician services · Jhansi, Uttar Pradesh</div>
+          <h1>Find an Electrician in Jhansi</h1>
+          <p class="lead">Need help with a faulty switch, ceiling fan, electrical wiring or power issue? Describe the electrical work you need and share your location on Aasaanly. Your request can be shared with eligible service providers who may respond to take up the job.</p>
+          <a class="btn btn-primary" href="#request">Request an Electrician <span aria-hidden="true">→</span></a>
+          <p class="fine">Provider responses depend on service coverage and availability. Submitting a request does not guarantee a match.</p>
+          <div class="trust-line">
+            <span>Describe your job</span><span>Share your location</span><span>Connect if a provider responds</span>
+          </div>
+        </div>
+        <div class="hero-panel" aria-label="Illustration of electrical services">
+          <div class="hero-art">
+            <div class="circle" aria-hidden="true">🧰</div>
+            <div class="floating-note note-one">⚡ Electrical repairs</div>
+            <div class="floating-note note-two">⌂ Home installations</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="services">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Start with your job</div>
+          <h2>What electrical work do you need?</h2>
+          <p>Choose a service to start your request. The categories below are sample data; keep only tasks supported by Aasaanly.</p>
+        </div>
+        <div class="card-grid">
+          <button class="service-card" data-service="Lights & fittings" type="button"><span class="service-icon" aria-hidden="true">💡</span><strong>Lights & fittings</strong><small>Installation or repair</small></button>
+          <button class="service-card" data-service="Fans" type="button"><span class="service-icon" aria-hidden="true">🌀</span><strong>Fans</strong><small>Installation or repair</small></button>
+          <button class="service-card" data-service="Switches & sockets" type="button"><span class="service-icon" aria-hidden="true">🔌</span><strong>Switches & sockets</strong><small>Faults or replacement</small></button>
+          <button class="service-card" data-service="MCB & power issues" type="button"><span class="service-icon" aria-hidden="true">⚡</span><strong>MCB & power issues</strong><small>Tripping and faults</small></button>
+          <button class="service-card" data-service="Electrical wiring" type="button"><span class="service-icon" aria-hidden="true">〰️</span><strong>Electrical wiring</strong><small>Wiring and connections</small></button>
+          <button class="service-card" data-service="Other electrical work" type="button"><span class="service-icon" aria-hidden="true">🏠</span><strong>Other electrical work</strong><small>Describe your issue</small></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-white" id="how-it-works">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Simple request process</div>
+          <h2>How to find an electrician through Aasaanly</h2>
+          <p>Know what to expect before you submit your request.</p>
+        </div>
+        <div class="steps">
+          <article class="step"><h3>Choose your job</h3><p>Select the electrical service or describe the problem you need help with.</p></article>
+          <article class="step"><h3>Share the details</h3><p>Explain what is wrong, which fixture is affected and where the work is needed.</p></article>
+          <article class="step"><h3>Submit your request</h3><p>Aasaanly shares the request with eligible providers according to service and location.</p></article>
+          <article class="step"><h3>Connect and confirm</h3><p>If a provider responds, confirm the scope, price and appointment before proceeding.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Common electrical jobs</div>
+          <h2>Electrician services in Jhansi</h2>
+          <p>Start by identifying the problem. Share enough detail for a provider to understand the work before responding.</p>
+        </div>
+        <div class="service-detail-grid">
+          <article class="detail-card"><div class="detail-art" aria-hidden="true">💡</div><div><h3>Light and fan installation</h3><p>For supported fitting, replacement or repair jobs, mention the fixture and whether installation or fault diagnosis is needed.</p></div></article>
+          <article class="detail-card"><div class="detail-art" aria-hidden="true">🔌</div><div><h3>Switchboard and socket problems</h3><p>Describe loose or non-working switches, faulty sockets or other electrical points. Avoid handling damaged wiring yourself.</p></div></article>
+          <article class="detail-card"><div class="detail-art" aria-hidden="true">⚡</div><div><h3>MCB tripping and power faults</h3><p>Explain when the issue occurs, whether it affects one room or the whole property, and any warning signs noticed.</p></div></article>
+          <article class="detail-card"><div class="detail-art" aria-hidden="true">〰️</div><div><h3>Wiring and electrical connections</h3><p>Provide details of the affected area and symptoms so a responding provider can assess the job.</p></div></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-white" id="coverage">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Local service information</div>
+          <h2>Electrician service coverage across Jhansi</h2>
+          <p>Aasaanly should list only areas where electrician requests are genuinely supported. Confirm your precise address before submitting a request.</p>
+        </div>
+        <span class="sample-label">Illustrative locality list — verify before publishing</span>
+        <div class="locality-grid" style="margin-top:16px">
+          <a class="locality" href="/electrician/manik-chowk-jhansi/"><span>Manik Chowk</span><span>↗</span></a>
+          <a class="locality" href="/electrician/civil-lines-jhansi/"><span>Civil Lines</span><span>↗</span></a>
+          <a class="locality" href="/electrician/sipri-bazaar-jhansi/"><span>Sipri Bazaar</span><span>↗</span></a>
+          <a class="locality" href="/electrician/nawabad-jhansi/"><span>Nawabad</span><span>↗</span></a>
+          <a class="locality" href="/electrician/sadar-bazaar-jhansi/"><span>Sadar Bazaar</span><span>↗</span></a>
+          <a class="locality" href="/services/jhansi/"><span>Other areas of Jhansi</span><span>↗</span></a>
+        </div>
+        <p class="fine">Do not publish links to unsupported or unfinished pages. Remove any locality that does not have a valid destination and meaningful local information.</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container two-col">
+        <div>
+          <div class="eyebrow">Before you submit</div>
+          <h2>What to tell your electrician</h2>
+          <p>A clear request can help a provider understand the work before responding. Include:</p>
+          <ul class="check-list">
+            <li><strong>The affected item:</strong> fan, light, switchboard, socket or circuit.</li>
+            <li><strong>The symptoms:</strong> not working, intermittent power or repeated MCB trips.</li>
+            <li><strong>When it started:</strong> today or an ongoing issue.</li>
+            <li><strong>The location:</strong> your area in Jhansi and precise service address in the request flow.</li>
+            <li><strong>Useful context:</strong> property type, access requirements or a photo if the app supports safe photo sharing.</li>
+          </ul>
+        </div>
+        <aside class="notice">
+          <strong>Electrical safety</strong>
+          <p style="margin:8px 0 0">If you notice smoke, sparks, a burning smell or exposed live wiring, stay away from the affected equipment. If safe to do so, keep others away and switch off the relevant supply without approaching the hazard. For fire or immediate danger, contact emergency services. Do not touch exposed wires or attempt unsafe repairs.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section section-white" id="pricing">
+      <div class="container two-col">
+        <div>
+          <div class="eyebrow">Understand the cost</div>
+          <h2>How much does an electrician cost in Jhansi?</h2>
+          <p>The cost of electrical work depends on the type of fault, time and labour involved, parts required and the condition of the existing installation. A simple replacement and a wiring fault can require very different amounts of work.</p>
+        </div>
+        <div>
+          <h3>Before agreeing to a job, confirm:</h3>
+          <ul class="check-list">
+            <li>The work included in the quoted price.</li>
+            <li>Whether parts and materials are included.</li>
+            <li>Any inspection, visit or additional labour charges.</li>
+            <li>The expected duration and appointment timing.</li>
+          </ul>
+          <p class="fine">Optional: add locally representative price ranges only when backed by reliable, recent data. State whether figures are completed-job prices, provider quotes or indicative estimates.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="providers">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Marketplace information</div>
+          <h2>Electricians serving Jhansi</h2>
+          <p>When verified marketplace data is available, show eligible provider profiles, relevant skills, genuine reviews and accurate availability here. Do not show invented profiles, ratings or review counts.</p>
+        </div>
+        <div class="notice"><strong>Implementation note:</strong> Replace this placeholder with real eligible provider data. If there are no suitable profiles or reviews to show, hide this section until reliable data is available.</div>
+      </div>
+    </section>
+
+    <section class="section section-white" id="faqs">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Common questions</div>
+          <h2>Frequently asked questions</h2>
+          <p>Answers about requesting an electrician through Aasaanly.</p>
+        </div>
+        <div class="faq-list">
+          <details><summary>How can I request an electrician in Jhansi?</summary><p>Select the electrical job, describe the problem, confirm your location and submit your request through Aasaanly. Eligible providers may respond based on service coverage and availability.</p></details>
+          <details><summary>Which electrical jobs can I request?</summary><p>The available categories depend on Aasaanly's supported services. They may include light and fan installation, switch or socket problems, wiring and other household electrical faults.</p></details>
+          <details><summary>How much does an electrician charge in Jhansi?</summary><p>The cost depends on the job, labour, materials and the provider's assessment. Confirm the full price and any additional charges before agreeing to the work.</p></details>
+          <details><summary>How quickly will an electrician respond?</summary><p>Response time depends on eligible provider availability and the nature and location of the request. Aasaanly cannot guarantee a response or arrival time.</p></details>
+          <details><summary>Can I request an electrician near Manik Chowk?</summary><p>Provide your precise location in the request flow. Whether a provider can take the job depends on actual service coverage and provider response for that location.</p></details>
+          <details><summary>What should I do if an electrical fault looks dangerous?</summary><p>Stay away from sparks, smoke, exposed wiring or damaged equipment. Avoid touching the affected installation and contact appropriate emergency assistance if there is immediate danger.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Explore Aasaanly</div>
+          <h2>Explore more services in Jhansi</h2>
+          <p>Need help with something else at home? Explore other services supported in your area.</p>
+        </div>
+        <div class="locality-grid">
+          <a class="locality" href="/plumber/jhansi/"><span>Plumber</span><span>↗</span></a>
+          <a class="locality" href="/ac-repair/jhansi/"><span>AC repair</span><span>↗</span></a>
+          <a class="locality" href="/carpenter/jhansi/"><span>Carpenter</span><span>↗</span></a>
+          <a class="locality" href="/home-cleaning/jhansi/"><span>Home cleaning</span><span>↗</span></a>
+          <a class="locality" href="/services/"><span>All services</span><span>↗</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="request">
+      <div class="container">
+        <div class="cta-band">
+          <div>
+            <h2>Ready to request an electrician?</h2>
+            <p>Select the electrical work you need and share your location to start your request.</p>
+          </div>
+          <a class="btn" href="YOUR_APP_OR_REQUEST_URL">Continue with Aasaanly <span aria-hidden="true">→</span></a>
+        </div>
+        <p class="fine">Replace <code>YOUR_APP_OR_REQUEST_URL</code> with your real web request URL or verified app deep link. Preserve the selected service and city when handing off to the app.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-links">
+        <a href="/">Home</a><a href="/services/">Services</a><a href="/about/">About Aasaanly</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a>
+      </div>
+      <p>© <span id="year"></span> Aasaanly. Service availability depends on location and provider response.</p>
+      <p class="fine">Sample page: verify service categories, locality coverage, URLs, claims and all marketplace data before publishing.</p>
+    </div>
+  </footer>
+
+  <script>
+    // Demo behavior: replace this with your real request flow / app deep link.
+    const requestUrl = "YOUR_APP_OR_REQUEST_URL";
+    document.querySelectorAll("[data-service]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const service = button.getAttribute("data-service");
+        const destination = document.querySelector('#request a.btn');
+        // Replace with your real route, for example by passing service/location query parameters.
+        if (requestUrl !== "YOUR_APP_OR_REQUEST_URL") {
+          const url = new URL(requestUrl, window.location.origin);
+          url.searchParams.set("service", service);
+          url.searchParams.set("city", "Jhansi");
+          window.location.href = url.toString();
+        } else {
+          alert('Selected service: ' + service + '\\nConnect this button to Aasaanly’s request flow and prefill city = Jhansi.');
+          destination.focus();
+        }
+      });
+    });
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
+'''
+path = Path("/mnt/data/aasaanly-electrician-jhansi-seo-landing-page.html")
+path.write_text(html, encoding="utf-8")
+print(f"Created: {path}\nSize: {path.stat().st_size:,} bytes")

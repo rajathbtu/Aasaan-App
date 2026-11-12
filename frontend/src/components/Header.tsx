@@ -1,8 +1,8 @@
 import React, { useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, shadows, spacing } from '../theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotificationCount } from '../contexts/NotificationCountContext';
@@ -14,7 +14,9 @@ type HeaderProps = {
   onBackPress?: () => void;
   showNotification?: boolean;
   showProfileButton?: boolean;
+  customLeftComponent?: React.ReactNode;
   customRightComponent?: React.ReactNode;
+  belowHeaderContent?: React.ReactNode;
   keepTitleCenterAligned?: boolean;
   extraLargeTitle?: boolean;
   subheader?: string;
@@ -33,15 +35,21 @@ const Header: React.FC<HeaderProps> = ({
   onBackPress,
   showNotification = true,
   showProfileButton = false,
+  customLeftComponent,
   customRightComponent,
+  belowHeaderContent,
   keepTitleCenterAligned = false,
   extraLargeTitle = false,
   subheader,
   titleStyle,
 }) => {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { unreadCount } = useNotificationCount();
+  const topInset = Platform.OS === 'android'
+    ? Math.max(insets.top, StatusBar.currentHeight ?? 0)
+    : insets.top;
 
   const handleBackPress = useCallback(
     () => (onBackPress ? onBackPress() : navigation.goBack()),
@@ -51,35 +59,33 @@ const Header: React.FC<HeaderProps> = ({
   const handleNotificationPress = useCallback(() => navigation.navigate('Notifications'), [navigation]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <View style={[styles.safeArea, { paddingTop: topInset }]}>
       <View style={styles.headerRow}>
-        {showBackButton && (
+        {customLeftComponent ?? (showBackButton && (
           <TouchableOpacity
             style={[styles.iconButton, { marginRight: spacing.md }]}
             onPress={handleBackPress}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
+            accessibilityLabel="Go back">
             <Ionicons name="arrow-back" size={22} color={colors.dark} />
           </TouchableOpacity>
-        )}
+        ))}
 
         <View style={[styles.titleContainer, keepTitleCenterAligned && styles.centeredTitleContainer]}>
           {subheader ? <Text style={styles.subHeaderText}>{subheader}</Text> : null}
-          <Text
+          <Text numberOfLines={1} ellipsizeMode="tail"
             style={[
               styles.headerTitle,
               keepTitleCenterAligned && styles.centerAlignedTitle,
               extraLargeTitle && styles.extraLargeTitle,
               titleStyle,
-            ]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
+            ]}>
             {title}
           </Text>
+          {belowHeaderContent}
         </View>
+        {keepTitleCenterAligned && <View style={styles.titleContainer} />}
 
         {customRightComponent ?? (
           <View style={styles.rightActions}>
@@ -127,7 +133,7 @@ const Header: React.FC<HeaderProps> = ({
           </View>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -144,6 +150,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     minHeight: 56, // Ensure a minimum height for the header row
+    // borderBottomWidth: 1,
+    // borderColor: colors.greyLight,
   },
   iconButton: {
     width: ICON_BUTTON_SIZE,
@@ -164,11 +172,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   centeredTitleContainer: {
-    marginRight: spacing.md,
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: 'Google Sans Flex-Bold',
     color: colors.dark,
     textAlign: 'left',
   },
@@ -178,7 +191,7 @@ const styles = StyleSheet.create({
   subHeaderText: {
     fontSize: 11,
     color: colors.greyMuted,
-    fontWeight: '600',
+    fontFamily: 'Google Sans Flex-SemiBold',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 2,

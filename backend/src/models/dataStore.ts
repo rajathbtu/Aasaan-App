@@ -75,6 +75,7 @@ export async function createWorkRequest(
       locationLat: rest.locationLat,
       locationLng: rest.locationLng,
       tags: rest.tags || [],
+      phoneConsent: rest.phoneConsent ?? false,
       createdAt: new Date(),
       status: 'active',
       boosted: false,

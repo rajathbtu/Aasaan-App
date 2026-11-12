@@ -48,26 +48,38 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
   const responseSubtitleKey = responseCount === 1
     ? 'userRequests.providerRespondedSubtitle'
     : 'userRequests.providersRespondedSubtitle';
+  const requestTitle = typeof request.title === 'string' && request.title.trim()
+                            ? request.title.trim() : null;
+  const serviceName = request.serviceName || request.service;
 
   return (
     <TouchableOpacity
       style={[styles.card, containerStyle]}
       activeOpacity={onPress ? 0.8 : 1}
       disabled={!onPress}
-      onPress={onPress}
-    >
+      onPress={onPress}>
+      <View style={[styles.statusBadge, isClosed ? styles.statusBadgeCompleted : styles.statusBadgeActive]}>
+        <Text style={styles.statusText}>
+          {isClosed ? t('userRequests.statusCompleted') : t('userRequests.statusActive')}
+        </Text>
+      </View>
       <View style={styles.cardHeader}>
         <ServiceIcon
           icon={request.serviceIcon}
           color={request.serviceColor}
-          circleSize={46}
+          circleSize={40}
           iconSize={20}
           style={styles.cardIcon}
         />
         <View style={styles.cardHeaderText}>
-          <Text style={styles.cardTitle} numberOfLines={1}>
-            {request.serviceName || request.service}
+          <Text style={styles.cardTitle} numberOfLines={2}>
+            {requestTitle || serviceName}
           </Text>
+          {requestTitle && (
+            <Text style={styles.serviceName} numberOfLines={1}>
+              {serviceName}
+            </Text>
+          )}
           <View style={styles.metaRow}>
             <Text style={styles.cardSubtitle} 
                   numberOfLines={showExpanded ? undefined : 1}>
@@ -78,13 +90,6 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
             </Text>
           </View>
         </View>
-        
-        <View style={[styles.statusBadge, isClosed ? styles.statusBadgeCompleted : styles.statusBadgeActive]}>
-          <Text style={styles.statusText}>
-            {isClosed ? t('userRequests.statusCompleted') : t('userRequests.statusActive')}
-          </Text>
-        </View>
-      
       </View>
 
       {visibleTags.length > 0 && (
@@ -113,11 +118,14 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
                   {t(responseSubtitleKey)}
                 </Text>
               </View>
+              <View style={styles.bandChevron}>
+                <Ionicons name="chevron-forward" size={17} color={colors.primary} />
+              </View>
             </>
           ) : (
             <>
               <View style={styles.clockCircle}>
-                <Ionicons name="time" size={17} color={colors.white} />
+                <Ionicons name="time-outline" size={20} color={BOOST_ORANGE} />
               </View>
               <View style={styles.statusBandText}>
                 <Text style={styles.statusBandTitle}>{t('userRequests.noResponsesTitle')}</Text>
@@ -137,9 +145,6 @@ const WorkRequestCard: React.FC<WorkRequestCardProps> = ({
               )}
             </>
           )}
-          <View style={[styles.bandChevron, !hasResponses && styles.bandChevronEmpty]}>
-            <Ionicons name="chevron-forward" size={17} color={hasResponses ? colors.primary : BOOST_ORANGE} />
-          </View>
         </View>
       )}
     </TouchableOpacity>
@@ -152,23 +157,32 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.md,
     marginBottom: spacing.md,
     padding: spacing.md,
+    position: 'relative',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: spacing.sm,
   },
   cardIcon: {
+    alignSelf: 'flex-start',
     marginBottom: 0,
     marginRight: spacing.md,
+    marginTop: 2,
   },
   cardHeaderText: {
     flex: 1,
-    marginRight: spacing.sm,
   },
   cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontFamily: 'Inter-Bold',
     color: colors.dark,
+  },
+  serviceName: {
+    marginTop: 2,
+    fontSize: 12,
+    fontFamily: 'Inter',
+    color: colors.grey,
   },
   metaRow: {
     flexDirection: 'row',
@@ -177,12 +191,18 @@ const styles = StyleSheet.create({
   },
   cardSubtitle: {
     fontSize: 12,
+    fontFamily: 'Inter',
     color: colors.greyMuted,
     flexShrink: 1,
   },
   statusBadge: {
+    position: 'absolute',
+    top: -8,
+    right: spacing.md,
+    zIndex: 1,
+    elevation: 1,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 3,
     borderRadius: radius.xl,
   },
   statusBadgeActive: {
@@ -207,6 +227,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primarySoft,
     color: colors.dark,
     fontSize: 12,
+    fontFamily: 'Inter',
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: radius.xl,
@@ -217,12 +238,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.md,
     borderRadius: radius.xl,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.sm,
     paddingLeft: spacing.md,
     paddingRight: spacing.sm,
   },
   statusBandResponded: {
-    backgroundColor: '#e8edff',
+    backgroundColor: colors.successLight,
   },
   statusBandEmpty: {
     backgroundColor: '#fff7ed',
@@ -233,8 +254,8 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   statusBandTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontFamily: 'Inter-Bold',
     color: colors.dark,
   },
   statusBandTitleResponded: {
@@ -242,26 +263,24 @@ const styles = StyleSheet.create({
   },
   statusBandSubtitle: {
     fontSize: 12,
+    fontFamily: 'Inter',
     color: colors.grey,
-    marginTop: 1,
   },
   responseBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 42,
+    minWidth: 36,
     height: 30,
     paddingHorizontal: 10,
     borderRadius: 15,
     backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: '#c7d2fe',
   },
   clockCircle: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: BOOST_ORANGE,
+    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
